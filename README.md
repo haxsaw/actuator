@@ -8,7 +8,7 @@ actuator seeks to provide an end-to-end set of tools for spinning up systems in 
 It does this by providing facilities that allow a system to be described as a collection of *models* in a declarative fashion directly in Python code, in a manner similar to various declarative systems for ORMs (Elixir being a prime example). Being in Python, these models can be very flexible and dynamic in their content, and can be integrated with other Python packages. Also, since the models are in Python, they can be authored and browsed in existing IDEs, and debugged with standard tools. And while each model provides capabilties on their own, they can be inter-related to not only exchange information, but to allow instances of a model to customized to a particular set of circumstances.
 
 ### A simple example
-The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes to the infra in a declarative fashion. This example will use components from the Openstack binding to actuator.
+The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components from the [Openstack](http://www.openstack.org/) binding to actuator.
 
 ```python
 from actuator import InfraSpec
@@ -70,7 +70,7 @@ class MultipleServers(InfraSpec):
   fip = FloatingIP("actuator_ex2_float", lambda ctx:ctx.infra.server,
                    lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
   #
-  #finally, declare the workers MultiComponent
+  #finally, declare the workers' MultiComponent
   #
   workers = MultiComponent(Server("worker", "Ubuntu 13.10", "m1.small",
                                   nics=[lambda ctx: ctx.infra.net]))
@@ -104,7 +104,7 @@ worker_4
 >>>
 ```
 
-If you require a group of different resources to be provisioned together, the MultiComponentGroup() wrapper provides a way define a template of multiple resources that will be provioned together.
+If you require a group of different resources to be provisioned together, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
 
 ```python
 from actuator import MultiComponentGroup, MultiComponent
@@ -143,10 +143,32 @@ class MultipleGroups(InfraSpec):
                                           
 ```
 
-This model will behave similar to the MultiServer model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are legal:
+This model will behave similarly to the MultiServer attribute in the previous model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
+
+```python
+>>> inst3 = MultipleGroups("three")
+>>> len(inst3.cluster)
+0
+>>> for region in ("london", "ny", "tokyo"):
+...     _ = inst3.cluster[region]
+...
+>>> len(inst3.cluster)
+3
+>>> inst3.cluster["ny"].leader.iface0.addr0
+<actuator.infra.InfraModelInstanceReference object at 0x02A51970>
+>>> inst3.cluster["ny"].workers[0]
+<actuator.infra.InfraModelInstanceReference object at 0x02A56170>
+>>> inst3.cluster["ny"].workers[0].iface0.addr0
+<actuator.infra.InfraModelInstanceReference object at 0x02A561B0>
+>>> len(inst3.cluster["ny"].workers)
+1
+>>>
+```
+
+Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
 
 
-#### Model references and MultiComponents
+#### Model references
 Once a model class has been defined, you can create expressions that refer to attributes of components in the class:
 
 ```python
@@ -170,4 +192,4 @@ Likewise, you can create references to attributes on instances of the model clas
 >>>
 ```
 
-All of these expression result in some kind of reference object
+All of these expression result in a reference object, either a model reference or a model instance reference. Model references
