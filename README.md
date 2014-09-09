@@ -109,22 +109,6 @@ If you require a group of different resources to be provisioned together, the Mu
 ```python
 from actuator import MultiComponentGroup, MultiComponent
 
-class CIDRgen(object):
-  "utility that generates a new subnet CIDR string for each component"
-  def __init__(self, cidr_pattern):
-    self.count = 0
-    self.cidr_pattern = cidr_pattern
-    self.allocated_subnets = {}
-    
-  def __call__(self, ctx):
-    next_cidr = self.allocated_subnets.get(ctx.comp)
-    if next_cidr is None:
-      next_cidr = self.cidr_pattern % self.count
-      self.count += 1
-      self.allocated_subnets[ctx.comp] = next_cidr
-    return next_cidr
-
-
 class MultipleGroups(InfraSpec):
   #
   #First, declare the common networking components
