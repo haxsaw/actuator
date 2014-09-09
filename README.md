@@ -72,9 +72,95 @@ class MultipleServers(InfraSpec):
   #
   #finally, declare the workers MultiComponent
   #
-  workers = MultiComponent(Server("foreman", "Ubuntu 13.10", "m1.small",
+  workers = MultiComponent(Server("worker", "Ubuntu 13.10", "m1.small",
                                   nics=[lambda ctx: ctx.infra.net]))
 ```
+
+The *workers* MultiComponent works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template component is created:
+
+```python
+>>> inst2 = MultipleServers("two")
+>>> len(inst2.workers)
+0
+>>> for i in range(5):
+...     _ = inst2.workers[i]
+...
+>>> len(inst2.workers)
+5
+>>>
+```
+
+Keys are always coerced to strings, and for each new instance of the MultiComponent template that is created, the original name is appened with '_{key}' to make each instance distinct.
+
+```python
+>>> for w in inst2.workers.instances().values():
+...     print w.logicalName
+...
+worker_1
+worker_0
+worker_3
+worker_2
+worker_4
+>>>
+```
+
+If you require a group of different resources to be provisioned together, the MultiComponentGroup() wrapper provides a way define a template of multiple resources that will be provioned together.
+
+```python
+from actuator import MultiComponentGroup, MultiComponent
+
+class CIDRgen(object):
+  "utility that generates a new subnet CIDR string for each component"
+  def __init__(self, cidr_pattern):
+    self.count = 0
+    self.cidr_pattern = cidr_pattern
+    self.allocated_subnets = {}
+    
+  def __call__(self, ctx):
+    next_cidr = self.allocated_subnets.get(ctx.comp)
+    if next_cidr is None:
+      next_cidr = self.cidr_pattern % self.count
+      self.count += 1
+      self.allocated_subnets[ctx.comp] = next_cidr
+    return next_cidr
+
+
+class MultipleGroups(InfraSpec):
+  #
+  #First, declare the common networking components
+  #
+  net = Network("actuator_ex3_net")
+  subnet = Subnet("actuator_ex3_subnet", lambda ctx: ctx.infra.net, "192.168.23.0/24",
+                  dns_nameservers=['8.8.8.8'])
+  router = Router("actuator_ex3_router")
+  gateway = RouterGateway("actuator_ex3_gateway", lambda ctx:ctx.infra.router,
+                          "external")
+  rinter = RouterInterface("actuator_ex3_rinter", lambda ctx:ctx.infra.router,
+                           lambda ctx:ctx.infra.subnet)
+  #
+  #now declare the "foreman"; this will be the only server the outside world can
+  #reach, and it will pass off work requests to the leaders of clusters. It will need a
+  #floating ip for the outside world to see it
+  #
+  foreman = Server("foreman", "Ubuntu 13.10", "m1.small",
+                    nics=[lambda ctx: ctx.infra.net])
+  fip = FloatingIP("actuator_ex3_float", lambda ctx:ctx.infra.server,
+                   lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
+  #
+  #finally, declare a "cluster"; a leader that coordinates the workers in the
+  #cluster, which operate under the leader's direction
+  #
+  cluster = MultiComponentGroup("cluster",
+                                leader=Server("leader", "Ubuntu 13.10", "m1.small",
+                                              nics=[lambda ctx:ctx.infra.net]),
+                                workers=MultiComponent(Server("cluster_node", "Ubuntu 13.10",
+                                                          "m1.small",
+                                                          nics=[lambda ctx:ctx.infra.net])))
+                                          
+```
+
+This model will behave similar to the MultiServer model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are legal:
+
 
 #### Model references and MultiComponents
 Once a model class has been defined, you can create expressions that refer to attributes of components in the class:
