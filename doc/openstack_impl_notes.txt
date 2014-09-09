@@ -1,0 +1,24 @@
+See:
+https://www.youtube.com/watch?v=EPZPzXSypl4&feature=youtu.be
+
+packages used:
+python-novaclient
+python-neutronclient
+ipaddress
+networkx
+Testing support packages:
+fake-factory (Faker)
+nose
+coverage
+
+
+Creation order:
+Networks (None)
+Floating IPs (None)
+Routers (Networks)
+Security Groups(a), Key Pairs(b)
+Security Group Rules (Security Groups <)
+
+
+Server
+Port (Server, Networks <)
