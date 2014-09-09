@@ -61,7 +61,7 @@ class MultipleServers(InfraSpec):
   rinter = RouterInterface("actuator_ex2_rinter", lambda ctx:ctx.infra.router,
                            lambda ctx:ctx.infra.subnet)
   
-  #now declear the "foreman" this will be the only server the outside world can
+  #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the workers. It will need a
   #floating ip for the outside world to see it
   #
