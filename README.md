@@ -49,7 +49,7 @@ If you require a group of identical components to be created in a model, the Mul
 from actuator import MultiComponent
 
 class MultipleServers(InfraSpec):
-  
+  #
   #First, declare the common networking components
   #
   net = Network("actuator_ex2_net")
@@ -60,7 +60,7 @@ class MultipleServers(InfraSpec):
                           "external")
   rinter = RouterInterface("actuator_ex2_rinter", lambda ctx:ctx.infra.router,
                            lambda ctx:ctx.infra.subnet)
-  
+  #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the workers. It will need a
   #floating ip for the outside world to see it
@@ -69,8 +69,9 @@ class MultipleServers(InfraSpec):
                     nics=[lambda ctx: ctx.infra.net])
   fip = FloatingIP("actuator_ex2_float", lambda ctx:ctx.infra.server,
                    lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
-  
+  #
   #finally, declare the workers MultiComponent
+  #
   workers = MultiComponent(Server("foreman", "Ubuntu 13.10", "m1.small",
                                   nics=[lambda ctx: ctx.infra.net]))
 ```
