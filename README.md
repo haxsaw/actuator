@@ -5,10 +5,10 @@ Actuator allows you to use Python to declaratively describe system infra, config
 
 1. [Intro](#intro)
 2. [Requirements](#requirements)
-  1. Python version
-  2. Core packages
-  3. Cloud support
-  4. Testing with nose
+  1. [Python version](#python)
+  2. [Core packages](#core)
+  3. [Cloud support](#cloud)
+  4. [Testing with nose](#testing)
 3. [Overview](#overview) (as close to a tl;dr that's still meaningful)
 4. Infra Models
 5. Namespace Models
@@ -38,18 +38,18 @@ Actuator uses a Python *class* as the basis for defining a model, and the class 
 Actuator models can be related to each other so that their structure and data can inform and sometimes drive the content of other models.
 
 ## <a name="requirements">Requirements</a>
-**Python version**
+**<a name="python">Python version</a>**
 
 Actuator has been developed against Python 2.7. Support for 3.x will come later.
 
-**Core packages**
+**<a name="core">Core packages</a>**
 
 Actuator requires the following packages:
 
   - [networkx](https://pypi.python.org/pypi/networkx), 1.9 minimum
   - [faker](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
 
-**Cloud support**
+**<a name="cloud">Cloud support</a>**
 
 Cloud support modules are only required for the cloud systems you wish to provision against
 
@@ -58,7 +58,7 @@ Openstack
   - [python-neutronclient](https://pypi.python.org/pypi/python-neutronclient), 2.3.7 minimum
   - [ipaddress](https://pypi.python.org/pypi/ipaddress), 1.0.6 minimum
 
-**Testing with nose**
+**<a name="testing">Testing with nose</a>**
   - [nose](https://pypi.python.org/pypi/nose)
   - [coverage](https://pypi.python.org/pypi/coverage)
 
