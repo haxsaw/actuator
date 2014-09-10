@@ -1,14 +1,27 @@
 actuator
 ========
 
-Use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
+Actuator allows you to use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
 
+1. [Intro](#intro)
+2. Requirements
+  1. Python version
+  2. Core packages
+  3. Cloud support
+  4. Testing with nose
+3. tl;dr
+4. Infra Models
+5. Namespace Models
+6. Configuration Moodels
+7. 
+
+## <a name="intro">Intro</a>
 actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, configuring it for the software that is to be run, and then executing that system's code.
 
 It does this by providing facilities that allow a system to be described as a collection of *models* in a declarative fashion directly in Python code, in a manner similar to various declarative systems for ORMs (Elixir being a prime example). Being in Python, these models can be very flexible and dynamic in their content, and can be integrated with other Python packages. Also, since the models are in Python, they can be authored and browsed in existing IDEs, and debugged with standard tools. And while each model provides capabilties on their own, they can be inter-related to not only exchange information, but to allow instances of a model to customized to a particular set of circumstances.
 
 ### A simple example
-The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components from the [Openstack](http://www.openstack.org/) binding to actuator.
+The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
 
 ```python
 from actuator import InfraSpec
