@@ -15,6 +15,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   3. [Configuration Model](#ov_configmodel)
   4. [Execution Model](#ov_execmodel)
 4. [Infra Models](#inframodels)
+  1. [A simple Openstack example](#simple_openstack_example)
 5. Namespace Models
 6. Configuration Models
 7. Execution Models
@@ -96,7 +97,7 @@ As may have been guessed, the key model in actuator is the namespace model, as i
 
 Although the namespace model is the one that is central to the models in actuator, it
 
-### A simple example
+### <a name="simple_openstack_example">A simple Openstack example</a>
 The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
 
 ```python
