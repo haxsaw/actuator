@@ -1,14 +1,106 @@
 actuator
 ========
 
-Use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
+Actuator allows you to use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
 
-actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, configuring it for the software that is to be run, and then executing that system's code.
+1. [Intro](#intro)
+2. [Requirements](#requirements)
+  1. [Python version](#python)
+  2. [Core packages](#core)
+  3. [Cloud support](#cloud)
+  4. [Testing with nose](#testing)
+3. [Overview](#overview) (as close to a tl;dr that's still meaningful)
+  1. [Infra Model](#ov_inframodel)
+  2. [Namespace Model](#ov_namespacemodel)
+  3. [Configuration Model](#ov_configmodel)
+  4. [Execution Model](#ov_execmodel)
+4. [Infra Models](#inframodels)
+  1. [A simple Openstack example](#simple_openstack_example)
+  2. [Multiple Components](#multi_components)
+  3. [Component Groups](#component_groups)
+5. Namespace Models
+6. Configuration Models
+7. Execution Models
+8. Roadmap
 
-It does this by providing facilities that allow a system to be described as a collection of *models* in a declarative fashion directly in Python code, in a manner similar to various declarative systems for ORMs (Elixir being a prime example). Being in Python, these models can be very flexible and dynamic in their content, and can be integrated with other Python packages. Also, since the models are in Python, they can be authored and browsed in existing IDEs, and debugged with standard tools. And while each model provides capabilties on their own, they can be inter-related to not only exchange information, but to allow instances of a model to customized to a particular set of circumstances.
+## <a name="intro">Intro</a>
+**Current status**
+- **10 Sep 2014:** actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable.
 
-### A simple example
-The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components from the [Openstack](http://www.openstack.org/) binding to actuator.
+Actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, defining the names that govern operation, configuring the infra for the software that is to be run, and then executing that system's code on the configured infra.
+
+It does this by providing facilities that allow a system to be described as a collection of *models* in a declarative fashion directly in Python code, in a manner similar to various declarative systems for ORMs (Elixir being a prime example). Being in Python, these models:
+
+- can be very flexible and dynamic in their composition
+- can be integrated with other Python packages
+- can be authored and browsed in existing IDEs
+- can be debugged with standard tools
+- can be used in a variety of ways
+- and can be factored into multiple modules of reusable sets of declarative components
+
+And while each model provides capabilties on their own, they can be inter-related to not only exchange information, but to allow instances of a model to tailor the content of other models.
+
+Actuator uses a Python *class* as the basis for defining a model, and the class serves as a logical description of the item being modeled; for instance a collection of infrastructure components for a system. These model classes can have both static and dynamic aspects, and can themselves be easily created within a factory function to make the classes' content highly variable.
+
+Actuator models can be related to each other so that their structure and data can inform and sometimes drive the content of other models.
+
+## <a name="requirements">Requirements</a>
+###<a name="python">Python version</a>
+
+Actuator has been developed against Python 2.7. Support for 3.x will come later.
+
+###<a name="core">Core packages</a>
+
+Actuator requires the following packages:
+
+  - [networkx](https://pypi.python.org/pypi/networkx), 1.9 minimum
+  - [faker](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
+
+###<a name="cloud">Cloud support</a>
+
+Cloud support modules are only required for the cloud systems you wish to provision against
+
+####Openstack
+  - [python-novaclient](https://pypi.python.org/pypi/python-novaclient), 2.18.1 minimum
+  - [python-neutronclient](https://pypi.python.org/pypi/python-neutronclient), 2.3.7 minimum
+  - [ipaddress](https://pypi.python.org/pypi/ipaddress), 1.0.6 minimum
+
+###<a name="testing">Testing with nose</a>
+  - [nose](https://pypi.python.org/pypi/nose)
+  - [coverage](https://pypi.python.org/pypi/coverage)
+
+## <a name="overview">Overview</a>
+
+Actuator splits the modeling space into four parts:
+
+###<a name="ov_inframodel">Infra Model</a>
+
+The *infra model*, established with a subclass of **InfraSpec**, defines all the cloud-provisionable infrastructure components of a system and their inter-relationships. Infra models can have fixed components that are always provisioned with each instance of the model class, as well as variable components that allow multiple copies of components to be easily created on an instance by instance basis. The infra model also has facilities to define groups of components that can be created as a whole, and an arbitrary number of copies of these groups can be created for each instance. References into the infra model can be held by other models, and these references can be subsequently evaluated against an instance of the infra model to extract data from that particular instance. For example, a namespace model may need the IP address from a particular server in an infra model, and so the namespace model may hold a reference into the infra model for the IP address attribute that yields the actual IP address of a provisioned server when an instance of that infra model is provisioned.
+
+###<a name="ov_namespacemodel">Namespace Model</a>
+
+The *namespace model*, established with a subclass of **NamespaceSpec**, defines a hierarchical namespace which defines all the names that are important to the run-time components of a system. Names in the namespace can be used for a variety of purposes, such as setting up environment variables, or establishing name-value pairs for processing template files such as scripts or properties files. The names in the namespace are organized into system components which map onto the executable software in a system, and each system component's namespace is composed of any names specific to that component, plus the names that are defined higher up in the namespace hierarchy. Values for the names can be baked into the model, supplied at model class instantiation, by setting values on the model class instnace, or can be acquired by resolving references to other models such as the infra model.
+
+###<a name="ov_configmodel">Configuration Model</a>
+
+The *configuration model*, established with a subclass of **ConfigSpec**, defines all the tasks to perform on the system components' infrastructure that make them ready to run the system's executables. The configuration model defines tasks to be performed on the logical system components of the namespace model, which in turn inidicates what infrastructure is involved in the configuration tasks. The configuration model also captures task dependencies so that the configuration tasks are all performed in the proper order.
+
+###<a name="ov_execmodel">Execution Model</a>
+
+The *execution model*, established with a subclass of **ExecutionSpec**, defines the actual processes to run for each system component named in the namespace model. Like with the configuration model, dependencies between the executables can be expressed so that a particular startup order can be enforced.
+
+Each model can be built and used independently, but it is the inter-relationships between the models that give actuator its representational power.
+
+Actuator then provides a number of support objects that can take instances of these models and processes their informantion, turning it into actions in the cloud. So for instance, a provisioner can take an infra model instance and manage the process of provisioning the infra it describes, and another can marry that instance with a namespace to fully populate a namespace model instance so that the configurator can carry out configuration tasks, and so on.
+
+As may have been guessed, the key model in actuator is the namespace model, as it serves as the focal point to tie all the other models together.
+
+##<a name="inframodels">Infra models</a>
+
+Although the namespace model is the one that is central to the models in actuator, it
+
+### <a name="simple_openstack_example">A simple Openstack example</a>
+The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
 
 ```python
 from actuator import InfraSpec
@@ -17,11 +109,7 @@ from actuator.provisioners.openstack.components import (Server, Network, Subnet,
                                                          RouterGateway, RouterInterface)
                                                          
 class SingleOpenstackServer(InfraSpec):
-  server = Server("actuator1", "Ubuntu 13.10", "m1.small",
-                  nics=[lambda ctx: ctx.infra.net])
   net = Network("actuator_ex1_net")
-  fip = FloatingIP("actuator_ex1_float", lambda ctx:ctx.infra.server,
-                   lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
   subnet = Subnet("actuator_ex1_subnet", lambda ctx: ctx.infra.net, "192.168.23.0/24",
                   dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex1_router")
@@ -29,9 +117,13 @@ class SingleOpenstackServer(InfraSpec):
                           "external")
   rinter = RouterInterface("actuator_ex1_rinter", lambda ctx:ctx.infra.router,
                            lambda ctx:ctx.infra.subnet)
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small",
+                  nics=[lambda ctx: ctx.infra.net])
+  fip = FloatingIP("actuator_ex1_float", lambda ctx:ctx.infra.server,
+                   lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
 ```
 
-The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note that use of `lambdas` for some of the arguments; this is how actuator defers evaluation of an argument until the needed reference is defined; more on this below.
+The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note that use of `lambdas` for some of the arguments; this is how actuator defers evaluation of an argument until the needed reference is defined; more on this later.
 
 Instances of the class (and hence the model) are then created, and the instance is given to a provisioner which inspects the model instance and performs the necessary provsioning actions in the proper order.
 
@@ -42,7 +134,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
-#### Multi components
+### <a name="multi_components">Multiple components</a>
 If you require a group of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
 
 ```python
@@ -104,6 +196,8 @@ worker_4
 >>>
 ```
 
+### <a name="component_groups">Component Groups</a>
+
 If you require a group of different resources to be provisioned together, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
 
 ```python
@@ -137,13 +231,14 @@ class MultipleGroups(InfraSpec):
   cluster = MultiComponentGroup("cluster",
                                 leader=Server("leader", "Ubuntu 13.10", "m1.small",
                                               nics=[lambda ctx:ctx.infra.net]),
-                                workers=MultiComponent(Server("cluster_node", "Ubuntu 13.10",
+                                workers=MultiComponent(Server("cluster_node",
+                                                          "Ubuntu 13.10",
                                                           "m1.small",
                                                           nics=[lambda ctx:ctx.infra.net])))
                                           
 ```
 
-This model will behave similarly to the MultiServer attribute in the previous model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
+The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
 
 ```python
 >>> inst3 = MultipleGroups("three")
@@ -165,7 +260,7 @@ This model will behave similarly to the MultiServer attribute in the previous mo
 >>>
 ```
 
-Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
+This model will behave similarly to the MultiServer attribute in the previous model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
 
 
 #### Model references
