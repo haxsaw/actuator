@@ -16,6 +16,8 @@ Actuator allows you to use Python to declaratively describe system infra, config
   4. [Execution Model](#ov_execmodel)
 4. [Infra Models](#inframodels)
   1. [A simple Openstack example](#simple_openstack_example)
+  2. [Multiple Components](#multi_components)
+  3. [Component Groups](#component_groups)
 5. Namespace Models
 6. Configuration Models
 7. Execution Models
@@ -132,7 +134,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
-#### Multi components
+### <a name="multi_components">Multiple components</a>
 If you require a group of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
 
 ```python
@@ -194,6 +196,8 @@ worker_4
 >>>
 ```
 
+### <a name="component_groups">Component Groups</a>
+
 If you require a group of different resources to be provisioned together, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
 
 ```python
@@ -227,13 +231,14 @@ class MultipleGroups(InfraSpec):
   cluster = MultiComponentGroup("cluster",
                                 leader=Server("leader", "Ubuntu 13.10", "m1.small",
                                               nics=[lambda ctx:ctx.infra.net]),
-                                workers=MultiComponent(Server("cluster_node", "Ubuntu 13.10",
+                                workers=MultiComponent(Server("cluster_node",
+                                                          "Ubuntu 13.10",
                                                           "m1.small",
                                                           nics=[lambda ctx:ctx.infra.net])))
                                           
 ```
 
-This model will behave similarly to the MultiServer attribute in the previous model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
+The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
 
 ```python
 >>> inst3 = MultipleGroups("three")
@@ -255,7 +260,7 @@ This model will behave similarly to the MultiServer attribute in the previous mo
 >>>
 ```
 
-Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
+This model will behave similarly to the MultiServer attribute in the previous model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
 
 
 #### Model references
