@@ -28,7 +28,28 @@ def with_infra_options(cls, *args, **kwargs):
         if k not in _recognized_options:
             raise InfraException("Unrecognized InfraSpec option: %s" % k)
         opts_dict[k] = v
+
+
+class ContextExpr(object):
+    def __init__(self, *path):
+        self._path = path
         
+    def __getattr__(self, item):
+        if item[0]!='_':
+            return ContextExpr(item,*self._path)
+        else:
+            return super(ContextExpr, self).__getattribute__(item)
+        
+    def _get_path(self):
+        return self._path
+        
+    def __call__(self, ctx):
+        ref = ctx
+        for p in reversed(self._path):
+            ref = getattr(ref, p)
+        return ref
+        
+ctxt = ContextExpr()
         
 class CallContext(object):
     def __init__(self, infra_inst, component):
@@ -63,7 +84,7 @@ class InfraComponentBase(object):
     def _set_infra_instance(self, inst):
         self._infra_instance = inst
         
-    def container(self):
+    def _container(self):
         my_ref = AbstractModelReference.find_ref_for_obj(self)
         container = None
         while my_ref and my_ref._parent:
@@ -73,6 +94,8 @@ class InfraComponentBase(object):
                 break
             my_ref = my_ref._parent
         return container
+    
+    container = property(_container)
         
     def _get_arg_value(self, arg):
         if callable(arg):
@@ -207,7 +230,7 @@ class AbstractModelReference(object):
                 theobj = object.__getattribute__(ga("_obj"), name)
             if hasattr(theobj, attrname):
                 value = getattr(theobj, attrname)
-                if not callable(value) and not attrname.startswith("_"):
+                if not callable(value) and not attrname.startswith("_") and not isinstance(value, AbstractModelReference):
                     #then wrap it with a new reference object
                     value = ga("__class__")(attrname, theobj, self)
             else:

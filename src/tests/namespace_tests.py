@@ -294,7 +294,7 @@ def test26():
 #         grid = MultiComponentGroup("grid",
 #                                    handler=Server("handler", mem="8GB"),
 #                                    compute=Server("compute", mem="16GB"))
-#   
+#    
 #     class NS27(NamespaceSpec):
 #         with_variables(Var("APP_PORT", "8080"),
 #                        Var("QUERY_PORT", "8081"),
@@ -302,7 +302,7 @@ def test26():
 #                        Var("APP_HOST", Infra27.app.provisionedName),
 #                        Var("QUERY_HOST", Infra27.query[0]))
 #         app_server = Component("app_server", host_ref=Infra27.app)
-#   
+#    
 #     infra = Infra27("infra26")
 #     env = NS27()
 #     env.add_override(Var("QUERY_HOST", "staticHostName"))
