@@ -3,7 +3,7 @@ Created on 4 Jun 2014
 
 @author: tom
 '''
-from actuator import InfraSpec, MultiComponent, MultiComponentGroup
+from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup
 from actuator.infra import InfraModelReference, InfraModelInstanceReference, InfraComponentBase
 from actuator.provisioners.example_components import Server, Database
 
@@ -334,11 +334,11 @@ def test75():
     assert inst.grid[1].value().__class__ is Server
     
 def test76():
-    assert MyInfra.composite.value().__class__ is MultiComponentGroup
+    assert MyInfra.composite.value().__class__ in (MultiComponentGroup, MultiComponent)
     
 def test77():
     inst = MyInfra("test77")
-    assert inst.composite.value().__class__ is MultiComponentGroup
+    assert inst.composite.value().__class__ in (MultiComponentGroup, MultiComponent)
     
 def test78():
     modrefs = [MyInfra.composite,
@@ -564,7 +564,35 @@ def test118():
         assert True
     except Exception, e:
         assert False, "got an unexpected exception: '%s'" % e.message
+        
+def test119():
+    class CGTest1(InfraSpec):
+        group = ComponentGroup("group",
+                               reqhandler=Server("reqhandler", mem="8GB"),
+                               db=Database("db"))
+    inst = CGTest1("cgtest1")
+    assert inst.group.reqhandler
     
+def test120():
+    class CGTest2(InfraSpec):
+        group = ComponentGroup("group",
+                               reqhandler=Server("reqhandler", mem="8GB"),
+                               grid=MultiComponent(Server("grid", mem="8GB")))
+    inst = CGTest2("cgt2")
+    _ = inst.group.grid[1]
+    assert inst.group.grid[1] is inst.group.grid[1]
+    
+def test121():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 grid=MultiComponent(Server("grid", mem="8GB")))
+    class CGTest3(InfraSpec):
+        overlord = Server("overlord", mem="8GB")
+        groups = MultiComponent(group_thing)
+        
+    inst = CGTest3("cgt3")
+    _ = inst.groups[1].grid[2]
+    assert inst.groups[1].grid[2].value() is not inst.groups[2].grid[1].value()
     
 
 def do_all():

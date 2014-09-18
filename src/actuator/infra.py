@@ -124,7 +124,7 @@ class InfraComponentBase(object):
         container = None
         while my_ref and my_ref._parent:
             value = my_ref._parent.value()
-            if isinstance(value, (MultiBase, InfraSpec, ComponentGroupBase)):
+            if isinstance(value, (MultiComponent, InfraSpec, ComponentGroup)):
                 container = my_ref._parent
                 break
             my_ref = my_ref._parent
@@ -193,25 +193,11 @@ class InfraSpecMeta(type):
         new_class = super(InfraSpecMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(new_class)
         new_class._class_refs_for_provisionables()
-        for component in components.values():
-            component._validate_args(new_class)
-#             args, kwargs = component.get_init_args()
-#             for i, arg in enumerate(args):
-#                 if isinstance(arg, ContextExpr):
-#                     context = CallContext(new_class, component)
-#                     try:
-#                         _ = arg(context)
-#                     except Exception, e:
-#                         raise InfraException("InfraSpecMeta failed; argument %d of %s failed to eval with: %s" %
-#                                              (i, arg.logicalName, e.message))
-#             for kwname, kwvalue in kwargs.items():
-#                 if isinstance(kwvalue, ContextExpr):
-#                     context = CallContext(new_class, kwvalue)
-#                     try:
-#                         _ = arg(context)
-#                     except Exception, e:
-#                         raise InfraException("InfraSpecMeta failed; argument '%s' of %s failed to eval with: %s" %
-#                                              (kwname, kwvalue.logicalName, e.message))
+        #
+        #@FIXME: The validation here has been suspended as there are some deeper
+        #design problems that have to be sorted out to fix it
+#         for component in components.values():
+#             component._validate_args(new_class)
         return new_class
     
     def __getattribute__(cls, attrname):  #  @NoSelf
@@ -299,7 +285,7 @@ class AbstractModelReference(object):
         key = KeyAsAttr(key)
         ga = super(AbstractModelReference, self).__getattribute__
         theobj = object.__getattribute__(ga("_obj"), ga("_name"))
-        if not isinstance(theobj, MultiBase):
+        if not isinstance(theobj, MultiComponent):
             raise TypeError("%s object doesn't support keyed access" % self.__class__)
         if hasattr(theobj, "__getitem__"):
             value = getattr(theobj, "__getitem__")
@@ -366,12 +352,12 @@ class _ComputeProvisionables(object):
                     all_refs.add(my_ref[k])
                 else:
                     all_refs.add(getattr(self if my_ref is None else my_ref, k))
-            elif isinstance(self, MultiBase):
+            elif isinstance(self, MultiComponent):
                 ref = my_ref[k]
                 all_refs |= v.refs_for_provisionables(my_ref=ref)
-            elif isinstance(self, ComponentGroupBase):
-                if not isinstance(v, _ComputeProvisionables):
-                    continue
+            elif isinstance(self, ComponentGroup):
+#                 if not isinstance(v, _ComputeProvisionables):
+#                     continue
                 ref = getattr(my_ref, k)
                 all_refs |= v.refs_for_provisionables(my_ref=ref)
             elif isinstance(v, _ComputeProvisionables):
@@ -384,13 +370,43 @@ class _ComputeProvisionables(object):
         raise TypeError("Derived class must implement _prov_source")
     
 
-class MultiBase(InfraComponentBase, _ComputeProvisionables):
-    def __init__(self, name):
-        super(MultiBase, self).__init__(name)
-        self._instances = {}
+class ComponentGroup(InfraComponentBase, _ComputeProvisionables):
+    def __init__(self, logicalName, **kwargs):
+        super(ComponentGroup, self).__init__(logicalName)
+        clone_cache = {}
+        for k, v in kwargs.items():
+            if isinstance(v, InfraComponentBase):
+                setattr(self, k, v.clone(clone_cache))
+            else:
+                raise TypeError("arg %s has a value that isn't a kind of InfraComponentBase" % k)
+        self._kwargs = kwargs
+        
+    def _prov_source(self):
+        return {k:getattr(self, k) for k in self._kwargs}
+    
+    def get_init_args(self):
+        return ((self.logicalName,), self._kwargs)
         
     def _validate_args(self, referenceable):
-        super(MultiBase, self)._validate_args(referenceable)
+        super(ComponentGroup, self)._validate_args(referenceable)
+#         for
+    
+
+class MultiComponent(InfraComponentBase, _ComputeProvisionables):
+    def __init__(self, templateComponent):
+        super(MultiComponent, self).__init__("")
+        self.templateComponent = templateComponent
+        self._instances = {}
+        
+    def get_prototype(self):
+        return self.templateComponent
+        
+    def get_init_args(self):
+        args = (self.templateComponent.clone({}),)
+        return (args, {})
+        
+    def _validate_args(self, referenceable):
+        super(MultiComponent, self)._validate_args(referenceable)
         proto = self.get_prototype()
         proto._validate_args(referenceable)
         
@@ -408,9 +424,6 @@ class MultiBase(InfraComponentBase, _ComputeProvisionables):
 
     def _prov_source(self):
         return dict(self._instances)
-    
-    def get_prototype(self):
-        raise TypeError("Derived class must implement, get_prototype()")
     
     def get_instance(self, key):
         inst = self._instances.get(key)
@@ -491,7 +504,7 @@ class InfraSpec(_ComputeProvisionables):
                     all_refs.add(my_ref[k])
                 else:
                     all_refs.add(getattr(cls if my_ref is None else my_ref, k))
-            elif isinstance(v, MultiBase):
+            elif isinstance(v, MultiComponent):
                 ref = getattr(cls, k)
                 all_refs |= v.refs_for_provisionables(my_ref=ref)
             elif isinstance(v, _ComputeProvisionables):
@@ -519,62 +532,8 @@ class InfraSpec(_ComputeProvisionables):
         return ref if ref != self else None
     
     
-class MultiComponent(MultiBase):
-    def __init__(self, templateComponent):
-        super(MultiComponent, self).__init__(None)
-        self.templateComponent = templateComponent
-        
-    def get_prototype(self):
-        return self.templateComponent
-        
-    def get_init_args(self):
-        args = (self.templateComponent.clone({}),)
-        return (args, {})
-        
-        
-class ComponentGroupBase(InfraComponentBase, _ComputeProvisionables): pass
-
-
-class MultiComponentGroup(MultiBase):
-    def __init__(self, logicalName, **kwargs):
-        super(MultiComponentGroup, self).__init__(logicalName)
-        self.kwargs = kwargs
-        class ComponentGroup(ComponentGroupBase):
-            ldict = locals()
-            clone_cache = {}
-            for k, v in kwargs.items():
-                ldict[k] = v.clone(clone_cache)
-            del ldict, k, v, clone_cache
-            
-#             def _validate_args(self, referenceable):
-#                 super(ComponentGroup, self)._validate_args(referenceable)
-#                 for _, v in self.__class__.__dict__.items():
-#                     if isinstance(v, InfraComponentBase):
-#                         v._validate_args(referenceable)
-            
-            def __init__(self, logicalName):
-                super(ComponentGroup, self).__init__(logicalName)
-                clone_cache = {}
-                for k, v in self.__class__.__dict__.items():
-                    if isinstance(v, InfraComponentBase):
-                        setattr(self, k, v.clone(clone_cache))
-            
-            def get_init_args(self):
-                return ((self.logicalName,), {})
-            
-            def _prov_source(self):
-                return dict(self.__dict__)
-            
-            def __nonzero__(self):
-                return True
-            
-            
-        self.groupTemplate = ComponentGroup(self.logicalName)
-        self.groupClass = ComponentGroup
-        
-    def get_prototype(self):
-        return self.groupTemplate
-    
-    def get_init_args(self):
-        return ((self.logicalName,), self.kwargs)
+class MultiComponentGroup(MultiComponent):
+    def __new__(self, logicalName, **kwargs):
+        group = ComponentGroup(logicalName, **kwargs)
+        return MultiComponent(group)
     
