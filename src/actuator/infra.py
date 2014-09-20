@@ -68,7 +68,7 @@ class InfraComponentBase(object):
     def _validate_args(self, referenceable):
         """
         This method takes either an InfraSpec derived class, or an instance of such a class, and
-        determines if all arguments that are instances of ContextExpr can successfully "called"
+        determines if all arguments that are instances of ContextExpr can be successfully "called"
         with the provided "referenceable" (an object that creates some kind of model reference
         when attributes are attempted to be accessed on it). Silent return indicates that all
         args are valid, otherwise an InfraException is raised that describes what object
@@ -142,7 +142,7 @@ class InfraComponentBase(object):
             except Exception, e:
                 t, v = sys.exc_info()[:2]
                 raise InfraException("Callable arg failed with: %s, %s, %s" %
-                                     (t, v, e.message))                    
+                                     (t, v, e.message)), None, sys.exc_info()[2]
         else:
             value = arg
         return value
@@ -176,7 +176,12 @@ class InfraComponentBase(object):
         return clone
     
         
-class Provisionable(object): pass
+class Provisionable(InfraComponentBase):
+    """
+    This class serves as a marker class for any InfraComponentBase derived class as something
+    that can actually be provisioned.
+    """
+    pass
         
 
 class KeyAsAttr(str): pass
@@ -356,8 +361,6 @@ class _ComputeProvisionables(object):
                 ref = my_ref[k]
                 all_refs |= v.refs_for_provisionables(my_ref=ref)
             elif isinstance(self, ComponentGroup):
-#                 if not isinstance(v, _ComputeProvisionables):
-#                     continue
                 ref = getattr(my_ref, k)
                 all_refs |= v.refs_for_provisionables(my_ref=ref)
             elif isinstance(v, _ComputeProvisionables):
@@ -398,11 +401,19 @@ class MultiComponent(InfraComponentBase, _ComputeProvisionables):
         self.templateComponent = templateComponent
         self._instances = {}
         
+#     def refs_for_provisionables(self, my_ref=None):
+#         result = {}
+#         if isinstance(self.templateComponent, ComponentGroup):
+#             ref = my_ref.__class__("container", obj=self, parent=my_ref)
+#             result = self.templateComponent.refs_for_provisionables(my_ref=ref)
+#         return result
+        
     def get_prototype(self):
         return self.templateComponent
         
     def get_init_args(self):
-        args = (self.templateComponent.clone({}),)
+#         args = (self.templateComponent.clone({}),)
+        args = (self.templateComponent,)
         return (args, {})
         
     def _validate_args(self, referenceable):
@@ -428,12 +439,13 @@ class MultiComponent(InfraComponentBase, _ComputeProvisionables):
     def get_instance(self, key):
         inst = self._instances.get(key)
         if not inst:
-            args, kwargs = self.get_prototype().get_init_args()
+            prototype = self.get_prototype()
+            args, kwargs = prototype.get_init_args()
             #args[0] is the logicalName of the prototype
             #we form a new logical name by appending the
             #key to args[0] separated by an '_'
             logicalName = "%s_%s" % (args[0], str(key))
-            inst = self.get_prototype().get_class()(logicalName, *args[1:], **kwargs)
+            inst = prototype.get_class()(logicalName, *args[1:], **kwargs)
             self._instances[key] = inst
         return inst
     
@@ -453,6 +465,10 @@ class InfraSpec(_ComputeProvisionables):
         for k, v in ga(InfraSpecMeta._COMPONENTS).items():
             attrdict[k] = v.clone(clone_cache)
         self.provisioning_computed = False
+        
+    def validate_args(self):
+        for component in self.__class__.__dict__[InfraSpecMeta._COMPONENTS].values():
+            component._validate_args(self)
         
     def provisioning_been_computed(self):
         return self.provisioning_computed
@@ -498,15 +514,12 @@ class InfraSpec(_ComputeProvisionables):
     @classmethod
     def _class_refs_for_provisionables(cls, my_ref=None):
         all_refs = set()
-        for k, v in cls.__dict__.items():
+        for k, v in cls.__dict__[InfraSpecMeta._COMPONENTS].items():
             if isinstance(v, Provisionable):
                 if isinstance(k, KeyAsAttr):
                     all_refs.add(my_ref[k])
                 else:
                     all_refs.add(getattr(cls if my_ref is None else my_ref, k))
-            elif isinstance(v, MultiComponent):
-                ref = getattr(cls, k)
-                all_refs |= v.refs_for_provisionables(my_ref=ref)
             elif isinstance(v, _ComputeProvisionables):
                 ref = getattr(cls, k)
                 all_refs |= v.refs_for_provisionables(my_ref=ref)

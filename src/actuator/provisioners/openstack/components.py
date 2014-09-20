@@ -5,11 +5,11 @@ Created on 7 Sep 2014
 '''
 import ipaddress
 
-from actuator.infra import InfraComponentBase, Provisionable
+from actuator.infra import Provisionable
 from actuator.provisioners.core import ProvisionerException
 
 
-class _OpenstackProvisionableInfraComponent(InfraComponentBase, Provisionable):
+class _OpenstackProvisionableInfraComponent(Provisionable):
     def __init__(self, *args, **kwargs):
         super(_OpenstackProvisionableInfraComponent, self).__init__(*args, **kwargs)
         self.osid = None

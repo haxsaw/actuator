@@ -3,10 +3,10 @@ Created on 7 Sep 2014
 
 @author: tom
 '''
-from actuator.infra import InfraComponentBase, Provisionable
+from actuator.infra import Provisionable
 
 
-class Server(InfraComponentBase, Provisionable):
+class Server(Provisionable):
     def __init__(self, logicalName, **kwargs):
         super(Server, self).__init__(logicalName)
         self.provisionedName = None
@@ -17,7 +17,7 @@ class Server(InfraComponentBase, Provisionable):
         return ((self.logicalName,), self.kwargs)
     
     
-class Database(InfraComponentBase, Provisionable):
+class Database(Provisionable):
     def __init__(self, logicalName, **kwargs):
         super(Database, self).__init__(logicalName)
         self.provisionedName = None
@@ -31,7 +31,7 @@ class Database(InfraComponentBase, Provisionable):
         return ((self.logicalName,), self.kwargs)
     
     
-class Queue(InfraComponentBase, Provisionable):
+class Queue(Provisionable):
     def __init__(self, logicalName, **kwargs):
         super(Queue, self).__init__(logicalName)
         self.provisionedName = None

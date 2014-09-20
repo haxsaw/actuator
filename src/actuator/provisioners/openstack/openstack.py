@@ -242,6 +242,10 @@ class OpenstackProvisioner(BaseProvisioner):
         assert isinstance(infraspec_instance, InfraSpec)
         record = OpenstackProvisioningRecord(uuid.uuid4())
         self.workflow_sorter.sort_provisionables(infraspec_instance.provisionables())
+        infraspec_instance.refs_for_provisionables()
+        #@FIXME the above computation of refs_for_provisionables() leaves some items
+        #unable to work properly, notably finding containers.
+#         infraspec_instance.validate_args()
         
         #now do the provisioning in order
         self._provision_networks(record)
