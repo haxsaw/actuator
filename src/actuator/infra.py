@@ -13,7 +13,7 @@ class InfraException(Exception): pass
 
 
 _infra_options = "__infra_options__"
-_recognized_options = set(["default_provisioner"])
+_recognized_options = set(["long_names"])
 @ClassModifier
 def with_infra_options(cls, *args, **kwargs):
     """
@@ -28,6 +28,30 @@ def with_infra_options(cls, *args, **kwargs):
         if k not in _recognized_options:
             raise InfraException("Unrecognized InfraSpec option: %s" % k)
         opts_dict[k] = v
+
+
+@ClassModifier
+def with_infra_components(cls, *args, **kwargs):
+    """
+    This function attaches additional components onto a class object.
+
+    :param cls: a new class object
+    :param args: no positional args are recognized
+    :param kwargs: dict of names and associated components to provision; must
+        all be derived from InfraComponentBase
+    :return: None
+    """
+    components = getattr(cls, InfraSpecMeta._COMPONENTS)
+    if components is None:
+        raise InfraException("FATAL ERROR: no component collection on the class object")
+    for k, v in kwargs.items():
+        if not isinstance(v, InfraComponentBase):
+            raise InfraException("Argument %s is not derived from InfraComponentBase" % k)
+        if not isinstance(k, basestring):
+            raise InfraException("Key %s is not a string" % str(k))
+        setattr(cls, k, v)
+        components[k] = v
+    return
 
 
 class ContextExpr(object):
