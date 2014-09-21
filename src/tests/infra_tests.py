@@ -4,8 +4,8 @@ Created on 4 Jun 2014
 @author: tom
 '''
 from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup
-from actuator.infra import InfraModelReference, InfraModelInstanceReference, InfraComponentBase, ctxt,\
-    AbstractModelReference
+from actuator.infra import (InfraModelReference, InfraModelInstanceReference, InfraComponentBase, ctxt,
+                            AbstractModelReference, with_infra_components)
 from actuator.provisioners.example_components import Server, Database
 
 MyInfra = None
@@ -689,8 +689,8 @@ def test128():
         group = group_thing
         
     inst = CGTest10("cgt10")
-    inst.refs_for_provisionables()
     inst.provisionables()
+    inst.refs_for_provisionables()
     inst.group.fix_arguments()
     assert inst.group.slave.path.value() == ("reqhandler", "container", "comp")
     
@@ -750,14 +750,41 @@ def test133():
     _ = inst.provisionables()
     inst.reqhandler.fix_arguments()
     assert inst.reqhandler.mem.value() == "16GB"
-        
+
+def test134():
+    components = {"server":Server("dummy", mem="16GB"),
+                  "db":Database("db", wibble=9)}
+
+    class Test134(InfraSpec):
+        with_infra_components(**components)
+
+    inst = Test134("t134")
+    assert inst.server.mem.value() == "16GB" and inst.db.wibble.value() == 9
+
+def test135():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 slaves=MultiComponent(Server("grid", mem=ctxt.comp.container.container.reqhandler.mem)))
+    components = {"group":group_thing}
+    class Test135(InfraSpec):
+        with_infra_components(**components)
+
+    inst = Test135("t135")
+    _ = inst.group.slaves[1]
+    _ = inst.group.slaves[2]
+    inst.provisionables()
+    inst.refs_for_provisionables()
+    inst.group.fix_arguments()
+    assert inst.group.slaves[2].mem.value() == "8GB"
+
 
 def do_all():
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
-    
+
+
 if __name__ == "__main__":
     do_all()
     
