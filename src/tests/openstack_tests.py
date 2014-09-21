@@ -295,10 +295,9 @@ def test017():
 #         assert "nett" in e.message
 
 def do_all():
-    test012()
-#     for k, v in globals().items():
-#         if k.startswith("test") and callable(v):
-#             v()
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
             
 if __name__ == "__main__":
     do_all()
