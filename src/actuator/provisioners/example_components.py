@@ -3,10 +3,16 @@ Created on 7 Sep 2014
 
 @author: tom
 '''
-from actuator.infra import Provisionable
+from actuator.infra import Provisionable, ContextExpr
 
 
-class Server(Provisionable):
+class ProvisionableWithFixer(Provisionable):
+    def _fix_arguments(self, provisioner=None):
+        for k, v in self.__dict__.items():
+            setattr(self, k, self._get_arg_value(v))
+
+
+class Server(ProvisionableWithFixer):
     def __init__(self, logicalName, **kwargs):
         super(Server, self).__init__(logicalName)
         self.provisionedName = None
@@ -17,7 +23,7 @@ class Server(Provisionable):
         return ((self.logicalName,), self.kwargs)
     
     
-class Database(Provisionable):
+class Database(ProvisionableWithFixer):
     def __init__(self, logicalName, **kwargs):
         super(Database, self).__init__(logicalName)
         self.provisionedName = None
@@ -31,7 +37,7 @@ class Database(Provisionable):
         return ((self.logicalName,), self.kwargs)
     
     
-class Queue(Provisionable):
+class Queue(ProvisionableWithFixer):
     def __init__(self, logicalName, **kwargs):
         super(Queue, self).__init__(logicalName)
         self.provisionedName = None

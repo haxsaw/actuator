@@ -4,7 +4,8 @@ Created on 4 Jun 2014
 @author: tom
 '''
 from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup
-from actuator.infra import InfraModelReference, InfraModelInstanceReference, InfraComponentBase
+from actuator.infra import InfraModelReference, InfraModelInstanceReference, InfraComponentBase, ctxt,\
+    AbstractModelReference
 from actuator.provisioners.example_components import Server, Database
 
 MyInfra = None
@@ -551,6 +552,8 @@ def test117():
     assert not inst.composite[1].workers[1].handler.provisionedName
     
 def test118():
+    #this is just ensuring we throw if a component derived class  fails to
+    #implement fix_arguments()
     class MissedMethod1(InfraComponentBase):
         def __init__(self, logicalName, arg1, arg2):
             super(MissedMethod1, self).__init__(logicalName)
@@ -594,6 +597,160 @@ def test121():
     _ = inst.groups[1].grid[2]
     assert inst.groups[1].grid[2].value() is not inst.groups[2].grid[1].value()
     
+def test122():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 grid=MultiComponent(Server("grid", mem="8GB")))
+    class CGTest4(InfraSpec):
+        group = group_thing
+
+    inst1 = CGTest4("cgt4-1")
+    inst2 = CGTest4("cgt4-2")
+    assert inst1.group.reqhandler.value() is not inst2.group.reqhandler.value()
+
+def test123():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 grid=MultiComponent(Server("grid", mem="8GB")))
+    class CGTest5a(InfraSpec):
+        group = group_thing
+
+    class CGTest5b(InfraSpec):
+        group = group_thing
+
+    inst1 = CGTest5a("cgt5a-1")
+    inst2 = CGTest5b("cgt5b-2")
+    assert inst1.group.value() is not inst2.group.value()
+    
+def test124():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 grid=MultiComponent(Server("grid", mem="8GB",
+                                                            rhm=ctxt.comp.container.container.reqhandler.mem)))
+    class CGTest6(InfraSpec):
+        group = group_thing
+        
+    inst = CGTest6("ctg6")
+    inst.group.grid[0]
+    inst.group.grid[1]
+    inst.refs_for_provisionables()
+    try:
+        inst.group.fix_arguments()
+    except Exception, e:
+        assert False, "Fixing the arguments failed; %s" % e.message
+    
+def test125():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 grid=MultiComponent(Server("grid", mem="8GB",
+                                                            rhm=ctxt.comp.container.container.reqhandler.mem)))
+    class CGTest7(InfraSpec):
+        group = group_thing
+        
+    inst = CGTest7("ctg7")
+    inst.group.grid[0]
+    inst.group.grid[1]
+    inst.group.fix_arguments()
+    assert inst.group.grid[0].rhm.value() is inst.group.grid[1].rhm.value()
+
+def test126():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem))
+    class CGTest8(InfraSpec):
+        group = group_thing
+        
+    inst = CGTest8("ctg8")
+    inst.refs_for_provisionables()
+    inst.group.fix_arguments()
+    assert inst.group.slave.mem.value() == "8GB"
+
+def test127():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem))
+    class CGTest9(InfraSpec):
+        top = Server("topper", mem=ctxt.infra.group.reqhandler.mem)
+        group = group_thing
+        
+    inst = CGTest9("ctg9")
+    inst.refs_for_provisionables()
+    _ = inst.provisionables()
+    inst.top.fix_arguments()
+    inst.group.fix_arguments()
+    assert inst.top.mem.value() == "8GB"
+
+def test128():
+    group_thing = ComponentGroup("group",
+                                 reqhandler=Server("reqhandler", mem="8GB"),
+                                 slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem,
+                                              path=ctxt.comp.container.reqhandler._path))
+    class CGTest10(InfraSpec):
+        group = group_thing
+        
+    inst = CGTest10("cgt10")
+    inst.refs_for_provisionables()
+    inst.provisionables()
+    inst.group.fix_arguments()
+    assert inst.group.slave.path.value() == ("reqhandler", "container", "comp")
+    
+def test129():
+    class TestComp(InfraComponentBase):
+        pass
+    
+    class Test129(InfraSpec):
+        tc = TestComp("wibble")
+    
+    try:
+        _ = Test129("t129")
+        assert False, "The instantiation of the test class should have failed"
+    except TypeError, e:
+        assert "get_init_args" in e.message
+        
+def test130():
+    class BadRefClass(AbstractModelReference):
+        pass
+    
+    class Test130(InfraSpec):
+        ref_class = BadRefClass
+        grid = MultiComponent(Server("grid", mem="8GB"))
+        
+    inst = Test130("t130")
+    try:
+        _ = inst.grid[1]
+        assert False, "Should have raised a TypeError about _get_item_ref_obj()"
+    except TypeError, e:
+        assert "get_item_ref_obj" in e.message
+        
+def test131():
+    class Test131(InfraSpec):
+        server = Server("dummy", mem="8GB", adict={'a':1, 'b':2, 'c':3})
+    inst = Test131("t131")
+    assert inst.server.adict['a'] == 1
+    
+def test132():
+    class Test132(InfraSpec):
+        server = Server("dummy", mem="8GB", no_key=5)
+    inst = Test132("t132")
+    try:
+        inst.server.no_key[2]
+        assert False, "We were allowed to use a key on a non-collection attribute"
+    except TypeError, e:
+        assert "keyed" in e.message
+        
+def test133():
+    def tfunc(context):
+        return context.infra.server.mem
+    
+    class Test133(InfraSpec):
+        reqhandler = Server("dummy1", mem=tfunc)
+        server = Server("dummy2", mem="16GB")
+    
+    inst = Test133("t133")
+    _ = inst.provisionables()
+    inst.reqhandler.fix_arguments()
+    assert inst.reqhandler.mem.value() == "16GB"
+        
 
 def do_all():
     setup()

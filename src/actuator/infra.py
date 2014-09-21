@@ -35,13 +35,11 @@ class ContextExpr(object):
         self._path = path
         
     def __getattr__(self, item):
-        if item[0]!='_':
-            return ContextExpr(item,*self._path)
+        if item[0] != '_':
+            return ContextExpr(item, *self._path)
         else:
+            #NOTE: this line seems to actually be unreachable
             return super(ContextExpr, self).__getattribute__(item)
-        
-    def _get_path(self):
-        return self._path
         
     def __call__(self, ctx):
         ref = ctx
@@ -114,7 +112,7 @@ class InfraComponentBase(object):
         A provisioner is  passed into the the method to support any of the computations
         required by a callable.
         """
-        raise TypeError("Derived class must implement fix_arguments()")
+        raise TypeError("Derived class %s must implement fix_arguments()" % self.__class__.__name__)
          
     def _set_infra_instance(self, inst):
         self._infra_instance = inst
@@ -127,6 +125,7 @@ class InfraComponentBase(object):
             if isinstance(value, (MultiComponent, InfraSpec, ComponentGroup)):
                 container = my_ref._parent
                 break
+            #this next line appears to be unreachable
             my_ref = my_ref._parent
         return container
     
@@ -290,12 +289,12 @@ class AbstractModelReference(object):
         key = KeyAsAttr(key)
         ga = super(AbstractModelReference, self).__getattribute__
         theobj = object.__getattribute__(ga("_obj"), ga("_name"))
-        if not isinstance(theobj, MultiComponent):
-            raise TypeError("%s object doesn't support keyed access" % self.__class__)
-        if hasattr(theobj, "__getitem__"):
-            value = getattr(theobj, "__getitem__")
-        else:
+        if isinstance(theobj, MultiComponent):
             value = self.__class__(key, self._get_item_ref_obj(theobj, key), self)
+        elif hasattr(theobj, "__getitem__"):
+            value = theobj[key]
+        else:
+            raise TypeError("%s object doesn't support keyed access" % self.__class__)
         return value
     
     def value(self):
@@ -389,6 +388,11 @@ class ComponentGroup(InfraComponentBase, _ComputeProvisionables):
     
     def get_init_args(self):
         return ((self.logicalName,), self._kwargs)
+    
+    def _fix_arguments(self, provisioner=None):
+        for _, v in self.__dict__.items():
+            if isinstance(v, InfraComponentBase):
+                v.fix_arguments(provisioner)
         
     def _validate_args(self, referenceable):
         super(ComponentGroup, self)._validate_args(referenceable)
@@ -401,6 +405,10 @@ class MultiComponent(InfraComponentBase, _ComputeProvisionables):
         self.templateComponent = templateComponent
         self._instances = {}
         
+    def _fix_arguments(self, provisioner=None):
+        for i in self._instances.values():
+            i.fix_arguments(provisioner)
+            
 #     def refs_for_provisionables(self, my_ref=None):
 #         result = {}
 #         if isinstance(self.templateComponent, ComponentGroup):
@@ -455,6 +463,7 @@ class MultiComponent(InfraComponentBase, _ComputeProvisionables):
 
 class InfraSpec(_ComputeProvisionables):
     __metaclass__ = InfraSpecMeta
+    ref_class = InfraModelInstanceReference
     
     def __init__(self, name):
         super(InfraSpec, self).__init__()
@@ -530,7 +539,7 @@ class InfraSpec(_ComputeProvisionables):
     
     def __getattribute__(self, attrname):
         ga = super(InfraSpec, self).__getattribute__
-        value = (InfraModelInstanceReference(attrname, obj=self, parent=None)
+        value = (self.ref_class(attrname, obj=self, parent=None)
                  if attrname in ga(InfraSpecMeta._COMPONENTS)
                  else ga(attrname))
         return value
