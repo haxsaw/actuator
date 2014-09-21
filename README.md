@@ -103,24 +103,21 @@ Although the namespace model is the one that is central to the models in actuato
 The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
 
 ```python
-from actuator import InfraSpec
+from actuator import InfraSpec, ctxt
 from actuator.provisioners.openstack.components import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
-                                                         
+
 class SingleOpenstackServer(InfraSpec):
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
   net = Network("actuator_ex1_net")
-  subnet = Subnet("actuator_ex1_subnet", lambda ctx: ctx.infra.net, "192.168.23.0/24",
+  fip = FloatingIP("actuator_ex1_float", ctxt.infra.server,
+                   ctxt.infra.server.iface0.addr0, pool="external")
+  subnet = Subnet("actuator_ex1_subnet", ctxt.infra.net, "192.168.23.0/24",
                   dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex1_router")
-  gateway = RouterGateway("actuator_ex1_gateway", lambda ctx:ctx.infra.router,
-                          "external")
-  rinter = RouterInterface("actuator_ex1_rinter", lambda ctx:ctx.infra.router,
-                           lambda ctx:ctx.infra.subnet)
-  server = Server("actuator1", "Ubuntu 13.10", "m1.small",
-                  nics=[lambda ctx: ctx.infra.net])
-  fip = FloatingIP("actuator_ex1_float", lambda ctx:ctx.infra.server,
-                   lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
+  gateway = RouterGateway("actuator_ex1_gateway", ctxt.infra.router, "external")
+  rinter = RouterInterface("actuator_ex1_rinter", ctxt.infra.router, ctxt.infra.subnet)
 ```
 
 The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note that use of `lambdas` for some of the arguments; this is how actuator defers evaluation of an argument until the needed reference is defined; more on this later.
@@ -138,34 +135,34 @@ provisioner.provision_infra_spec(inst)
 If you require a group of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
 
 ```python
-from actuator import MultiComponent
+from actuator import InfraSpec, MultiComponent, ctxt
+from actuator.provisioners.openstack.components import (Server, Network, Subnet,
+                                                         FloatingIP, Router,
+                                                         RouterGateway, RouterInterface)
 
 class MultipleServers(InfraSpec):
   #
   #First, declare the common networking components
   #
   net = Network("actuator_ex2_net")
-  subnet = Subnet("actuator_ex2_subnet", lambda ctx: ctx.infra.net, "192.168.23.0/24",
+  subnet = Subnet("actuator_ex2_subnet", ctxt.infra.net, "192.168.23.0/24",
                   dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex2_router")
-  gateway = RouterGateway("actuator_ex2_gateway", lambda ctx:ctx.infra.router,
-                          "external")
-  rinter = RouterInterface("actuator_ex2_rinter", lambda ctx:ctx.infra.router,
-                           lambda ctx:ctx.infra.subnet)
+  gateway = RouterGateway("actuator_ex2_gateway", ctxt.infra.router, "external")
+  rinter = RouterInterface("actuator_ex2_rinter", ctxt.infra.router, ctxt.infra.subnet)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the workers. It will need a
   #floating ip for the outside world to see it
   #
-  foreman = Server("foreman", "Ubuntu 13.10", "m1.small",
-                    nics=[lambda ctx: ctx.infra.net])
-  fip = FloatingIP("actuator_ex2_float", lambda ctx:ctx.infra.server,
-                   lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
+  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
+  fip = FloatingIP("actuator_ex2_float", ctxt.infra.server,
+                   ctxt.infra.server.iface0.addr0, pool="external")
   #
-  #finally, declare the workers' MultiComponent
+  #finally, declare the workers MultiComponent
   #
   workers = MultiComponent(Server("worker", "Ubuntu 13.10", "m1.small",
-                                  nics=[lambda ctx: ctx.infra.net]))
+                                  nics=[ctxt.infra.net]))
 ```
 
 The *workers* MultiComponent works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template component is created:
@@ -201,41 +198,40 @@ worker_4
 If you require a group of different resources to be provisioned together, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
 
 ```python
-from actuator import MultiComponentGroup, MultiComponent
+from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ctxt
+from actuator.provisioners.openstack.components import (Server, Network, Subnet,
+                                                         FloatingIP, Router,
+                                                         RouterGateway, RouterInterface)
 
 class MultipleGroups(InfraSpec):
   #
   #First, declare the common networking components
   #
   net = Network("actuator_ex3_net")
-  subnet = Subnet("actuator_ex3_subnet", lambda ctx: ctx.infra.net, "192.168.23.0/24",
+  subnet = Subnet("actuator_ex3_subnet", ctxt.infra.net, "192.168.23.0/24",
                   dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex3_router")
-  gateway = RouterGateway("actuator_ex3_gateway", lambda ctx:ctx.infra.router,
-                          "external")
-  rinter = RouterInterface("actuator_ex3_rinter", lambda ctx:ctx.infra.router,
-                           lambda ctx:ctx.infra.subnet)
+  gateway = RouterGateway("actuator_ex3_gateway", ctxt.infra.router, "external")
+  rinter = RouterInterface("actuator_ex3_rinter", ctxt.infra.router, ctxt.infra.subnet)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the leaders of clusters. It will need a
   #floating ip for the outside world to see it
   #
-  foreman = Server("foreman", "Ubuntu 13.10", "m1.small",
-                    nics=[lambda ctx: ctx.infra.net])
-  fip = FloatingIP("actuator_ex3_float", lambda ctx:ctx.infra.server,
-                   lambda ctx: ctx.infra.server.iface0.addr0, pool="external")
+  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
+  fip = FloatingIP("actuator_ex3_float", ctxt.infra.server,
+                   ctxt.infra.server.iface0.addr0, pool="external")
   #
   #finally, declare a "cluster"; a leader that coordinates the workers in the
   #cluster, which operate under the leader's direction
   #
   cluster = MultiComponentGroup("cluster",
                                 leader=Server("leader", "Ubuntu 13.10", "m1.small",
-                                              nics=[lambda ctx:ctx.infra.net]),
+                                              nics=[ctxt.infra.net]),
                                 workers=MultiComponent(Server("cluster_node",
-                                                          "Ubuntu 13.10",
-                                                          "m1.small",
-                                                          nics=[lambda ctx:ctx.infra.net])))
-                                          
+                                                              "Ubuntu 13.10",
+                                                              "m1.small",
+                                                              nics=[ctxt.infra.net])))
 ```
 
 The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
