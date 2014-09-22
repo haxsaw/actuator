@@ -97,7 +97,7 @@ As may have been guessed, the key model in actuator is the namespace model, as i
 
 ##<a name="inframodels">Infra models</a>
 
-Although the namespace model is the one that is central to the models in actuator, it
+Although the namespace model is the one that is most central in actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynmaically provisionable infra components and describes how they relate to each other. The model can define groups of components and components that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
 
 ### <a name="simple_openstack_example">A simple Openstack example</a>
 The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
@@ -131,25 +131,42 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example setting up a network, subnet, router, gateway, and router interface are all required steps to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common component groups: providing a dictionary of components to the with_infra_components function, and using the ComponetGroup wrapper class to define a group of standard components. We'll recast the above example using with_infra_components():
+
+```python
+gateway_components = {"net":Network("actuator_ex1_net"),
+                      "subnet":Subnet("actuator_ex1_subnet", ctxt.infra.net,
+                                      "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
+                      "router":Router("actuator_ex1_router"),
+                      "gateway":RouterGateway("actuator_ex1_gateway", ctxt.infra.router,
+                                              "external")
+                      "rinter":RouterInterface("actuator_ex1_rinter", ctxt.infra.router,
+                                               ctxt.infra.subnet)}
+
+
+class SingleOpenstackServer(InfraSpec):
+  with_infra_components(**gateway_components)
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
+  fip = FloatingIP("actuator_ex1_float", ctxt.infra.server,
+                   ctxt.infra.server.iface0.addr0, pool="external")
+```
+
+With with_infra_components(), all the keyword names are established at attributes on the infra model class, and can be accessed just as if they were declared directly in the class.
+
 ### <a name="multi_components">Multiple components</a>
 If you require a group of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
 
 ```python
-from actuator import InfraSpec, MultiComponent, ctxt
+from actuator import InfraSpec, MultiComponent, ctxt, with_infra_components
 from actuator.provisioners.openstack.components import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
 class MultipleServers(InfraSpec):
   #
-  #First, declare the common networking components
+  #First, declare the common networking components with with_infra_components
   #
-  net = Network("actuator_ex2_net")
-  subnet = Subnet("actuator_ex2_subnet", ctxt.infra.net, "192.168.23.0/24",
-                  dns_nameservers=['8.8.8.8'])
-  router = Router("actuator_ex2_router")
-  gateway = RouterGateway("actuator_ex2_gateway", ctxt.infra.router, "external")
-  rinter = RouterInterface("actuator_ex2_rinter", ctxt.infra.router, ctxt.infra.subnet)
+  with_infra_components(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the workers. It will need a
@@ -195,7 +212,27 @@ worker_4
 
 ### <a name="component_groups">Component Groups</a>
 
-If you require a group of different resources to be provisioned together, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
+If you require a group of different resources to be provisioned as a unit, the ComponentGroup() wrapper provides a way to define a template of multiple resources that will be provisioned as a whole. The following example shows how the boilerplate gateway components could be expressed using a ComponentGroup().
+
+```python
+gateway_component = ComponentGroup("gateway", net=Network("actuator_ex1_net"),
+                              subnet=Subnet("actuator_ex1_subnet", ctxt.comp.container.net,
+                                          "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
+                              router=Router("actuator_ex1_router"),
+                              gateway=RouterGateway("actuator_ex1_gateway", ctxt.comp.container.router,
+                                                    "external")
+                              rinter=RouterInterface("actuator_ex1_rinter", ctxt.comp.container.router,
+                                                     ctxt.comp.container.subnet))
+
+
+class SingleOpenstackServer(InfraSpec):
+  gateway = gateway_component
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.gateway.net])
+  fip = FloatingIP("actuator_ex1_float", ctxt.infra.server,
+                   ctxt.infra.server.iface0.addr0, pool="external")
+```
+
+If you require a group of different resources to be provisioned together repeatedly, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiComponentGroup() is simply a shorthand for wrapping a ComponentGroup in a MultiComponent. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
 
 ```python
 from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ctxt
@@ -207,12 +244,7 @@ class MultipleGroups(InfraSpec):
   #
   #First, declare the common networking components
   #
-  net = Network("actuator_ex3_net")
-  subnet = Subnet("actuator_ex3_subnet", ctxt.infra.net, "192.168.23.0/24",
-                  dns_nameservers=['8.8.8.8'])
-  router = Router("actuator_ex3_router")
-  gateway = RouterGateway("actuator_ex3_gateway", ctxt.infra.router, "external")
-  rinter = RouterInterface("actuator_ex3_rinter", ctxt.infra.router, ctxt.infra.subnet)
+  with_infra_components(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the leaders of clusters. It will need a
@@ -283,4 +315,16 @@ Likewise, you can create references to attributes on instances of the model clas
 >>>
 ```
 
-All of these expression result in a reference object, either a model reference or a model instance reference. Model references
+All of these expression result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a "pointer" to a component or attribute of an infra model. _Model references_ (or just "model references") are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an instance of an infra model; they refer to an actual component or attribute. Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference with respect to an instance of a model. An example here will help:
+
+```python
+#re-using the definition of SingleOpenstackServer from above...
+>>> inst = SingleOpenstackServer("refs")
+>>> modref = SingleOpenstackServer.server
+>>> instref = inst.server
+>>> instref is inst.get_inst_ref(modref)
+True
+>>>
+```
+
+The ability to generate model references into an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in actuator's ability to flexibly describe the components of a system's infra. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
