@@ -360,6 +360,12 @@ class InfraModelInstanceReference(AbstractModelReference):
         if not hasattr(value, "__iter__"):
             raise TypeError("object of type %s is not iterable" % str(value))
         return iter(value)
+    
+    def __contains__(self, key):
+        value = self.value()
+        if not hasattr(value, "__contains__"):
+            raise TypeError("object of type %s does not support 'in'" % str(value))
+        return key in value
         
     
 class _ComputeProvisionables(object):
@@ -461,10 +467,38 @@ class MultiComponent(InfraComponentBase, _ComputeProvisionables):
     
     def __nonzero__(self):
         return len(self._instances) != 0
+    
+    def __contains__(self, key):
+        return self.has_key(key)
         
     def iterkeys(self):
         return self._instances.iterkeys()
-
+    
+    def itervalues(self):
+        return (self.get(k) for k in self.iterkeys())
+    
+    def iteritems(self):
+        return ((k, self.get(k)) for k in self.iterkeys())
+    
+    def keys(self):
+        return self._instances.keys()
+    
+    def values(self):
+        return [self.get(k) for k in self.keys()]
+    
+    def items(self):
+        return [(k, self.get(k)) for k in self.keys()]
+    
+    def has_key(self, key):
+        return self._instances.has_key(KeyAsAttr(key))
+    
+    def get(self, key, default=None):
+        try:
+            result = AbstractModelReference.find_ref_for_obj(self)[key]
+        except KeyError, _:
+            result = default
+        return result
+    
     def _prov_source(self):
         return dict(self._instances)
     

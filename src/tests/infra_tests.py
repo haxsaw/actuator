@@ -776,6 +776,116 @@ def test135():
     inst.refs_for_provisionables()
     inst.group.fix_arguments()
     assert inst.group.slaves[2].mem.value() == "8GB"
+    
+def test136():
+    class Test136(InfraSpec):
+        hive = MultiComponent(Server("worker", mem="8GB"))
+        
+    inst = Test136("t136")
+    for i in range(5):
+        _ = inst.hive[i]
+        
+    assert len(inst.hive.keys()) == 5
+    
+def test137():
+    class Test137(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test137("t137")
+    for i in range(5):
+        _ = inst.hive[i]
+         
+    assert len(inst.hive.values()) == 5 and inst.hive[2] in inst.hive.values()
+
+def test138():
+    class Test138(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test138("t138")
+    for i in range(5):
+        _ = inst.hive[i]
+    
+    d = {k:v for k, v in inst.hive.items()}
+    assert len(d) == 5 and inst.hive[1] in d.values()
+
+def test139():
+    class Test139(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test139("t139")
+    for i in range(5):
+        _ = inst.hive[i]
+         
+    assert inst.hive.has_key(3)
+    
+def test140():
+    class Test140(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test140("t140")
+    for i in range(5):
+        _ = inst.hive[i]
+        
+    assert inst.hive.get(3) is inst.hive[3]
+    
+def test141():
+    class Test141(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test141("t141")
+    for i in range(5):
+        _ = inst.hive[i]
+        
+    assert len([k for k in inst.hive.iterkeys()]) == 5
+    
+def test142():
+    class Test142(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test142("t142")
+    for i in range(5):
+        _ = inst.hive[i]
+    
+    l = [v for v in inst.hive.itervalues()]
+    assert len(l) == 5 and inst.hive[4] in l
+    
+def test143():
+    class Test143(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test143("t143")
+    for i in range(5):
+        _ = inst.hive[i]
+    
+    d = {k:v for k, v in inst.hive.iteritems()}
+    assert len(d) == 5 and inst.hive[0] in d.values()
+    
+def test144():
+    class Test144(InfraSpec):
+        hive = MultiComponent(Server("drone", mem="8GB"))
+         
+    inst = Test144("t144")
+    for i in range(5):
+        _ = inst.hive[i]
+    assert 3 in inst.hive
+    
+def test145():
+    class Test145(InfraSpec):
+        hive = MultiComponent(ComponentGroup("crowd", drones=Server("drone", mem="8GB"),
+                                             dregs=MultiComponent(Server("dreg", mem="2GB"))))
+         
+    inst = Test145("t145")
+    for i in range(5):
+        _ = inst.hive[0].dregs[i]
+        
+    d = {k:v for k, v in inst.hive[0].dregs.items()}
+    assert (len(inst.hive[0].dregs) == 5 and
+            len(inst.hive[0].dregs.keys()) == 5 and
+            3 in inst.hive[0].dregs and
+            len(inst.hive[0].dregs.values()) == 5 and
+            len(d) == 5 and
+            inst.hive[0].dregs[2] in d.values())
+    
 
 
 def do_all():
