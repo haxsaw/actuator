@@ -18,7 +18,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   1. [A simple Openstack example](#simple_openstack_example)
   2. [Multiple Components](#multi_components)
   3. [Component Groups](#component_groups)
-5. Namespace Models
+5. [Namespace Models](#nsmodels)
 6. Configuration Models
 7. Execution Models
 8. Roadmap
@@ -131,7 +131,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common steps to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common component groups: providing a dictionary of components to the with_infra_components function, and using the ComponetGroup wrapper class to define a group of standard components. We'll recast the above example using with_infra_components():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common steps to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common component groups: providing a dictionary of components to the with_infra_components function, and using the [ComponetGroup](#component_groups) wrapper class to define a group of standard components. We'll recast the above example using with_infra_components():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -330,3 +330,49 @@ True
 ```
 
 The ability to generate model references from an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in actuator's ability to flexibly describe the components of a system's infra. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
+
+## <a name="nsmodels">Namespace models</a>
+The namespace model provides the means for joining the other actuator models together. It does this by declaring the logical components of a system, relating these components to the infrastructure elements where the components are to execute, and providing the means to identify what configuration task is to be carried out for each component as well as what executables are involved with making the component function.
+
+A namespace model has four aspects. It provides for:
+
+1. Capturing the logical execution components of a system
+2. Capturing the relationship between logical components and hosts in the infra model where the components are to execute
+3. The means to arrange the components in a meaningful hierarchy
+4. The means to establish names within the hierachy whose values will impact configuration activities and the operation of the components
+
+### An example
+Here's a trivial example that demonstrates the basic features of a namespace. It will model two components, and app server and a computation engine, and use the SingleOpenstackServer infra model from above for certain values:
+
+```python
+from actuator import Var, NamespaceSpec, Component, with_variables
+
+class SOSNamespace(NamespaceSpec):
+  with_variables(Var("COMP_SERVER_HOST", SingleOpenstackServer.server.iface0.addr0),
+                 Var("COMP_SERVER_PORT", '8081'),
+                 Var("EXTERNAL_APP_SERVER_IP", SingleOpenstackServer.fip.ip),
+                 Var("APP_SERVER_PORT", '8080'))
+                 
+  app_server = (Component("app_server", host_ref=SingleOpenstackServer.server)
+                  .add_variable(Var("APP_SERVER_HOST", SingleOpenstackServer.server.iface0.addr0)))
+                                
+  compute_server = Component("compute_server", host_ref=SingleOpenstackServer.server)
+```
+
+First, some global Vars are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by supplying a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all components.
+
+Next comes the app_server component, which is declared with a call to Component. Besides a name, the Component is supplied a host_ref in the form of Server model reference from the SingleOpenstackserver model. This tells the namespace that this component's configuration tasks and executables will be run on whatever host is provisioned for this part of the model. The app_server component is also supplied a  private Var object that captures the host IP where the server will run. While the app_server binds to an IP on the subnet, the FloatingIP associated with this subnet IP will enable the server to be reached from outside the subnet.
+
+Finally, we declare the compute_server Component. Similar to the app_server Component, the compute_server Component identifies the Server where it will run by setting the host_ref keyword to a infra model reference for the Server to use.
+
+When an instance of the namespace is created, useful questions can be posed to the instance:
+* We can ask for a list of components
+* We can ask for all the Vars (and their values) from the perspective of a specific component
+* We can ask for any Vars whose value can't be resolved from the perspective of each component
+* We can ask to compute the necessary provisioning based on the namespace and an infra model instance\]
+
+That looks something like this:
+
+
+### Var objects
+Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables, 
