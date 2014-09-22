@@ -120,7 +120,7 @@ class SingleOpenstackServer(InfraSpec):
   rinter = RouterInterface("actuator_ex1_rinter", ctxt.infra.router, ctxt.infra.subnet)
 ```
 
-The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note that use of `lambdas` for some of the arguments; this is how actuator defers evaluation of an argument until the needed reference is defined; more on this later.
+The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note the use of 'ctxt.infra.*' for some of the arguments; this is how actuator defers evaluation of an argument until the needed reference is defined.
 
 Instances of the class (and hence the model) are then created, and the instance is given to a provisioner which inspects the model instance and performs the necessary provsioning actions in the proper order.
 
@@ -131,7 +131,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example setting up a network, subnet, router, gateway, and router interface are all required steps to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common component groups: providing a dictionary of components to the with_infra_components function, and using the ComponetGroup wrapper class to define a group of standard components. We'll recast the above example using with_infra_components():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common steps to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common component groups: providing a dictionary of components to the with_infra_components function, and using the ComponetGroup wrapper class to define a group of standard components. We'll recast the above example using with_infra_components():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -151,10 +151,10 @@ class SingleOpenstackServer(InfraSpec):
                    ctxt.infra.server.iface0.addr0, pool="external")
 ```
 
-With with_infra_components(), all the keyword names are established at attributes on the infra model class, and can be accessed just as if they were declared directly in the class.
+With with_infra_components(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
 
 ### <a name="multi_components">Multiple components</a>
-If you require a group of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
+If you require a set of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
 
 ```python
 from actuator import InfraSpec, MultiComponent, ctxt, with_infra_components
@@ -232,6 +232,8 @@ class SingleOpenstackServer(InfraSpec):
                    ctxt.infra.server.iface0.addr0, pool="external")
 ```
 
+The keyword args used in creating the ComponentGroup become the attributes of the instances of the group.
+
 If you require a group of different resources to be provisioned together repeatedly, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiComponentGroup() is simply a shorthand for wrapping a ComponentGroup in a MultiComponent. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
 
 ```python
@@ -266,7 +268,7 @@ class MultipleGroups(InfraSpec):
                                                               nics=[ctxt.infra.net])))
 ```
 
-The keyword args used in creating the MultiComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
+The keyword args used in creating the ComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
 
 ```python
 >>> inst3 = MultipleGroups("three")
@@ -288,7 +290,7 @@ The keyword args used in creating the MultiComponentGroup become the attributes 
 >>>
 ```
 
-This model will behave similarly to the MultiServer attribute in the previous model; that is, the cluster attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
+This model will behave similarly to the MultiServer attribute in the previous model; that is, the *cluster* attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
 
 
 #### Model references
@@ -315,7 +317,7 @@ Likewise, you can create references to attributes on instances of the model clas
 >>>
 ```
 
-All of these expression result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a "pointer" to a component or attribute of an infra model. _Model references_ (or just "model references") are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an instance of an infra model; they refer to an actual component or attribute. Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference with respect to an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a "pointer" to a component or attribute of an infra model. _Model references_ (or just "model references") are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an instance of an infra model; they refer to an actual component or attribute (although the value of the attribute may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference with respect to an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
@@ -327,4 +329,4 @@ True
 >>>
 ```
 
-The ability to generate model references into an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in actuator's ability to flexibly describe the components of a system's infra. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
+The ability to generate model references from an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in actuator's ability to flexibly describe the components of a system's infra. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
