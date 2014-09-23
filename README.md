@@ -369,10 +369,33 @@ When an instance of the namespace is created, useful questions can be posed to t
 * We can ask for a list of components
 * We can ask for all the Vars (and their values) from the perspective of a specific component
 * We can ask for any Vars whose value can't be resolved from the perspective of each component
-* We can ask to compute the necessary provisioning based on the namespace and an infra model instance\]
+* We can ask to compute the necessary provisioning based on the namespace and an infra model instance
 
 That looks something like this:
-
+```python
+>>> sos = SingleOpenstackServer("sos")
+>>> ns = SOSNamespace()
+>>> for c in ns.get_components.values():
+...     print "Component: %s, Vars:" % c.name
+...     for v in c.get_visible_vars().values():
+...             value = v.get_value(c)
+...
+...             print "%s=%s" % (v.name, value if Value is not None else "<UNRESOLVED>")
+...
+Component: compute_server, Vars:
+COMP_SERVER_HOST=<UNRESOLVED>
+COMP_SERVER_PORT=8081
+APP_SERVER_PORT=8080
+EXTERNAL_APP_SERVER_IP=<UNRESOLVED>
+Component: app_server, Vars:
+APP_SERVER_HOST=<UNRESOLVED>
+COMP_SERVER_HOST=<UNRESOLVED>
+COMP_SERVER_PORT=8081
+APP_SERVER_PORT=8080
+EXTERNAL_APP_SERVER_IP=<UNRESOLVED>
+>>> provisionables = ns.compute_provisioning_for_environ(sos)
+>>>
+```
 
 ### Var objects
 Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables, 
