@@ -19,6 +19,9 @@ Actuator allows you to use Python to declaratively describe system infra, config
   2. [Multiple Components](#multi_components)
   3. [Component Groups](#component_groups)
 5. [Namespace Models](#nsmodels)
+  1. [An example](#simplensexample)
+  2. [A dynamic example](#dynamicns)
+  3. [Var objects](#varobjs)
 6. Configuration Models
 7. Execution Models
 8. Roadmap
@@ -236,6 +239,7 @@ The keyword args used in creating the ComponentGroup become the attributes of th
 
 If you require a group of different resources to be provisioned together repeatedly, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiComponentGroup() is simply a shorthand for wrapping a ComponentGroup in a MultiComponent. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
 
+<a name="multigroups">&nbsp;</a>
 ```python
 from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ctxt
 from actuator.provisioners.openstack.components import (Server, Network, Subnet,
@@ -341,7 +345,7 @@ A namespace model has four aspects. It provides for:
 3. The means to arrange the components in a meaningful hierarchy
 4. The means to establish names within the hierachy whose values will impact configuration activities and the operation of the components
 
-### An example
+### <a name="simplensexample">An example</a>
 Here's a trivial example that demonstrates the basic features of a namespace. It will model two components, and app server and a computation engine, and use the SingleOpenstackServer infra model from above for certain values:
 
 ```python
@@ -368,7 +372,7 @@ Finally, we declare the compute_server Component. Similar to the app_server Comp
 When an instance of the namespace is created, useful questions can be posed to the instance:
 * We can ask for a list of components
 * We can ask for all the Vars (and their values) from the perspective of a specific component
-* We can ask for any Vars whose value can't be resolved from the perspective of each component
+* We can identify any Vars whose value can't be resolved from the perspective of each component
 * We can ask to compute the necessary provisioning based on the namespace and an infra model instance
 
 That looks something like this:
@@ -394,8 +398,42 @@ COMP_SERVER_PORT=8081
 APP_SERVER_PORT=8080
 EXTERNAL_APP_SERVER_IP=<UNRESOLVED>
 >>> provisionables = ns.compute_provisioning_for_environ(sos)
->>>
+>>> provisionables
+set([<actuator.provisioners.openstack.components.Router object at 0x026EC070>,<actuator.p
+rovisioners.openstack.components.Subnet object at 0x026E5E90>, <actuator.provisioners.ope
+nstack.components.Network object at 0x026EC0D0>, <actuator.provisioners.openstack.compone
+nts.FloatingIP object at 0x026E5EF0>, <actuator.provisioners.openstack.components.RouterG
+ateway object at 0x026EC130>, <actuator.provisioners.openstack.components.Server object a
+t 0x026E5F50>, <actuator.provisioners.openstack.components.RouterInterface object at 0x02
+6E5FF0>])
+>>> 
 ```
 
-### Var objects
+### <a name="dynamicns">Dynamic Namespaces</a>
+Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. This ability is predicated on the a couple of Python features, namely that 1) classes themselves are objects, and 2) classes are executable statements, not declarations. Because of this, it's trivial to create a dynamic namespace class factory that is parameterized to build out a different namespace class with each invocation of the factory, and to allow each class to have different sets of Components. Further, the parameterized namespace class can have variable references into a corresponding infra model, allowing the set of infra required by the namespace to adjust according to the needs of the namespace.
+
+The best way to understand this is with another example. We'll devise a namespace for a computational grid system that allocates compute capacity in fixed-sized clusters. So in this model there's a single "foreman" component which takes computation requests, and the foreman interacts with clusters of compute nodes, each of which is fronted by a leader which is responsible for parcelling out work to the workers under him.
+
+The [MultipleGroups](#multigroups) infra model from above is suited to this use pattern, so we'll define a dynamic namespace model that grows components that refer back to the infra model in order to acquire the appropriate infrastructure to meet the namespace's needs.
+
+```python
+def grid_namespace_factory(num_clusters=5, cluster_size=10):
+  class GridNamespace(NamespaceSpec):
+    with_variables(Var("FOREMAN_IP", MultipleGroups.fip.ip),
+                   Var("FOREMAN_PORT", "3000"),
+                   Var("LEADER_ID", "leader-!ID!",
+                   Var("LEADER_PORT", "3001")))
+    
+    component_dict = {}
+    for i in range(num_clusters):
+      cluster_leader = "leader_{}".format(i)
+      component_dict[cluster_leader] = (Component(cluster_leader, host_ref=MultipleGroups.cluster[cluster_leader].leader)
+                                          .add_variable(Var("ID", str(i))))
+      for j in range(cluster_size):
+        worker = "worker_{}_{}".format(j, cluster_leader)
+        component_dict[worker] = (Component(worker, host_ref=MultipleGroups.cluster[cluster_leader].workers[worker])
+                                    .add_variable(Var("LEADER_IP
+```
+
+### <a name="varobjs">Var objects</a>
 Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables, 
