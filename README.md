@@ -20,11 +20,11 @@ Actuator allows you to use Python to declaratively describe system infra, config
   3. [Component Groups](#component_groups)
 5. [Namespace Models](#nsmodels)
   1. [An example](#simplensexample)
-  2. [A dynamic example](#dynamicns)
+  2. [Dynamic Namespaces](#dynamicns)
   3. [Var objects](#varobjs)
-6. Configuration Models
-7. Execution Models
-8. Roadmap
+6. Configuration Models (yet to come)
+7. Execution Models (yet to come)
+8. Roadmap (yet to come)
 
 ## <a name="intro">Intro</a>
 **Current status**
