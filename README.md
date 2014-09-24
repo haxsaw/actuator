@@ -142,7 +142,7 @@ gateway_components = {"net":Network("actuator_ex1_net"),
                                       "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
                       "router":Router("actuator_ex1_router"),
                       "gateway":RouterGateway("actuator_ex1_gateway", ctxt.infra.router,
-                                              "external")
+                                              "external"),
                       "rinter":RouterInterface("actuator_ex1_rinter", ctxt.infra.router,
                                                ctxt.infra.subnet)}
 
@@ -464,4 +464,8 @@ Now we can use the factory function to create grids of different sizes simply by
 ```
 
 ### <a name="varobjs">Var objects</a>
-Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables, 
+Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables for tasks and executables, or parameter maps for processing templatized text files such as scripts or properties files.
+
+Vars associate a 'name' (the first parameter) with a value (the second parameter). The value parameter of a Var can be one of several kinds of objects: it may be a plain string, a string with a replacement paremeter in it, or a reference to an infra model element.
+
+We've seen 
