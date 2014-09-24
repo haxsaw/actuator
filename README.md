@@ -159,6 +159,7 @@ With with_infra_components(), all the keys in the dictionary are established as 
 ### <a name="multi_components">Multiple components</a>
 If you require a set of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
 
+<a name="multiservers">&nbsp;</a>
 ```python
 from actuator import InfraSpec, MultiComponent, ctxt, with_infra_components
 from actuator.provisioners.openstack.components import (Server, Network, Subnet,
@@ -410,29 +411,56 @@ t 0x026E5F50>, <actuator.provisioners.openstack.components.RouterInterface objec
 ```
 
 ### <a name="dynamicns">Dynamic Namespaces</a>
-Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. This ability is predicated on the a couple of Python features, namely that 1) classes themselves are objects, and 2) classes are executable statements, not declarations. Because of this, it's trivial to create a dynamic namespace class factory that is parameterized to build out a different namespace class with each invocation of the factory, and to allow each class to have different sets of Components. Further, the parameterized namespace class can have variable references into a corresponding infra model, allowing the set of infra required by the namespace to adjust according to the needs of the namespace.
+Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. By coupling such a namespace with an infra model that uses MultiComponent or MultiComponentGroup elements, appropriately sized infra can be identified an and provisioned depending on the nature of the dynamic namespace.
 
-The best way to understand this is with another example. We'll devise a namespace for a computational grid system that allocates compute capacity in fixed-sized clusters. So in this model there's a single "foreman" component which takes computation requests, and the foreman interacts with clusters of compute nodes, each of which is fronted by a leader which is responsible for parcelling out work to the workers under him.
+The best way to understand this is with an example. We'll devise a trivial computational grid: besides the normal gateway elements, the infrastructure will contain a "foreman" to coordinate the computational activities of a variable number of "workers", each on a seperate server.
 
-The [MultipleGroups](#multigroups) infra model from above is suited to this use pattern, so we'll define a dynamic namespace model that grows components that refer back to the infra model in order to acquire the appropriate infrastructure to meet the namespace's needs.
+The [MultipleServers](#multiservers) infra model from above fits this pattern, so we'll define a dynamic namespace model that grows components that refer back to this infra model in order to acquire the appropriate infrastructure to meet the namespace's needs.
 
 ```python
-def grid_namespace_factory(num_clusters=5, cluster_size=10):
+def grid_namespace_factory(num_workers=10):
+
   class GridNamespace(NamespaceSpec):
-    with_variables(Var("FOREMAN_IP", MultipleGroups.fip.ip),
-                   Var("FOREMAN_PORT", "3000"),
-                   Var("LEADER_ID", "leader-!ID!",
-                   Var("LEADER_PORT", "3001")))
+    with_variables(Var("FOREMAN_EXTERNAL_IP", MultipleServers.fip.ip),
+                   Var("FOREMAN_INTERNAL_IP", MultipleServers.foreman.iface0.addr0),
+                   Var("FOREMAN_EXTERNAL_PORT", "3000"),
+                   Var("FOREMAN_WORKER_PORT", "3001"))
+     
+    foreman = Component("foreman", host_ref=MultipleServers.foreman)
     
     component_dict = {}
-    for i in range(num_clusters):
-      cluster_leader = "leader_{}".format(i)
-      component_dict[cluster_leader] = (Component(cluster_leader, host_ref=MultipleGroups.cluster[cluster_leader].leader)
-                                          .add_variable(Var("ID", str(i))))
-      for j in range(cluster_size):
-        worker = "worker_{}_{}".format(j, cluster_leader)
-        component_dict[worker] = (Component(worker, host_ref=MultipleGroups.cluster[cluster_leader].workers[worker])
-                                    .add_variable(Var("LEADER_IP
+    namer = lambda x: "worker_{}".format(x)
+    for i in range(num_workers):
+      component_dict[namer(i)] = Component(namer(i), host_ref=MultipleServers.workers[i])
+      
+    with_components(**component_dict)
+    
+    del component_dict, namer
+    
+  return GridNamespace()
+```
+
+Making a dynamic namespace class in Python is trivial; by simply putting the class statement inside a function, each call to the function will generate a new class. By supplying parameters to the function, the content of the class can be altered.
+
+In this example, after setting some global Vars in the namespace with the with_variables() function, we next create the "foreman" component, and use host_ref to associate it with a server in the infra model. Next, we set up a dictionary whose keys will eventually become other attributes on the class, and whose values will become the associated Components for those attributes. In a for loop, we then simply create new instances of Component, associating each with a different worker in the MultipleServers infra model (host_ref=MultipleServers.workers[i]). We then use the function *with_components()* to take the content of the dict and attach all the created components to the namespace class. The class finishes by deleting the unneeded dict and lambda function. The factory function completes by returning an instance of the class that was just defined.
+
+Now we can use the factory function to create grids of different sizes simply by varying the input value to the factory function:
+
+```python  
+>>> ns = grid_namespace_factory(20)
+>>> ms_inst = MultipleServers("ms")
+>>> provs = ns.compute_provisioning_for_environ(ms_inst)
+>>> len(provs)
+27
+>>> ns.worker_8
+<actuator.namespace.Component object at 0x02670D10>
+>>>
+>>> ns2 = grid_namespace_factory(200)
+>>> ms_inst2 = MultipleServers("ms2")
+>>> provs2 = ns2.compute_provisioning_for_environ(ms_inst2)
+>>> len(provs2)
+207
+>>>
 ```
 
 ### <a name="varobjs">Var objects</a>
