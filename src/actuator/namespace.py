@@ -184,8 +184,8 @@ class ComponentMeta(type):
 
 class Component(VariableContainer):
     __metadata__ = ComponentMeta
-    def __init__(self, name, host_ref=None, variables=None):
-        super(Component, self).__init__()
+    def __init__(self, name, host_ref=None, variables=None, parent=None):
+        super(Component, self).__init__(parent=parent)
         self.name = name
         self.host_ref = host_ref
         if variables is not None:
@@ -212,13 +212,32 @@ class NamespaceSpec(VariableContainer):
     __metaclass__ = NamespaceSpecMeta
     def __init__(self):
         super(NamespaceSpec, self).__init__()
-        self.components = {}
+        
+        components = set()
+        clone_map = {}
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, Component):
-                v = v.clone()
-                self.components[k] = v
-                setattr(self, k, v)
-                v._set_parent(self)
+                components.add((k, v))
+        next_ply = set([(k,c) for k, c in components if c.parent_container is None])
+        for k, c in next_ply:
+            clone = c.clone()
+            clone_map[c] = (k, clone)
+            clone._set_parent(self)
+        components -= next_ply
+        while components:
+            next_ply = set([(k,c) for k, c in components if c.parent_container in clone_map])
+            if not next_ply:
+                raise NamespaceException("No components can be found that have parents which were previously cloned")
+            for k, c in next_ply:
+                clone = c.clone()
+                clone_map[c] = (k, clone)
+                clone._set_parent(clone_map[c.parent_container][1])
+            components -= next_ply
+        self.components = {}
+        for _, (key, clone) in clone_map.items():
+            self.components[key] = clone
+            setattr(self, key, clone)
+        
         self.add_variable(*self.__class__.__dict__[_common_vars])
         self.infra_instance = None
         
@@ -232,12 +251,16 @@ class NamespaceSpec(VariableContainer):
             modelrefs |= c._get_model_refs()
         return modelrefs
     
+    def get_components(self):
+        return dict(self.components)
+    
     def get_infra(self):
         return self.infra_instance
     
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):
         self.infra_instance = infra_instance
         self.infra_instance.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
+        return self.infra_instance.provisionables()
         
     def add_components(self, **kwargs):
         for k, v in kwargs.items():

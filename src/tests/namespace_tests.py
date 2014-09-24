@@ -451,6 +451,14 @@ def test36():
     ns.add_components(server1=server1, server2=Component("server2"))
     ns.server1.add_override(Var("TEST", "YEP YEP YEP"))
     assert ns.server1.get_var_future("TEST").value() == "YEP YEP YEP"
+    
+def test37():
+    class NS37(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
+        kid = Component("kid", parent=daddy)
+    ns = NS37()
+    assert ns.kid.get_var_future("MYSTERY").value() == "RIGHT!"
 
         
 def do_all():

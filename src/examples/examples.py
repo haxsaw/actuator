@@ -78,4 +78,3 @@ class System3(InfraSpec):
                                req_q=Queue("req_q"), compute=Server("compute"),
                                reply_q=Queue("reply_q"))
 
-
