@@ -20,6 +20,10 @@ def setup():
             
         def value(self):
             return self.v
+        
+    class FakeInfra(object):
+        def get_inst_ref(self, fakeref):
+            return fakeref
     
     class MyNamespaceLocal(NamespaceSpec):
         with_variables(Var("HOST", "wibble"),
@@ -36,6 +40,10 @@ def setup():
                        Var("NONE", None),
                        Var("REF_TEST_NONE", FakeLogicalRef()),
                        Var("REF_TEST_VALUE", FakeLogicalRef("gabagabahey")))
+        
+        def __init__(self):
+            super(MyNamespaceLocal, self).__init__()
+            self.infra_instance = FakeInfra()
     MyNS = MyNamespaceLocal
     
 
@@ -142,10 +150,10 @@ def test016():
     v, _ = inst.find_variable("REF_TEST_NONE")
     assert v.value_is_external()
     
-# def test017():
-#     inst = MyNS()
-#     v, p = inst.find_variable("REF_TEST_VALUE")
-#     assert v.get_value(p) is "gabagabahey"
+def test017():
+    inst = MyNS()
+    v, p = inst.find_variable("REF_TEST_VALUE")
+    assert v.get_value(p) is "gabagabahey"
     
 def test018():
     inst = MyNS()
@@ -237,6 +245,8 @@ def test24():
 
     infra = Infra24("infra24")
     env = NS24()
+#     import pdb
+#     pdb.set_trace()
     env.compute_provisioning_for_environ(infra)
     assert len(infra.provisionables()) == 6
 
@@ -287,27 +297,27 @@ def test26():
     env.compute_provisioning_for_environ(infra)
     assert len(infra.provisionables()) == 1, "override didn't wipe out ref to a new query server"
 
-# def test27():
-#     class Infra27(InfraSpec):
-#         app = Server("app")
-#         query = MultiComponent(Server("query", mem="8GB"))
-#         grid = MultiComponentGroup("grid",
-#                                    handler=Server("handler", mem="8GB"),
-#                                    compute=Server("compute", mem="16GB"))
-#    
-#     class NS27(NamespaceSpec):
-#         with_variables(Var("APP_PORT", "8080"),
-#                        Var("QUERY_PORT", "8081"),
-#                        Var("GRID_PORT", "8082"),
-#                        Var("APP_HOST", Infra27.app.provisionedName),
-#                        Var("QUERY_HOST", Infra27.query[0]))
-#         app_server = Component("app_server", host_ref=Infra27.app)
-#    
-#     infra = Infra27("infra26")
-#     env = NS27()
-#     env.add_override(Var("QUERY_HOST", "staticHostName"))
-#     env.compute_provisioning_for_environ(infra, exclude_refs=[Infra27.query[0], Infra27.app])
-#     assert len(infra.provisionables()) == 0, "exclusions didn't wipe out the provisioning"
+def test27():
+    class Infra27(InfraSpec):
+        app = Server("app")
+        query = MultiComponent(Server("query", mem="8GB"))
+        grid = MultiComponentGroup("grid",
+                                   handler=Server("handler", mem="8GB"),
+                                   compute=Server("compute", mem="16GB"))
+    
+    class NS27(NamespaceSpec):
+        with_variables(Var("APP_PORT", "8080"),
+                       Var("QUERY_PORT", "8081"),
+                       Var("GRID_PORT", "8082"),
+                       Var("APP_HOST", Infra27.app.provisionedName),
+                       Var("QUERY_HOST", Infra27.query[0]))
+        app_server = Component("app_server", host_ref=Infra27.app)
+    
+    infra = Infra27("infra26")
+    env = NS27()
+    env.add_override(Var("QUERY_HOST", "staticHostName"))
+    provs = env.compute_provisioning_for_environ(infra, exclude_refs=[Infra27.query[0], Infra27.app])
+    assert len(provs) == 0, "exclusions didn't wipe out the provisioning"
 
 def test28():
     class Infra28(InfraSpec):

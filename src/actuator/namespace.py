@@ -5,6 +5,7 @@ Created on 7 Sep 2014
 '''
 import re
 from actuator.utils import ClassModifier, process_modifiers
+from actuator.infra import AbstractModelReference
 
 
 class NamespaceException(Exception): pass
@@ -258,9 +259,14 @@ class NamespaceSpec(VariableContainer):
         return self.infra_instance
     
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):
+        if exclude_refs is None:
+            exclude_refs = set()
+        exclude_refs = set([infra_instance.get_inst_ref(ref) for ref in exclude_refs])
         self.infra_instance = infra_instance
         self.infra_instance.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
-        return self.infra_instance.provisionables()
+        return set([p for p in self.infra_instance.provisionables()
+                    if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
+#         return self.infra_instance.provisionables()
         
     def add_components(self, **kwargs):
         for k, v in kwargs.items():

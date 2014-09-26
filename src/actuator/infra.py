@@ -241,7 +241,7 @@ class AbstractModelReference(object):
     _inv_cache = {}
     _as_is = frozenset(["__getattribute__", "__class__", "value", "_name", "_obj",
                         "_parent", "get_path", "_get_item_ref_obj",
-                        "get_containing_provisionable"])
+                        "get_containing_provisionable", "get_containing_provisionable_ref"])
     def __init__(self, name, obj=None, parent=None):
         self._name = name
         self._obj = obj
@@ -282,6 +282,10 @@ class AbstractModelReference(object):
                        if parent is not None
                        else None)
         return val
+    
+    def get_containing_provisionable_ref(self):
+        prov = self.get_containing_provisionable()
+        return AbstractModelReference.find_ref_for_obj(prov)
     
     def get_path(self):
         parent = self._parent
@@ -575,7 +579,7 @@ class InfraSpec(_ComputeProvisionables):
         else:
             exclude_refs = set(exclude_refs)
         for mr in modelrefs:
-            if mr not in exclude_refs:
+            if mr not in exclude_refs and mr.get_containing_provisionable_ref() not in exclude_refs:
                 _ = self.get_inst_ref(mr)
             
     @classmethod
