@@ -14,7 +14,7 @@ def setup():
     global MyConfig
     class MyTestConfig(ConfigSpec):
         with_searchpath(*search_path)
-        t1 = MakeDir()
+        t1 = NullTask()
         t2 = Template()
         with_dependencies(t1 | t2)
         
@@ -38,7 +38,7 @@ def test03():
 def test04():
     try:
         class T4Config(ConfigSpec):
-            t1 = MakeDir()
+            t1 = NullTask()
             with_dependencies(t1 | "other")
         raise Exception("Failed to catch dependency creation with non-task")
     except:
@@ -46,14 +46,14 @@ def test04():
         
 def test05():
     try:
-        _ = _Dependency(MakeDir(), "other")
+        _ = _Dependency(NullTask(), "other")
         raise Exception("Failed to catch _Dependency creation with 'to' as non-task")
     except:
         assert True
         
 def test06():
     try:
-        _ = _Dependency("other", MakeDir())
+        _ = _Dependency("other", NullTask())
         raise Exception("Failed to catch _Dependency creation with 'from' as non-task")
     except:
         assert True
@@ -64,9 +64,9 @@ def test07():
 def test08():
     try:
         class TC8(ConfigSpec):
-            t1 = MakeDir()
-            t2 = MakeDir()
-            t3 = MakeDir()
+            t1 = NullTask()
+            t2 = NullTask()
+            t3 = NullTask()
             with_dependencies(t1 | t2,
                               t2 | t3,
                               t3 | t1)
@@ -76,18 +76,18 @@ def test08():
         
 def test09():
     class TC9(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
         with_dependencies(t1 | t2 | t3)
     assert make_dep_tuple_set(TC9) == set([("t1", "t2"), ("t2", "t3")])
         
 def test10():
     try:
         class TC10(ConfigSpec):
-            t1 = MakeDir()
-            t2 = MakeDir()
-            t3 = MakeDir()
+            t1 = NullTask()
+            t2 = NullTask()
+            t3 = NullTask()
             with_dependencies(t1 | t2 | t3 | t1)
         assert False, "Cycle in dependencies was not detected"
     except ConfigException, _:
@@ -96,9 +96,9 @@ def test10():
 def test10a():
     try:
         class TC10a(ConfigSpec):
-            t1 = MakeDir("t1")
-            t2 = MakeDir("t2")
-            t3 = MakeDir("t3")
+            t1 = NullTask("t1")
+            t2 = NullTask("t2")
+            t3 = NullTask("t3")
             with_dependencies(t1 | t2 | t1)
         assert False, "Cycle in dependencies was not detected"
     except ConfigException, _:
@@ -107,11 +107,11 @@ def test10a():
 def test11():
     try:
         class TC11(ConfigSpec):
-            t1 = MakeDir("t1")
-            t2 = MakeDir("t2")
-            t3 = MakeDir("t3")
-            t4 = MakeDir("t4")
-            t5 = MakeDir("t5")
+            t1 = NullTask("t1")
+            t2 = NullTask("t2")
+            t3 = NullTask("t3")
+            t4 = NullTask("t4")
+            t5 = NullTask("t5")
             with_dependencies(t1 | t2 | t3 | t4)
             with_dependencies(t3 | t4 | t5)
             with_dependencies(t4 | t2)
@@ -121,60 +121,60 @@ def test11():
         
 def test12():
     class TC12(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
         with_dependencies(TaskGroup(t1, t2) | t3)
     assert make_dep_tuple_set(TC12) == set([("t1", "t3"), ("t2", "t3")])
 
 def test13():
     class TC13(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
-        t4 = MakeDir("t4")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        t4 = NullTask("t4")
         with_dependencies(TaskGroup(t1, t2 | t3) | t4)
     assert make_dep_tuple_set(TC13) == set([("t2", "t3"), ("t1", "t4"), ("t3", "t4")])
 
 def test14():
     class TC14(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
-        t4 = MakeDir("t4")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        t4 = NullTask("t4")
         with_dependencies(TaskGroup(t1, t2) | TaskGroup(t3, t4))
     assert make_dep_tuple_set(TC14) == set([("t2", "t3"), ("t1", "t4"),
                                             ("t1", "t3"), ("t2", "t4")])
 
 def test15():
     class TC15(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
-        t4 = MakeDir("t4")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        t4 = NullTask("t4")
         with_dependencies(TaskGroup(t1 | t2, t3 | t4))
     assert make_dep_tuple_set(TC15) == set([("t1", "t2"), ("t3", "t4")])
 
 def test16():
     class TC16(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
         with_dependencies(t1 | TaskGroup(t2, t3))
     assert make_dep_tuple_set(TC16) == set([("t1", "t3"), ("t1", "t2")])
 
 def test17():
     class TC17(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
-        t4 = MakeDir("t4")
-        t5 = MakeDir("t5")
-        t6 = MakeDir("t6")
-        t7 = MakeDir("t7")
-        t8 = MakeDir("t8")
-        t9 = MakeDir("t9")
-        t0 = MakeDir("t0")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        t4 = NullTask("t4")
+        t5 = NullTask("t5")
+        t6 = NullTask("t6")
+        t7 = NullTask("t7")
+        t8 = NullTask("t8")
+        t9 = NullTask("t9")
+        t0 = NullTask("t0")
         with_dependencies(TaskGroup(t1 | t2, TaskGroup(t3, t4)) | t5 |
                           TaskGroup(TaskGroup(t6, t7, t8), t9 | t0))
     assert make_dep_tuple_set(TC17) == set([("t1", "t2"), ("t2", "t5"),
@@ -185,33 +185,33 @@ def test17():
 
 def test18():
     class TC18(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
         with_dependencies(TaskGroup(t1, TaskGroup(t2, TaskGroup(t3))))
     assert make_dep_tuple_set(TC18) == set()
 
 def test19():
     class TC19(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
         with_dependencies(t1 | t2)
         with_dependencies(t2 | t3)
     assert make_dep_tuple_set(TC19) == set([("t1", "t2"), ("t2", "t3")])
 
 def test20():
     class TC20(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
-        t4 = MakeDir("t4")
-        t5 = MakeDir("t5")
-        t6 = MakeDir("t6")
-        t7 = MakeDir("t7")
-        t8 = MakeDir("t8")
-        t9 = MakeDir("t9")
-        t0 = MakeDir("t0")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        t4 = NullTask("t4")
+        t5 = NullTask("t5")
+        t6 = NullTask("t6")
+        t7 = NullTask("t7")
+        t8 = NullTask("t8")
+        t9 = NullTask("t9")
+        t0 = NullTask("t0")
         with_dependencies(TaskGroup(t1 | t2, TaskGroup(t3, t4)) | t5)
         with_dependencies(t5 | TaskGroup(TaskGroup(t6, t7, t8), t9 | t0))
     assert make_dep_tuple_set(TC20) == set([("t1", "t2"), ("t2", "t5"),
@@ -222,9 +222,9 @@ def test20():
 
 def test21():
     class TC21(ConfigSpec):
-        t1 = MakeDir("t1")
-        t2 = MakeDir("t2")
-        t3 = MakeDir("t3")
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
         with_dependencies(t1 | t2)
         with_dependencies(t2 | t3)
         with_dependencies(t1 | t2)

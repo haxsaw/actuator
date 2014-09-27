@@ -149,6 +149,11 @@ class _Dependency(Orable):
         return deps
     
 
+class NullTask(_ConfigTask):
+    def __init__(self, path=""):
+        self.path = path
+        
+        
 class MakeDir(_ConfigTask):
     def __init__(self, path=""):
         self.path = path
