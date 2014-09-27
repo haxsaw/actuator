@@ -16,9 +16,13 @@ def setup():
         with_searchpath(*search_path)
         t1 = MakeDir()
         t2 = Template()
-        with_dependencies(t1 >> t2)
+        with_dependencies(t1 | t2)
         
     MyConfig = MyTestConfig
+    
+    
+def make_dep_tuple_set(config):
+    return set([(d.from_task.path, d.to_task.path) for d in config.get_dependencies()])
     
     
 def test01():
@@ -35,7 +39,7 @@ def test04():
     try:
         class T4Config(ConfigSpec):
             t1 = MakeDir()
-            with_dependencies(t1 >> "other")
+            with_dependencies(t1 | "other")
         raise Exception("Failed to catch dependency creation with non-task")
     except:
         assert True
@@ -63,12 +67,169 @@ def test08():
             t1 = MakeDir()
             t2 = MakeDir()
             t3 = MakeDir()
-            with_dependencies(t1 >> t2,
-                              t2 >> t3,
-                              t3 >> t1)
+            with_dependencies(t1 | t2,
+                              t2 | t3,
+                              t3 | t1)
         assert False, "Cycle in dependencies was not detected"
     except ConfigException, _:
         assert True
+        
+def test09():
+    class TC9(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        with_dependencies(t1 | t2 | t3)
+    assert make_dep_tuple_set(TC9) == set([("t1", "t2"), ("t2", "t3")])
+        
+def test10():
+    try:
+        class TC10(ConfigSpec):
+            t1 = MakeDir()
+            t2 = MakeDir()
+            t3 = MakeDir()
+            with_dependencies(t1 | t2 | t3 | t1)
+        assert False, "Cycle in dependencies was not detected"
+    except ConfigException, _:
+        assert True
+        
+def test10a():
+    try:
+        class TC10a(ConfigSpec):
+            t1 = MakeDir("t1")
+            t2 = MakeDir("t2")
+            t3 = MakeDir("t3")
+            with_dependencies(t1 | t2 | t1)
+        assert False, "Cycle in dependencies was not detected"
+    except ConfigException, _:
+        assert True
+        
+def test11():
+    try:
+        class TC11(ConfigSpec):
+            t1 = MakeDir("t1")
+            t2 = MakeDir("t2")
+            t3 = MakeDir("t3")
+            t4 = MakeDir("t4")
+            t5 = MakeDir("t5")
+            with_dependencies(t1 | t2 | t3 | t4)
+            with_dependencies(t3 | t4 | t5)
+            with_dependencies(t4 | t2)
+        assert False, "Cycle in dependencies was not detected"
+    except ConfigException, _:
+        assert True
+        
+def test12():
+    class TC12(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        with_dependencies(TaskGroup(t1, t2) | t3)
+    assert make_dep_tuple_set(TC12) == set([("t1", "t3"), ("t2", "t3")])
+
+def test13():
+    class TC13(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        t4 = MakeDir("t4")
+        with_dependencies(TaskGroup(t1, t2 | t3) | t4)
+    assert make_dep_tuple_set(TC13) == set([("t2", "t3"), ("t1", "t4"), ("t3", "t4")])
+
+def test14():
+    class TC14(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        t4 = MakeDir("t4")
+        with_dependencies(TaskGroup(t1, t2) | TaskGroup(t3, t4))
+    assert make_dep_tuple_set(TC14) == set([("t2", "t3"), ("t1", "t4"),
+                                            ("t1", "t3"), ("t2", "t4")])
+
+def test15():
+    class TC15(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        t4 = MakeDir("t4")
+        with_dependencies(TaskGroup(t1 | t2, t3 | t4))
+    assert make_dep_tuple_set(TC15) == set([("t1", "t2"), ("t3", "t4")])
+
+def test16():
+    class TC16(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        with_dependencies(t1 | TaskGroup(t2, t3))
+    assert make_dep_tuple_set(TC16) == set([("t1", "t3"), ("t1", "t2")])
+
+def test17():
+    class TC17(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        t4 = MakeDir("t4")
+        t5 = MakeDir("t5")
+        t6 = MakeDir("t6")
+        t7 = MakeDir("t7")
+        t8 = MakeDir("t8")
+        t9 = MakeDir("t9")
+        t0 = MakeDir("t0")
+        with_dependencies(TaskGroup(t1 | t2, TaskGroup(t3, t4)) | t5 |
+                          TaskGroup(TaskGroup(t6, t7, t8), t9 | t0))
+    assert make_dep_tuple_set(TC17) == set([("t1", "t2"), ("t2", "t5"),
+                                            ("t3", "t5"), ("t4", "t5"),
+                                            ("t5", "t6"), ("t5", "t7"),
+                                            ("t5", "t8"), ("t5", "t9"),
+                                            ("t9", "t0")])
+
+def test18():
+    class TC18(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        with_dependencies(TaskGroup(t1, TaskGroup(t2, TaskGroup(t3))))
+    assert make_dep_tuple_set(TC18) == set()
+
+def test19():
+    class TC19(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        with_dependencies(t1 | t2)
+        with_dependencies(t2 | t3)
+    assert make_dep_tuple_set(TC19) == set([("t1", "t2"), ("t2", "t3")])
+
+def test20():
+    class TC20(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        t4 = MakeDir("t4")
+        t5 = MakeDir("t5")
+        t6 = MakeDir("t6")
+        t7 = MakeDir("t7")
+        t8 = MakeDir("t8")
+        t9 = MakeDir("t9")
+        t0 = MakeDir("t0")
+        with_dependencies(TaskGroup(t1 | t2, TaskGroup(t3, t4)) | t5)
+        with_dependencies(t5 | TaskGroup(TaskGroup(t6, t7, t8), t9 | t0))
+    assert make_dep_tuple_set(TC20) == set([("t1", "t2"), ("t2", "t5"),
+                                            ("t3", "t5"), ("t4", "t5"),
+                                            ("t5", "t6"), ("t5", "t7"),
+                                            ("t5", "t8"), ("t5", "t9"),
+                                            ("t9", "t0")])
+
+def test21():
+    class TC21(ConfigSpec):
+        t1 = MakeDir("t1")
+        t2 = MakeDir("t2")
+        t3 = MakeDir("t3")
+        with_dependencies(t1 | t2)
+        with_dependencies(t2 | t3)
+        with_dependencies(t1 | t2)
+    assert make_dep_tuple_set(TC21) == set([("t1", "t2"), ("t2", "t3")])
+
         
 def do_all():
     setup()
