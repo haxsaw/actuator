@@ -15,10 +15,12 @@ from actuator.provisioners.openstack import openstack_class_factory as ocf
 ocf.set_neutron_client_class(ost_support.MockNeutronClient)
 ocf.set_nova_client_class(ost_support.MockNovaClient)
 
-from actuator import InfraSpec, ProvisionerException, MultiComponentGroup, MultiComponent, ctxt, InfraException
+from actuator import (InfraSpec, ProvisionerException, MultiComponentGroup,
+                      MultiComponent, ctxt)
 from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 from actuator.provisioners.openstack.components import (Server, Network,
-                                                           Router, FloatingIP, Subnet)
+                                                        Router, FloatingIP,
+                                                        Subnet, SecGroup)
 
 
 def get_provisioner():
@@ -293,6 +295,38 @@ def test017():
 #         assert False, "The creation of Test21 should have failed"
 #     except InfraException, e:
 #         assert "nett" in e.message
+
+def test022():
+    _ = SecGroup("wibbleGroup", description="A group for testing")
+    
+def test023():
+    class SGTest(InfraSpec):
+        secgroup = SecGroup("wibbleGroup", description="A group for testing")
+    inst = SGTest("t1")
+    assert inst.secgroup is not SGTest.secgroup
+
+def test024():
+    prov = get_provisioner()
+    class SGTest(InfraSpec):
+        secgroup = SecGroup("wibbleGroup", description="A group for testing")
+    inst = SGTest("t1")
+    rec = prov.provision_infra_spec(inst)
+    assert rec
+    
+def test025():
+    prov = get_provisioner()
+    class SGTest(InfraSpec):
+        secgroup = SecGroup("wibbleGroup", description="stuff")
+        server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key",
+                        security_groups=[ctxt.infra.secgroup])
+        fip = FloatingIP("fip1", ctxt.infra.server,
+                         ctxt.infra.server.iface0.addr0, pool="external")
+    inst = SGTest("t25")
+    rec = prov.provision_infra_spec(inst)
+    assert rec
+    
+# def test026():
+
 
 def do_all():
     for k, v in globals().items():

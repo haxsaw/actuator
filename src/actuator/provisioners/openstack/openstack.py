@@ -107,7 +107,9 @@ class _OSMaps(object):
         self.flavor_map = {f.name:f for f in self.os_provisioner.nvclient.flavors.list()}
 
     def refresh_secgroups(self):
-        self.secgroup_map = {sg.name:sg for sg in self.os_provisioner.nvclient.security_groups.list()}
+        secgroups = list(self.os_provisioner.nvclient.security_groups.list())
+        self.secgroup_map = {sg.name:sg for sg in secgroups}
+        self.secgroup_map.update({sg.id:sg for sg in secgroups})
         
 
 class OpenstackProvisioner(BaseProvisioner):
@@ -125,6 +127,14 @@ class OpenstackProvisioner(BaseProvisioner):
 
     def _deprovision(self, record):
         pass
+    
+    def _provision_sec_groups(self, record):
+        for sg in self.workflow_sorter.secgroups:
+            sg.fix_arguments()
+            response = self.nvclient.security_groups.create(name=sg.logicalName,
+                                                            description=sg.description)
+            sg.set_osid(response.id)
+            record.add_secgroup_id(sg._id, sg.osid)
     
     def  _process_server_addresses(self, server, addr_dict):
         for i, (k, v) in enumerate(addr_dict.items()):
@@ -203,12 +213,11 @@ class OpenstackProvisioner(BaseProvisioner):
                         if sg is None:
                             raise ProvisionerException("Security group %s doesn't seem to exist" % sgname,
                                                        record=record)
-                        secgroup_list.append(sg)
+                        secgroup_list.append(sg.id)
                     kwargs["security_groups"] = secgroup_list
                 nics_list = []
                 
                 if server.nics:
-#                     for nicname in server.get_nics():
                     for nicname in server.nics:
                         nic = self.osmaps.network_map.get(nicname)
                         if nic is None:
@@ -251,6 +260,8 @@ class OpenstackProvisioner(BaseProvisioner):
         self._provision_networks(record)
         
         self._provision_subnets(record)
+        
+        self._provision_sec_groups(record)
         
         self._provision_servers(record)
 
