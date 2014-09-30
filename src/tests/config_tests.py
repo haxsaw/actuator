@@ -229,6 +229,87 @@ def test21():
         with_dependencies(t2 | t3)
         with_dependencies(t1 | t2)
     assert make_dep_tuple_set(TC21) == set([("t1", "t2"), ("t2", "t3")])
+    
+def test22():
+    class First(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        with_dependencies(t1 | t3, t2 | t3)
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        with_dependencies(TaskGroup(t1, t2) | t3)
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+
+def test23():
+    class First(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        with_dependencies(TaskGroup(t1, t1 | t2))
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        with_dependencies(t1 | t2)
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+
+def test24():
+    class First(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        with_dependencies(TaskGroup(t1, t2, t3), t1 | t3)
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        with_dependencies(TaskGroup(t1 | t3, t2))
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+
+def test25():
+    class First(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        with_dependencies(t1 | t2 | t3, t1 | TaskGroup(t2, t3))
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        with_dependencies(t1 | t2 | t3, t1 | t3)
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+
+def test26():
+    TG = TaskGroup
+    class First(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        t4 = NullTask("t4")
+        t5 = NullTask("t5")
+        with_dependencies(TG(TG(t1, t2, t3), t4 | t5),
+                          t2 | t4,
+                          t3 | t5)
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1")
+        t2 = NullTask("t2")
+        t3 = NullTask("t3")
+        t4 = NullTask("t4")
+        t5 = NullTask("t5")
+        with_dependencies(t2 | t4 | t5,
+                          t3 | t5)
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
 
         
 def do_all():
