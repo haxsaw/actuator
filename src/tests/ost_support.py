@@ -53,6 +53,7 @@ class MockNovaClient(object):
         self.flavors = CreateAndList(self.flavor_create_result, self.flavor_list_result)
         self.security_groups = CreateAndList(self.secgroup_create_result, self.secgroup_list_result)
         self.networks = CreateAndList(None, self.network_list_result)
+        self.security_group_rules = Create(self.secgroup_rule_create_result)
         
     class ImageResult(object):
         def __init__(self, name):
@@ -93,6 +94,13 @@ class MockNovaClient(object):
     def secgroup_list_result(self):
         return list(itertools.chain(self._secgroup_list,
                                     [MockNovaClient.SecGroupResult(sgr.id) for sgr in self._secgroup_list]))
+    
+            
+    def secgroup_rule_create_result(self, *args, **kwargs):
+        class SecGroupRuleResult(object):
+            def __init__(self):
+                self.id = fake.md5()
+        return SecGroupRuleResult()
         
     def fip_create_result(self, *args, **kwargs):
         class FIPResult(object):

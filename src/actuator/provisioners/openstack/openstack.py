@@ -10,7 +10,7 @@ import uuid
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 NovaClient = ocf.get_nova_client_class()
 NeutronClient = ocf.get_neutron_client_class()
-from actuator.provisioners.openstack.components import _ComponentSorter
+from actuator.provisioners.openstack.components import _ComponentSorter, SecGroupRule
 
 from actuator.infra import InfraSpec
 from actuator.provisioners.core import BaseProvisioner, ProvisionerException, BaseProvisioningRecord
@@ -24,6 +24,7 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
         self.floating_ip_ids = dict()
         self.router_ids = dict()
         self.secgroup_ids = dict()
+        self.secgroup_rule_ids = dict()
         self.server_ids = dict()
         self.port_ids = dict()
         
@@ -55,6 +56,9 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
     def add_secgroup_id(self, pid, osid):
         self.secgroup_ids[pid] = osid
         
+    def add_secgroup_rule_id(self, pid, osid):
+        self.secgroup_rule_ids[pid] = osid
+        
     def add_router_id(self, pid, osid):
         self.router_ids[pid] = osid
         
@@ -75,6 +79,7 @@ class _OSMaps(object):
         self.flavor_map = {}
         self.network_map = {}
         self.secgroup_map = {}
+        self.secgroup_rule_map = {}
         self.router_map = {}
         self.subnets_map = {}
         
@@ -135,6 +140,18 @@ class OpenstackProvisioner(BaseProvisioner):
                                                             description=sg.description)
             sg.set_osid(response.id)
             record.add_secgroup_id(sg._id, sg.osid)
+            
+    def _provision_sec_group_rules(self, record):
+        for sgr in self.workflow_sorter.secgroup_rules:
+            assert isinstance(sgr, SecGroupRule)
+            sgr.fix_arguments()
+            response = self.nvclient.security_group_rules.create(sgr.secgroup,
+                                                                 ip_protocol=sgr.ip_protocol,
+                                                                 from_port=sgr.from_port,
+                                                                 to_port=sgr.to_port,
+                                                                 cidr=sgr.cidr)
+            sgr.set_osid(response.id)
+            record.add_secgroup_rule_id(sgr._id, sgr.osid)
     
     def  _process_server_addresses(self, server, addr_dict):
         for i, (k, v) in enumerate(addr_dict.items()):
@@ -262,6 +279,8 @@ class OpenstackProvisioner(BaseProvisioner):
         self._provision_subnets(record)
         
         self._provision_sec_groups(record)
+        
+        self._provision_sec_group_rules(record)
         
         self._provision_servers(record)
 

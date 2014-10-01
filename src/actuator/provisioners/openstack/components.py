@@ -7,6 +7,7 @@ import ipaddress
 
 from actuator.infra import Provisionable
 from actuator.provisioners.core import ProvisionerException
+from __builtin__ import int
 
 
 class _OpenstackProvisionableInfraComponent(Provisionable):
@@ -193,6 +194,36 @@ class SecGroup(_OpenstackProvisionableInfraComponent):
         self.description = self._get_arg_value(self._description, basestring,
                                                "", "description")
         
+
+class SecGroupRule(_OpenstackProvisionableInfraComponent):
+    def __init__(self, logicalName, secgroup, ip_protocol=None, from_port=None,
+                 to_port=None, cidr=None):
+        super(SecGroupRule, self).__init__(logicalName)
+        self._secgroup = secgroup
+        self.secgroup = None
+        self._ip_protocol = ip_protocol
+        self.ip_protocol = None
+        self._from_port = from_port
+        self.from_port = None
+        self._to_port = to_port
+        self.to_port = None
+        self._cidr = cidr
+        self.cidr = None
+        
+    def get_init_args(self):
+        return ((self.logicalName, self._secgroup),
+                {"ip_protocol":self._ip_protocol,
+                 "from_port":self._from_port,
+                 "to_port":self._to_port,
+                 "cidr":self._cidr})
+    
+    def _fix_arguments(self, provisioner=None):
+        self.secgroup = self._get_arg_value(self._secgroup, SecGroup, "osid", "secgroup")
+        self.ip_protocol = self._get_arg_value(self._ip_protocol, basestring, "", "ip_protocol")
+        self.from_port = self._get_arg_value(self._from_port, int, "", "from_port")
+        self.to_port = self._get_arg_value(self._to_port, int, "", "to_port")
+        self.cidr = self._get_arg_value(self._cidr, basestring, "", "cidr")
+        
         
 class Subnet(_OpenstackProvisionableInfraComponent):
     _ipversion_map = {ipaddress.IPv4Network:4, ipaddress.IPv6Network:6}
@@ -376,7 +407,8 @@ class _ComponentSorter(object):
                            Server:self.add_server,
                            RouterGateway:self.add_router_gateway,
                            RouterInterface:self.add_router_interface,
-                           SecGroup:self.add_secgroup}
+                           SecGroup:self.add_secgroup,
+                           SecGroupRule:self.add_secgroup_rule}
         
     def reset(self):
         self.networks.clear()
