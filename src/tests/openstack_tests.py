@@ -12,13 +12,17 @@ Created on 25 Aug 2014
 
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
+from actuator.infra import ComponentGroup
 ocf.set_neutron_client_class(ost_support.MockNeutronClient)
 ocf.set_nova_client_class(ost_support.MockNovaClient)
 
-from actuator import InfraSpec, ProvisionerException, MultiComponentGroup, MultiComponent, ctxt, InfraException
+from actuator import (InfraSpec, ProvisionerException, MultiComponentGroup,
+                      MultiComponent, ctxt)
 from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 from actuator.provisioners.openstack.components import (Server, Network,
-                                                           Router, FloatingIP, Subnet)
+                                                        Router, FloatingIP,
+                                                        Subnet, SecGroup,
+                                                        SecGroupRule)
 
 
 def get_provisioner():
@@ -293,6 +297,92 @@ def test017():
 #         assert False, "The creation of Test21 should have failed"
 #     except InfraException, e:
 #         assert "nett" in e.message
+
+def test022():
+    _ = SecGroup("wibbleGroup", description="A group for testing")
+    
+def test023():
+    class SGTest(InfraSpec):
+        secgroup = SecGroup("wibbleGroup", description="A group for testing")
+    inst = SGTest("t1")
+    assert inst.secgroup is not SGTest.secgroup
+
+def test024():
+    prov = get_provisioner()
+    class SGTest(InfraSpec):
+        secgroup = SecGroup("wibbleGroup", description="A group for testing")
+    inst = SGTest("t1")
+    rec = prov.provision_infra_spec(inst)
+    assert rec
+    
+def test025():
+    prov = get_provisioner()
+    class SGTest(InfraSpec):
+        secgroup = SecGroup("wibbleGroup", description="stuff")
+        server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key",
+                        security_groups=[ctxt.infra.secgroup])
+        fip = FloatingIP("fip1", ctxt.infra.server,
+                         ctxt.infra.server.iface0.addr0, pool="external")
+    inst = SGTest("t25")
+    rec = prov.provision_infra_spec(inst)
+    assert rec
+    
+def test026():
+    _ = SecGroupRule("rule1", ctxt.infra.secgroup, ip_protocol=None,
+                     from_port=None, to_port=None, cidr=None)
+
+
+def test027():
+    prov = get_provisioner()
+    class SGRTest(InfraSpec):
+        secgroup = SecGroup("wibbleGroup", description="stuff")
+        ping = SecGroupRule("pingRule", ctxt.infra.secgroup,
+                            ip_protocol="icmp",
+                            from_port=-1, to_port=-1)
+    inst = SGRTest("ping")
+    rec = prov.provision_infra_spec(inst)
+    assert rec
+
+def test028():
+    prov = get_provisioner()
+    seccomp = ComponentGroup("security_component_group",
+                             secgroup=SecGroup("wibbleGroup", description="stuff"),
+                             ping=SecGroupRule("pingRule",
+                                               ctxt.comp.container.secgroup,
+                                               ip_protocol="icmp",
+                                               from_port=-1, to_port=-1),
+                             ssh_rule=SecGroupRule("ssh_rule",
+                                                   ctxt.comp.container.secgroup,
+                                                   ip_protocol="tcp", from_port=22,
+                                                   to_port=22))
+    class SGRTest(InfraSpec):
+        external_access = seccomp
+    inst = SGRTest("seccomp")
+    rec = prov.provision_infra_spec(inst)
+    assert rec
+
+def test029():
+    prov = get_provisioner()
+    seccomp = ComponentGroup("security_component_group",
+                             secgroup=SecGroup("wibbleGroup", description="stuff"),
+                             ping=SecGroupRule("pingRule",
+                                               ctxt.comp.container.secgroup,
+                                               ip_protocol="icmp",
+                                               from_port=-1, to_port=-1),
+                             ssh_rule=SecGroupRule("ssh_rule",
+                                                   ctxt.comp.container.secgroup,
+                                                   ip_protocol="tcp", from_port=22,
+                                                   to_port=22))
+    class SGRTest(InfraSpec):
+        external_access = seccomp
+        server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key",
+                        security_groups=[ctxt.infra.external_access.secgroup])
+        fip = FloatingIP("fip1", ctxt.infra.server,
+                         ctxt.infra.server.iface0.addr0, pool="external")
+    inst = SGRTest("seccomp with server")
+    rec = prov.provision_infra_spec(inst)
+    assert rec
+
 
 def do_all():
     for k, v in globals().items():

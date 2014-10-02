@@ -5,6 +5,7 @@ Created on 25 Aug 2014
 '''
 import random
 import uuid
+import itertools
 
 from faker import Faker
 fake = Faker()
@@ -15,7 +16,7 @@ class Create(object):
         self.get_result = get_result
         
     def create(self, *args, **kwargs):
-        return self.get_result()
+        return self.get_result(*args, **kwargs)
     
 
 class CreateAndList(Create):
@@ -52,6 +53,7 @@ class MockNovaClient(object):
         self.flavors = CreateAndList(self.flavor_create_result, self.flavor_list_result)
         self.security_groups = CreateAndList(self.secgroup_create_result, self.secgroup_list_result)
         self.networks = CreateAndList(None, self.network_list_result)
+        self.security_group_rules = Create(self.secgroup_rule_create_result)
         
     class ImageResult(object):
         def __init__(self, name):
@@ -60,7 +62,7 @@ class MockNovaClient(object):
     
     _image_list = [ImageResult(n) for n in (u'CentOS 6.5 x86_64', u'Ubuntu 13.10', u'Fedora 20 x86_64')]
     
-    def image_create_result(self):
+    def image_create_result(self, *args, **kwargs):
         return random.choice(self._image_list)
     
     def image_list_result(self):
@@ -73,7 +75,7 @@ class MockNovaClient(object):
             
     _flavor_list = [FlavorResult(n) for n in (u'm1.small', u'm1.medium', u'm1.large')]
     
-    def flavor_create_result(self):
+    def flavor_create_result(self, *args, **kwargs):
         return random.choice(self._flavor_list)
     
     def flavor_list_result(self):
@@ -84,15 +86,23 @@ class MockNovaClient(object):
             self.id = fake.md5()
             self.name = name
             
-    _secgroup_list = [SecGroupResult(n) for n in (u'default')]
+    _secgroup_list = [SecGroupResult(n) for n in (u'default', u'wibbleGroup')]
     
-    def secgroup_create_result(self):
+    def secgroup_create_result(self, *args, **kwargs):
         return random.choice(self._secgroup_list)
     
     def secgroup_list_result(self):
-        return list(self._secgroup_list)
+        return list(itertools.chain(self._secgroup_list,
+                                    [MockNovaClient.SecGroupResult(sgr.id) for sgr in self._secgroup_list]))
+    
+            
+    def secgroup_rule_create_result(self, *args, **kwargs):
+        class SecGroupRuleResult(object):
+            def __init__(self):
+                self.id = fake.md5()
+        return SecGroupRuleResult()
         
-    def fip_create_result(self):
+    def fip_create_result(self, *args, **kwargs):
         class FIPResult(object):
             def __init__(self):
                 self.ip = fake.ipv4()
@@ -111,7 +121,7 @@ class MockNovaClient(object):
     def network_list_result(self):
         return list(self._networks_list)
     
-    def server_create_result(self):
+    def server_create_result(self, *args, **kwargs):
         class ServerResult(object):
             def __init__(self):
                 self.id = fake.md5()

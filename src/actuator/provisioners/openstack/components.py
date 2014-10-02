@@ -7,6 +7,7 @@ import ipaddress
 
 from actuator.infra import Provisionable
 from actuator.provisioners.core import ProvisionerException
+from __builtin__ import int
 
 
 class _OpenstackProvisionableInfraComponent(Provisionable):
@@ -119,7 +120,7 @@ class Server(_OpenstackProvisionableInfraComponent):
         elif callable(self._security_groups):
             self.security_groups = self._get_arg_value(self._security_groups, list, "", "security_groups")
         else:
-            self.security_groups = [self._get_arg_value(sg, SecurityGroup, "osid", "security_groups item %d" % i)
+            self.security_groups = [self._get_arg_value(sg, SecGroup, "osid", "security_groups item %d" % i)
                                     for i, sg in enumerate(self._security_groups)]
         self.userdata = self._get_arg_value(self._userdata if self._userdata is not None else {},
                                             dict, "", "userdata")
@@ -179,12 +180,49 @@ class Network(_OpenstackProvisionableInfraComponent):
                 {"admin_state_up":self._admin_state_up})
         
         
-class SecurityGroup(_OpenstackProvisionableInfraComponent):
+class SecGroup(_OpenstackProvisionableInfraComponent):
+    def __init__(self, logicalName, description=None):
+        super(SecGroup, self).__init__(logicalName)
+        self._description = description
+        self.description = None
+        
     def get_init_args(self):
-        return ((self.logicalName,), {})
+        return ((self.logicalName,),
+                {"description":self._description})
     
-    def _fix_arguments(self):
-        pass
+    def _fix_arguments(self, provisioner=None):
+        self.description = self._get_arg_value(self._description, basestring,
+                                               "", "description")
+        
+
+class SecGroupRule(_OpenstackProvisionableInfraComponent):
+    def __init__(self, logicalName, secgroup, ip_protocol=None, from_port=None,
+                 to_port=None, cidr=None):
+        super(SecGroupRule, self).__init__(logicalName)
+        self._secgroup = secgroup
+        self.secgroup = None
+        self._ip_protocol = ip_protocol
+        self.ip_protocol = None
+        self._from_port = from_port
+        self.from_port = None
+        self._to_port = to_port
+        self.to_port = None
+        self._cidr = cidr
+        self.cidr = None
+        
+    def get_init_args(self):
+        return ((self.logicalName, self._secgroup),
+                {"ip_protocol":self._ip_protocol,
+                 "from_port":self._from_port,
+                 "to_port":self._to_port,
+                 "cidr":self._cidr})
+    
+    def _fix_arguments(self, provisioner=None):
+        self.secgroup = self._get_arg_value(self._secgroup, SecGroup, "osid", "secgroup")
+        self.ip_protocol = self._get_arg_value(self._ip_protocol, basestring, "", "ip_protocol")
+        self.from_port = self._get_arg_value(self._from_port, int, "", "from_port")
+        self.to_port = self._get_arg_value(self._to_port, int, "", "to_port")
+        self.cidr = self._get_arg_value(self._cidr, basestring, "", "cidr")
         
         
 class Subnet(_OpenstackProvisionableInfraComponent):
@@ -338,10 +376,6 @@ class RouterInterface(_OpenstackProvisionableInfraComponent):
         return ((self.logicalName, self._router, self._subnet), {})
     
     
-class SecGroup(_OpenstackProvisionableInfraComponent):
-    pass
-
-
 def _checktype(aType):
     def check_add_type(f):
         def exec_with_check(self, toAdd):
@@ -372,7 +406,9 @@ class _ComponentSorter(object):
                            Router:self.add_router,
                            Server:self.add_server,
                            RouterGateway:self.add_router_gateway,
-                           RouterInterface:self.add_router_interface}
+                           RouterInterface:self.add_router_interface,
+                           SecGroup:self.add_secgroup,
+                           SecGroupRule:self.add_secgroup_rule}
         
     def reset(self):
         self.networks.clear()
