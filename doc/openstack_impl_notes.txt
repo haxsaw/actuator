@@ -6,6 +6,8 @@ python-novaclient
 python-neutronclient
 ipaddress
 networkx
+ansible
+
 Testing support packages:
 fake-factory (Faker)
 nose
