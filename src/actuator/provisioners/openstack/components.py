@@ -5,7 +5,7 @@ Created on 7 Sep 2014
 '''
 import ipaddress
 
-from actuator.infra import Provisionable
+from actuator.infra import Provisionable, ServerRef
 from actuator.provisioners.core import ProvisionerException
 from __builtin__ import int
 
@@ -47,7 +47,7 @@ class NetworkInterface(object):
         self.addr7 = None
 
 
-class Server(_OpenstackProvisionableInfraComponent):
+class Server(_OpenstackProvisionableInfraComponent, ServerRef):
     def __init__(self, logicalName, imageName, flavorName, meta=None, files=None,
                  reservation_id=None, min_count=None, max_count=None, security_groups=None,
                  userdata=None, key_name=None, availability_zone=None, block_device_mapping=None,
@@ -164,6 +164,9 @@ class Server(_OpenstackProvisionableInfraComponent):
                   "config_drive":self._config_drive, "disk_config":self._disk_config,
                   "floating_ip":self._floating_ip} )
         
+    def get_admin_ip(self):
+        return self.iface0.addr0
+        
         
 class Network(_OpenstackProvisionableInfraComponent):
     def __init__(self, logicalName, admin_state_up=True):
@@ -264,7 +267,7 @@ class Subnet(_OpenstackProvisionableInfraComponent):
                                                                 'ip_version':self._ip_version})
     
     
-class FloatingIP(_OpenstackProvisionableInfraComponent):
+class FloatingIP(_OpenstackProvisionableInfraComponent, ServerRef):
     def __init__(self, logicalName, server, associated_ip, pool=None):
         """
         Creates a floating IP and attaches it to a server
@@ -283,6 +286,9 @@ class FloatingIP(_OpenstackProvisionableInfraComponent):
         self._pool = pool
         self.pool = None
         self.ip = None
+        
+    def get_admin_ip(self):
+        return self.ip
         
     def _fix_arguments(self, provisioner=None):
         self.server = self._get_arg_value(self._server, Server, "osid", "server")

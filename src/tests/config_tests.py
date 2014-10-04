@@ -4,7 +4,8 @@ Created on 13 Jul 2014
 @author: tom
 '''
 from actuator import *
-from actuator.config import _Dependency
+from actuator.config import _Dependency, _ConfigTask
+from actuator.infra import ServerRef
 
 MyConfig = None
 search_path = ["p1", "p2", "p3"]
@@ -311,7 +312,91 @@ def test26():
         
     assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
 
+#tests after this point will use these classes
+class Capture(object):
+    def __init__(self):
+        self.performed = []
         
+    def __call__(self, name, task):
+        self.performed.append((name, task))
+        
+    def pos(self, name, task):
+        return self.performed.index((name, task))
+        
+    
+class ReportingTask(_ConfigTask):
+    def __init__(self, target, report=lambda n, o: (n, o), **kwargs):
+        super(ReportingTask, self).__init__(**kwargs)
+        self.target = target
+        self.report = report
+        
+    def perform(self):
+        self.report(self.target.name, self)
+
+class BogusServerRef(ServerRef):
+    def get_admin_ip(self):
+        return "8.8.8.8"
+        
+
+def test27():
+    cap = Capture()
+        
+    class PingNamespace(NamespaceSpec):
+        ping_target = Component("ping_target", host_ref=BogusServerRef())
+    ns = PingNamespace()
+        
+    class PingConfig(ConfigSpec):
+        ping_task = ReportingTask(PingNamespace.ping_target, report=cap)
+        
+    cfg = PingConfig()
+    cfg.perform_with(ns)
+    assert cap.performed
+    
+def test28():
+    cap = Capture()
+    class PingNamespace(NamespaceSpec):
+        ping_target = Component("ping_target", host_ref=BogusServerRef())
+    ns = PingNamespace()
+        
+    class PingConfig(ConfigSpec):
+        t3 = ReportingTask(PingNamespace.ping_target, report=cap)
+        t2 = ReportingTask(PingNamespace.ping_target, report=cap)
+        t1 = ReportingTask(PingNamespace.ping_target, report=cap)
+        with_dependencies(t1 | t2 | t3)
+    
+    cfg = PingConfig()
+    cfg.perform_with(ns)
+    assert (cap.pos("ping_target", PingConfig.t1) <
+            cap.pos("ping_target", PingConfig.t2) <
+            cap.pos("ping_target", PingConfig.t3) )
+        
+def test29():
+    cap = Capture()
+    class PingNamespace(NamespaceSpec):
+        ping_target = Component("ping_target", host_ref=BogusServerRef())
+    ns = PingNamespace()
+        
+    class PingConfig(ConfigSpec):
+        t3 = ReportingTask(PingNamespace.ping_target, report=cap)
+        t2 = ReportingTask(PingNamespace.ping_target, report=cap)
+        t1 = ReportingTask(PingNamespace.ping_target, report=cap)
+        t4 = ReportingTask(PingNamespace.ping_target, report=cap)
+        t5 = ReportingTask(PingNamespace.ping_target, report=cap)
+        with_dependencies(t1 | t2 | t3,
+                          t4 | t2,
+                          t4 | t3,
+                          t5 | t3)
+    
+    cfg = PingConfig()
+    cfg.perform_with(ns)
+    assert (cap.pos("ping_target", PingConfig.t1) <
+            cap.pos("ping_target", PingConfig.t2) <
+            cap.pos("ping_target", PingConfig.t3) and
+            cap.performed[-1] == ("ping_target", PingConfig.t3) and
+            cap.pos("ping_target", PingConfig.t4) <
+            cap.pos("ping_target", PingConfig.t2))
+        
+
 def do_all():
     setup()
     for k, v in globals().items():

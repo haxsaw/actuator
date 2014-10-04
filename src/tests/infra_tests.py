@@ -3,9 +3,10 @@ Created on 4 Jun 2014
 
 @author: tom
 '''
-from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup
-from actuator.infra import (InfraModelReference, InfraModelInstanceReference, InfraComponentBase, ctxt,
-                            AbstractModelReference, with_infra_components)
+from actuator import (InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup, ctxt)
+from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,
+                               AbstractModelingEntity)
+from actuator.infra import (with_infra_components)
 from actuator.provisioners.example_components import Server, Database
 
 MyInfra = None
@@ -39,7 +40,7 @@ def test03():
     assert MyInfra.server is MyInfra.server, "references aren't being reused"
 
 def test04():
-    assert type(MyInfra.server.logicalName) is InfraModelReference, \
+    assert type(MyInfra.server.logicalName) is ModelReference, \
             "data member on a component isn't being wrapped with a reference"
     
 def test05():
@@ -60,7 +61,7 @@ def test08():
     assert MyInfra.server.mem, "failed to create ref for kw-created attr"
     
 def test09():
-    assert type(MyInfra.server.provisionedName) == InfraModelReference, \
+    assert type(MyInfra.server.provisionedName) == ModelReference, \
             "data member on a component isn't being wrapped with a reference"
 
 def test10():
@@ -79,11 +80,11 @@ def test12():
         pass
     
 def test13():
-    assert MyInfra.grid[1].__class__ == InfraModelReference, \
+    assert MyInfra.grid[1].__class__ == ModelReference, \
         "did not get a ref for a keyed MultiComponent"
     
 def test14():
-    assert MyInfra.grid.__class__ == InfraModelReference, \
+    assert MyInfra.grid.__class__ == ModelReference, \
         "did not get a ref for a MultiComponent"
     
 def test15():
@@ -91,7 +92,7 @@ def test15():
         "refs not being reused for keyed MultiCcmponent"
     
 def test16():
-    assert MyInfra.grid[2].logicalName.__class__ == InfraModelReference
+    assert MyInfra.grid[2].logicalName.__class__ == ModelReference
     
 def test17():
     assert (MyInfra.grid[3].logicalName is MyInfra.grid[3].logicalName)
@@ -136,15 +137,15 @@ def test29():
     
 def test30():
     inst = MyInfra("test30")
-    assert inst.server.__class__ is InfraModelInstanceReference
+    assert inst.server.__class__ is ModelInstanceReference
     
 def test31():
     inst = MyInfra("test31")
-    assert inst.grid.__class__ is InfraModelInstanceReference
+    assert inst.grid.__class__ is ModelInstanceReference
     
 def test32():
     inst = MyInfra("test32")
-    assert inst.grid[1].__class__ is InfraModelInstanceReference
+    assert inst.grid[1].__class__ is ModelInstanceReference
     
 def test33():
     inst = MyInfra("test33")
@@ -347,17 +348,17 @@ def test78():
                MyInfra.composite[2].grid,
                MyInfra.composite[3].grid[1],
                MyInfra.composite[3].grid[1].logicalName]
-    s = set([ref.get_containing_provisionable()
+    s = set([ref.get_containing_component()
              for ref in modrefs
-             if ref.get_containing_provisionable() is not None])
-    assert len( s ) == 1, "There was more than one provisionable"
+             if ref.get_containing_component() is not None])
+    assert len( s ) == 1, "There was more than one component"
     
 def test79():
-    assert MyInfra.grid[1].get_containing_provisionable() == MyInfra.grid[1].logicalName.get_containing_provisionable()
+    assert MyInfra.grid[1].get_containing_component() == MyInfra.grid[1].logicalName.get_containing_component()
     
 def test80():
-    assert (MyInfra.composite[1].grid[1].get_containing_provisionable() ==
-            MyInfra.composite[1].grid[1].logicalName.get_containing_provisionable())
+    assert (MyInfra.composite[1].grid[1].get_containing_component() ==
+            MyInfra.composite[1].grid[1].logicalName.get_containing_component())
     
 def test81():
     inst = MyInfra("test81")
@@ -366,72 +367,72 @@ def test81():
                inst.grid[3].logicalName,
                inst.grid[3],
                inst.grid]
-    assert len(set([p for p in [r.get_containing_provisionable() for r in modrefs] if p is not None])) == 3
+    assert len(set([p for p in [r.get_containing_component() for r in modrefs] if p is not None])) == 3
     
 def test82():
     inst = MyInfra("test82")
-    assert len(inst.provisionables()) == 2
+    assert len(inst.components()) == 2
     
 def test83():
     class ProvTest(InfraSpec):
         grid = MultiComponent(Server("prov1", mem="8GB"))
     inst = ProvTest("prov1")
     _ = inst.grid[1]
-    assert len(inst.provisionables()) == 1
+    assert len(inst.components()) == 1
     
 def test84():
     inst = MyInfra("test84")
     _ = inst.grid[1]
-    assert len(inst.provisionables()) == 3
+    assert len(inst.components()) == 3
     
 def test85():
     inst = MyInfra("test85")
     for i in range(5):
         _ = inst.grid[i]
-    assert len(inst.provisionables()) == 7
+    assert len(inst.components()) == 7
     
 def test86():
     inst = MyInfra("test86")
     _ = inst.workers[1]
-    assert len(inst.provisionables()) == 5
+    assert len(inst.components()) == 5
     
 def test87():
     inst = MyInfra("test87")
     _ = inst.workers[1].handler
-    assert len(inst.provisionables()) == 5
+    assert len(inst.components()) == 5
     
 def test88():
     inst = MyInfra("test88")
     for i in range(2):
         _ = inst.workers[i]
-    assert len(inst.provisionables()) == 8
+    assert len(inst.components()) == 8
     
 def test89():
     inst = MyInfra("test89")
     _ = inst.composite[1]
-    assert len(inst.provisionables()) == 2
+    assert len(inst.components()) == 2
     
 def test90():
     inst = MyInfra("test90")
     _ = inst.composite[1].grid[1]
-    assert len(inst.provisionables()) == 3
+    assert len(inst.components()) == 3
 
 def test91():
     inst = MyInfra("test91")
     _ = inst.composite[1].workers
-    assert len(inst.provisionables()) == 2
+    assert len(inst.components()) == 2
     
 def test92():
     inst = MyInfra("test92")
     _ = inst.composite[1].workers[1]
-    assert len(inst.provisionables()) == 5
+    assert len(inst.components()) == 5
     
 def test93():
     inst = MyInfra("test93")
     _ = inst.composite[1].workers[1]
     for i in range(2):
         _ = inst.composite[i+2].grid[1]
-    assert len(inst.provisionables()) == 7
+    assert len(inst.components()) == 7
     
 def test94():
     inst = MyInfra("test94")
@@ -554,7 +555,7 @@ def test117():
 def test118():
     #this is just ensuring we throw if a component derived class  fails to
     #implement fix_arguments()
-    class MissedMethod1(InfraComponentBase):
+    class MissedMethod1(AbstractModelingEntity):
         def __init__(self, logicalName, arg1, arg2):
             super(MissedMethod1, self).__init__(logicalName)
             self.arg1 = arg1
@@ -633,7 +634,7 @@ def test124():
     inst = CGTest6("ctg6")
     inst.group.grid[0]
     inst.group.grid[1]
-    inst.refs_for_provisionables()
+    inst.refs_for_components()
     try:
         inst.group.fix_arguments()
     except Exception, e:
@@ -661,7 +662,7 @@ def test126():
         group = group_thing
         
     inst = CGTest8("ctg8")
-    inst.refs_for_provisionables()
+    inst.refs_for_components()
     inst.group.fix_arguments()
     assert inst.group.slave.mem.value() == "8GB"
 
@@ -674,8 +675,8 @@ def test127():
         group = group_thing
         
     inst = CGTest9("ctg9")
-    inst.refs_for_provisionables()
-    _ = inst.provisionables()
+    inst.refs_for_components()
+    _ = inst.components()
     inst.top.fix_arguments()
     inst.group.fix_arguments()
     assert inst.top.mem.value() == "8GB"
@@ -689,13 +690,13 @@ def test128():
         group = group_thing
         
     inst = CGTest10("cgt10")
-    inst.provisionables()
-    inst.refs_for_provisionables()
+    inst.components()
+    inst.refs_for_components()
     inst.group.fix_arguments()
     assert inst.group.slave.path.value() == ("reqhandler", "container", "comp")
     
 def test129():
-    class TestComp(InfraComponentBase):
+    class TestComp(AbstractModelingEntity):
         pass
     
     class Test129(InfraSpec):
@@ -747,7 +748,7 @@ def test133():
         server = Server("dummy2", mem="16GB")
     
     inst = Test133("t133")
-    _ = inst.provisionables()
+    _ = inst.components()
     inst.reqhandler.fix_arguments()
     assert inst.reqhandler.mem.value() == "16GB"
 
@@ -772,8 +773,8 @@ def test135():
     inst = Test135("t135")
     _ = inst.group.slaves[1]
     _ = inst.group.slaves[2]
-    inst.provisionables()
-    inst.refs_for_provisionables()
+    inst.components()
+    inst.refs_for_components()
     inst.group.fix_arguments()
     assert inst.group.slaves[2].mem.value() == "8GB"
     

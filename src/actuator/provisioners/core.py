@@ -16,7 +16,7 @@ class BaseProvisioner(object):
     def provision_infra_spec(self, infraspec_instance):
         if not isinstance(infraspec_instance, InfraSpec):
             raise ProvisionerException("Provisioner asked to provision something not an InfraSpec")
-        _ = infraspec_instance.refs_for_provisionables()
+        _ = infraspec_instance.refs_for_components()
         return self._provision(infraspec_instance)
     
     def _provision(self, infraspec_instance):

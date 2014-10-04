@@ -5,7 +5,7 @@ Created on 7 Sep 2014
 '''
 import re
 from actuator.utils import ClassModifier, process_modifiers
-from actuator.infra import AbstractModelReference
+from actuator.modeling import AbstractModelReference
 
 
 class NamespaceException(Exception): pass
@@ -138,7 +138,7 @@ class VariableContainer(_ModelRefSetAcquireable):
             value, provider = self.parent_container.find_variable(name) if self.parent_container else (None, None)
         return value, provider
     
-    def get_var_future(self, name):
+    def future(self, name):
         v, p = self.find_variable(name)
         return VarFuture(v, self) if (v and p) else None
     
@@ -204,6 +204,8 @@ class Component(VariableContainer):
         
 class NamespaceSpecMeta(type):
     def __new__(cls, name, bases, attr_dict):
+        if _common_vars not in attr_dict:
+            attr_dict[_common_vars] = []
         newbie = super(NamespaceSpecMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
         return newbie
@@ -264,7 +266,7 @@ class NamespaceSpec(VariableContainer):
         exclude_refs = set([infra_instance.get_inst_ref(ref) for ref in exclude_refs])
         self.infra_instance = infra_instance
         self.infra_instance.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
-        return set([p for p in self.infra_instance.provisionables()
+        return set([p for p in self.infra_instance.components()
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
 #         return self.infra_instance.provisionables()
         

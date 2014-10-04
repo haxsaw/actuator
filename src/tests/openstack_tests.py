@@ -12,12 +12,13 @@ Created on 25 Aug 2014
 
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
-from actuator.infra import ComponentGroup
+from actuator.modeling import ComponentGroup
+from actuator.namespace import NamespaceSpec, with_variables
 ocf.set_neutron_client_class(ost_support.MockNeutronClient)
 ocf.set_nova_client_class(ost_support.MockNovaClient)
 
 from actuator import (InfraSpec, ProvisionerException, MultiComponentGroup,
-                      MultiComponent, ctxt)
+                      MultiComponent, ctxt, Var)
 from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 from actuator.provisioners.openstack.components import (Server, Network,
                                                         Router, FloatingIP,
@@ -198,7 +199,7 @@ def test014():
         for j in range(5):
             _ = spec.collective[i].workers[j]
     rec = provisioner.provision_infra_spec(spec)
-    assert len(spec.provisionables()) == 22
+    assert len(spec.components()) == 22
     
 def test015():
     provisioner = get_provisioner()
@@ -382,7 +383,21 @@ def test029():
     inst = SGRTest("seccomp with server")
     rec = prov.provision_infra_spec(inst)
     assert rec
-
+    
+def test030():
+    prov = get_provisioner()
+    class IPTest(InfraSpec):
+        server = Server("simple", u"Ubuntu 13.10", "m1.small",
+                        key_name="perseverance_dev_key")
+        server_fip = FloatingIP("server_fip", ctxt.infra.server,
+                                ctxt.infra.server.iface0.addr0, pool="external")
+    inst = IPTest("iptest")
+    class IPNamespace(NamespaceSpec):
+        with_variables(Var("SERVER_IP", IPTest.server_fip.ip))
+    ns = IPNamespace()
+    ns.compute_provisioning_for_environ(inst)
+    prov.provision_infra_spec(inst)
+    assert ns.future("SERVER_IP").value()
 
 def do_all():
     for k, v in globals().items():

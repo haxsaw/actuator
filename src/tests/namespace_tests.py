@@ -4,8 +4,9 @@ Created on 7 Jun 2014
 @author: tom
 '''
 from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
-                          Component, with_components)
-from actuator.infra import (InfraSpec, MultiComponent, MultiComponentGroup)
+                          Component, with_components, MultiComponent, 
+                          MultiComponentGroup)
+from actuator.infra import InfraSpec
 from actuator.provisioners.example_components import Server
 
 
@@ -248,7 +249,7 @@ def test24():
 #     import pdb
 #     pdb.set_trace()
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.provisionables()) == 6
+    assert len(infra.components()) == 6
 
 def test25():
     class Infra25(InfraSpec):
@@ -273,7 +274,7 @@ def test25():
     infra = Infra25("infra25")
     env = NS25()
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.provisionables()) == 7
+    assert len(infra.components()) == 7
 
 def test26():
     class Infra26(InfraSpec):
@@ -295,7 +296,7 @@ def test26():
     env = NS26()
     env.add_override(Var("QUERY_HOST", "staticHostName"))
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.provisionables()) == 1, "override didn't wipe out ref to a new query server"
+    assert len(infra.components()) == 1, "override didn't wipe out ref to a new query server"
 
 def test27():
     class Infra27(InfraSpec):
@@ -361,7 +362,7 @@ def test29():
         del servers
         
     ns = NS29()
-    assert ns.reg_srvr_0.get_var_future("SERVER_ID").value() == "server_0"
+    assert ns.reg_srvr_0.future("SERVER_ID").value() == "server_0"
 
 def test30():
     class Infra30(InfraSpec):
@@ -380,7 +381,7 @@ def test30():
 
         
     ns = NS30()
-    assert ns.server2.get_var_future("TRICKY").value() == "reg_srvr_2 with id server_2"
+    assert ns.server2.future("TRICKY").value() == "reg_srvr_2 with id server_2"
 
 def test31():
     nf = lambda x: "reg_srvr_%d" % x
@@ -430,7 +431,7 @@ def test33():
         
     ns = NS33()
     ns.add_components(server1=Component("server1").add_variable(Var("TEST", "YEP")))
-    assert ns.server1.get_var_future("TEST").value() == "YEP"
+    assert ns.server1.future("TEST").value() == "YEP"
 
 def test34():
     class NS34(NamespaceSpec):
@@ -440,7 +441,7 @@ def test34():
     server1 = Component("server1").add_variable(Var("TEST", "YEP"))
     ns.add_components(server1=server1)
     server1.add_variable(Var("TEST", "--REALLY NOPE--"))
-    assert ns.server1.get_var_future("TEST").value() == "YEP"
+    assert ns.server1.future("TEST").value() == "YEP"
 
 def test35():
     class NS35(NamespaceSpec):
@@ -450,7 +451,7 @@ def test35():
     server1 = Component("server1").add_variable(Var("TEST", "YEP"))
     ns.add_components(server1=server1)
     ns.server1.add_variable(Var("TEST", "YEP YEP"))
-    assert ns.server1.get_var_future("TEST").value() == "YEP YEP"
+    assert ns.server1.future("TEST").value() == "YEP YEP"
 
 def test36():
     class NS36(NamespaceSpec):
@@ -460,7 +461,7 @@ def test36():
     server1 = Component("server1").add_variable(Var("TEST", "YEP"))
     ns.add_components(server1=server1, server2=Component("server2"))
     ns.server1.add_override(Var("TEST", "YEP YEP YEP"))
-    assert ns.server1.get_var_future("TEST").value() == "YEP YEP YEP"
+    assert ns.server1.future("TEST").value() == "YEP YEP YEP"
     
 def test37():
     class NS37(NamespaceSpec):
@@ -468,7 +469,7 @@ def test37():
         daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
         kid = Component("kid", parent=daddy)
     ns = NS37()
-    assert ns.kid.get_var_future("MYSTERY").value() == "RIGHT!"
+    assert ns.kid.future("MYSTERY").value() == "RIGHT!"
 
         
 def do_all():

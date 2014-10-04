@@ -46,6 +46,15 @@ class Orable(object):
 
 
 class _ConfigTask(Orable):
+    def __init__(self, task_component=None, run_from=None, repeat_til_success=False,
+                 repeat_count=1, repeat_interval=5):
+        super(_ConfigTask, self).__init__()
+        self.task_component = task_component
+        self.run_from = run_from
+        self.repeat_til_success = repeat_til_success
+        self.repeat_count = repeat_count
+        self.repeat_interval = repeat_interval
+        
     def _or_result_class(self):
         return _Dependency
     
@@ -55,7 +64,10 @@ class _ConfigTask(Orable):
     def exit_nodes(self):
         return [self]
     
-        
+    def perform(self):
+        raise TypeError("Derived class must implement")
+    
+    
 class ConfigSpecMeta(type):
     def __new__(cls, name, bases, attr_dict):
         all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, _ConfigTask)}
@@ -85,6 +97,27 @@ class ConfigSpec(object):
             deps = []
         return deps
     
+    def get_tasks(self):
+        return self._node_dict_.keys()
+    
+    def perform_with(self, namespace):
+        nodes = self.get_tasks()
+        deps = self.get_dependencies()
+        graph = nx.DiGraph()
+        graph.add_nodes_from(nodes, ins_traversed=0)
+        graph.add_edges_from( [d.edge() for d in deps] )
+        ply = [t for t in nodes if graph.in_degree(t) == 0]
+        traversed = set()
+        while ply:
+            for task in ply:
+                task.perform()
+                for successor in graph.successors_iter(task):
+                    graph.node[successor]['ins_traversed'] += 1
+            traversed.update(ply)
+            ply = [t for t in nodes
+                   if graph.in_degree(t) == graph.node[t]["ins_traversed"] and
+                   t not in traversed]
+            
     
 class TaskGroup(Orable):
     def _or_result_class(self):
@@ -150,23 +183,31 @@ class _Dependency(Orable):
     
 
 class NullTask(_ConfigTask):
-    def __init__(self, path=""):
+    def __init__(self, path="", **kwargs):
+        super(NullTask, self).__init__(**kwargs)
         self.path = path
         
         
 class MakeDir(_ConfigTask):
-    def __init__(self, path=""):
+    def __init__(self, path="", **kwargs):
+        super(MakeDir, self).__init__(**kwargs)
         self.path = path
 
 
 class Template(_ConfigTask):
-    pass
+    def __init__(self, path="", **kwargs):
+        super(Template, self).__init__(**kwargs)
+        self.path = path
 
 
 class CopyAssets(_ConfigTask):
-    pass
+    def __init__(self, path="", **kwargs):
+        super(CopyAssets, self).__init__(**kwargs)
+        self.path = path
 
 
 class ConfigJob(_ConfigTask):
-    pass
+    def __init__(self, path="", **kwargs):
+        super(ConfigJob, self).__init__(**kwargs)
+        self.path = path
 
