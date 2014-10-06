@@ -26,7 +26,7 @@ Created on 7 Sep 2014
 '''
 import re
 from actuator.utils import ClassModifier, process_modifiers
-from actuator.modeling import AbstractModelReference
+from actuator.modeling import AbstractModelReference, ModelComponent, SpecBase, SpecBaseMeta
 
 
 class NamespaceException(Exception): pass
@@ -189,7 +189,8 @@ def with_variables(cls, *args, **kwargs):
 with_variables = ClassModifier(with_variables)
 
 
-_common_comps = "__common_comps__"
+# _common_comps = "__common_comps__"
+_common_comps = "__components"
 def with_components(cls, *args, **kwargs):
     for k, v in kwargs.items():
         setattr(cls, k, v)
@@ -204,8 +205,8 @@ class ComponentMeta(type):
         return new_cls
     
 
-class Component(VariableContainer):
-    __metadata__ = ComponentMeta
+class Component(VariableContainer, ModelComponent):
+#     __metadata__ = ComponentMeta
     def __init__(self, name, host_ref=None, variables=None, parent=None):
         super(Component, self).__init__(parent=parent)
         self.name = name
@@ -223,7 +224,7 @@ class Component(VariableContainer):
         return modelrefs
         
         
-class NamespaceSpecMeta(type):
+class NamespaceSpecMeta(SpecBaseMeta):
     def __new__(cls, name, bases, attr_dict):
         if _common_vars not in attr_dict:
             attr_dict[_common_vars] = []
@@ -232,7 +233,7 @@ class NamespaceSpecMeta(type):
         return newbie
     
 
-class NamespaceSpec(VariableContainer):
+class NamespaceSpec(VariableContainer, SpecBase):
     __metaclass__ = NamespaceSpecMeta
     def __init__(self):
         super(NamespaceSpec, self).__init__()
