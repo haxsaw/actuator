@@ -28,6 +28,7 @@ from actuator import (InfraSpec, with_variables, Var, Component, NamespaceSpec,
                       MultiComponent, with_components, MultiComponentGroup)
 from actuator.provisioners.example_components import Database, Server, Queue
 
+
 class System1(InfraSpec):
     web_server = Server("webServer", mem="16GB")
     database = Database("db")
