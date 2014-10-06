@@ -352,7 +352,7 @@ class ReportingTask(_ConfigTask):
         self.report = report
         
     def perform(self):
-        self.report(self.target.name, self)
+        self.report(self.target.name.value(), self)
 
 class BogusServerRef(ServerRef):
     def get_admin_ip(self):

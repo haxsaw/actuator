@@ -26,7 +26,8 @@ Created on 7 Sep 2014
 '''
 import re
 from actuator.utils import ClassModifier, process_modifiers
-from actuator.modeling import AbstractModelReference, ModelComponent, SpecBase, SpecBaseMeta
+from actuator.modeling import (AbstractModelReference, ModelComponent, SpecBase,
+                               ModelReference, ModelInstanceReference, SpecBaseMeta)
 
 
 class NamespaceException(Exception): pass
@@ -213,9 +214,14 @@ class Component(VariableContainer, ModelComponent):
         self.host_ref = host_ref
         if variables is not None:
             self.add_variable(*variables)
+            
+    def get_init_args(self):
+        return ((self.name,),
+                {"host_ref":self.host_ref, "parent":self.parent_container,
+                 "variables":self.variables.values()})
         
-    def clone(self):
-        return Component(self.name, host_ref=self.host_ref, variables=self.variables.values())
+#     def clone(self):
+#         return Component(self.name, host_ref=self.host_ref, variables=self.variables.values())
     
     def _get_model_refs(self):
         modelrefs = super(Component, self)._get_model_refs()
@@ -225,6 +231,7 @@ class Component(VariableContainer, ModelComponent):
         
         
 class NamespaceSpecMeta(SpecBaseMeta):
+    model_ref_class = ModelReference
     def __new__(cls, name, bases, attr_dict):
         if _common_vars not in attr_dict:
             attr_dict[_common_vars] = []
@@ -235,17 +242,20 @@ class NamespaceSpecMeta(SpecBaseMeta):
 
 class NamespaceSpec(VariableContainer, SpecBase):
     __metaclass__ = NamespaceSpecMeta
+    ref_class = ModelInstanceReference
+
     def __init__(self):
         super(NamespaceSpec, self).__init__()
         
         components = set()
         clone_map = {}
+        clone_cache = {}
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, Component):
                 components.add((k, v))
         next_ply = set([(k,c) for k, c in components if c.parent_container is None])
         for k, c in next_ply:
-            clone = c.clone()
+            clone = c.clone(clone_cache)
             clone_map[c] = (k, clone)
             clone._set_parent(self)
         components -= next_ply
@@ -254,7 +264,7 @@ class NamespaceSpec(VariableContainer, SpecBase):
             if not next_ply:
                 raise NamespaceException("No components can be found that have parents which were previously cloned")
             for k, c in next_ply:
-                clone = c.clone()
+                clone = c.clone(clone_cache)
                 clone_map[c] = (k, clone)
                 clone._set_parent(clone_map[c.parent_container][1])
             components -= next_ply
@@ -293,10 +303,11 @@ class NamespaceSpec(VariableContainer, SpecBase):
 #         return self.infra_instance.provisionables()
         
     def add_components(self, **kwargs):
+        clone_cache = {}
         for k, v in kwargs.items():
             if not isinstance(v, Component):
                 raise NamespaceException("%s is not a kind of component" % str(v))
-            clone = v.clone()
+            clone = v.clone(clone_cache)
             self.components[k] = clone
             self.__dict__[k] = clone
         return self

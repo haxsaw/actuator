@@ -477,6 +477,13 @@ class ModelInstanceReference(AbstractModelReference):
 class SpecBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
+    def __new__(cls, name, bases, attr_dict):
+        components = {}
+        for n, v in attr_dict.items():
+            if isinstance(v, AbstractModelingEntity):
+                components[n] = v
+        attr_dict[cls._COMPONENTS] = components
+        return super(SpecBaseMeta, cls).__new__(cls, name, bases, attr_dict)
     
     def __getattribute__(cls, attrname):  #  @NoSelf
         ga = super(SpecBaseMeta, cls).__getattribute__
@@ -488,3 +495,20 @@ class SpecBaseMeta(type):
 
 class SpecBase(_ComputeModelComponents):
     __metaclass__ = SpecBaseMeta
+    
+    def get_inst_ref(self, model_ref):
+        ref = self
+        for p in model_ref.get_path():
+            if isinstance(p, KeyAsAttr):
+                ref = ref[p]
+            else:
+                ref = getattr(ref, p)
+        return ref if ref != self else None
+
+    def __getattribute__(self, attrname):
+        ga = super(SpecBase, self).__getattribute__
+        value = (self.ref_class(attrname, obj=self, parent=None)
+                 if attrname in ga(SpecBaseMeta._COMPONENTS)
+                 else ga(attrname))
+        return value
+    

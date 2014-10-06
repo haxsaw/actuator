@@ -86,15 +86,9 @@ class Provisionable(ModelComponent):
         
 
 class InfraSpecMeta(SpecBaseMeta):
-#     _COMPONENTS = "__components"
     model_ref_class = ModelReference
 
     def __new__(cls, name, bases, attr_dict):
-        components = {}
-        for n, v in attr_dict.items():
-            if isinstance(v, AbstractModelingEntity):
-                components[n] = v
-        attr_dict[cls._COMPONENTS] = components
         new_class = super(InfraSpecMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(new_class)
         new_class._class_refs_for_components()
@@ -184,22 +178,6 @@ class InfraSpec(SpecBase):
     
     def _comp_source(self):
         return dict(self.__dict__)
-    
-    def __getattribute__(self, attrname):
-        ga = super(InfraSpec, self).__getattribute__
-        value = (self.ref_class(attrname, obj=self, parent=None)
-                 if attrname in ga(InfraSpecMeta._COMPONENTS)
-                 else ga(attrname))
-        return value
-    
-    def get_inst_ref(self, model_ref):
-        ref = self
-        for p in model_ref.get_path():
-            if isinstance(p, KeyAsAttr):
-                ref = ref[p]
-            else:
-                ref = getattr(ref, p)
-        return ref if ref != self else None
     
     
 class ServerRef(object):
