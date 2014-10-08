@@ -25,13 +25,16 @@ Created on 7 Sep 2014
 @author: tom
 '''
 import re
-from actuator.utils import ClassModifier, process_modifiers
+from actuator.utils import ClassModifier, process_modifiers, capture_mapping, get_mapper
 from actuator.modeling import (AbstractModelReference, ModelComponent, SpecBase,
                                ModelReference, ModelInstanceReference, SpecBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup)
 
 
 class NamespaceException(Exception): pass
+
+
+_namespace_mapper_domain = object()
 
 
 class _ModelRefSetAcquireable(object):
@@ -66,7 +69,7 @@ class _ComputableValue(_ModelRefSetAcquireable):
         
     def _expand(self, context, history, allow_unexpanded=False):
         if hasattr(self.value, "value"):
-            infra = context.find_infra()
+            infra = context.find_infra_model()
             val = infra.get_inst_ref(self.value).value() if infra is not None else None
             return val
         elif self.value is None:
@@ -122,11 +125,15 @@ class VarFuture(object):
         
 
 class VariableContainer(_ModelRefSetAcquireable):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, variables=None, overrides=None):
         super(VariableContainer, self).__init__()
         self.variables = {}
         self.overrides = {}
         self.parent_container = parent
+        if variables is not None:
+            self.add_variable(*variables)
+        if overrides is not None:
+            self.add_override(*overrides)
         
     def _set_parent(self, parent):
         self.parent_container = parent
@@ -166,13 +173,13 @@ class VariableContainer(_ModelRefSetAcquireable):
         v, p = self.find_variable(name)
         return VarFuture(v, self) if (v and p) else None
     
-    def find_infra(self):
-        infra = self.get_infra()
-        if infra is None and self.parent_container:
-            infra = self.parent_container.find_infra()
-        return infra
+    def find_infra_model(self):
+        model = self.get_infra_model()
+        if model is None and self.parent_container:
+            model = self.parent_container.find_infra_model()
+        return model
             
-    def get_infra(self):
+    def get_infra_model(self):
         return None
     
     def get_visible_vars(self):
@@ -180,7 +187,7 @@ class VariableContainer(_ModelRefSetAcquireable):
         d.update(self.variables)
         d.update(self.overrides)
         return d
-            
+    
 
 _common_vars = "__common_vars__"
 def with_variables(cls, *args, **kwargs):
@@ -210,37 +217,99 @@ class ComponentMeta(type):
 
 class Component(ModelComponent, VariableContainer):
 #     __metadata__ = ComponentMeta
-    def __init__(self, name, host_ref=None, variables=None, parent=None):
-        super(Component, self).__init__(name, parent=parent)
+    def __init__(self, name, host_ref=None, variables=None, model=None):
+        super(Component, self).__init__(name, model_instance=model)
         self.host_ref = None
         self._host_ref = host_ref
         self.host_ref = host_ref
         if variables is not None:
             self.add_variable(*variables)
             
-    def _fix_arguments(self):
-        self.host_ref = self._get_arg_value(self._host_ref)
-        self.parent_container = self._get_arg_value(self.parent_container)
-        
+#     def _fix_arguments(self):
+#         self.host_ref = self._get_arg_value(self._host_ref)
+#         self.parent_container = self._get_arg_value(self.parent_container)
+#         
     def find_variable(self, name):
-        self.fix_arguments()
+#         self.fix_arguments()
         return super(Component, self).find_variable(name)
             
     def get_init_args(self):
-        return ((self.name,),
-                {"host_ref":self.host_ref, "parent":self.parent_container,
-                 "variables":self.variables.values()})
+        _, kwargs = super(Component, self).get_init_args()
+        kwargs.update({"host_ref":self.host_ref,
+                       "variables":self.variables.values()})
+        return ((self.name,), kwargs)
         
     def _get_model_refs(self):
         modelrefs = super(Component, self)._get_model_refs()
         if self.host_ref:
             modelrefs.add(self.host_ref)
         return modelrefs
+    
+    def get_model_instance(self):
+        if isinstance(self, NamespaceSpec):
+            model = self
+        elif self._model_instance is not None:
+            model = self._model_instance
+        elif self.parent_container:
+            model = self.parent_container.get_model_instance()
+        else:
+            model = None
+        return model
+            
+    
+@capture_mapping(_namespace_mapper_domain, ComponentGroup)
+class NSComponentGroup(ComponentGroup, VariableContainer):
+    def _set_model_instance(self, mi):
+        for c in self.components():
+            c._set_model_instance(mi)
+
+    def clone(self, clone_cache, clone_into_class=None):
+        clone = super(NSComponentGroup, self).clone(clone_cache, clone_into_class=clone_into_class)
+        for c in clone.components():
+            c._set_parent(clone)
+        clone.add_variable(*self.variables.values())
+        clone.add_override(*self.overrides.values())
+        return clone
+    
+
+@capture_mapping(_namespace_mapper_domain, MultiComponent)
+class NSMultiComponent(MultiComponent, VariableContainer):
+    def _set_model_instance(self, mi):
+        for c in self.instances().values():
+            c._set_model_instance(mi)
+            
+    def clone(self, clone_cache, clone_into_class=None):
+        clone = super(NSMultiComponent, self).clone(clone_cache, clone_into_class=clone_into_class)
+        for c in clone.instances().values():
+            c._set_parent(clone)
+        clone.add_variable(*self.variables.values())
+        clone.add_override(*self.overrides.values())
+        clone._set_model_instance(self._model_instance)
+        return clone
+    
+
+@capture_mapping(_namespace_mapper_domain, MultiComponentGroup)
+class NSMultiComponentGroup(MultiComponentGroup, VariableContainer):
+    def _set_model_instance(self, mi):
+        for c in self.instances().values():
+            c._set_model_instance(mi)
         
+    def clone(self, clone_cache, clone_into_class=None):
+        clone = super(NSMultiComponentGroup, self).clone(clone_cache, clone_into_class=clone_into_class)
+        for c in clone.instances().values():
+            c._set_parent(clone)
+        return clone
+
         
 class NamespaceSpecMeta(SpecBaseMeta):
     model_ref_class = ModelReference
     def __new__(cls, name, bases, attr_dict):
+        cmapper = get_mapper(_namespace_mapper_domain)
+        clone_cache = {}
+        for k, v in attr_dict.items():
+            if isinstance(v, (ComponentGroup, MultiComponent, MultiComponentGroup)):
+                mapped_class = cmapper[v.__class__]
+                attr_dict[k] = v.clone(clone_cache, clone_into_class=mapped_class)
         if _common_vars not in attr_dict:
             attr_dict[_common_vars] = []
         newbie = super(NamespaceSpecMeta, cls).__new__(cls, name, bases, attr_dict)
@@ -298,7 +367,7 @@ class NamespaceSpec(VariableContainer, SpecBase):
     def get_components(self):
         return dict(self.components)
     
-    def get_infra(self):
+    def get_infra_model(self):
         return self.infra_instance
     
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):

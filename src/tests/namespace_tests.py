@@ -27,6 +27,7 @@ Created on 7 Jun 2014
 from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
                           Component, with_components, MultiComponent, 
                           MultiComponentGroup, ComponentGroup, ctxt)
+from actuator.namespace import NSComponentGroup, NSMultiComponent, NSMultiComponentGroup
 from actuator.infra import InfraSpec
 from actuator.provisioners.example_components import Server
 
@@ -442,7 +443,7 @@ def test32():
     ns = NS32()
     infra = Infra32("32")
     ns.compute_provisioning_for_environ(infra)
-    assert ns.find_infra() is infra and ns.server1.find_infra() is infra
+    assert ns.find_infra_model() is infra and ns.server1.find_infra_model() is infra
     
 def test33():
     class NS33(NamespaceSpec):
@@ -486,73 +487,73 @@ def test37():
     class NS37(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
         daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid", parent=daddy)
+        kid = Component("kid")
     ns = NS37()
-    assert ns.kid.future("MYSTERY").value() == "RIGHT!"
+    assert ns.daddy.future("MYSTERY").value() == "RIGHT!"
     
 def test38():
     class NS38(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
         daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid", parent=daddy)
+        kid = Component("kid")
     assert not isinstance(NS38.daddy, Component)
-
+ 
 def test39():
     class NS39(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
         daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid", parent=daddy)
+        kid = Component("kid")
     ns = NS39()
     assert NS39.daddy is not ns.daddy
-
+ 
 def test40():
     class NS40(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
         daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid", parent=daddy)
+        kid = Component("kid")
     ns = NS40()
     assert ns.daddy is ns.get_inst_ref(NS40.daddy)
-
+ 
 def test41():
     class NS41(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
         daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid", parent=daddy)
+        kid = Component("kid")
     ns = NS41()
     assert not isinstance(ns.daddy.name, basestring)
-
+ 
 def test42():
     class NS42(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
         daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid", parent=daddy)
+        kid = Component("kid")
     ns = NS42()
     assert ns.daddy.name.value() == "daddy"
-
+ 
 def test43():
     class NS43(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
-        family = ComponentGroup("family", daddy=Component("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
-                                kid=Component("kid", parent=ctxt.model.family.daddy))
+        family = NSComponentGroup("family", daddy=Component("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
+                                kid=Component("kid"))
     ns = NS43()
     assert ns.family.daddy.name.value() == "daddy"
-
+ 
 def test44():
     class NS44(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
-        family = ComponentGroup("family", daddy=Component("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
-                                kid=Component("kid", parent=ctxt.model.family.daddy))
+        family = NSComponentGroup("family",
+                                  daddy=Component("daddy"),
+                                  kid=Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS44()
-    var = ns.family.kid.find_variable("MYSTERY")
+    var, _ = ns.family.kid.find_variable("MYSTERY")
     assert var.get_value(ns.family.kid.value()) == "RIGHT!"
 
         
 def do_all():
-    test44()
-#     setup()
-#     for k, v in globals().items():
-#         if k.startswith("test") and callable(v):
-#             v()
+    setup()
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
     
 if __name__ == "__main__":
     do_all()

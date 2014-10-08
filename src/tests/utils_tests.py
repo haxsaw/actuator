@@ -31,30 +31,30 @@ from actuator.utils import *
 dom1 = "dom1"
 dom2 = "dom2"
 
+class Dom1Source1(object): pass
+
+class Dom1Source2(object): pass
+
+class Dom2Source1(object): pass
+
+class Dom2Source2(object): pass
+
+
+@capture_mapping(dom1, Dom1Source1)
 class Dom1Target1(object):
     pass
 
+@capture_mapping(dom1, Dom1Source2)
 class Dom1Target2(object):
     pass
 
+@capture_mapping(dom2, Dom2Source1)
 class Dom2Target1(object):
     pass
 
+@capture_mapping(dom2, Dom2Source2)
 class Dom2Target2(object):
     pass
-
-
-@capture_mapping(dom1, Dom1Target1)
-class Dom1Source1(object): pass
-
-@capture_mapping(dom1, Dom1Target2)
-class Dom1Source2(object): pass
-
-@capture_mapping(dom2, Dom2Target1)
-class Dom2Source1(object): pass
-
-@capture_mapping(dom2, Dom2Target2)
-class Dom2Source2(object): pass
 
 
 #ClassModifier tests setup

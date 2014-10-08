@@ -61,10 +61,13 @@ class CallContext(object):
 
 class AbstractModelingEntity(object):
     def __init__(self, name, *args, **kwargs):
+        model = kwargs.get("model_instance")
+        if "model_instance" in kwargs:
+            kwargs.pop("model_instance")
         super(AbstractModelingEntity, self).__init__(*args, **kwargs)
         self.name = name
         self._id = uuid.uuid4()
-        self._model_instance = None
+        self._model_instance = model
         self.fixed = False
         
     def _validate_args(self, referenceable):
@@ -115,6 +118,9 @@ class AbstractModelingEntity(object):
         provided as arguments so that the values to use can be computed by the callable.
         """
         raise TypeError("Derived class %s must implement fix_arguments()" % self.__class__.__name__)
+    
+    def get_model_instance(self):
+        return self._model_instance
          
     def _set_model_instance(self, inst):
         self._model_instance = inst
@@ -136,7 +142,7 @@ class AbstractModelingEntity(object):
     def _get_arg_value(self, arg):
         if callable(arg):
             try:
-                ctx = CallContext(self._model_instance, AbstractModelReference.find_ref_for_obj(self))
+                ctx = CallContext(self.get_model_instance(), AbstractModelReference.find_ref_for_obj(self))
                 value = arg(ctx)
                 if isinstance(value, ModelInstanceReference):
                     value = value.value()
@@ -154,7 +160,7 @@ class AbstractModelingEntity(object):
         positional arguments for a new instance of the same class, and the
         second is a dict that are the kwargs for a new instance
         """
-        raise TypeError("Derived class must implement get_init_args()")
+        return ((), {"model":self._model_instance})
 
     def get_class(self):
         """
@@ -162,7 +168,7 @@ class AbstractModelingEntity(object):
         """
         return self.__class__
         
-    def clone(self, clone_cache):
+    def clone(self, clone_cache, clone_into_class=None):
         "this doesn't work with circular object refs yet"
         #clone_cache is a map that maps original instances to their clones
         clone = clone_cache.get(self)
@@ -172,7 +178,8 @@ class AbstractModelingEntity(object):
                         for arg in args]
             new_kwargs = {k:(v.clone(clone_cache) if isinstance(v, AbstractModelingEntity) else v)
                           for k, v in kwargs.items()}
-            clone = self.get_class()(*new_args, **new_kwargs)
+            clone_class = self.get_class() if clone_into_class is None else clone_into_class
+            clone = clone_class(*new_args, **new_kwargs)
             clone_cache[self] = clone
         return clone
     

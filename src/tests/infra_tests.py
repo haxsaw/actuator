@@ -716,19 +716,6 @@ def test128():
     inst.group.fix_arguments()
     assert inst.group.slave.path.value() == ("reqhandler", "container", "comp")
     
-def test129():
-    class TestComp(AbstractModelingEntity):
-        pass
-    
-    class Test129(InfraSpec):
-        tc = TestComp("wibble")
-    
-    try:
-        _ = Test129("t129")
-        assert False, "The instantiation of the test class should have failed"
-    except TypeError, e:
-        assert "get_init_args" in e.message
-        
 def test130():
     class BadRefClass(AbstractModelReference):
         pass

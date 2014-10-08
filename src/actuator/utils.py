@@ -51,13 +51,13 @@ class ClassMapper(dict):
 _all_mappers = {}
 
 
-def capture_mapping(domain, map_to_cls):
-    def capmap(from_cls):
+def capture_mapping(domain, from_class):
+    def capmap(to_class):
         themap = _all_mappers.get(domain)
         if not themap:
             _all_mappers[domain] = themap = ClassMapper()
-        themap[from_cls] = map_to_cls
-        return from_cls
+        themap[from_class] = to_class
+        return to_class
     return capmap
 
 
@@ -65,7 +65,7 @@ def get_mapper(domain):
     return _all_mappers.get(domain)
 
 
-MODIFIERS = "__perseverance_modifiers__"
+MODIFIERS = "__actuator_modifiers__"
 
 
 class ClassModifier(object):
