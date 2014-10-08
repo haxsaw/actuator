@@ -267,8 +267,6 @@ def test24():
 
     infra = Infra24("infra24")
     env = NS24()
-#     import pdb
-#     pdb.set_trace()
     env.compute_provisioning_for_environ(infra)
     assert len(infra.components()) == 6
 
@@ -535,16 +533,26 @@ def test43():
     class NS43(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
         family = ComponentGroup("family", daddy=Component("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
-                                kid=Component("kid", parent=ctxt.infra.family.daddy))
+                                kid=Component("kid", parent=ctxt.model.family.daddy))
     ns = NS43()
     assert ns.family.daddy.name.value() == "daddy"
 
+def test44():
+    class NS44(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        family = ComponentGroup("family", daddy=Component("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
+                                kid=Component("kid", parent=ctxt.model.family.daddy))
+    ns = NS44()
+    var = ns.family.kid.find_variable("MYSTERY")
+    assert var.get_value(ns.family.kid.value()) == "RIGHT!"
+
         
 def do_all():
-    setup()
-    for k, v in globals().items():
-        if k.startswith("test") and callable(v):
-            v()
+    test44()
+#     setup()
+#     for k, v in globals().items():
+#         if k.startswith("test") and callable(v):
+#             v()
     
 if __name__ == "__main__":
     do_all()

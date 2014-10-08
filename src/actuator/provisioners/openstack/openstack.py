@@ -157,7 +157,7 @@ class OpenstackProvisioner(BaseProvisioner):
     def _provision_sec_groups(self, record):
         for sg in self.workflow_sorter.secgroups:
             sg.fix_arguments()
-            response = self.nvclient.security_groups.create(name=sg.logicalName,
+            response = self.nvclient.security_groups.create(name=sg.name,
                                                             description=sg.description)
             sg.set_osid(response.id)
             record.add_secgroup_id(sg._id, sg.osid)
@@ -187,12 +187,12 @@ class OpenstackProvisioner(BaseProvisioner):
             router_id = ri.router
             subnet = ri.subnet
             _ = self.nuclient.add_interface_router(router_id, {u'subnet_id':subnet,
-                                                               u'name':ri.logicalName})
+                                                               u'name':ri.name})
                 
     def _provision_networks(self, record):
         for network in self.workflow_sorter.networks:
             network.fix_arguments()
-            msg = {u'network': {u'name':network.logicalName, u'admin_state_up':network.admin_state_up}}
+            msg = {u'network': {u'name':network.name, u'admin_state_up':network.admin_state_up}}
             response = self.nuclient.create_network(body=msg)
             network.set_osid(response['network']['id'])
             record.add_network_id(network._id, network.osid)
@@ -204,7 +204,7 @@ class OpenstackProvisioner(BaseProvisioner):
                                 'ip_version':subnet.ip_version,
                                 'network_id':subnet.network,
                                 'dns_nameservers':subnet.dns_nameservers,
-                                'name':subnet.logicalName}]}
+                                'name':subnet.name}]}
             sn = self.nuclient.create_subnet(body=msg)
             subnet.set_osid(sn["subnets"][0]["id"])
             record.add_subnet_id(subnet._id, subnet.osid)
@@ -213,7 +213,7 @@ class OpenstackProvisioner(BaseProvisioner):
         for router in self.workflow_sorter.routers:
             router.fix_arguments()
             msg = {u'router': {u'admin_state_up':router.admin_state_up,
-                               u'name':router.logicalName}}
+                               u'name':router.name}}
             reply = self.nuclient.create_router(body=msg)
             router.set_osid(reply["router"]["id"])
             record.add_router_id(router._id, router.osid)

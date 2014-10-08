@@ -64,8 +64,8 @@ def test002():
     provisioner = get_provisioner()
     class Test2(InfraSpec):
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
-        fip = FloatingIP("fip1", ctxt.infra.server,
-                         ctxt.infra.server.iface0.addr0, pool="external")
+        fip = FloatingIP("fip1", ctxt.model.server,
+                         ctxt.model.server.iface0.addr0, pool="external")
     spec = Test2("test2")
     assert spec.fip.ip.value() is None and spec.fip.osid.value() is None
     provisioner.provision_infra_spec(spec)
@@ -75,7 +75,7 @@ def test003():
     provisioner = get_provisioner()
     class Test3(InfraSpec):
         net = Network("wibbleNet")
-        subnet = Subnet("wibbleSub", ctxt.infra.net, u"192.168.23.0/24")
+        subnet = Subnet("wibbleSub", ctxt.model.net, u"192.168.23.0/24")
     spec = Test3("test3")
     assert spec.subnet.osid.value() is None
     provisioner.provision_infra_spec(spec)
@@ -85,7 +85,7 @@ def test004():
     provisioner = get_provisioner()
     class Test4(InfraSpec):
         net = Network("wibbleNet")
-        subnet = Subnet("wibbleSub", ctxt.infra.net, u"192.168.23.0/24")
+        subnet = Subnet("wibbleSub", ctxt.model.net, u"192.168.23.0/24")
     spec = Test4("test4")
     assert spec.net.osid.value() is None
     provisioner.provision_infra_spec(spec)
@@ -122,7 +122,7 @@ def test008():
     provisioner = get_provisioner()
     class Test8(InfraSpec):
         net = Network("wibbleNet")
-        subnet = Subnet("WibbleSub", ctxt.infra.net, u'192.168.22.0/24')
+        subnet = Subnet("WibbleSub", ctxt.model.net, u'192.168.22.0/24')
         router = Router("wibbleRouter")
         srvr1 = Server("simple1", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
         srvr2 = Server("simple2", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
@@ -157,10 +157,10 @@ def test011():
     provisioner = get_provisioner()
     class Test11(InfraSpec):
         net = Network("wibble")
-        server = Server("simple", u'Ubuntu 13.10', "m1.small", nics=[ctxt.infra.net.logicalName],
+        server = Server("simple", u'Ubuntu 13.10', "m1.small", nics=[ctxt.model.net.name],
                         key_name="perseverance_dev_key")
-        fip = FloatingIP("fip", ctxt.infra.server,
-                         ctxt.infra.server.iface0.addr0, pool="external")
+        fip = FloatingIP("fip", ctxt.model.server,
+                         ctxt.model.server.iface0.addr0, pool="external")
     spec = Test11("t11")
     rec = provisioner.provision_infra_spec(spec)
     assert rec
@@ -171,7 +171,7 @@ def test012():
         net = Network("wibble")
         routable_group = MultiComponentGroup("routables",
                                              server=Server("simple", u'Ubuntu 13.10', "m1.small",
-                                                           nics=[ctxt.infra.net.logicalName],
+                                                           nics=[ctxt.model.net.name],
                                                            key_name="perseverance_dev_key"),
                                              fip=FloatingIP("fip",
                                                             ctxt.comp.container.server,
@@ -185,15 +185,15 @@ def test012():
 def test013():
     provisioner = get_provisioner()
     class Test13(InfraSpec):
-        subnet = Subnet("WibbleSub", ctxt.infra.net, u'192.168.22.0/24')
+        subnet = Subnet("WibbleSub", ctxt.model.net, u'192.168.22.0/24')
         net = Network("wibble")
         grid = MultiComponent(Server("simple", u'Ubuntu 13.10', "m1.small",
-                                     nics=[ctxt.infra.net.logicalName],
+                                     nics=[ctxt.model.net.name],
                                      key_name="perseverance_dev_key"))
         gateway = Server("gateway", u'Ubuntu 13.10', "m1.small",
-                         nics=[ctxt.infra.net.logicalName], key_name="perseverance_dev_key")
-        fip = FloatingIP("fip", ctxt.infra.gateway,
-                         ctxt.infra.gateway.iface0.addr0, pool="external")
+                         nics=[ctxt.model.net.name], key_name="perseverance_dev_key")
+        fip = FloatingIP("fip", ctxt.model.gateway,
+                         ctxt.model.gateway.iface0.addr0, pool="external")
     spec = Test13("test13")
     _ = [spec.grid[i] for i in ["LN", "NY", "TK"]]
     rec = provisioner.provision_infra_spec(spec)
@@ -202,19 +202,19 @@ def test013():
 def test014():
     provisioner = get_provisioner()
     class Test14(InfraSpec):
-        subnet = Subnet("WibbleSub", ctxt.infra.net, u'192.168.22.0/24')
+        subnet = Subnet("WibbleSub", ctxt.model.net, u'192.168.22.0/24')
         net = Network("wibble")
         collective = MultiComponentGroup("collective",
                                          foreman = Server("gateway", u'Ubuntu 13.10', "m1.small",
-                                                          nics=[ctxt.infra.net.logicalName],
+                                                          nics=[ctxt.model.net.name],
                                                           key_name="perseverance_dev_key"),
                                          workers = MultiComponent(Server("simple", u'Ubuntu 13.10', "m1.small",
-                                                                         nics=[ctxt.infra.net.logicalName],
+                                                                         nics=[ctxt.model.net.name],
                                                                          key_name="perseverance_dev_key")))
         gateway = Server("gateway", u'Ubuntu 13.10', "m1.small",
-                         nics=[ctxt.infra.net.logicalName], key_name="perseverance_dev_key")
-        fip = FloatingIP("fip", ctxt.infra.gateway,
-                         ctxt.infra.gateway.iface0.addr0, pool="external")
+                         nics=[ctxt.model.net.name], key_name="perseverance_dev_key")
+        fip = FloatingIP("fip", ctxt.model.gateway,
+                         ctxt.model.gateway.iface0.addr0, pool="external")
     spec = Test14("t14")
     for i in range(3):
         for j in range(5):
@@ -229,7 +229,7 @@ def test015():
                                 net=Network("wibble"),
                                 subnet=Subnet("WibbleSub", ctxt.comp.container.net, u'192.168.23.0/24'),
                                 workers=MultiComponent(Server("worker", u'Ubuntu 13.10', "m1.small",
-                                                              nics=[ctxt.comp.container.container.net.logicalName])))
+                                                              nics=[ctxt.comp.container.container.net.name])))
     spec = Test15("t15")
     _ = spec.g[1].workers[1]
     rec = provisioner.provision_infra_spec(spec)
@@ -252,17 +252,17 @@ def test017():
     provisioner = get_provisioner()
     class Test17(InfraSpec):
         net = Network("wibble")
-        subnet = Subnet("WibbleSub", ctxt.infra.net, u"192.168.23.0/24",
+        subnet = Subnet("WibbleSub", ctxt.model.net, u"192.168.23.0/24",
                         dns_nameservers=[u'8.8.8.8'])
-        s1 = Server("perseverance1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net.logicalName])
+        s1 = Server("perseverance1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net.name])
         clusters = MultiComponentGroup("clusters",
                                        cluster_net=Network("wibbleNet"),
                                        cluster_sub=Subnet("cluster_sub", ctxt.comp.container.cluster_net,
                                                           u'192.168.%d.0/30'),
                                        cluster_foreman = Server("cluster_foreman", "Ubuntu 13.10", "m1.small",
-                                                                nics=[ctxt.comp.container.cluster_net.logicalName]),
+                                                                nics=[ctxt.comp.container.cluster_net.name]),
                                        cluster=MultiComponent(Server("cluster_node", "Ubuntu 13.10", "m1.small",
-                                                                     nics=[ctxt.comp.container.container.cluster_net.logicalName])))
+                                                                     nics=[ctxt.comp.container.container.cluster_net.name])))
     spec = Test17("t17")
     _ = spec.clusters["ny"].cluster[1]
     rec = provisioner.provision_infra_spec(spec)
@@ -274,7 +274,7 @@ def test017():
 #     try:
 #         class Test18(InfraSpec):
 #             net = Network("wibble")
-#             subnet = Subnet("WibbleSub", ctxt.infra.nett, u'192.168.23.0/24',
+#             subnet = Subnet("WibbleSub", ctxt.model.nett, u'192.168.23.0/24',
 #                             dns_nameservers=[u'8,8,8,8'])
 #         assert False, "Class Test18 should have raised an InfraException"
 #     except InfraException, e:
@@ -284,12 +284,12 @@ def test017():
 #     try:
 #         class Test19(InfraSpec):
 #             net = Network("wibble")
-#             subnet = Subnet("WibbleSub", ctxt.infra.net, u"192.168.23.0/24",
+#             subnet = Subnet("WibbleSub", ctxt.model.net, u"192.168.23.0/24",
 #                             dns_nameservers=[u'8.8.8.8'])
-#             s1 = Server("perseverance1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.nett])
+#             s1 = Server("perseverance1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.nett])
 # #             cluster=MultiComponent(Server("cluster_node", "Ubuntu 13.10", "m1.small",
 # #                                                                      #the nics arg is the one that should fail
-# #                                                                      nics=[ctxt.infra.nett]))
+# #                                                                      nics=[ctxt.model.nett]))
 #         assert False, "The creation of Test19 should have failed"
 #     except InfraException, e:
 #         assert "nics" in e.message
@@ -298,11 +298,11 @@ def test017():
 #     try:
 #         class Test120(InfraSpec):
 #             net = Network("wibble")
-#             subnet = Subnet("WibbleSub", ctxt.infra.net, u"192.168.23.0/24",
+#             subnet = Subnet("WibbleSub", ctxt.model.net, u"192.168.23.0/24",
 #                             dns_nameservers=[u'8.8.8.8'])
 #             cluster=MultiComponent(Server("cluster_node", "Ubuntu 13.10", "m1.small",
 #                                                                      #the nics arg is the one that should fail
-#                                                                      nics=[ctxt.infra.nett]))
+#                                                                      nics=[ctxt.model.nett]))
 #         assert False, "The creation of Test20 should have failed"
 #     except InfraException, e:
 #         assert "nics" in e.message
@@ -342,15 +342,15 @@ def test025():
     class SGTest(InfraSpec):
         secgroup = SecGroup("wibbleGroup", description="stuff")
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key",
-                        security_groups=[ctxt.infra.secgroup])
-        fip = FloatingIP("fip1", ctxt.infra.server,
-                         ctxt.infra.server.iface0.addr0, pool="external")
+                        security_groups=[ctxt.model.secgroup])
+        fip = FloatingIP("fip1", ctxt.model.server,
+                         ctxt.model.server.iface0.addr0, pool="external")
     inst = SGTest("t25")
     rec = prov.provision_infra_spec(inst)
     assert rec
     
 def test026():
-    _ = SecGroupRule("rule1", ctxt.infra.secgroup, ip_protocol=None,
+    _ = SecGroupRule("rule1", ctxt.model.secgroup, ip_protocol=None,
                      from_port=None, to_port=None, cidr=None)
 
 
@@ -358,7 +358,7 @@ def test027():
     prov = get_provisioner()
     class SGRTest(InfraSpec):
         secgroup = SecGroup("wibbleGroup", description="stuff")
-        ping = SecGroupRule("pingRule", ctxt.infra.secgroup,
+        ping = SecGroupRule("pingRule", ctxt.model.secgroup,
                             ip_protocol="icmp",
                             from_port=-1, to_port=-1)
     inst = SGRTest("ping")
@@ -398,9 +398,9 @@ def test029():
     class SGRTest(InfraSpec):
         external_access = seccomp
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key",
-                        security_groups=[ctxt.infra.external_access.secgroup])
-        fip = FloatingIP("fip1", ctxt.infra.server,
-                         ctxt.infra.server.iface0.addr0, pool="external")
+                        security_groups=[ctxt.model.external_access.secgroup])
+        fip = FloatingIP("fip1", ctxt.model.server,
+                         ctxt.model.server.iface0.addr0, pool="external")
     inst = SGRTest("seccomp with server")
     rec = prov.provision_infra_spec(inst)
     assert rec
@@ -410,8 +410,8 @@ def test030():
     class IPTest(InfraSpec):
         server = Server("simple", u"Ubuntu 13.10", "m1.small",
                         key_name="perseverance_dev_key")
-        server_fip = FloatingIP("server_fip", ctxt.infra.server,
-                                ctxt.infra.server.iface0.addr0, pool="external")
+        server_fip = FloatingIP("server_fip", ctxt.model.server,
+                                ctxt.model.server.iface0.addr0, pool="external")
     inst = IPTest("iptest")
     class IPNamespace(NamespaceSpec):
         with_variables(Var("SERVER_IP", IPTest.server_fip.ip))

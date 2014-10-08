@@ -61,7 +61,7 @@ def test03():
     assert MyInfra.server is MyInfra.server, "references aren't being reused"
 
 def test04():
-    assert type(MyInfra.server.logicalName) is ModelReference, \
+    assert type(MyInfra.server.name) is ModelReference, \
             "data member on a component isn't being wrapped with a reference"
     
 def test05():
@@ -75,7 +75,7 @@ def test06():
         pass
     
 def test07():
-    assert MyInfra.server.logicalName is MyInfra.server.logicalName, \
+    assert MyInfra.server.name is MyInfra.server.name, \
             "reference reuse not occurring on component attribute"
     
 def test08():
@@ -113,13 +113,13 @@ def test15():
         "refs not being reused for keyed MultiCcmponent"
     
 def test16():
-    assert MyInfra.grid[2].logicalName.__class__ == ModelReference
+    assert MyInfra.grid[2].name.__class__ == ModelReference
     
 def test17():
-    assert (MyInfra.grid[3].logicalName is MyInfra.grid[3].logicalName)
+    assert (MyInfra.grid[3].name is MyInfra.grid[3].name)
     
 def test18():
-    assert MyInfra.grid[4].logicalName is not MyInfra.grid[5].logicalName
+    assert MyInfra.grid[4].name is not MyInfra.grid[5].name
     
 def test19():
     assert MyInfra.grid[6].mem
@@ -146,7 +146,7 @@ def test26():
     assert MyInfra.grid[22].mem.get_path() == ["grid", "22", "mem"]
     
 def test27():
-    assert MyInfra.grid[5].logicalName.get_path() == ["grid", "5", "logicalName"]
+    assert MyInfra.grid[5].name.get_path() == ["grid", "5", "name"]
     
 def test28():
     inst = MyInfra("test28")
@@ -204,7 +204,7 @@ def test40():
     
 def test41():
     inst = MyInfra("test41")
-    assert inst.grid[1].logicalName.value() == "grid-comp_1"
+    assert inst.grid[1].name.value() == "grid-comp_1"
     
 def test42():
     inst = MyInfra("test42")
@@ -248,11 +248,11 @@ def test51():
     assert MyInfra.workers[5].query.value() is MyInfra.workers[6].query.value()
     
 def test52():
-    assert MyInfra.workers[7].query.logicalName.value() == "query"
+    assert MyInfra.workers[7].query.name.value() == "query"
     
 def test53():
-    assert (MyInfra.workers[8].query.logicalName.get_path() ==
-            ["workers", "8", "query", "logicalName"])
+    assert (MyInfra.workers[8].query.name.get_path() ==
+            ["workers", "8", "query", "name"])
     
 def test54():
     inst = MyInfra("test54")
@@ -284,8 +284,8 @@ def test59():
     
 def test60():
     inst = MyInfra("test60")
-    assert (inst.workers[11].handler.logicalName.get_path() ==
-            ["workers", "11", "handler", "logicalName"])
+    assert (inst.workers[11].handler.name.get_path() ==
+            ["workers", "11", "handler", "name"])
     
 def test61():
     inst = MyInfra("test61")
@@ -322,10 +322,10 @@ def test66():
     assert inst1.workers[2].query.value().__class__ is inst2.workers[2].query.value().__class__
     
 def test67():
-    assert MyInfra.composite[1].grid[2].logicalName
+    assert MyInfra.composite[1].grid[2].name
     
 def test68():
-    assert MyInfra.composite[2].workers[1].handler.logicalName
+    assert MyInfra.composite[2].workers[1].handler.name
     
 def test69():
     assert (MyInfra.composite[3].workers[2].query.mem.get_path() ==
@@ -368,24 +368,24 @@ def test78():
                MyInfra.composite[1],
                MyInfra.composite[2].grid,
                MyInfra.composite[3].grid[1],
-               MyInfra.composite[3].grid[1].logicalName]
+               MyInfra.composite[3].grid[1].name]
     s = set([ref.get_containing_component()
              for ref in modrefs
              if ref.get_containing_component() is not None])
     assert len( s ) == 1, "There was more than one component"
     
 def test79():
-    assert MyInfra.grid[1].get_containing_component() == MyInfra.grid[1].logicalName.get_containing_component()
+    assert MyInfra.grid[1].get_containing_component() == MyInfra.grid[1].name.get_containing_component()
     
 def test80():
     assert (MyInfra.composite[1].grid[1].get_containing_component() ==
-            MyInfra.composite[1].grid[1].logicalName.get_containing_component())
+            MyInfra.composite[1].grid[1].name.get_containing_component())
     
 def test81():
     inst = MyInfra("test81")
-    modrefs = [inst.grid[1].logicalName,
-               inst.grid[2].logicalName,
-               inst.grid[3].logicalName,
+    modrefs = [inst.grid[1].name,
+               inst.grid[2].name,
+               inst.grid[3].name,
                inst.grid[3],
                inst.grid]
     assert len(set([p for p in [r.get_containing_component() for r in modrefs] if p is not None])) == 3
@@ -471,7 +471,7 @@ def test96():
     
 def test97():
     inst = MyInfra("test97")
-    assert inst.server.logicalName
+    assert inst.server.name
     
 def test98():
     inst = MyInfra("test98")
@@ -485,7 +485,7 @@ def test99():
 def test100():
     inst = MyInfra("test100")
     inst.grid[1]
-    assert inst.grid[1].logicalName
+    assert inst.grid[1].name
     
 def test101():
     inst = MyInfra("test101")
@@ -509,7 +509,7 @@ def test104():
 def test105():
     inst = MyInfra("test105")
     inst.workers[1]
-    assert inst.workers[1].handler.logicalName
+    assert inst.workers[1].handler.name
     
 def test106():
     inst = MyInfra("test106")
@@ -540,7 +540,7 @@ def test111():
     inst = MyInfra("test111")
     inst.composite[1]
     inst.composite[1].grid[1]
-    assert inst.composite[1].grid[1].logicalName
+    assert inst.composite[1].grid[1].name
     
 def test112():
     inst = MyInfra("test112")
@@ -566,7 +566,7 @@ def test115():
 def test116():
     inst = MyInfra("test116")
     inst.composite[1].workers[1]
-    assert inst.composite[1].workers[1].handler.logicalName
+    assert inst.composite[1].workers[1].handler.name
     
 def test117():
     inst = MyInfra("test117")
@@ -577,8 +577,8 @@ def test118():
     #this is just ensuring we throw if a component derived class  fails to
     #implement fix_arguments()
     class MissedMethod1(AbstractModelingEntity):
-        def __init__(self, logicalName, arg1, arg2):
-            super(MissedMethod1, self).__init__(logicalName)
+        def __init__(self, name, arg1, arg2):
+            super(MissedMethod1, self).__init__(name)
             self.arg1 = arg1
             self.arg2 = arg2
     comp = MissedMethod1("oops!", 1, 2)
@@ -692,7 +692,7 @@ def test127():
                                  reqhandler=Server("reqhandler", mem="8GB"),
                                  slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem))
     class CGTest9(InfraSpec):
-        top = Server("topper", mem=ctxt.infra.group.reqhandler.mem)
+        top = Server("topper", mem=ctxt.model.group.reqhandler.mem)
         group = group_thing
         
     inst = CGTest9("ctg9")
@@ -762,7 +762,7 @@ def test132():
         
 def test133():
     def tfunc(context):
-        return context.infra.server.mem
+        return context.model.server.mem
     
     class Test133(InfraSpec):
         reqhandler = Server("dummy1", mem=tfunc)

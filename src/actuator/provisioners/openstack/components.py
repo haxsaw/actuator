@@ -172,7 +172,7 @@ class Server(_OpenstackProvisionableInfraComponent, ServerRef):
         self.addresses = addresses
         
     def get_init_args(self):
-        return ( (self.logicalName, self._imageName, self._flavorName),
+        return ( (self.name, self._imageName, self._flavorName),
                  {"meta":self._meta, "files":self._files, "reservation_id":self._reservation_id,
                   "min_count":self._min_count, "max_count":self._max_count,
                   "security_groups":self._security_groups,
@@ -200,7 +200,7 @@ class Network(_OpenstackProvisionableInfraComponent):
         
         
     def get_init_args(self):
-        return ((self.logicalName,),
+        return ((self.name,),
                 {"admin_state_up":self._admin_state_up})
         
         
@@ -211,7 +211,7 @@ class SecGroup(_OpenstackProvisionableInfraComponent):
         self.description = None
         
     def get_init_args(self):
-        return ((self.logicalName,),
+        return ((self.name,),
                 {"description":self._description})
     
     def _fix_arguments(self, provisioner=None):
@@ -235,7 +235,7 @@ class SecGroupRule(_OpenstackProvisionableInfraComponent):
         self.cidr = None
         
     def get_init_args(self):
-        return ((self.logicalName, self._secgroup),
+        return ((self.name, self._secgroup),
                 {"ip_protocol":self._ip_protocol,
                  "from_port":self._from_port,
                  "to_port":self._to_port,
@@ -253,7 +253,7 @@ class Subnet(_OpenstackProvisionableInfraComponent):
     _ipversion_map = {ipaddress.IPv4Network:4, ipaddress.IPv6Network:6}
     def __init__(self, logicalName, network, cidr, dns_nameservers=None, ip_version=4):
         """
-        @param logicalName: string; logical name for the subnet
+        @param name: string; logical name for the subnet
         @param network: Network; a string containing the Openstack id of a network, or a callable
             that returns either a similar string or a Network object this subnet applies to
         @param cidr: string or callable; either a cidr-4 or cidr-6 string identifying the subnet
@@ -284,7 +284,7 @@ class Subnet(_OpenstackProvisionableInfraComponent):
                                     for i, dns in enumerate(self._dns_nameservers)]
         
     def get_init_args(self):
-        return ((self.logicalName, self._network, self._cidr), {'dns_nameservers':self._dns_nameservers,
+        return ((self.name, self._network, self._cidr), {'dns_nameservers':self._dns_nameservers,
                                                                 'ip_version':self._ip_version})
     
     
@@ -323,7 +323,7 @@ class FloatingIP(_OpenstackProvisionableInfraComponent, ServerRef):
         self.ip = ip
         
     def get_init_args(self):
-        return ((self.logicalName, self._server, self._associated_ip), {"pool":self._pool})
+        return ((self.name, self._server, self._associated_ip), {"pool":self._pool})
     
     
 class Router(_OpenstackProvisionableInfraComponent):
@@ -340,13 +340,13 @@ class Router(_OpenstackProvisionableInfraComponent):
         self.admin_state_up = self._admin_state_up
         
     def get_init_args(self):
-        return (self.logicalName,), {"admin_state_up":self._admin_state_up}
+        return (self.name,), {"admin_state_up":self._admin_state_up}
     
     
 class RouterGateway(_OpenstackProvisionableInfraComponent):
     def __init__(self, logicalName, router, external_network_name):
         """
-        @param logicalName: string; a logical name that will be used for the gateway
+        @param name: string; a logical name that will be used for the gateway
         @param router: a string with Openstack id of a router, or a callable that yields
                 either a similar string or a ref to a Router objectg
         @param external_network_name: string; the name of the external network to 
@@ -370,13 +370,13 @@ class RouterGateway(_OpenstackProvisionableInfraComponent):
         return self.external_network_name
     
     def get_init_args(self):
-        return ((self.logicalName, self._router, self._external_network_name), {})
+        return ((self.name, self._router, self._external_network_name), {})
     
     
 class RouterInterface(_OpenstackProvisionableInfraComponent):
     def __init__(self, logicalName, router, subnet):
         """
-        @param logicalName: string; a logical name for the interface
+        @param name: string; a logical name for the interface
         @param router: a string or callable that yields a model reference whose value
                 is a string; either is the name of a router, either created here or
                 already running
@@ -400,7 +400,7 @@ class RouterInterface(_OpenstackProvisionableInfraComponent):
         return self.subnet
     
     def get_init_args(self):
-        return ((self.logicalName, self._router, self._subnet), {})
+        return ((self.name, self._router, self._subnet), {})
     
     
 def _checktype(aType):

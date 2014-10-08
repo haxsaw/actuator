@@ -42,7 +42,7 @@ class Server(ProvisionableWithFixer):
         self.kwargs = kwargs
         
     def get_init_args(self):
-        return ((self.logicalName,), self.kwargs)
+        return ((self.name,), self.kwargs)
     
     
 class Database(ProvisionableWithFixer):
@@ -56,7 +56,7 @@ class Database(ProvisionableWithFixer):
         self.kwargs = kwargs
         
     def get_init_args(self):
-        return ((self.logicalName,), self.kwargs)
+        return ((self.name,), self.kwargs)
     
     
 class Queue(ProvisionableWithFixer):
@@ -70,6 +70,6 @@ class Queue(ProvisionableWithFixer):
         self.kwargs = kwargs
 
     def get_init_args(self):
-        return((self.logicalName,), self.kwargs)
+        return((self.name,), self.kwargs)
     
         

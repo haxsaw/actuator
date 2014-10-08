@@ -54,17 +54,17 @@ class ContextExpr(object):
 ctxt = ContextExpr()
         
 class CallContext(object):
-    def __init__(self, infra_inst, component):
-        self.infra = infra_inst
+    def __init__(self, model_inst, component):
+        self.model = model_inst
         self.comp = component
 
 
 class AbstractModelingEntity(object):
-    def __init__(self, logicalName, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         super(AbstractModelingEntity, self).__init__(*args, **kwargs)
-        self.logicalName = logicalName
+        self.name = name
         self._id = uuid.uuid4()
-        self._infra_instance = None
+        self._model_instance = None
         self.fixed = False
         
     def _validate_args(self, referenceable):
@@ -89,7 +89,7 @@ class AbstractModelingEntity(object):
                     _ = arg(context)
                 except Exception, e:
                     raise ActuatorException("Argument validation failed; argument %d of %s failed to eval with: %s" %
-                                         (i, self.logicalName, e.message))
+                                         (i, self.name, e.message))
         for kwname, kwvalue in kwargs.items():
             if isinstance(kwvalue, ContextExpr):
                 context = CallContext(referenceable, kwvalue)
@@ -97,7 +97,7 @@ class AbstractModelingEntity(object):
                     _ = arg(context)
                 except Exception, e:
                     raise ActuatorException("Argument validation failed; argument '%s' of %s failed to eval with: %s" %
-                                         (kwname, self.logicalName, e.message))
+                                         (kwname, self.name, e.message))
             elif isinstance(kwvalue, AbstractModelingEntity):
                 kwvalue._validate_args(referenceable)
 
@@ -116,8 +116,8 @@ class AbstractModelingEntity(object):
         """
         raise TypeError("Derived class %s must implement fix_arguments()" % self.__class__.__name__)
          
-    def _set_infra_instance(self, inst):
-        self._infra_instance = inst
+    def _set_model_instance(self, inst):
+        self._model_instance = inst
         
     def _container(self):
         my_ref = AbstractModelReference.find_ref_for_obj(self)
@@ -136,7 +136,7 @@ class AbstractModelingEntity(object):
     def _get_arg_value(self, arg):
         if callable(arg):
             try:
-                ctx = CallContext(self._infra_instance, AbstractModelReference.find_ref_for_obj(self))
+                ctx = CallContext(self._model_instance, AbstractModelReference.find_ref_for_obj(self))
                 value = arg(ctx)
                 if isinstance(value, ModelInstanceReference):
                     value = value.value()
@@ -230,7 +230,7 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         return {k:getattr(self, k) for k in self._kwargs}
     
     def get_init_args(self):
-        return ((self.logicalName,), self._kwargs)
+        return ((self.name,), self._kwargs)
     
     def _fix_arguments(self):
         for _, v in self.__dict__.items():
@@ -320,7 +320,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         if not inst:
             prototype = self.get_prototype()
             args, kwargs = prototype.get_init_args()
-            #args[0] is the logicalName of the prototype
+            #args[0] is the name of the prototype
             #we form a new logical name by appending the
             #key to args[0] separated by an '_'
             logicalName = "%s_%s" % (args[0], str(key))

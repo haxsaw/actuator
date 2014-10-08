@@ -27,7 +27,8 @@ Created on 7 Sep 2014
 import re
 from actuator.utils import ClassModifier, process_modifiers
 from actuator.modeling import (AbstractModelReference, ModelComponent, SpecBase,
-                               ModelReference, ModelInstanceReference, SpecBaseMeta)
+                               ModelReference, ModelInstanceReference, SpecBaseMeta,
+                               ComponentGroup, MultiComponent, MultiComponentGroup)
 
 
 class NamespaceException(Exception): pass
@@ -122,6 +123,7 @@ class VarFuture(object):
 
 class VariableContainer(_ModelRefSetAcquireable):
     def __init__(self, parent=None):
+        super(VariableContainer, self).__init__()
         self.variables = {}
         self.overrides = {}
         self.parent_container = parent
@@ -206,23 +208,29 @@ class ComponentMeta(type):
         return new_cls
     
 
-class Component(VariableContainer, ModelComponent):
+class Component(ModelComponent, VariableContainer):
 #     __metadata__ = ComponentMeta
     def __init__(self, name, host_ref=None, variables=None, parent=None):
-        super(Component, self).__init__(parent=parent)
-        self.name = name
+        super(Component, self).__init__(name, parent=parent)
+        self.host_ref = None
+        self._host_ref = host_ref
         self.host_ref = host_ref
         if variables is not None:
             self.add_variable(*variables)
+            
+    def _fix_arguments(self):
+        self.host_ref = self._get_arg_value(self._host_ref)
+        self.parent_container = self._get_arg_value(self.parent_container)
+        
+    def find_variable(self, name):
+        self.fix_arguments()
+        return super(Component, self).find_variable(name)
             
     def get_init_args(self):
         return ((self.name,),
                 {"host_ref":self.host_ref, "parent":self.parent_container,
                  "variables":self.variables.values()})
         
-#     def clone(self):
-#         return Component(self.name, host_ref=self.host_ref, variables=self.variables.values())
-    
     def _get_model_refs(self):
         modelrefs = super(Component, self)._get_model_refs()
         if self.host_ref:
@@ -246,16 +254,16 @@ class NamespaceSpec(VariableContainer, SpecBase):
 
     def __init__(self):
         super(NamespaceSpec, self).__init__()
-        
         components = set()
         clone_map = {}
         clone_cache = {}
         for k, v in self.__class__.__dict__.items():
-            if isinstance(v, Component):
+            if isinstance(v, (Component, ComponentGroup, MultiComponent, MultiComponentGroup)):
                 components.add((k, v))
         next_ply = set([(k,c) for k, c in components if c.parent_container is None])
         for k, c in next_ply:
             clone = c.clone(clone_cache)
+            clone._set_model_instance(self)
             clone_map[c] = (k, clone)
             clone._set_parent(self)
         components -= next_ply
@@ -265,6 +273,7 @@ class NamespaceSpec(VariableContainer, SpecBase):
                 raise NamespaceException("No components can be found that have parents which were previously cloned")
             for k, c in next_ply:
                 clone = c.clone(clone_cache)
+                clone._set_model_instance(self)
                 clone_map[c] = (k, clone)
                 clone._set_parent(clone_map[c.parent_container][1])
             components -= next_ply

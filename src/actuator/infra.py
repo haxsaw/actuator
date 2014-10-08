@@ -133,11 +133,11 @@ class InfraSpec(SpecBase):
         #
         #this is kind of crap to do here, but there really isn't a better place
         #unless we enforce some kind of stateful API that gives is a chance
-        #to call _set_infra_instance(). This is a pretty cheap and harmless
+        #to call _set_model_instance(). This is a pretty cheap and harmless
         #sideeffect, and one that isn't so bad that fixing it by introducing some
         #sort of stateful API elements
         for comp in comps:
-            comp._set_infra_instance(self)
+            comp._set_model_instance(self)
         return comps
     
     def compute_provisioning_from_refs(self, modelrefs, exclude_refs=None):
