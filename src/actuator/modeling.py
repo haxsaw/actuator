@@ -34,6 +34,20 @@ class ActuatorException(Exception): pass
 class KeyAsAttr(str): pass
 
 
+class KeyItem(object):
+    def __init__(self, key):
+        self.key = key
+        
+    def value(self, ctx):
+        if callable(self.key):
+            value = self.key(ctx)
+        elif isinstance(self.key, basestring):
+            value = self.key
+        else:
+            raise ActuatorException("Can't tell what to do with key %s" % str(self.key))
+        return value 
+
+
 class ContextExpr(object):
     def __init__(self, *path):
         self._path = path
@@ -45,18 +59,27 @@ class ContextExpr(object):
             #NOTE: this line seems to actually be unreachable
             return super(ContextExpr, self).__getattribute__(item)
         
+    def __getitem__(self, key):
+        return ContextExpr(KeyItem(key), *self._path)
+        
     def __call__(self, ctx):
         ref = ctx
         for p in reversed(self._path):
-            ref = getattr(ref, p)
+            if isinstance(p, KeyItem):
+                ref = ref[p.value(ctx)]
+            else:
+                ref = getattr(ref, p)
         return ref
+    
         
 ctxt = ContextExpr()
-        
+
+
 class CallContext(object):
     def __init__(self, model_inst, component):
         self.model = model_inst
         self.comp = component
+        self.name = component._name
 
 
 class AbstractModelingEntity(object):
@@ -240,8 +263,8 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         return ((self.name,), self._kwargs)
     
     def _fix_arguments(self):
-        for _, v in self.__dict__.items():
-            if isinstance(v, AbstractModelingEntity):
+        for k, v in self.__dict__.items():
+            if k in self._kwargs:
                 v.fix_arguments()
         
     def _validate_args(self, referenceable):
@@ -343,7 +366,7 @@ class MultiComponentGroup(MultiComponent):
     def __new__(self, logicalName, **kwargs):
         group = ComponentGroup(logicalName, **kwargs)
         return MultiComponent(group)
-    
+        
 
 class AbstractModelReference(object):
     _inst_cache = {}
@@ -423,9 +446,16 @@ class AbstractModelReference(object):
         raise TypeError("Derived class must implement _get_item_ref_obj()")
     
     def __getitem__(self, key):
-        key = KeyAsAttr(key)
         ga = super(AbstractModelReference, self).__getattribute__
         theobj = object.__getattribute__(ga("_obj"), ga("_name"))
+#         if isinstance(key, ContextExpr):
+#             import pdb
+#             pdb.set_trace()
+#             key = KeyAsAttr(self.value()._get_arg_value(key))
+#         else:
+#             key = KeyAsAttr(key)
+        key = KeyAsAttr(key)
+#         key = KeyAsAttr(self.value()._get_arg_value(key))
         if isinstance(theobj, MultiComponent):
             value = self.__class__(key, self._get_item_ref_obj(theobj, key), self)
         elif hasattr(theobj, "__getitem__"):
@@ -479,7 +509,7 @@ class ModelInstanceReference(AbstractModelReference):
         if not hasattr(value, "__contains__"):
             raise TypeError("object of type %s does not support 'in'" % str(value))
         return key in value
-        
+            
     
 class SpecBaseMeta(type):
     model_ref_class = None

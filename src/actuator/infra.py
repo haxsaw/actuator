@@ -99,9 +99,7 @@ class InfraSpecMeta(SpecBaseMeta):
 #             component._validate_args(new_class)
         return new_class
             
-    
 
-# class InfraSpec(_ComputeProvisionables):
 class InfraSpec(SpecBase):
     __metaclass__ = InfraSpecMeta
     ref_class = ModelInstanceReference

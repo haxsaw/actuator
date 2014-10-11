@@ -548,8 +548,96 @@ def test44():
     var, _ = ns.family.kid.find_variable("MYSTERY")
     assert var.get_value(ns.family.kid.value()) == "RIGHT!"
 
+def test45():
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+    ns = NS()
+    var, _ = ns.kids.find_variable("MYSTERY")
+    assert var.get_value(ns.kids.value()) == "RIGHT!"
+
+def test46():
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+    ns = NS()
+    var, _ = ns.kids[0].find_variable("MYSTERY")
+    assert var.get_value(ns.kids[0].value()) == "RIGHT!"
+
+def test47():
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+    ns = NS()
+    assert ns.kids[0] is ns.kids[0]
+
+def test48():
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+    ns1 = NS()
+    ns2 = NS()
+    assert ns1.kids[0] is not ns2.kids[0]
+
+def test49():
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        kids = NSMultiComponent(Component("kid").add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+    ns = NS()
+    var, _ = ns.kids[0].find_variable("MYSTERY")
+    assert var.get_value(ns.kids[0].value()) == "maybe..." 
+
+def test50():
+    class Infra(InfraSpec):
+        controller = Server("controller", mem="16GB")
+        grid = MultiComponent(Server("grid-node", mem="8GB"))
+          
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+    infra = Infra("multi_comp")
+    ns = NS()
+    for i in range(5):
+        _ = ns.grid[i]
+    assert len(infra.grid) == 0
+     
+def test51():
+    class Infra(InfraSpec):
+        controller = Server("controller", mem="16GB")
+        grid = MultiComponent(Server("grid-node", mem="8GB"))
+          
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra.grid, multi_key=ctxt.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+    infra = Infra("multi_comp")
+    ns = NS()
+    for i in range(5):
+        _ = ns.grid[i]
+    ns.compute_provisioning_for_environ(infra)
+    assert len(infra.grid) == 5
+     
+def test52():
+    class Infra(InfraSpec):
+        controller = Server("controller", mem="16GB")
+        grid = MultiComponentGroup("pod", foreman=Server("foreman", mem="8GB"),
+                                   worker=Server("grid-node", mem="8GB"))
+          
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponentGroup("pod", foreman=Component("foreman", host_ref=Infra.grid[ctxt.name].foreman),
+                                     worker=Component("grid-node", host_ref=Infra.grid[ctxt.name].foreman)).add_variable(Var("MYSTERY", "RIGHT!"))
+    infra = Infra("mcg")
+    ns = NS()
+    for i in range(5):
+        _ = ns.grid[i]
+    ns.compute_provisioning_for_environ(infra)
+#     import pdb
+#     pdb.set_trace()
+    assert len(infra.grid) == 5 and len(infra.components()) == 10
+     
         
 def do_all():
+    test52()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):

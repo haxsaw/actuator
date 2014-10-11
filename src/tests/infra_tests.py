@@ -895,6 +895,15 @@ def test145():
             len(d) == 5 and
             inst.hive[0].dregs[2] in d.values())
     
+def test146():
+    class Test(InfraSpec):
+        grid = MultiComponent(Server("grid-node", mem="8GB"))
+    
+    inst = Test("key")
+    for i in range(5):
+        _ = inst.grid[i]
+    assert inst.grid[3]._name == "3"
+    
 
 
 def do_all():
