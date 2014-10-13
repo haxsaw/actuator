@@ -199,7 +199,6 @@ def with_variables(cls, *args, **kwargs):
 with_variables = ClassModifier(with_variables)
 
 
-# _common_comps = "__common_comps__"
 _common_comps = "__components"
 def with_components(cls, *args, **kwargs):
     for k, v in kwargs.items():
@@ -216,6 +215,7 @@ class ComponentMeta(type):
     
 
 class ModelInstanceFinderMixin(object):
+    #relies on the protocol for both ModelComponent and VariableContainer
     def get_model_instance(self):
         result = None
         if self._model_instance:
@@ -241,7 +241,6 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             raise NamespaceException("If multi_ref is supplied, multi_key must also be supplied")
         self.host_ref = None
         self._host_ref = host_ref
-        self.host_ref = host_ref
         self.multi_ref = None
         self._multi_ref = multi_ref
         self.multi_key = None
@@ -249,21 +248,28 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         if variables is not None:
             self.add_variable(*variables)
             
+    def clone(self, clone_dict, clone_into_class=None):
+        clone = super(Component, self).clone(clone_dict, clone_into_class=clone_into_class)
+        clone._set_model_instance(self._model_instance)
+        return clone
+            
     def _fix_arguments(self):
         if self._multi_ref is not None:
             self.multi_ref = self._get_arg_value(self._multi_ref)
             self.multi_key = self._get_arg_value(self._multi_key)
             self.host_ref = self.multi_ref[self.multi_key]
         else:
-            self.host_ref = self._get_arg_value(self._host_ref)
+            host_ref = self._get_arg_value(self._host_ref)
+            if not isinstance(host_ref, AbstractModelReference):
+                host_ref = AbstractModelReference.find_ref_for_obj(self._get_arg_value(host_ref))
+            self.host_ref = host_ref
             
     def find_variable(self, name):
-#         self.fix_arguments()
         return super(Component, self).find_variable(name)
             
     def get_init_args(self):
         _, kwargs = super(Component, self).get_init_args()
-        kwargs.update({"host_ref":self.host_ref,
+        kwargs.update({"host_ref":self._host_ref,
                        "variables":self.variables.values(),
                        "multi_ref":self._multi_ref,
                        "multi_key":self._multi_key})
@@ -279,15 +285,20 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
 @capture_mapping(_namespace_mapper_domain, ComponentGroup)
 class NSComponentGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
     def _set_model_instance(self, mi):
+        super(NSComponentGroup, self)._set_model_instance(mi)
         for c in self.components():
             c._set_model_instance(mi)
 
     def clone(self, clone_cache, clone_into_class=None):
         clone = super(NSComponentGroup, self).clone(clone_cache, clone_into_class=clone_into_class)
+        clone._set_model_instance(self._model_instance)
+        clone._set_parent(self.parent_container)
         for c in clone.components():
             c._set_parent(clone)
+            c._set_model_instance(self._model_instance)
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())
+        
         return clone
     
     def _get_model_refs(self):
@@ -300,21 +311,25 @@ class NSComponentGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContain
 @capture_mapping(_namespace_mapper_domain, MultiComponent)
 class NSMultiComponent(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
     def _set_model_instance(self, mi):
+        super(NSMultiComponent, self)._set_model_instance(mi)
         for c in self.instances().values():
             c._set_model_instance(mi)
             
     def clone(self, clone_cache, clone_into_class=None):
         clone = super(NSMultiComponent, self).clone(clone_cache, clone_into_class=clone_into_class)
+        clone._set_parent(self.parent_container)
+        clone._set_model_instance(self._model_instance)
         for c in clone.instances().values():
             c._set_parent(clone)
+            c._set_model_instance(self._model_instance)
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())
-        clone._set_model_instance(self._model_instance)
         return clone
     
     def get_instance(self, key):
         inst = super(NSMultiComponent, self).get_instance(key)
         inst._set_parent(self)
+        inst._set_model_instance(self._model_instance)
         return inst
     
     def _get_model_refs(self):
@@ -326,34 +341,10 @@ class NSMultiComponent(ModelInstanceFinderMixin, MultiComponent, VariableContain
 
 @capture_mapping(_namespace_mapper_domain, MultiComponentGroup)
 class NSMultiComponentGroup(NSMultiComponent, VariableContainer):
-    def __new__(self, logicalName, **kwargs):
-        group = NSComponentGroup(logicalName, **kwargs)
+    def __new__(self, name, **kwargs):
+        group = NSComponentGroup(name, **kwargs)
         return NSMultiComponent(group)
     
-    def _set_model_instance(self, mi):
-        for c in self.instances().values():
-            c._set_model_instance(mi)
-        
-    def clone(self, clone_cache, clone_into_class=None):
-        clone = super(NSMultiComponentGroup, self).clone(clone_cache, clone_into_class=clone_into_class)
-        for c in clone.instances().values():
-            c._set_parent(clone)
-        return clone
-
-    def _get_model_refs(self):
-        modelrefs = super(NSMultiComponent, self)._get_model_refs()
-        for c in self.instances().values():
-            modelrefs |= c._get_model_refs()
-        return modelrefs
-    
-    @classmethod
-    def get_multiclass(cls):
-        return NSMultiComponent
-    
-#     @classmethod
-#     def get_groupclass(cls):
-#         return NSComponentGroup
-
         
 class NamespaceSpecMeta(SpecBaseMeta):
     model_ref_class = ModelReference
@@ -387,55 +378,57 @@ class NamespaceSpec(VariableContainer, SpecBase):
         for k, c in next_ply:
             clone = c.clone(clone_cache)
             clone._set_model_instance(self)
-            clone_map[c] = (k, clone)
             clone._set_parent(self)
+            clone_map[c] = (k, clone)
         components -= next_ply
         while components:
             next_ply = set([(k,c) for k, c in components if c.parent_container in clone_map])
             if not next_ply:
-                raise NamespaceException("No components can be found that have parents which were previously cloned")
+                raise NamespaceException("No _components can be found that have parents which were previously cloned")
             for k, c in next_ply:
                 clone = c.clone(clone_cache)
                 clone._set_model_instance(self)
                 clone_map[c] = (k, clone)
                 clone._set_parent(clone_map[c.parent_container][1])
             components -= next_ply
-        self.components = {}
+        self._components = {}
         for _, (key, clone) in clone_map.items():
-            self.components[key] = clone
+            self._components[key] = clone
             setattr(self, key, clone)
         
         self.add_variable(*self.__class__.__dict__[_common_vars])
-        self.infra_instance = None
+        self.infra = None
         
     def __new__(cls, *args, **kwargs):
         inst = super(NamespaceSpec, cls).__new__(cls, *args, **kwargs)
         return inst
     
+    def _comp_source(self):
+        return self.get_components()
+    
     def _get_model_refs(self):
         modelrefs = super(NamespaceSpec, self)._get_model_refs()
-        for c in self.components.values():
+        for c in self._components.values():
             modelrefs |= c._get_model_refs()
         return modelrefs
     
     def get_components(self):
-        return dict(self.components)
+        return dict(self._components)
     
     def get_infra_model(self):
-        return self.infra_instance
+        return self.infra
     
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):
+        self.infra = infra_instance
         if exclude_refs is None:
             exclude_refs = set()
         exclude_refs = set([infra_instance.get_inst_ref(ref) for ref in exclude_refs])
-        for v in self.__dict__.values():
-            if isinstance(v, (Component, ComponentGroup, MultiComponent, MultiComponentGroup)):
-                v.fix_arguments()
-        self.infra_instance = infra_instance
-        self.infra_instance.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
-        return set([p for p in self.infra_instance.components()
+        self.refs_for_components()
+        for v in self._components.values():
+            v.fix_arguments()
+        self.infra.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
+        return set([p for p in self.infra.components()
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
-#         return self.infra_instance.provisionables()
         
     def add_components(self, **kwargs):
         clone_cache = {}
@@ -443,6 +436,6 @@ class NamespaceSpec(VariableContainer, SpecBase):
             if not isinstance(v, Component):
                 raise NamespaceException("%s is not a kind of component" % str(v))
             clone = v.clone(clone_cache)
-            self.components[k] = clone
+            self._components[k] = clone
             self.__dict__[k] = clone
         return self

@@ -53,7 +53,7 @@ class ContextExpr(object):
         self._path = path
         
     def __getattr__(self, item):
-        if item[0] != '_':
+        if item != '_path':
             return ContextExpr(item, *self._path)
         else:
             #NOTE: this line seems to actually be unreachable
@@ -130,8 +130,8 @@ class AbstractModelingEntity(object):
         
     def fix_arguments(self):
         if not self.fixed:
-            self._fix_arguments()
             self.fixed = True
+            self._fix_arguments()
     
     def _fix_arguments(self):
         """
@@ -241,7 +241,7 @@ class _ComputeModelComponents(object):
         return all_refs
     
     def _comp_source(self):
-        "returns a dict of components in an instance"
+        "returns a dict of _components in an instance"
         raise TypeError("Derived class must implement _comp_source")
     
 
@@ -253,14 +253,14 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
             if isinstance(v, AbstractModelingEntity):
                 setattr(self, k, v.clone(clone_cache))
             else:
-                raise TypeError("arg %s has a value that isn't a kind of InfraComponentBase" % k)
+                raise TypeError("arg %s has a value that isn't a kind of AbstractModelingEntity: %s" % (k, str(v)))
         self._kwargs = kwargs
         
     def _comp_source(self):
         return {k:getattr(self, k) for k in self._kwargs}
     
     def get_init_args(self):
-        return ((self.name,), self._kwargs)
+        return ((self.name,), self._comp_source())
     
     def _fix_arguments(self):
         for k, v in self.__dict__.items():
@@ -269,13 +269,12 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         
     def _validate_args(self, referenceable):
         super(ComponentGroup, self)._validate_args(referenceable)
-#         for
     
 
 class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     def __init__(self, templateComponent):
         super(MultiComponent, self).__init__("")
-        self.templateComponent = templateComponent
+        self.templateComponent = templateComponent.clone({})
         self._instances = {}
         
     def _fix_arguments(self):
@@ -363,8 +362,8 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     
 
 class MultiComponentGroup(MultiComponent):
-    def __new__(self, logicalName, **kwargs):
-        group = ComponentGroup(logicalName, **kwargs)
+    def __new__(self, name, **kwargs):
+        group = ComponentGroup(name, **kwargs)
         return MultiComponent(group)
         
 
@@ -448,12 +447,6 @@ class AbstractModelReference(object):
     def __getitem__(self, key):
         ga = super(AbstractModelReference, self).__getattribute__
         theobj = object.__getattribute__(ga("_obj"), ga("_name"))
-#         if isinstance(key, ContextExpr):
-#             import pdb
-#             pdb.set_trace()
-#             key = KeyAsAttr(self.value()._get_arg_value(key))
-#         else:
-#             key = KeyAsAttr(key)
         key = KeyAsAttr(key)
 #         key = KeyAsAttr(self.value()._get_arg_value(key))
         if isinstance(theobj, MultiComponent):

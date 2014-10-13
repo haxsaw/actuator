@@ -66,7 +66,7 @@ def setup():
         
         def __init__(self):
             super(MyNamespaceLocal, self).__init__()
-            self.infra_instance = FakeInfra()
+            self.infra = FakeInfra()
     MyNS = MyNamespaceLocal
     
 
@@ -191,7 +191,7 @@ def test019():
         app_server = Component("app_server")
     
     inst = NS19()
-    assert inst.components["app_server"] == inst.app_server.value()
+    assert inst._components["app_server"] == inst.app_server.value()
     
 def test020():
     class NS20(NamespaceSpec):
@@ -624,20 +624,18 @@ def test52():
           
     class NS(NamespaceSpec):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponentGroup("pod", foreman=Component("foreman", host_ref=Infra.grid[ctxt.name].foreman),
-                                     worker=Component("grid-node", host_ref=Infra.grid[ctxt.name].foreman)).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = NSMultiComponentGroup("pod", foreman=Component("foreman", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].foreman),
+                                     worker=Component("grid-node", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("mcg")
     ns = NS()
     for i in range(5):
         _ = ns.grid[i]
     ns.compute_provisioning_for_environ(infra)
-#     import pdb
-#     pdb.set_trace()
-    assert len(infra.grid) == 5 and len(infra.components()) == 10
+    assert len(infra.grid) == 5 and len(infra.components()) == 11
      
         
 def do_all():
-    test52()
+    test24()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):

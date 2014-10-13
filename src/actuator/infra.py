@@ -56,11 +56,11 @@ def with_infra_options(cls, *args, **kwargs):
 @ClassModifier
 def with_infra_components(cls, *args, **kwargs):
     """
-    This function attaches additional components onto a class object.
+    This function attaches additional _components onto a class object.
 
     :param cls: a new class object
     :param args: no positional args are recognized
-    :param kwargs: dict of names and associated components to provision; must
+    :param kwargs: dict of names and associated _components to provision; must
         all be derived from InfraComponentBase
     :return: None
     """
@@ -95,7 +95,7 @@ class InfraSpecMeta(SpecBaseMeta):
         #
         #@FIXME: The validation here has been suspended as there are some deeper
         #design problems that have to be sorted out to fix it
-#         for component in components.values():
+#         for component in _components.values():
 #             component._validate_args(new_class)
         return new_class
             
@@ -111,7 +111,8 @@ class InfraSpec(SpecBase):
         ga = super(InfraSpec, self).__getattribute__
         attrdict = self.__dict__
         for k, v in ga(InfraSpecMeta._COMPONENTS).items():
-            attrdict[k] = v.clone(clone_cache)
+            attrdict[k] = clone = v.clone(clone_cache)
+            clone._set_model_instance(self)
         self.provisioning_computed = False
         
     def validate_args(self):
