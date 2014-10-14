@@ -633,9 +633,31 @@ def test52():
     ns.compute_provisioning_for_environ(infra)
     assert len(infra.grid) == 5 and len(infra.components()) == 11
      
+def test53():
+    class Infra(InfraSpec):
+        grid = MultiComponentGroup("grid",
+                                   foreman=Server("foreman", mem="8GB"),
+                                   workers=MultiComponent(Server("grid-node", mem="8GB")))
+          
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponentGroup("pod",
+                                     foreman=Component("foreman",
+                                                       host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].foreman),
+                                     workers=NSMultiComponent(Component("grid-node",
+                                                                        host_ref=ctxt.model.infra.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
+    infra = Infra("mcg")
+    ns = NS()
+    for i in [2,4]:
+        grid = ns.grid[i]
+        for j in range(i):
+            _ = grid.workers[j]
+    ns.compute_provisioning_for_environ(infra)
+    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4
+     
         
 def do_all():
-    test24()
+    test53()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):

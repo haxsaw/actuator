@@ -28,7 +28,8 @@ import re
 from actuator.utils import ClassModifier, process_modifiers, capture_mapping, get_mapper
 from actuator.modeling import (AbstractModelReference, ModelComponent, SpecBase,
                                ModelReference, ModelInstanceReference, SpecBaseMeta,
-                               ComponentGroup, MultiComponent, MultiComponentGroup)
+                               ComponentGroup, MultiComponent, MultiComponentGroup,
+                               AbstractModelingEntity)
 
 
 class NamespaceException(Exception): pass
@@ -286,16 +287,15 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
 class NSComponentGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
     def _set_model_instance(self, mi):
         super(NSComponentGroup, self)._set_model_instance(mi)
-        for c in self.components():
+        for c in [v for k, v in self.__dict__.items() if k in self._kwargs]:
             c._set_model_instance(mi)
 
     def clone(self, clone_cache, clone_into_class=None):
         clone = super(NSComponentGroup, self).clone(clone_cache, clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         clone._set_parent(self.parent_container)
-        for c in clone.components():
+        for c in (v for k, v in clone.__dict__.items() if k in self._kwargs):
             c._set_parent(clone)
-            c._set_model_instance(self._model_instance)
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())
         
@@ -321,7 +321,7 @@ class NSMultiComponent(ModelInstanceFinderMixin, MultiComponent, VariableContain
         clone._set_model_instance(self._model_instance)
         for c in clone.instances().values():
             c._set_parent(clone)
-            c._set_model_instance(self._model_instance)
+#             c._set_model_instance(self._model_instance)
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())
         return clone
