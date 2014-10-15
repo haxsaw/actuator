@@ -36,15 +36,13 @@ class KeyAsAttr(str): pass
 
 class KeyItem(object):
     def __init__(self, key):
-        self.key = key
+        self.key = key if callable(key) else KeyAsAttr(key)
         
     def value(self, ctx):
         if callable(self.key):
             value = self.key(ctx)
-        elif isinstance(self.key, basestring):
-            value = self.key
         else:
-            raise ActuatorException("Can't tell what to do with key %s" % str(self.key))
+            value = self.key
         return value 
 
 
@@ -53,11 +51,7 @@ class ContextExpr(object):
         self._path = path
         
     def __getattr__(self, item):
-        if item != '_path':
-            return ContextExpr(item, *self._path)
-        else:
-            #NOTE: this line seems to actually be unreachable
-            return super(ContextExpr, self).__getattribute__(item)
+        return ContextExpr(item, *self._path)
         
     def __getitem__(self, key):
         return ContextExpr(KeyItem(key), *self._path)
@@ -335,10 +329,8 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return self._instances.has_key(KeyAsAttr(key))
     
     def get(self, key, default=None):
-        try:
-            result = AbstractModelReference.find_ref_for_obj(self)[key]
-        except KeyError, _:
-            result = default
+        ref = AbstractModelReference.find_ref_for_obj(self)
+        result = ref[key] if key in self else default
         return result
     
     def _comp_source(self):

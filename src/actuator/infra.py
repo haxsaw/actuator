@@ -37,20 +37,20 @@ class InfraException(ActuatorException): pass
 
 _infra_options = "__infra_options__"
 _recognized_options = set(["long_names"])
-@ClassModifier
-def with_infra_options(cls, *args, **kwargs):
-    """
-    Available options:
-    default_provisioner=None
-    """
-    opts_dict = cls.__dict__.get(_infra_options)
-    if opts_dict is None:
-        opts_dict = {}
-        setattr(cls, _infra_options, opts_dict)
-    for k, v in kwargs.items():
-        if k not in _recognized_options:
-            raise InfraException("Unrecognized InfraSpec option: %s" % k)
-        opts_dict[k] = v
+# @ClassModifier
+# def with_infra_options(cls, *args, **kwargs):
+#     """
+#     Available options:
+#     default_provisioner=None
+#     """
+#     opts_dict = cls.__dict__.get(_infra_options)
+#     if opts_dict is None:
+#         opts_dict = {}
+#         setattr(cls, _infra_options, opts_dict)
+#     for k, v in kwargs.items():
+#         if k not in _recognized_options:
+#             raise InfraException("Unrecognized InfraSpec option: %s" % k)
+#         opts_dict[k] = v
 
 
 @ClassModifier
@@ -61,7 +61,7 @@ def with_infra_components(cls, *args, **kwargs):
     :param cls: a new class object
     :param args: no positional args are recognized
     :param kwargs: dict of names and associated _components to provision; must
-        all be derived from InfraComponentBase
+        all be derived from AbstractModelingEntity
     :return: None
     """
     components = getattr(cls, InfraSpecMeta._COMPONENTS)
@@ -69,9 +69,7 @@ def with_infra_components(cls, *args, **kwargs):
         raise InfraException("FATAL ERROR: no component collection on the class object")
     for k, v in kwargs.items():
         if not isinstance(v, AbstractModelingEntity):
-            raise InfraException("Argument %s is not derived from InfraComponentBase" % k)
-        if not isinstance(k, basestring):
-            raise InfraException("Key %s is not a string" % str(k))
+            raise InfraException("Argument %s is not derived from AbstractModelingEntity" % k)
         setattr(cls, k, v)
         components[k] = v
     return
@@ -79,7 +77,7 @@ def with_infra_components(cls, *args, **kwargs):
 
 class Provisionable(ModelComponent):
     """
-    This class serves as a marker class for any InfraComponentBase derived class as something
+    This class serves as a marker class for any AbstractModelingEntity derived class as something
     that can actually be provisioned.
     """
     pass
@@ -166,7 +164,7 @@ class InfraSpec(SpecBase):
         all_refs = set()
         for k, v in cls.__dict__[InfraSpecMeta._COMPONENTS].items():
             if isinstance(v, Provisionable):
-                if isinstance(k, KeyAsAttr):
+                if isinstance(k, KeyAsAttr):  #this probably isn't possible
                     all_refs.add(my_ref[k])
                 else:
                     all_refs.add(getattr(cls if my_ref is None else my_ref, k))

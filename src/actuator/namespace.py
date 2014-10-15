@@ -46,7 +46,7 @@ class _ModelRefSetAcquireable(object):
 class _ComputableValue(_ModelRefSetAcquireable):
     _replacement_pattern = re.compile("\![a-zA-Z_]+[a-zA-Z0-9_]*\!")
     def __init__(self, value):
-        if type(value) == str:
+        if isinstance(value, basestring):
             self.value = str(value)
         elif hasattr(value, "value"):
             self.value = value
@@ -157,7 +157,7 @@ class VariableContainer(_ModelRefSetAcquireable):
     def add_override(self, *args):
         for v in args:
             if not isinstance(v, Var):
-                raise Exception("'%s' is not a Var" % str(v))
+                raise TypeError("'%s' is not a Var" % str(v))
             self.overrides[v.name] = v
         return self
             
@@ -207,12 +207,12 @@ def with_components(cls, *args, **kwargs):
 with_components = ClassModifier(with_components)
 
 
-class ComponentMeta(type):
-    cls_registry = {}
-    def __new__(cls, name, bases, attr_dict):
-        new_cls = super(ComponentMeta, cls).__new__(cls, name, bases, attr_dict)
-        cls.cls_registry[name] = new_cls
-        return new_cls
+# class ComponentMeta(type):
+#     cls_registry = {}
+#     def __new__(cls, name, bases, attr_dict):
+#         new_cls = super(ComponentMeta, cls).__new__(cls, name, bases, attr_dict)
+#         cls.cls_registry[name] = new_cls
+#         return new_cls
     
 
 class ModelInstanceFinderMixin(object):
@@ -317,11 +317,12 @@ class NSMultiComponent(ModelInstanceFinderMixin, MultiComponent, VariableContain
             
     def clone(self, clone_cache, clone_into_class=None):
         clone = super(NSMultiComponent, self).clone(clone_cache, clone_into_class=clone_into_class)
+        for k, v in self._instances.items():
+            child = v.clone(clone_cache)
+            child._set_parent(clone)
+            clone._instances[k] = child
         clone._set_parent(self.parent_container)
         clone._set_model_instance(self._model_instance)
-        for c in clone.instances().values():
-            c._set_parent(clone)
-#             c._set_model_instance(self._model_instance)
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())
         return clone
@@ -355,8 +356,8 @@ class NamespaceSpecMeta(SpecBaseMeta):
             if isinstance(v, (ComponentGroup, MultiComponent, MultiComponentGroup)):
                 mapped_class = cmapper[v.__class__]
                 attr_dict[k] = v.clone(clone_cache, clone_into_class=mapped_class)
-        if _common_vars not in attr_dict:
-            attr_dict[_common_vars] = []
+#         if _common_vars not in attr_dict:
+#             attr_dict[_common_vars] = []
         newbie = super(NamespaceSpecMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
         return newbie
@@ -374,29 +375,18 @@ class NamespaceSpec(VariableContainer, SpecBase):
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, (Component, ComponentGroup, MultiComponent, MultiComponentGroup)):
                 components.add((k, v))
-        next_ply = set([(k,c) for k, c in components if c.parent_container is None])
-        for k, c in next_ply:
+        for k, c in components:
             clone = c.clone(clone_cache)
             clone._set_model_instance(self)
             clone._set_parent(self)
             clone_map[c] = (k, clone)
-        components -= next_ply
-        while components:
-            next_ply = set([(k,c) for k, c in components if c.parent_container in clone_map])
-            if not next_ply:
-                raise NamespaceException("No _components can be found that have parents which were previously cloned")
-            for k, c in next_ply:
-                clone = c.clone(clone_cache)
-                clone._set_model_instance(self)
-                clone_map[c] = (k, clone)
-                clone._set_parent(clone_map[c.parent_container][1])
-            components -= next_ply
         self._components = {}
         for _, (key, clone) in clone_map.items():
             self._components[key] = clone
             setattr(self, key, clone)
         
-        self.add_variable(*self.__class__.__dict__[_common_vars])
+        if _common_vars in self.__class__.__dict__:
+            self.add_variable(*self.__class__.__dict__[_common_vars])
         self.infra = None
         
     def __new__(cls, *args, **kwargs):

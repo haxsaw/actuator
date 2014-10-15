@@ -27,7 +27,7 @@ Created on 4 Jun 2014
 from actuator import (InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup, ctxt)
 from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,
                                AbstractModelingEntity)
-from actuator.infra import (with_infra_components)
+from actuator.infra import (with_infra_components, InfraException)
 from actuator.provisioners.example_components import Server, Database
 
 MyInfra = None
@@ -904,8 +904,44 @@ def test146():
         _ = inst.grid[i]
     assert inst.grid[3]._name == "3"
     
-
-
+def test147():
+    try:
+        class Test(InfraSpec):
+            app_server = Server("app_server", mem="8GB")
+            with_infra_components(grid="not a component")
+        assert False, "The class def should have raised an exception"
+    except InfraException, e:
+        assert "grid is not derived" in e.message
+    
+def test148():
+    class Test(InfraSpec):
+        app_server = Server("app_server", mem="8GB")
+    inst = Test("inst")
+    assert not inst.provisioning_been_computed()
+    
+def test149():
+    class Test(InfraSpec):
+        app_server = Server("app_server", mem="8GB")
+    inst = Test("inst")
+    inst.compute_provisioning_from_refs([Test.app_server])
+    try:
+        inst.compute_provisioning_from_refs([Test.app_server])
+        assert False, "was allowed to compute provisioning twice"
+    except InfraException, e:
+        assert "has already been" in e.message
+        
+def test150():
+    from actuator.infra import ServerRef
+    class NoAdminIP(ServerRef):
+        pass
+    s = NoAdminIP()
+    try:
+        _ = s.get_admin_ip()
+        raise False, "Should not have been able to call get_admin_ip()"
+    except TypeError, e:
+        assert "Not implemented" in e.message
+    
+    
 def do_all():
     setup()
     for k, v in globals().items():

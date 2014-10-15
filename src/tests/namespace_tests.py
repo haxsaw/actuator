@@ -26,7 +26,7 @@ Created on 7 Jun 2014
 '''
 from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
                           Component, with_components, MultiComponent, 
-                          MultiComponentGroup, ComponentGroup, ctxt)
+                          MultiComponentGroup, ComponentGroup, ctxt, ActuatorException)
 from actuator.namespace import NSComponentGroup, NSMultiComponent, NSMultiComponentGroup
 from actuator.infra import InfraSpec
 from actuator.provisioners.example_components import Server
@@ -653,11 +653,95 @@ def test53():
         for j in range(i):
             _ = grid.workers[j]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4
+    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.components()) == 8
      
+def test54():
+    class Infra(InfraSpec):
+        grid = MultiComponent(Server("foreman", mem="8GB"))
+          
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponent(Component("foreman", host_ref=ctxt.model.infra.grid[0])).add_variable(Var("MYSTERY", "RIGHT!"))
+    infra = Infra("mcg")
+    ns = NS()
+    for i in [2,4]:
+        _ = ns.grid[i]
+    ns.compute_provisioning_for_environ(infra)
+    assert len(infra.grid) == 1 and len(infra.components()) == 1
+
+def test56():
+    class Infra(InfraSpec):
+        grid = MultiComponent(Server("node", mem="8GB"))
         
+    def bad_comp(ctxt):
+        #generate an attribute error
+        [].wibble
+        
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponent(Component("foreman", host_ref=bad_comp)).add_variable(Var("MYSTERY", "RIGHT!"))
+
+    infra = Infra("mcg")
+    ns = NS()
+    for i in [2,4]:
+        _ = ns.grid[i]
+    try:
+        ns.compute_provisioning_for_environ(infra)
+        assert False, "Should have complained about the back host_ref callable"
+    except ActuatorException, e:
+        assert "Callable arg failed" in e.message
+        
+def test57():
+    from actuator.namespace import _ComputableValue
+    try:
+        _ = _ComputableValue(object())
+        assert False, "_ComputableValue should have complained about the value supplied"
+    except NamespaceException, e:
+        assert "unrecognized" in e.message.lower()
+        
+def test58():
+    from actuator.namespace import VariableContainer
+    vc = VariableContainer(variables=[Var("ONE", "1"), Var("TWO", "2")])
+    assert set(vc.variables.keys()) == set(["ONE", "TWO"])
+        
+def test59():
+    from actuator.namespace import VariableContainer
+    vc = VariableContainer(overrides=[Var("ONE", "1"), Var("TWO", "2")])
+    assert set(vc.overrides.keys()) == set(["ONE", "TWO"])
+        
+def test60():
+    from actuator.namespace import VariableContainer
+    try:
+        _ = VariableContainer(overrides=[{"ONE":"1"}])
+        assert False, "Should have got an exception on a bad Var"
+    except TypeError, e:
+        assert "is not a var" in e.message.lower()
+        
+def test61():
+    try:
+        _ = Component("oops", host_ref=1, multi_ref=1)
+        assert False, "Should have had a complaint about having both a host_ref and a multi_ref"
+    except NamespaceException, e:
+        assert "only one of" in e.message.lower()
+        
+def test62():
+    try:
+        _ = Component("oops", multi_ref=1)
+        assert False, "Should have had a complaint about not having a multi_key with a multi_ref"
+    except NamespaceException, e:
+        assert "must also" in e.message.lower()
+        
+def test63():
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponent(Component("foreman")).add_variable(Var("MYSTERY", "RIGHT!"))
+    ns = NS()
+    for i in range(5):
+        _ = ns.grid[i]
+    clone = ns.grid.clone({})
+    assert len(clone) == 5
+
 def do_all():
-    test53()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
