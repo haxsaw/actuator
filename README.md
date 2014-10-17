@@ -103,7 +103,7 @@ As may have been guessed, the key model in actuator is the namespace model, as i
 Although the namespace model is the one that is most central in actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynmaically provisionable infra components and describes how they relate to each other. The model can define groups of components and components that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
 
 ### <a name="simple_openstack_example">A simple Openstack example</a>
-The best place to start is to develop a model that can be used provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
+The best place to start is to develop a model that can be used to provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
 
 ```python
 from actuator import InfraSpec, ctxt
@@ -112,18 +112,18 @@ from actuator.provisioners.openstack.components import (Server, Network, Subnet,
                                                          RouterGateway, RouterInterface)
 
 class SingleOpenstackServer(InfraSpec):
-  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
   net = Network("actuator_ex1_net")
-  fip = FloatingIP("actuator_ex1_float", ctxt.infra.server,
-                   ctxt.infra.server.iface0.addr0, pool="external")
-  subnet = Subnet("actuator_ex1_subnet", ctxt.infra.net, "192.168.23.0/24",
+  fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
+                   ctxt.model.server.iface0.addr0, pool="external")
+  subnet = Subnet("actuator_ex1_subnet", ctxt.model.net, "192.168.23.0/24",
                   dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex1_router")
-  gateway = RouterGateway("actuator_ex1_gateway", ctxt.infra.router, "external")
-  rinter = RouterInterface("actuator_ex1_rinter", ctxt.infra.router, ctxt.infra.subnet)
+  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
+  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
 ```
 
-The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note the use of 'ctxt.infra.*' for some of the arguments; this is how actuator defers evaluation of an argument until the needed reference is defined.
+The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note the use of 'ctxt.model.*' for some of the arguments; these constructions are called _context expressions_ as they result in instances of the ContextExpr class, which are used to defer the evaluation of a model reference until an instance of the model (the "context") is available to evaluate the expression against. 
 
 Instances of the class (and hence the model) are then created, and the instance is given to a provisioner which inspects the model instance and performs the necessary provsioning actions in the proper order.
 
@@ -138,20 +138,20 @@ Often, there's a lot of repeated boilerplate in an infra spec; in the above exam
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
-                      "subnet":Subnet("actuator_ex1_subnet", ctxt.infra.net,
+                      "subnet":Subnet("actuator_ex1_subnet", ctxt.model.net,
                                       "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
                       "router":Router("actuator_ex1_router"),
-                      "gateway":RouterGateway("actuator_ex1_gateway", ctxt.infra.router,
+                      "gateway":RouterGateway("actuator_ex1_gateway", ctxt.model.router,
                                               "external"),
-                      "rinter":RouterInterface("actuator_ex1_rinter", ctxt.infra.router,
-                                               ctxt.infra.subnet)}
+                      "rinter":RouterInterface("actuator_ex1_rinter", ctxt.model.router,
+                                               ctxt.model.subnet)}
 
 
 class SingleOpenstackServer(InfraSpec):
   with_infra_components(**gateway_components)
-  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
-  fip = FloatingIP("actuator_ex1_float", ctxt.infra.server,
-                   ctxt.infra.server.iface0.addr0, pool="external")
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
+  fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
+                   ctxt.model.server.iface0.addr0, pool="external")
 ```
 
 With with_infra_components(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
@@ -176,14 +176,14 @@ class MultipleServers(InfraSpec):
   #reach, and it will pass off work requests to the workers. It will need a
   #floating ip for the outside world to see it
   #
-  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
-  fip = FloatingIP("actuator_ex2_float", ctxt.infra.server,
-                   ctxt.infra.server.iface0.addr0, pool="external")
+  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
+  fip = FloatingIP("actuator_ex2_float", ctxt.model.server,
+                   ctxt.model.server.iface0.addr0, pool="external")
   #
   #finally, declare the workers MultiComponent
   #
   workers = MultiComponent(Server("worker", "Ubuntu 13.10", "m1.small",
-                                  nics=[ctxt.infra.net]))
+                                  nics=[ctxt.model.net]))
 ```
 
 The *workers* MultiComponent works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template component is created:
@@ -231,14 +231,14 @@ gateway_component = ComponentGroup("gateway", net=Network("actuator_ex1_net"),
 
 class SingleOpenstackServer(InfraSpec):
   gateway = gateway_component
-  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.gateway.net])
-  fip = FloatingIP("actuator_ex1_float", ctxt.infra.server,
-                   ctxt.infra.server.iface0.addr0, pool="external")
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.gateway.net])
+  fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
+                   ctxt.model.server.iface0.addr0, pool="external")
 ```
 
 The keyword args used in creating the ComponentGroup become the attributes of the instances of the group.
 
-If you require a group of different resources to be provisioned together repeatedly, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiComponentGroup() is simply a shorthand for wrapping a ComponentGroup in a MultiComponent. The following model only uses Servers in the template, but any component can appear in a MultiComponentGroup.
+If you require a group of different resources to be provisioned together repeatedly, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiComponentGroup() is simply a shorthand for wrapping a ComponentGroup in a MultiComponent. The following model only uses Servers in the template, but any component (including ComponentGroups and MultiComponents) can appear in a MultiComponentGroup.
 
 <a name="multigroups">&nbsp;</a>
 ```python
@@ -257,20 +257,20 @@ class MultipleGroups(InfraSpec):
   #reach, and it will pass off work requests to the leaders of clusters. It will need a
   #floating ip for the outside world to see it
   #
-  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.infra.net])
-  fip = FloatingIP("actuator_ex3_float", ctxt.infra.server,
-                   ctxt.infra.server.iface0.addr0, pool="external")
+  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
+  fip = FloatingIP("actuator_ex3_float", ctxt.model.server,
+                   ctxt.model.server.iface0.addr0, pool="external")
   #
   #finally, declare a "cluster"; a leader that coordinates the workers in the
   #cluster, which operate under the leader's direction
   #
   cluster = MultiComponentGroup("cluster",
                                 leader=Server("leader", "Ubuntu 13.10", "m1.small",
-                                              nics=[ctxt.infra.net]),
+                                              nics=[ctxt.model.net]),
                                 workers=MultiComponent(Server("cluster_node",
                                                               "Ubuntu 13.10",
                                                               "m1.small",
-                                                              nics=[ctxt.infra.net])))
+                                                              nics=[ctxt.model.net])))
 ```
 
 The keyword args used in creating the ComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
@@ -334,20 +334,20 @@ True
 >>>
 ```
 
-The ability to generate model references from an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in actuator's ability to flexibly describe the components of a system's infra. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
+The ability to generate model references from an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in actuator's ability to flexibly describe the components of a system's infra and connect those references to other models. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
 
 ## <a name="nsmodels">Namespace models</a>
 The namespace model provides the means for joining the other actuator models together. It does this by declaring the logical components of a system, relating these components to the infrastructure elements where the components are to execute, and providing the means to identify what configuration task is to be carried out for each component as well as what executables are involved with making the component function.
 
-A namespace model has four aspects. It provides for:
+A namespace model has four aspects. It provides the means to:
 
-1. Capturing the logical execution components of a system
-2. Capturing the relationship between logical components and hosts in the infra model where the components are to execute
-3. The means to arrange the components in a meaningful hierarchy
-4. The means to establish names within the hierachy whose values will impact configuration activities and the operation of the components
+1. ...define the logical execution components of a system
+2. ...define the relationships between logical components and hosts in the infra model where the components are to execute
+3. ...arrange the components in a meaningful hierarchy
+4. ...establish names within the hierachy whose values will impact configuration activities and the operation of the components
 
 ### <a name="simplensexample">An example</a>
-Here's a trivial example that demonstrates the basic features of a namespace. It will model two components, and app server and a computation engine, and use the SingleOpenstackServer infra model from above for certain values:
+Here's a trivial example that demonstrates the basic features of a namespace. It will model two components, an app server and a computation engine, and use the SingleOpenstackServer infra model from above for certain values:
 
 ```python
 from actuator import Var, NamespaceSpec, Component, with_variables
@@ -364,11 +364,11 @@ class SOSNamespace(NamespaceSpec):
   compute_server = Component("compute_server", host_ref=SingleOpenstackServer.server)
 ```
 
-First, some global Vars are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by supplying a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all components.
+First, some global Vars are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by creating a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all components.
 
-Next comes the app_server component, which is declared with a call to Component. Besides a name, the Component is supplied a host_ref in the form of Server model reference from the SingleOpenstackserver model. This tells the namespace that this component's configuration tasks and executables will be run on whatever host is provisioned for this part of the model. The app_server component is also supplied a  private Var object that captures the host IP where the server will run. While the app_server binds to an IP on the subnet, the FloatingIP associated with this subnet IP will enable the server to be reached from outside the subnet.
+Next comes the app_server component, which is declared with a call to Component. Besides a name, Component is supplied a host_ref in the form of Server model reference from the SingleOpenstackserver model. This tells the namespace that this component's configuration tasks and executables will be run on whatever host is provisioned for this part of the model. The app_server component is also supplied a private Var object that captures the host IP where the server will run. While the app_server binds to an IP on the subnet, the FloatingIP associated with this subnet IP will enable the server to be reached from outside the subnet.
 
-Finally, we declare the compute_server Component. Similar to the app_server Component, the compute_server Component identifies the Server where it will run by setting the host_ref keyword to a infra model reference for the Server to use.
+Finally, we declare the compute_server Component. Similar to the app_server Component, the compute_server Component identifies the Server where it will run by setting the host_ref keyword to a infra model reference for the Server to use. In this example, both Components will be run on the same server.
 
 When an instance of the namespace is created, useful questions can be posed to the instance:
 * We can ask for a list of components
@@ -411,11 +411,17 @@ t 0x026E5F50>, <actuator.provisioners.openstack.components.RouterInterface objec
 ```
 
 ### <a name="dynamicns">Dynamic Namespaces</a>
-Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. By coupling such a namespace with an infra model that uses MultiComponent or MultiComponentGroup elements, appropriately sized infra can be identified an and provisioned depending on the nature of the dynamic namespace.
+The namespace shown above is static in nature. Although some of the values for Var objects are supplied dynamically, the namespace itself has a static number of components and structure.
+
+Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. By coupling such a namespace with an infra model that uses MultiComponent or MultiComponentGroup elements, appropriately sized infra can be identified and provisioned depending on the nature of the dynamic namespace.
 
 The best way to understand this is with an example. We'll devise a trivial computational grid: besides the normal gateway elements, the infrastructure will contain a "foreman" to coordinate the computational activities of a variable number of "workers", each on a seperate server.
 
 The [MultipleServers](#multiservers) infra model from above fits this pattern, so we'll define a dynamic namespace model that grows components that refer back to this infra model in order to acquire the appropriate infrastructure to meet the namespace's needs.
+
+We'll use two different techniques for creating a suitable dynamic namespace. In the first, we'll create a class factory function that defines a new namespace class with the appropriate number of worker Components. In the second, we'll use some additional features of Actuator to express the same capabilities in a more concise way.
+
+First, the class factory approach:
 
 ```python
 def grid_namespace_factory(num_workers=10):
@@ -462,6 +468,49 @@ Now we can use the factory function to create grids of different sizes simply by
 207
 >>>
 ```
+
+Now the second approach, which utilizes some other capabilities of Actuator. Namespaces have their own analogs to the infra model's ComponentGroup, MultiComponent, and MultiComponentGroup classes: they are NSComponentGroup, NSMultiComponent, and NSMultiComponentGroup. These are similar to their infrastructure counterparts with the exceptions that
+
+1. They can contain only Components or the various NS* Component containers mentinoed above;
+2. They can have variables (Var objects) attached to them.
+
+Using this approach, the solution looks like the following:
+
+```python
+class GridNamespace(NamespaceSpec):
+  with_variables(Var("FOREMAN_EXTERNAL_IP", MultipleServers.fip.ip),
+                 Var("FOREMAN_INTERNAL_IP", MultipleServers.foreman.iface0.addr0),
+                 Var("FOREMAN_EXTERNAL_PORT", "3000"),
+                 Var("FOREMAN_WORKER_PORT", "3001"))
+                  
+  foreman = Component("foreman", host_ref=MultipleServers.foreman)
+  
+  grid = NSMultiComponent(Component("node", host_ref=ctxt.model.infra.workers[ctxt.name]))
+```
+
+This approach doesn't use a factory; instead, it uses NSMultiComponent to define a "template" Component object to create instances from each new key supplied to the "grid" attribute of the namespace. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new components on an infra model, uses new keys to create new Components on the instance. These new component instances will in turn create new worker instances on a MultiServers model instance:
+
+```python
+>>> ns = GridNamespace()
+>>> ms_infra = MultipleServers("ms1")
+>>> for i in range(20):
+...     _ = ns.grid[i]
+... 
+>>> provs = ns.compute_provisioning_for_environ(ms_infra)
+>>> len(provs)
+27
+>>> ns2 = GridNamespace()
+>>> ms_infra2 = MultipleServers("ms2")
+
+>>> for i in range(200):
+...     _ = ns2.grid[i]
+... 
+>>> provs2 = ns2.compute_provisioning_for_environ(ms_infra2)
+>>> len(provs2)
+207
+```
+
+Using this approach, we can treat the namespace model like the infra model, meaning that we can provide a logical definition of components and drive the creation of physical components simply by referencing them. These references flow through to the infra model, likewise causing dynamic infra components to be created.
 
 ### <a name="varobjs">Var objects</a>
 Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables for tasks and executables, or parameter maps for processing templatized text files such as scripts or properties files.
