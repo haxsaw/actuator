@@ -1,4 +1,4 @@
-actuator
+Actuator Tutorial
 ========
 
 Actuator allows you to use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
@@ -19,7 +19,6 @@ Actuator allows you to use Python to declaratively describe system infra, config
   3. [Var objects](#varobjs)
 5. Configuration Models (yet to come)
 6. Execution Models (yet to come)
-7. Roadmap (yet to come)
 
 ## <a name="intro">Intro</a>
 
