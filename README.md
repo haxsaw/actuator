@@ -1,4 +1,4 @@
-actuator
+Actuator
 ========
 
 Actuator allows you to use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
@@ -14,7 +14,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
 
 ## <a name="intro">Intro</a>
 **Current status**
-- **10 Sep 2014:** actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable.
+- **10 Sep 2014:** Actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable.
 
 Actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, defining the names that govern operation, configuring the infra for the software that is to be run, and then executing that system's code on the configured infra.
 
