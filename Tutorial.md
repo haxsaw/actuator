@@ -59,18 +59,18 @@ The *configuration model*, established with a subclass of **ConfigSpec**, define
 
 The *execution model*, established with a subclass of **ExecutionSpec**, defines the actual processes to run for each system component named in the namespace model. Like with the configuration model, dependencies between the executables can be expressed so that a particular startup order can be enforced.
 
-Each model can be built and used independently, but it is the inter-relationships between the models that give actuator its representational power.
+Each model can be built and used independently, but it is the inter-relationships between the models that give Actuator its representational power.
 
 Actuator then provides a number of support objects that can take instances of these models and processes their informantion, turning it into actions in the cloud. So for instance, a provisioner can take an infra model instance and manage the process of provisioning the infra it describes, and another can marry that instance with a namespace to fully populate a namespace model instance so that the configurator can carry out configuration tasks, and so on.
 
-As may have been guessed, the key model in actuator is the namespace model, as it serves as the focal point to tie all the other models together.
+As may have been guessed, the key model in Actuator is the namespace model, as it serves as the focal point to tie all the other models together.
 
 ##<a name="inframodels">Infra models</a>
 
-Although the namespace model is the one that is most central in actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynmaically provisionable infra components and describes how they relate to each other. The model can define groups of components and components that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
+Although the namespace model is the one that is most central in Actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynmaically provisionable infra components and describes how they relate to each other. The model can define groups of components and components that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
 
 ### <a name="simple_openstack_example">A simple Openstack example</a>
-The best place to start is to develop a model that can be used to provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to actuator.
+The best place to start is to develop a model that can be used to provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to Actuator.
 
 ```python
 from actuator import InfraSpec, ctxt
@@ -301,10 +301,10 @@ True
 >>>
 ```
 
-The ability to generate model references from an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in actuator's ability to flexibly describe the components of a system's infra and connect those references to other models. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
+The ability to generate model references from an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in Actuator's ability to flexibly describe the components of a system's infra and connect those references to other models. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
 
 ## <a name="nsmodels">Namespace models</a>
-The namespace model provides the means for joining the other actuator models together. It does this by declaring the logical components of a system, relating these components to the infrastructure elements where the components are to execute, and providing the means to identify what configuration task is to be carried out for each component as well as what executables are involved with making the component function.
+The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical components of a system, relating these components to the infrastructure elements where the components are to execute, and providing the means to identify what configuration task is to be carried out for each component as well as what executables are involved with making the component function.
 
 A namespace model has four aspects. It provides the means to:
 
