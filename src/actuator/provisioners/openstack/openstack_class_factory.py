@@ -21,8 +21,6 @@
 
 '''
 Created on 7 Sep 2014
-
-@author: tom
 '''
 from novaclient import client as NovaClient
 from neutronclient.v2_0 import client as NeutronClient

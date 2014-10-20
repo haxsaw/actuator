@@ -21,8 +21,6 @@
 
 '''
 Created on 7 Sep 2014
-
-@author: tom
 '''
 import itertools
 import networkx as nx
@@ -120,25 +118,7 @@ class ConfigSpec(object):
     
     def get_tasks(self):
         return self._node_dict_.keys()
-    
-    def perform_with(self, namespace):
-        nodes = self.get_tasks()
-        deps = self.get_dependencies()
-        graph = nx.DiGraph()
-        graph.add_nodes_from(nodes, ins_traversed=0)
-        graph.add_edges_from( [d.edge() for d in deps] )
-        ply = [t for t in nodes if graph.in_degree(t) == 0]
-        traversed = set()
-        while ply:
-            for task in ply:
-                task.perform()
-                for successor in graph.successors_iter(task):
-                    graph.node[successor]['ins_traversed'] += 1
-            traversed.update(ply)
-            ply = [t for t in nodes
-                   if graph.in_degree(t) == graph.node[t]["ins_traversed"] and
-                   t not in traversed]
-            
+                
     
 class TaskGroup(Orable):
     def _or_result_class(self):

@@ -21,8 +21,6 @@
 
 '''
 Created on 7 Sep 2014
-
-@author: tom
 '''
 
 from actuator.utils import ClassModifier, process_modifiers

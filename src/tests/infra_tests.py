@@ -21,8 +21,6 @@
 
 '''
 Created on 4 Jun 2014
-
-@author: tom
 '''
 from actuator import (InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup, ctxt)
 from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,

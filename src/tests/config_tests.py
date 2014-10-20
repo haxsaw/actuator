@@ -18,11 +18,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from actuator.namespace import NSMultiComponent
 
 '''
 Created on 13 Jul 2014
-
-@author: tom
 '''
 from actuator import *
 from actuator.config import _Dependency, _ConfigTask
@@ -370,7 +369,8 @@ def test27():
         ping_task = ReportingTask(PingNamespace.ping_target, report=cap)
         
     cfg = PingConfig()
-    cfg.perform_with(ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
     assert cap.performed
     
 def test28():
@@ -386,7 +386,8 @@ def test28():
         with_dependencies(t1 | t2 | t3)
     
     cfg = PingConfig()
-    cfg.perform_with(ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
     assert (cap.pos("ping_target", PingConfig.t1) <
             cap.pos("ping_target", PingConfig.t2) <
             cap.pos("ping_target", PingConfig.t3) )
@@ -409,13 +410,36 @@ def test29():
                           t5 | t3)
     
     cfg = PingConfig()
-    cfg.perform_with(ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
     assert (cap.pos("ping_target", PingConfig.t1) <
             cap.pos("ping_target", PingConfig.t2) <
             cap.pos("ping_target", PingConfig.t3) and
             cap.performed[-1] == ("ping_target", PingConfig.t3) and
             cap.pos("ping_target", PingConfig.t4) <
             cap.pos("ping_target", PingConfig.t2))
+    
+def test30():
+    cap = Capture()
+    class ElasticNamespace(NamespaceSpec):
+        ping_targets = NSMultiComponent(Component("ping-target", host_ref=BogusServerRef()))
+        pong_targets = NSMultiComponent(Component("pong-target", host_ref=BogusServerRef()))
+    ns = ElasticNamespace()
+    
+    class ElasticConfig(ConfigSpec):
+        ping = ReportingTask(ElasticNamespace.ping_targets, report=cap)
+        pong = ReportingTask(ElasticNamespace.pong_targets, report=cap)
+        with_dependencies(ping | pong)
+        
+    for i in range(5):
+        _ = ns.ping_targets[i]
+        
+    cfg = ElasticConfig()
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+#     cfg.perform_with(ns)
+    
+    
         
 
 def do_all():

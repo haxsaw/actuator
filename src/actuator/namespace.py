@@ -21,8 +21,6 @@
 
 '''
 Created on 7 Sep 2014
-
-@author: tom
 '''
 import re
 from actuator.utils import ClassModifier, process_modifiers, capture_mapping, get_mapper

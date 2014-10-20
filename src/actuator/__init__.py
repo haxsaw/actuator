@@ -27,3 +27,4 @@ from namespace import (Var, NamespaceSpec, with_variables, NamespaceException, C
 from config import (ConfigSpec, with_searchpath, with_dependencies, MakeDir, Template,
                     CopyAssets, ConfigJob, ConfigException, TaskGroup, NullTask)
 from provisioners.core import ProvisionerException
+from exec_agents.core import ExecutionAgent, ExecutionException

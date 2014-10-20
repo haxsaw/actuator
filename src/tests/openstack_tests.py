@@ -27,8 +27,6 @@ that the order of calls into the mocks must not change from run to run or else t
 won't be generated. The lesson here is that as tests are added, they should always be added to the
 end of the list of tests, and never inserted in between existing tests.
 Created on 25 Aug 2014
-
-@author: tom
 '''
 
 import ost_support

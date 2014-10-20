@@ -21,8 +21,6 @@
 
 '''
 Created on 7 Sep 2014
-
-@author: tom
 '''
 import time
 import uuid
