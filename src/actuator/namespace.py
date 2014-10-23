@@ -133,7 +133,7 @@ class VariableContainer(_ModelRefSetAcquireable):
             self.add_variable(*variables)
         if overrides is not None:
             self.add_override(*overrides)
-        
+                    
     def _set_parent(self, parent):
         self.parent_container = parent
     
@@ -251,6 +251,16 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         clone = super(Component, self).clone(clone_dict, clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         return clone
+    
+    def _get_arg_value(self, arg):
+        val = super(Component, self)._get_arg_value(arg)
+        if isinstance(val, basestring):
+            #check if we have a variable to resolve
+            cv = _ComputableValue(val)
+            val = cv.expand(self)
+#         elif isinstance(val, ModelReference) and self._model_instance:
+#             val = self._model_instance.get_inst_ref(val)
+        return val
             
     def _fix_arguments(self):
         if self._multi_ref is not None:
@@ -260,7 +270,15 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         else:
             host_ref = self._get_arg_value(self._host_ref)
             if not isinstance(host_ref, AbstractModelReference):
-                host_ref = AbstractModelReference.find_ref_for_obj(self._get_arg_value(host_ref))
+                #@FIXME: The problem here is that it won't always be possible
+                #to find a ref object of some kind. If the value supplied was
+                #a hard-coded string or variable override, then there will
+                #never be a ref object available for it. In that case we
+                #need to return the object that was already there. This is
+                #probably going to happen more often that we'd like
+                tmp_ref = AbstractModelReference.find_ref_for_obj(self._get_arg_value(host_ref))
+                if tmp_ref is not None:
+                    host_ref = tmp_ref
             self.host_ref = host_ref
             
     def find_variable(self, name):

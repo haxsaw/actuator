@@ -24,6 +24,8 @@ Created on 7 Sep 2014
 '''
 import itertools
 import networkx as nx
+from actuator.modeling import ModelComponent, ModelReference
+from actuator.namespace import _ComputableValue
 from actuator.utils import ClassModifier, process_modifiers
 
 class ConfigException(Exception): pass
@@ -44,7 +46,19 @@ def with_dependencies(cls, *args, **kwargs):
     if deps is None:
         deps = []
         setattr(cls, _dependencies, deps)
+    for arg in args:
+        if not isinstance(arg, _Cloneable):
+            raise ConfigException("Argument %s is not a dependency: %s" % str(arg))
     deps.extend(list(args))
+    
+_node_dict = "_node_dict"
+@ClassModifier
+def with_tasks(cls, *args, **kwargs):
+    task_nodes = cls.__dict__.get(_node_dict)
+    if task_nodes is None:
+        task_nodes = {}
+        setattr(cls, _node_dict, task_nodes)
+    task_nodes.update({v:k for k, v in kwargs.items()})
     
 
 class Orable(object):
@@ -64,15 +78,44 @@ class Orable(object):
         return []
 
 
-class _ConfigTask(Orable):
-    def __init__(self, task_component=None, run_from=None, repeat_til_success=False,
+class _ConfigTask(Orable, ModelComponent):
+    def __init__(self, name, task_component=None, run_from=None, repeat_til_success=False,
                  repeat_count=1, repeat_interval=5):
-        super(_ConfigTask, self).__init__()
-        self.task_component = task_component
-        self.run_from = run_from
-        self.repeat_til_success = repeat_til_success
-        self.repeat_count = repeat_count
-        self.repeat_interval = repeat_interval
+        super(_ConfigTask, self).__init__(name)
+        self.task_component = None
+        self._task_component = task_component
+        self.run_from = None
+        self._run_from = run_from
+        self.repeat_til_success = None
+        self._repeat_til_success = repeat_til_success
+        self.repeat_count = None
+        self._repeat_count = repeat_count
+        self.repeat_interval = None
+        self._repeat_interval = repeat_interval
+        
+    def get_init_args(self):
+        return ((self.name,), {"task_component":self._task_component,
+                              "run_from":self._run_from,
+                              "repeat_til_success":self._repeat_til_success,
+                              "repeat_count":self._repeat_count,
+                              "repeat_interval":self._repeat_interval})
+        
+    def _get_arg_value(self, arg):
+        val = super(_ConfigTask, self)._get_arg_value(arg)
+        if isinstance(val, basestring):
+            #check if we have a variable to resolve
+            cv = _ComputableValue(val)
+            val = cv.expand(self)
+        elif isinstance(val, ModelReference) and self._model_instance:
+            val = self._model_instance.namespace_model_instance.get_inst_ref(val)
+        return val
+            
+    def _fix_arguments(self):
+        self.task_component = self._get_arg_value(self._task_component)
+        self.run_from = self._get_arg_value(self._run_from)
+        self.repeat_til_success = self._get_arg_value(self._repeat_til_success)
+        self.repeat_count = self._get_arg_value(self._repeat_count)
+        self.repeat_interval = self._get_arg_value(self._repeat_interval)
         
     def _or_result_class(self):
         return _Dependency
@@ -90,13 +133,15 @@ class _ConfigTask(Orable):
 class ConfigSpecMeta(type):
     def __new__(cls, name, bases, attr_dict):
         all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, _ConfigTask)}
-        attr_dict["_node_dict_"] = all_tasks
+        attr_dict[_node_dict] = all_tasks
         newbie = super(ConfigSpecMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
+        for v, k in getattr(newbie, _node_dict).items():
+            setattr(newbie, k, v)
         graph = nx.DiGraph()
-        graph.add_nodes_from(newbie._node_dict_.keys())
+        graph.add_nodes_from(newbie._node_dict.keys())
         if hasattr(newbie, _dependencies):
-            deps = newbie.get_dependencies()
+            deps = newbie.get_class_dependencies()
             graph.add_edges_from( [d.edge() for d in deps] )
             try:
                 _ = nx.topological_sort(graph)
@@ -108,8 +153,26 @@ class ConfigSpecMeta(type):
 class ConfigSpec(object):
     __metaclass__ = ConfigSpecMeta
     
+    def __init__(self, namespace_model_instance=None):
+        self.namespace_model_instance = namespace_model_instance
+        clone_dict = {}
+        for v, k in self._node_dict.items():
+            if not isinstance(v, _ConfigTask):
+                raise ConfigException("'%s' is not a task" % k)
+            clone = v.clone(clone_dict)
+            clone._set_model_instance(self)
+            setattr(self, k, clone)
+        self.dependencies = [d.clone(clone_dict)
+                             for d in self.get_class_dependencies()]
+            
+    def set_namespace(self, namespace):
+        self.namespace_model_instance = namespace
+        
+    def get_dependencies(self):
+        return list(self.dependencies)
+    
     @classmethod
-    def get_dependencies(cls):
+    def get_class_dependencies(cls):
         if hasattr(cls, _dependencies):
             deps = list(itertools.chain(*[d.unpack() for d in getattr(cls, _dependencies)]))
         else:
@@ -117,19 +180,29 @@ class ConfigSpec(object):
         return deps
     
     def get_tasks(self):
-        return self._node_dict_.keys()
-                
-    
-class TaskGroup(Orable):
-    def _or_result_class(self):
-        return _Dependency
+        return [getattr(self, k) for k in self._node_dict.values()]
 
+
+class _Cloneable(object):
+    def clone(self, clone_dict):
+        raise TypeError("Derived class must implement")
+                    
+    
+class TaskGroup(Orable, _Cloneable):
     def __init__(self, *args):
         for arg in args:
             if not isinstance(arg, Orable):
                 raise ConfigException("argument %s is not a recognized TaskGroup arg type" % str(arg))
         self.args = list(args)
         
+    def clone(self, clone_dict):
+        args = [clone_dict[arg] if arg in clone_dict else arg.clone(clone_dict)
+                for arg in self.args]
+        return TaskGroup(*args)
+        
+    def _or_result_class(self):
+        return _Dependency
+
     def unpack(self):
         return list(itertools.chain(*[arg.unpack()
                                       for arg in self.args
@@ -142,10 +215,7 @@ class TaskGroup(Orable):
         return list(itertools.chain(*[arg.exit_nodes() for arg in self.args]))
     
 
-class _Dependency(Orable):
-    def _or_result_class(self):
-        return _Dependency
-
+class _Dependency(Orable, _Cloneable):
     def __init__(self, from_task, to_task):
         if not isinstance(from_task, Orable):
             raise ConfigException("from_task is not a kind of _ConfigTask")
@@ -154,6 +224,18 @@ class _Dependency(Orable):
         self.from_task = from_task
         self.to_task = to_task
         
+    def clone(self, clone_dict):
+        from_task = (clone_dict[self.from_task]
+                     if isinstance(self.from_task, _ConfigTask)
+                     else self.from_task.clone(clone_dict))
+        to_task = (clone_dict[self.to_task]
+                   if isinstance(self.to_task, _ConfigTask)
+                   else self.to_task.clone(clone_dict))
+        return _Dependency(from_task, to_task)
+        
+    def _or_result_class(self):
+        return _Dependency
+
     def entry_nodes(self):
         return self.from_task.entry_nodes()
     
@@ -184,31 +266,31 @@ class _Dependency(Orable):
     
 
 class NullTask(_ConfigTask):
-    def __init__(self, path="", **kwargs):
-        super(NullTask, self).__init__(**kwargs)
+    def __init__(self, name, path="", **kwargs):
+        super(NullTask, self).__init__(name, **kwargs)
         self.path = path
         
         
 class MakeDir(_ConfigTask):
-    def __init__(self, path="", **kwargs):
-        super(MakeDir, self).__init__(**kwargs)
+    def __init__(self, name, path="", **kwargs):
+        super(MakeDir, self).__init__(name, **kwargs)
         self.path = path
 
 
 class Template(_ConfigTask):
-    def __init__(self, path="", **kwargs):
-        super(Template, self).__init__(**kwargs)
+    def __init__(self, name, path="", **kwargs):
+        super(Template, self).__init__(name, **kwargs)
         self.path = path
 
 
 class CopyAssets(_ConfigTask):
-    def __init__(self, path="", **kwargs):
-        super(CopyAssets, self).__init__(**kwargs)
+    def __init__(self, name, path="", **kwargs):
+        super(CopyAssets, self).__init__(name, **kwargs)
         self.path = path
 
 
 class ConfigJob(_ConfigTask):
-    def __init__(self, path="", **kwargs):
-        super(ConfigJob, self).__init__(**kwargs)
+    def __init__(self, name, path="", **kwargs):
+        super(ConfigJob, self).__init__(name, **kwargs)
         self.path = path
 

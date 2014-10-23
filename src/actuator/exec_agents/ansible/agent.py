@@ -1,4 +1,3 @@
-# The MIT License (MIT)
 # 
 # Copyright (c) 2014 Tom Carroll
 # 
@@ -20,12 +19,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from modeling import MultiComponent, MultiComponentGroup, ComponentGroup, ctxt, ActuatorException
-from infra import (InfraSpec, InfraException, with_infra_components)
-from namespace import (Var, NamespaceSpec, with_variables, NamespaceException, Component,
-                                    with_components)
-from config import (ConfigSpec, with_searchpath, with_dependencies, MakeDir, Template,
-                    CopyAssets, ConfigJob, ConfigException, TaskGroup, NullTask)
-from provisioners.core import ProvisionerException
-from exec_agents.core import ExecutionAgent, ExecutionException
-from config_tasks import PingTask
+'''
+Created on Oct 21, 2014
+'''
+from ansible.runner import Runner
+
+from actuator.exec_agents.core import ExecutionAgent
+from actuator.config_tasks import *
+
+
+_class_module_map = {PingTask:"ping"}
+
+
+class AnsibleExecutionAgent(ExecutionAgent):
+    def _perform_task(self, task):
+        modname = _class_module_map.get(task.__class__)
+        task.fix_arguments()
+        task.task_component.fix_arguments()
+        hlist = [task.task_component.host_ref
+                 if isinstance(task.task_component.host_ref, basestring)
+                 else task.task_component.host_ref.value()]
+        runner = Runner(module_name=modname,
+                        host_list=hlist,
+                        module_args='')
+        result = runner.run()
+        return
