@@ -24,7 +24,7 @@ Created on Oct 21, 2014
 '''
 from ansible.runner import Runner
 
-from actuator.exec_agents.core import ExecutionAgent
+from actuator.exec_agents.core import ExecutionAgent, ExecutionException
 from actuator.config_tasks import *
 
 
@@ -43,4 +43,8 @@ class AnsibleExecutionAgent(ExecutionAgent):
                         host_list=hlist,
                         module_args='')
         result = runner.run()
+        if len(result['dark']):
+            raise ExecutionException("Task {task} couldn't reach hosts at {hosts}"
+                                     .format(task=task.name,
+                                             hosts=":".join(result["dark"].keys())))
         return

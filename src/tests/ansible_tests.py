@@ -24,7 +24,8 @@ Created on Oct 21, 2014
 '''
 
 import socket
-from actuator import NamespaceSpec, Var, Component, ConfigSpec, PingTask, with_variables
+from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
+                      with_variables, ExecutionException)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 
 
@@ -67,9 +68,27 @@ def test002():
                                namespace_model_instance=ns)
     ea.perform_config()
     
+def test003():
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("PING_TARGET", "not.an.ip.addy"))
+        ping_target = Component("ping-target", host_ref="!PING_TARGET!")
+    ns = SimpleNamespace()
+          
+    class SimpleConfig(ConfigSpec):
+        ping = PingTask("ping", task_component=SimpleNamespace.ping_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+        assert False, "This should have caused an error to be raised"
+    except ExecutionException, e:
+        assert "not.an.ip.addy" in e.message
+
+    
 
 def do_all():
-    test002()
+    test003()
 #     for k, v in globals().items():
 #         if k.startswith("test") and callable(v):
 #             v()

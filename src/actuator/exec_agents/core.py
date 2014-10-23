@@ -24,6 +24,8 @@ Created on Oct 20, 2014
 '''
 import Queue
 import threading
+import time
+import sys
 
 import networkx as nx
 from actuator import ConfigSpec, NamespaceSpec, InfraSpec, ActuatorException
@@ -37,7 +39,7 @@ class ConfigRecord(object):
         self.completed_tasks = []
         
     def record_completed_task(self, task):
-        self.completed_tasks.append(task)
+        self.completed_tasks.append((task, time.ctime()))
         
     def is_completed(self, task):
         return task in self.completed_tasks
@@ -68,15 +70,14 @@ class ExecutionAgent(object):
         self.num_tasks_to_perform = None
         self.config_record = None
         self.num_threads = num_threads
+        self.error_details = None
         
     def perform_task(self, graph, task):
         try:
             self._perform_task(task)
-        except Exception, e:
-            import sys
-            self.stop = True
-            self.completion_lock.release()
-            raise ExecutionException("Task failed with %s" % e.message), None, sys.exc_info()[2]
+        except Exception, _:
+            self.error_details = sys.exc_info()
+            self.abort_process_tasks()
         else:
             
             self.node_lock.acquire()
@@ -117,6 +118,7 @@ class ExecutionAgent(object):
             graph.add_nodes_from(nodes, ins_traversed=0)
             graph.add_edges_from( [d.edge() for d in deps] )
             self.stop = False
+            self.error_details = None
             #start the workers
             for _ in range(self.num_threads):
                 worker = threading.Thread(target=self.process_tasks)
@@ -127,5 +129,7 @@ class ExecutionAgent(object):
             self.completion_lock.acquire()
             #now wait to be signaled it finished
             self.completion_lock.acquire()
+            if self.error_details:
+                raise self.error_details[1], None, self.error_details[2]
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
