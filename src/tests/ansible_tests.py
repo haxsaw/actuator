@@ -24,7 +24,7 @@ Created on Oct 21, 2014
 '''
 
 import socket
-from actuator import NamespaceSpec, Var, Component, ConfigSpec, PingTask
+from actuator import NamespaceSpec, Var, Component, ConfigSpec, PingTask, with_variables
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 
 
@@ -43,7 +43,7 @@ def find_ip():
 
 def test001():
     class SimpleNamespace(NamespaceSpec):
-        with_variables=(Var("PING_TARGET", find_ip()))
+        with_variables(Var("PING_TARGET", find_ip()))
         ping_target = Component("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
@@ -56,7 +56,7 @@ def test001():
       
 def test002():
     class SimpleNamespace(NamespaceSpec):
-        with_variables=(Var("PING_TARGET", find_ip()))
+        with_variables(Var("PING_TARGET", find_ip()))
         ping_target = Component("ping-target", host_ref="!PING_TARGET!")
     ns = SimpleNamespace()
           
