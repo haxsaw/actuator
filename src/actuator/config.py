@@ -93,6 +93,15 @@ class _ConfigTask(Orable, ModelComponent):
         self.repeat_interval = None
         self._repeat_interval = repeat_interval
         
+    def get_task_host(self):
+        if self.task_component:
+            host = (self.task_component.host_ref
+                    if isinstance(self.task_component.host_ref, basestring)
+                    else self.task_component.host_ref.value())
+        else:
+            host = None
+        return host
+        
     def get_init_args(self):
         return ((self.name,), {"task_component":self._task_component,
                               "run_from":self._run_from,
@@ -105,7 +114,7 @@ class _ConfigTask(Orable, ModelComponent):
         if isinstance(val, basestring):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
-            val = cv.expand(self)
+            val = cv.expand(self.task_component)
         elif isinstance(val, ModelReference) and self._model_instance:
             val = self._model_instance.namespace_model_instance.get_inst_ref(val)
         return val

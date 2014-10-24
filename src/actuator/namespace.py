@@ -281,9 +281,6 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
                     host_ref = tmp_ref
             self.host_ref = host_ref
             
-    def find_variable(self, name):
-        return super(Component, self).find_variable(name)
-            
     def get_init_args(self):
         _, kwargs = super(Component, self).get_init_args()
         kwargs.update({"host_ref":self._host_ref,

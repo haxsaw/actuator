@@ -26,25 +26,77 @@ from ansible.runner import Runner
 
 from actuator.exec_agents.core import ExecutionAgent, ExecutionException
 from actuator.config_tasks import *
+from actuator.utils import capture_mapping, get_mapper
 
+_agent_domain = "ANSIBLE_AGENT"
 
 _class_module_map = {PingTask:"ping"}
 
 
-class AnsibleExecutionAgent(ExecutionAgent):
-    def _perform_task(self, task):
-        modname = _class_module_map.get(task.__class__)
-        task.fix_arguments()
-        task.task_component.fix_arguments()
-        hlist = [task.task_component.host_ref
-                 if isinstance(task.task_component.host_ref, basestring)
-                 else task.task_component.host_ref.value()]
-        runner = Runner(module_name=modname,
-                        host_list=hlist,
-                        module_args='')
-        result = runner.run()
+class TaskProcessor(object):
+    def make_args(self, task, hlist):
+        kwargs = {"host_list":hlist}
+        kwargs.update(self._make_args(task))
+        return kwargs
+    
+    def _make_args(self, task):
+        raise TypeError("derived class must implement")
+    
+    def result_check(self, task, result):
+        raise TypeError("derived class must implement")
+
+
+@capture_mapping(_agent_domain, PingTask)
+class PingProcessor(TaskProcessor):
+    def _make_args(self, task):
+        return {"module_name":"ping",
+                "module_args":""}
+    
+    def result_check(self, task, result):
         if len(result['dark']):
             raise ExecutionException("Task {task} couldn't reach hosts at {hosts}"
                                      .format(task=task.name,
                                              hosts=":".join(result["dark"].keys())))
+            
+@capture_mapping(_agent_domain, CommandTask)
+class CommandProcessor(TaskProcessor):
+    args_to_use = set(["free_form", "chdir", "creates", "executable", "removes",
+                       "warn"])
+    def _make_args(self, task):
+        return {"complex_args":{"chdir":task.chdir,
+                                "creates":task.creates,
+                                "executable":task.executable,
+                                "removes":task.removes,
+                                "warn":task.warn},
+                "module_args":task.free_form}
+    
+    def result_check(self, task, result):
+        if len(result["dark"]):
+            raise ExecutionException("Unable to reach {hosts} for command {cmd}"
+                                     .format(hosts=":".join(result["dark"].keys()),
+                                             cmd=task.free_form))
+        else:
+            host = task.get_task_host()
+            if "msg" in result["contacted"][host]:
+                raise ExecutionException("Command {cmd} failed on {host} with the following message: {msg}"
+                                         .format(cmd=task.free_form,
+                                                 msg=result["contacted"][host]["msg"],
+                                                 host=host))
+
+
+class AnsibleExecutionAgent(ExecutionAgent):
+    def _perform_task(self, task):
+        cmapper = get_mapper(_agent_domain)
+        processor = cmapper[task.__class__]()
+        task.fix_arguments()
+        task.task_component.fix_arguments()
+        task_host = task.get_task_host()
+        if task_host is not None:
+            hlist = [task_host]
+        else:
+            raise ExecutionException("We need a default execution host")
+        kwargs = processor.make_args(task, hlist)
+        runner = Runner(**kwargs)
+        result = runner.run()
+        processor.result_check(task, result)
         return

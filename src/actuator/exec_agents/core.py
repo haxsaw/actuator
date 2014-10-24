@@ -93,6 +93,8 @@ class ExecutionAgent(object):
             self.node_lock.release()
         
     def _perform_task(self, task):
+        task.fix_arguments()
+        task.task_component.fix_arguments()
         task.perform()
         
     def abort_process_tasks(self):

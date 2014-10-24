@@ -25,7 +25,7 @@ Created on Oct 21, 2014
 
 import socket
 from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
-                      with_variables, ExecutionException)
+                      with_variables, ExecutionException, CommandTask)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 
 
@@ -53,7 +53,10 @@ def test001():
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns)
-    ea.perform_config()
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
       
 def test002():
     class SimpleNamespace(NamespaceSpec):
@@ -66,7 +69,10 @@ def test002():
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns)
-    ea.perform_config()
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
     
 def test003():
     class SimpleNamespace(NamespaceSpec):
@@ -84,14 +90,83 @@ def test003():
         assert False, "This should have caused an error to be raised"
     except ExecutionException, e:
         assert "not.an.ip.addy" in e.message
+        
+def test004():
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("CMD_TARGET", find_ip()))
+        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+    ns = SimpleNamespace()
+          
+    class SimpleConfig(ConfigSpec):
+        ping = CommandTask("cmd", "/bin/ls /home/tom", task_component=SimpleNamespace.cmd_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
+
+def test005():
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("CMD_TARGET", find_ip()))
+        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+    ns = SimpleNamespace()
+          
+    class SimpleConfig(ConfigSpec):
+        ping = CommandTask("cmd", "/bin/ls", chdir="/home/tom",
+                           task_component=SimpleNamespace.cmd_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
+
+def test006():
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("CMD_TARGET", find_ip()))
+        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+    ns = SimpleNamespace()
+          
+    class SimpleConfig(ConfigSpec):
+        ping = CommandTask("cmd", "/bin/wibble", chdir="/home/tom",
+                           task_component=SimpleNamespace.cmd_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+        assert False, "this should have failed"
+    except ExecutionException, e:
+        assert "failed on" in e.message
+
+def test007():
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("CMD_TARGET", find_ip()),
+                       Var("WHERE", "/bin"))
+        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+    ns = SimpleNamespace()
+          
+    class SimpleConfig(ConfigSpec):
+        ping = CommandTask("cmd", "/bin/ls", chdir="!WHERE!",
+                           task_component=SimpleNamespace.cmd_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
+
 
     
 
 def do_all():
-    test003()
-#     for k, v in globals().items():
-#         if k.startswith("test") and callable(v):
-#             v()
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
             
 if __name__ == "__main__":
     do_all()

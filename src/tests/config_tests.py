@@ -363,9 +363,12 @@ class ReportingTask(_ConfigTask):
     def perform(self):
         self.report(self.target.name.value(), self.name)
 
+
 class BogusServerRef(ServerRef):
     def get_admin_ip(self):
         return "8.8.8.8"
+    
+    admin_ip = property(get_admin_ip)
         
 
 def test27():
@@ -429,33 +432,96 @@ def test29():
             cap.pos("ping_target", PingConfig.t4.name) <
             cap.pos("ping_target", PingConfig.t2.name))
     
-# def test30():
-#     cap = Capture()
-#     class ElasticNamespace(NamespaceSpec):
-#         ping_targets = NSMultiComponent(Component("ping-target", host_ref=BogusServerRef()))
-#         pong_targets = NSMultiComponent(Component("pong-target", host_ref=BogusServerRef()))
-#     ns = ElasticNamespace()
-#     
-#     class ElasticConfig(ConfigSpec):
-#         ping = ReportingTask("ping", target=ElasticNamespace.ping_targets, report=cap)
-#         pong = ReportingTask("pong", target=ElasticNamespace.pong_targets, report=cap)
-#         with_dependencies(ping | pong)
-#         
-#     for i in range(5):
-#         _ = ns.ping_targets[i]
-#         
-#     cfg = ElasticConfig()
-#     ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
-#     ea.perform_config()
-#     cfg.perform_with(ns)
+def test30():
+    cap = Capture()
+    class ElasticNamespace(NamespaceSpec):
+        ping_targets = NSMultiComponent(Component("ping-target", host_ref=BogusServerRef()))
+        pong_targets = NSMultiComponent(Component("pong-target", host_ref=BogusServerRef()))
+    ns = ElasticNamespace()
+     
+    class ElasticConfig(ConfigSpec):
+        ping = ReportingTask("ping", target=ElasticNamespace.ping_targets, report=cap)
+        pong = ReportingTask("pong", target=ElasticNamespace.pong_targets, report=cap)
+        with_dependencies(ping | pong)
+         
+    for i in range(5):
+        _ = ns.ping_targets[i]
+         
+    cfg = ElasticConfig()
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+    assert (len(ns.ping_targets) == 5 and
+            (set(["0", "1", "2", "3", "4"]) == set(ns.ping_targets.keys())) and
+            len(ns.pong_targets) == 0)
+            
+def test31():
+    class VarCapture(_ConfigTask):
+        def __init__(self, name, task_component, **kwargs):
+            super(VarCapture, self).__init__(name, task_component=task_component, **kwargs)
+            self.vars = {}
+            
+        def perform(self):
+            vv = self._model_instance.namespace_model_instance.comp.get_visible_vars()
+            self.vars.update({v.name:v.get_value(self.task_component)
+                              for v in vv.values()})
+        
+    class SimpleNS(NamespaceSpec):
+        with_variables(Var("ID", "wrong"),
+                       Var("ONE", "1"),
+                       Var("TWO", "2"),
+                       Var("THREE", "3"))
+        comp = Component("test-comp", host_ref="!ID!").add_variable(Var("ID", "right!"),
+                                                                    Var("THREE", "drei"))
+        
+    class SimpleCfg(ConfigSpec):
+        comp_task = VarCapture("varcap", SimpleNS.comp)
+        
+    ns = SimpleNS()
+    cfg = SimpleCfg()
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+    assert (cfg.comp_task.vars["ID"] == "right!" and
+            cfg.comp_task.vars["THREE"] == "drei" and
+            cfg.comp_task.vars["ONE"] == "1" and
+            cfg.comp_task.vars["TWO"] == "2")
+    
+def test32():
+    class VarCapture(_ConfigTask):
+        def __init__(self, name, task_component, **kwargs):
+            super(VarCapture, self).__init__(name, task_component=task_component, **kwargs)
+            self.vars = {}
+            
+        def perform(self):
+            vv = self._model_instance.namespace_model_instance.get_visible_vars()
+            self.vars.update({v.name:v.get_value(self.task_component)
+                              for v in vv.values()})
+        
+    class SimpleNS(NamespaceSpec):
+        with_variables(Var("ID", "wrong"),
+                       Var("ONE", "1"),
+                       Var("TWO", "2"),
+                       Var("THREE", "3"))
+        comp = Component("test-comp", host_ref="!ID!").add_variable(Var("ID", "right!"),
+                                                                    Var("THREE", "drei"))
+        
+    class SimpleCfg(ConfigSpec):
+        comp_task = VarCapture("varcap", SimpleNS.comp)
+        
+    ns = SimpleNS()
+    cfg = SimpleCfg()
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+    assert (cfg.comp_task.vars["ID"] == "wrong" and
+            cfg.comp_task.vars["THREE"] == "3" and
+            cfg.comp_task.vars["ONE"] == "1" and
+            cfg.comp_task.vars["TWO"] == "2")
     
 
 def do_all():
-    test28()
-#     setup()
-#     for k, v in globals().items():
-#         if k.startswith("test") and callable(v):
-#             v()
+    setup()
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
             
 if __name__ == "__main__":
     do_all()

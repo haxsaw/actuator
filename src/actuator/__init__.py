@@ -28,4 +28,4 @@ from config import (ConfigSpec, with_searchpath, with_dependencies, MakeDir, Tem
                     CopyAssets, ConfigJob, ConfigException, TaskGroup, NullTask)
 from provisioners.core import ProvisionerException
 from exec_agents.core import ExecutionAgent, ExecutionException
-from config_tasks import PingTask
+from config_tasks import PingTask, CommandTask
