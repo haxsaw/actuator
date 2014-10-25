@@ -65,6 +65,18 @@ class Orable(object):
     def _or_result_class(self):
         return Orable
     
+    def _and_result_class(self):
+        return TaskGroup
+    
+    def __nonzero__(self):
+        return False
+    
+    def __and__(self, other):
+        if isinstance(other, Orable):
+            return self._and_result_class()(self, other)
+        else:
+            raise ConfigException("RHS is not 'andable': %s" % str(other))
+    
     def __or__(self, other):
         if isinstance(other, Orable):
             return self._or_result_class()(self, other)

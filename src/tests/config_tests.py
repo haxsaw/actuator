@@ -516,6 +516,63 @@ def test32():
             cfg.comp_task.vars["ONE"] == "1" and
             cfg.comp_task.vars["TWO"] == "2")
     
+def test33():
+    class First(ConfigSpec):
+        t1 = NullTask("t1", path="t1")
+        t2 = NullTask("t2", path="t2")
+        t3 = NullTask("t3", path="t3")
+        with_dependencies(t1 | t2 | t3, t1 | t2 & t3)
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1", path="t1")
+        t2 = NullTask("t2", path="t2")
+        t3 = NullTask("t3", path="t3")
+        with_dependencies(t1 | t2 | t3, t1 | t3)
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+
+def test34():
+    class First(ConfigSpec):
+        t1 = NullTask("t1", path="t1")
+        t2 = NullTask("t2", path="t2")
+        t3 = NullTask("t3", path="t3")
+        with_dependencies(t1 | t2 | t3, t1 | (t2 & t3))
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1", path="t1")
+        t2 = NullTask("t2", path="t2")
+        t3 = NullTask("t3", path="t3")
+        with_dependencies(t1 | t2 | t3, t1 | t3)
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+
+def test35():
+    #this is a re-statement of test26 using '&' instead of
+    #TasgGroup (TG). It's a pretty literal translation,
+    #although algebraically one set of parends isn't needed.
+    TG = TaskGroup
+    class First(ConfigSpec):
+        t1 = NullTask("t1", path="t1")
+        t2 = NullTask("t2", path="t2")
+        t3 = NullTask("t3", path="t3")
+        t4 = NullTask("t4", path="t4")
+        t5 = NullTask("t5", path="t5")
+        with_dependencies((t1 & t2 & t3) & (t4 | t5),
+                          t2 | t4,
+                          t3 | t5)
+        
+    class Second(ConfigSpec):
+        t1 = NullTask("t1", path="t1")
+        t2 = NullTask("t2", path="t2")
+        t3 = NullTask("t3", path="t3")
+        t4 = NullTask("t4", path="t4")
+        t5 = NullTask("t5", path="t5")
+        with_dependencies(t2 | t4 | t5,
+                          t3 | t5)
+        
+    assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+
+
 
 def do_all():
     setup()
