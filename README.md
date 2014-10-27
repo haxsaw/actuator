@@ -10,7 +10,8 @@ Actuator allows you to use Python to declaratively describe system infra, config
   3. [Cloud support](#cloud)
   4. [Testing with nose](#testing)
 3. [Tutorial](#tutorial)
-3. Roadmap (yet to come)
+4. Roadmap (yet to come)
+5. [Acknowledgements](#hattips)
 
 ## <a name="intro">Intro</a>
 **Current status**
@@ -61,3 +62,9 @@ Cloud support modules are only required for the cloud systems you wish to provis
 
 ## <a name="tutorial">Tutorial</a>
 You can find a discussion of the basic concepts and an overview of the use of Actuator [here](Tutorial.md).
+
+## <a name="hattips">Acknowledgements</a>
+The following projects have provided inspiration, ideas, or approaches that are used in Actuator.
+
+- [Elixir](http://elixir.ematia.de/trac/): Actuator's declarative style has been informed by Elixir's declarative ORM approach. Additionally, Actuator uses a similar mechanism to Elixir's for its "with_" functions that provide modifications to a modeling class (such as with_variables() and with_components()).
+- [Celery](http://www.celeryproject.org/): Actuator has re-used some of Celery's notation for describing dependencies between tasks and other entities.
