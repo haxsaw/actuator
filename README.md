@@ -14,7 +14,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
 
 ## <a name="intro">Intro</a>
 **Current status**
-- **10 Sep 2014:** Actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable.
+- **27 Oct 2014:** Actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable. Namespace models can drive the variable aspects of infra models successfully, and acquire information from the infra model such as IPs of a provisioned server. These can then be accessed by the configuration model, which has support of a small set of Ansible modules (specifically, ping, command, shell, script, and copy file). Environment variables are populated from the namespace model for each configuration activity run on a remote system. Due to the direct dependency on Ansible, Actuator must itself run on a *nix box.
 
 Actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, defining the names that govern operation, configuring the infra for the software that is to be run, and then executing that system's code on the configured infra.
 
@@ -44,6 +44,7 @@ Actuator requires the following packages:
 
   - [networkx](https://pypi.python.org/pypi/networkx), 1.9 minimum
   - [faker](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
+  - [ansible](https://pypi.python.org/pypi/ansible/1.7.2), 1.7.2 minimum. Currently required for configuration tasks, but other config systems will be supported in the future
 
 ###<a name="cloud">Cloud support</a>
 
