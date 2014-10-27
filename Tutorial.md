@@ -13,6 +13,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   1. [A simple Openstack example](#simple_openstack_example)
   2. [Multiple Components](#multi_components)
   3. [Component Groups](#component_groups)
+  4. [Model References and Context Expressions](#modrefs_ctxtexprs)
 4. [Namespace Models](#nsmodels)
   1. [An example](#simplensexample)
   2. [Dynamic Namespaces](#dynamicns)
@@ -265,7 +266,7 @@ The keyword args used in creating the ComponentGroup become the attributes of th
 This model will behave similarly to the MultiServer attribute in the previous model; that is, the *cluster* attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
 
 
-#### Model references
+### <a name="modrefs_ctxtexprs">Model References and Context Expressions</a>
 Once a model class has been defined, you can create expressions that refer to attributes of components in the class:
 
 ```python
@@ -289,7 +290,7 @@ Likewise, you can create references to attributes on instances of the model clas
 >>>
 ```
 
-All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a "pointer" to a component or attribute of an infra model. _Model references_ (or just "model references") are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an instance of an infra model; they refer to an actual component or attribute (although the value of the attribute may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference with respect to an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a "pointer" to a component or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an instance of an infra model; they refer to an actual component or attribute (although the value of the attribute may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference with respect to an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
