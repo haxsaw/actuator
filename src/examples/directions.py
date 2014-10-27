@@ -21,8 +21,6 @@
 
 '''
 Created on 7 Sep 2014
-
-@author: tom
 '''
 from actuator import *
 from actuator.provisioners.example_components import Server, Queue

@@ -21,8 +21,6 @@
 
 '''
 Created on 9 Sep 2014
-
-@author: Tom Carroll
 '''
 from actuator import (InfraSpec, MultiComponent, MultiComponentGroup, ctxt,
                       with_components, NamespaceSpec, Component, Var, with_variables,

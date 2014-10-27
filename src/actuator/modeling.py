@@ -21,8 +21,6 @@
 
 '''
 Created on 3 Oct 2014
-
-@author: tom
 '''
 import uuid
 import sys

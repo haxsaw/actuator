@@ -21,8 +21,6 @@
 
 '''
 Created on 7 Jun 2014
-
-@author: tom
 '''
 from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
                           Component, with_components, MultiComponent, 

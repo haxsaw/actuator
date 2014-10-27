@@ -21,8 +21,6 @@
 
 '''
 Created on 13 Jul 2014
-
-@author: tom
 '''
 from actuator.utils import *
 

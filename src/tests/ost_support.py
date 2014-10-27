@@ -21,8 +21,6 @@
 
 '''
 Created on 25 Aug 2014
-
-@author: tom
 '''
 import random
 import uuid
