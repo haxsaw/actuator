@@ -18,14 +18,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from actuator.config import with_dependencies
 
 '''
 Created on Oct 21, 2014
 '''
 
 import socket
+import os.path
 from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
-                      with_variables, ExecutionException, CommandTask)
+                      with_variables, ExecutionException, CommandTask,
+                      ScriptTask, CopyFileTask)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 
 
@@ -160,7 +163,52 @@ def test007():
     except ExecutionException, e:
         assert False, e.message
 
-
+def test008():
+    #NOTE: this will only work with nose if run from the actuator/src directory
+    #the test expects to find a directory named "tests" under the current
+    #directory
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("CMD_TARGET", find_ip()),
+                       Var("WHERE", "/bin"))
+        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+    ns = SimpleNamespace()
+           
+    class SimpleConfig(ConfigSpec):
+        ping = ScriptTask("script", os.path.join(os.getcwd(), "tests", "test008.sh"),
+                           task_component=SimpleNamespace.cmd_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
+        
+def test009():
+    #NOTE: this will only work with nose if run from the actuator/src directory
+    #the test expects to find a directory named "tests" under the current
+    #directory
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("DEST", "/tmp"),
+                       Var("PKG", "actuator"))
+        copy_target = Component("copy_target", host_ref=find_ip())
+    ns = SimpleNamespace()
+    
+    class SimpleConfig(ConfigSpec):
+        cleanup = CommandTask("clean", "/bin/rm -f !PKG!", chdir="!DEST!",
+                              task_component=SimpleNamespace.copy_target)
+        copy = CopyFileTask("copy-file", "!DEST!",
+                            src=os.path.join(os.getcwd(), "!PKG!"),
+                            task_component=SimpleNamespace.copy_target)
+        with_dependencies(cleanup | copy)
+        
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
     
 
 def do_all():
