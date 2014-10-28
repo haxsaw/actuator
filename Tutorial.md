@@ -269,9 +269,9 @@ This model will behave similarly to the MultiServer attribute in the previous mo
 ### <a name="modrefs_ctxtexprs">Model References and Context Expressions</a>
 A few of the examples above have shown that accessing model attributes results in a reference object of some sort. These objects are the key to declaratively relating aspects of various models to one another. For instance, a reference to the attribute that stores the IP address of a provisioned server can be used as the value of a variable in the namespace model, and once the IP address is known, the variable will have a meaningful value.
 
-There are two different ways to get references to parts of a model: first through the use of model references, which will be covered first. This approach can only be used after a model class has already been created; this means that if a reference between class memebers is required in the middle of a class definition, model references aren't yet available, and hence can't be used.
+There are two different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between class memebers is required in the middle of a class definition, model references aren't yet available, and hence can't be used.
 
-The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the value it represents is needed, and only then does the expression yield an actual value. Context expressions have featured in many of the examples above, and we'll examine one of those in detail after looking at plain references.
+The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference.
 
 #### Model References
 
@@ -298,7 +298,7 @@ Likewise, you can create references to attributes on instances of the model clas
 >>>
 ```
 
-All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a "pointer" to a component or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an instance of an infra model; they refer to an actual component or attribute (although the value of the attribute may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference with respect to an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a component or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of an infra model; they refer to an actual component or attribute (although the value of the attribute may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
@@ -310,7 +310,59 @@ True
 >>>
 ```
 
-The ability to generate model references from an infra model and turn them into instance references against an instance of the model (which represent things to be provisioned) is key in Actuator's ability to flexibly describe the components of a system's infra and connect those references to other models. In particular, we can use the namespace model to drive the infra required to support the logical components of the namespace.
+Model references provide a number of capabilities:
+
+- They serve as bookmarks into models
+- They behave something like a [future](https://en.wikipedia.org/wiki/Futures_and_promises) in that they provide a reference to a value that hasn't been determined yet
+- They provide a way to make logical connections between models in order to share information
+- They serve as a way to logically identify components that should be provisioned
+
+For example, suppose a model elsewhere needs to know the first IP address on the first interface of the server from the SingleOpenstackServer model. That IP address won't be known until the server is provisioned, but a reference to this piece of information can be created by the following expression:
+
+```python
+SingleOpenstackServer.server.iface0.addr0
+```
+
+The rest of Actuator knows how to deal with these references and how to extract the underlying values when they become available. Every attribute of all objects in a model produce a reference, and the underying value that the reference is pointing to can be accessed with the _value()_ method:
+
+```python
+>>> SingleOpenstackServer.server.name.value()
+actuator1
+>>>
+```
+Since model references are the means to make connections between models, we'll look at these in more detail in the section below on [namespace models](#nsmodels).
+
+#### Context Expressions
+
+There are circumstances where model references either aren't possible or can't get the job done. For example, take this fragment of the the [SingleOpenstackServer](#simple_openstack_example) infra model example from above:
+
+```python
+class SingleOpenstackServer(InfraSpec):
+  router = Router("actuator_ex1_router")
+  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
+  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
+  #etc...
+```
+
+The RouterGateway and RouterInterface components both require a model reference to a Router component as their second argument. Now, after the SingleOpenstackServer class is defined, this reference would be easy to obtain with an expression such as SingleOpenstackServer.router. However, within the class defintion, the class object doesn't exist yet, and so trying to use an expression like:
+
+```python
+  gateway = RouterGateway("actuator_ex1_gateway", SingleOpenstackServer.router, "external")
+```
+
+will yield a NameError exception saying that "SingleOpenstackServer" is not defined.
+
+This is where context expressions come in. Every time a component in a model is processed by Actuator, a processing context is created. The _context_ wraps up:
+
+- the instance of the model the component is part of,
+- the component itself,
+- and the name of the component.
+
+In a model class, the context is referred to by the global object *ctxt*, and the above three objects can be accessed via ctxt in the following way:
+
+- the model instance can be accessed via _ctxt.model_
+- the component itself can be accessed via _ctxt.comp_
+- the component's name can be accessed via _ctxt.name_
 
 ## <a name="nsmodels">Namespace models</a>
 The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical components of a system, relating these components to the infrastructure elements where the components are to execute, and providing the means to identify what configuration task is to be carried out for each component as well as what executables are involved with making the component function.
