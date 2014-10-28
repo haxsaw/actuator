@@ -267,6 +267,14 @@ This model will behave similarly to the MultiServer attribute in the previous mo
 
 
 ### <a name="modrefs_ctxtexprs">Model References and Context Expressions</a>
+A few of the examples above have shown that accessing model attributes results in a reference object of some sort. These objects are the key to declaratively relating aspects of various models to one another. For instance, a reference to the attribute that stores the IP address of a provisioned server can be used as the value of a variable in the namespace model, and once the IP address is known, the variable will have a meaningful value.
+
+There are two different ways to get references to parts of a model: first through the use of model references, which will be covered first. This approach can only be used after a model class has already been created; this means that if a reference between class memebers is required in the middle of a class definition, model references aren't yet available, and hence can't be used.
+
+The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the value it represents is needed, and only then does the expression yield an actual value. Context expressions have featured in many of the examples above, and we'll examine one of those in detail after looking at plain references.
+
+#### Model References
+
 Once a model class has been defined, you can create expressions that refer to attributes of components in the class:
 
 ```python
