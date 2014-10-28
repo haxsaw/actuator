@@ -9,16 +9,16 @@ Actuator allows you to use Python to declaratively describe system infra, config
   2. [Namespace Model](#ov_namespacemodel)
   3. [Configuration Model](#ov_configmodel)
   4. [Execution Model](#ov_execmodel)
-3. [Infra Models](#inframodels)
+3. [Infra models](#inframodels)
   1. [A simple Openstack example](#simple_openstack_example)
   2. [Multiple Components](#multi_components)
   3. [Component Groups](#component_groups)
   4. [Model References and Context Expressions](#modrefs_ctxtexprs)
-4. [Namespace Models](#nsmodels)
+4. [Namespace models](#nsmodels)
   1. [An example](#simplensexample)
   2. [Dynamic Namespaces](#dynamicns)
   3. [Var objects](#varobjs)
-5. Configuration Models (yet to come)
+5. [Configuration models](#configmodels)
 6. Execution Models (yet to come)
 
 ## <a name="intro">Intro</a>
@@ -542,7 +542,7 @@ class GridNamespace(NamespaceSpec):
   grid = NSMultiComponent(Component("node", host_ref=ctxt.model.infra.workers[ctxt.name]))
 ```
 
-This approach doesn't use a factory; instead, it uses NSMultiComponent to define a "template" Component object to create instances from each new key supplied to the "grid" attribute of the namespace. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new components on an infra model, uses new keys to create new Components on the instance. These new component instances will in turn create new worker instances on a MultiServers model instance:
+This approach doesn't use a factory; instead, it uses NSMultiComponent to define a "template" Component object to create instances from each new key supplied to the "grid" attribute of the namespace. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new components on an infra model, uses new keys to create new Components on the namespace instance. These new component instances will in turn create new worker instances on a MultiServers model instance:
 
 ```python
 >>> ns = GridNamespace()
@@ -571,4 +571,11 @@ Namespaces and their components serve as containers for *Var* objects. These obj
 
 Vars associate a 'name' (the first parameter) with a value (the second parameter). The value parameter of a Var can be one of several kinds of objects: it may be a plain string, a string with a replacement paremeter in it, or a reference to an infra model element.
 
-We've seen 
+We've seen examples of both plain strings and model references as values, and now will look at how replacement parameters work. A replacement parameter takes the form of _!string!_; whenever this pattern is found, the inner string is extracted and looked up as the name for another variable. The lookup repeats; if the value found contains '!string!', the lookup is repeated until no more replacement parameters are found. This allows complex replacement patterns to be defined.
+
+Additionally, the hierarchy of components, containers (NSMultiComponent, NSComponentGroup, and NSMultiComponentGroup) and the model class is taken into account when searching for a variable. If the variable can't be found defined on the current component, the enclosing variable container is searched, progressively moving to the model class itself. If the variable can't be found on the model class, then the variable is undefined, and an exception may be raised (depending on how the search was initiated). This allows for complex replacement patterns to be defined which have different parts of the pattern filled in at different levels of the namespace.
+
+The following example will make this more concrete. Here we will create a Namespace model that defines a variable "NODE_NAME" that is composed of a base name plus an id specific to the node
+
+## <a href="configmodels">Configuration models</a>
+
