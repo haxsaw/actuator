@@ -364,6 +364,32 @@ In a model class, the context is referred to by the global object *ctxt*, and th
 - the component itself can be accessed via _ctxt.comp_
 - the component's name can be accessed via _ctxt.name_
 
+These _context expressions_ provide a way to define a reference to another part of the model that will be evaluated only when the reference is needed. Repeating the infra model fragment from above:
+
+```python
+class SingleOpenstackServer(InfraSpec):
+  router = Router("actuator_ex1_router")
+  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
+  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
+  #etc...
+```
+
+We can see that we can provide the required reference to SingleOpenstackServer's Router by creating a context expression that names the router attribute of the SingleOpenstackServer model via the ctxt object.
+
+The context object _ctxt_ allows you to access any attribute of a model or component reachable from either the model or component. Hence, in the same way we were able to access first IP address on the first interface with:
+
+```python
+SingleOpenstackServer.server.iface.addr0
+```
+
+We can use a context expression to create a reference to this IP using the ctxt object:
+
+```python
+ctxt.model.server.iface.addr0
+```
+
+As mentioned previously, context expressions provide a way to express model relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
+
 ## <a name="nsmodels">Namespace models</a>
 The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical components of a system, relating these components to the infrastructure elements where the components are to execute, and providing the means to identify what configuration task is to be carried out for each component as well as what executables are involved with making the component function.
 
