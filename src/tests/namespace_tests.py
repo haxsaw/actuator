@@ -27,6 +27,7 @@ from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
                           MultiComponentGroup, ComponentGroup, ctxt, ActuatorException)
 from actuator.namespace import NSComponentGroup, NSMultiComponent, NSMultiComponentGroup
 from actuator.infra import InfraSpec
+from actuator.modeling import AbstractModelReference
 from actuator.provisioners.example_components import Server
 
 
@@ -35,12 +36,14 @@ MyNS = None
 def setup():
     global MyNS
     
-    class FakeLogicalRef(object):
+    class FakeLogicalRef(AbstractModelReference):
         def __init__(self, v=None):
             self.v = v
+            self._name = "v"
+            self._obj = self
             
         def value(self):
-            return self.v
+            return object.__getattribute__(self, "v")
         
     class FakeInfra(object):
         def get_inst_ref(self, fakeref):
@@ -59,7 +62,7 @@ def setup():
                        Var("REPEATED", "!HOST! is !HOST!"),
                        Var("INCOMPLETE", "this won't expand; !SORRY!"),
                        Var("NONE", None),
-                       Var("REF_TEST_NONE", FakeLogicalRef()),
+                       Var("REF_TEST_NONE", FakeLogicalRef(None)),
                        Var("REF_TEST_VALUE", FakeLogicalRef("gabagabahey")))
         
         def __init__(self):
@@ -738,6 +741,32 @@ def test63():
         _ = ns.grid[i]
     clone = ns.grid.clone({})
     assert len(clone) == 5
+    
+def test64():
+    class NS(NamespaceSpec):
+        with_variables(Var("NODE_NAME", "!BASE_NAME!-!NODE_ID!"))
+        grid = (NSMultiComponent(Component("worker",
+                                          variables=[Var("NODE_ID", ctxt.name)]))
+                .add_variable(Var("BASE_NAME", "Grid")))
+    ns = NS()
+    value = ns.grid[5].var_value("NODE_NAME")
+    assert value and value == "Grid-5"
+
+def test65():
+    #why does this work just like test64()? Because of where we ask for the
+    #var_value(); even though NODE_ID is defined on the model class itself,
+    #it gets evaluated in the context of ns.grid[5]. Since the value is
+    #a context expression, it gets evaluated relative to the context that
+    #needs its value, and the name in this context is '5'
+    class NS(NamespaceSpec):
+        with_variables(Var("NODE_NAME", "!BASE_NAME!-!NODE_ID!"),
+                       Var("NODE_ID", ctxt.name))
+        grid = (NSMultiComponent(Component("worker"))
+                .add_variable(Var("BASE_NAME", "Grid")))
+    ns = NS()
+    value = ns.grid[5].var_value("NODE_NAME")
+    assert value and value == "Grid-5"
+
 
 def do_all():
     setup()

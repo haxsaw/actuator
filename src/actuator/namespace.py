@@ -27,7 +27,7 @@ from actuator.utils import ClassModifier, process_modifiers, capture_mapping, ge
 from actuator.modeling import (AbstractModelReference, ModelComponent, SpecBase,
                                ModelReference, ModelInstanceReference, SpecBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
-                               AbstractModelingEntity)
+                               AbstractModelingEntity, ContextExpr)
 
 
 class NamespaceException(Exception): pass
@@ -67,13 +67,16 @@ class _ComputableValue(_ModelRefSetAcquireable):
         return self._expand(context, history, allow_unexpanded)
         
     def _expand(self, context, history, allow_unexpanded=False):
-        if hasattr(self.value, "value"):
+        if isinstance(self.value, AbstractModelReference):
             infra = context.find_infra_model()
             val = infra.get_inst_ref(self.value).value() if infra is not None else None
             return val
+        elif isinstance(self.value, ContextExpr):
+            value = context._get_arg_value(self.value)
         elif self.value is None:
-            return self.value
-        value = self.value
+            return None
+        else:
+            value = self.value
         m = self._replacement_pattern.search(value)
         while m:
             leader = value[:m.start()]
@@ -167,6 +170,10 @@ class VariableContainer(_ModelRefSetAcquireable):
         if value is None:
             value, provider = self.parent_container.find_variable(name) if self.parent_container else (None, None)
         return value, provider
+    
+    def var_value(self, name):
+        v, _ = self.find_variable(name)
+        return v.get_value(self)
     
     def future(self, name):
         v, p = self.find_variable(name)
