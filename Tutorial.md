@@ -19,6 +19,9 @@ Actuator allows you to use Python to declaratively describe system infra, config
   2. [Dynamic Namespaces](#dynamicns)
   3. [Var objects](#varobjs)
 5. [Configuration models](#configmodels)
+  1. [Declaring tasks](#taskdec)
+  2. [Declaring dependencies](#taskdeps)
+  3. [Dependency notation](#depno)
 6. Execution Models (yet to come)
 
 ## <a name="intro">Intro</a>
@@ -569,9 +572,9 @@ Using this approach, we can treat the namespace model like the infra model, mean
 ### <a name="varobjs">Var objects</a>
 Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables for tasks and executables, or parameter maps for processing templatized text files such as scripts or properties files.
 
-Vars associate a 'name' (the first parameter) with a value (the second parameter). The value parameter of a Var can be one of several kinds of objects: it may be a plain string, a string with a replacement paremeter in it, or a reference to an infra model element.
+Vars associate a 'name' (the first parameter) with a value (the second parameter). The value parameter of a Var can be one of several kinds of objects: it may be a plain string, a string with a replacement paremeter in it, a reference to an infra model element that results in a string, or context expression that results in a string.
 
-We've seen examples of both plain strings and model references as values, and now will look at how replacement parameters work. A replacement parameter takes the form of _!string!_; whenever this pattern is found, the inner string is extracted and looked up as the name for another variable. The lookup repeats; if the value found contains '!string!', the lookup is repeated until no more replacement parameters are found. This allows complex replacement patterns to be defined.
+We've seen examples of both plain strings and model references as values, and now will look at how replacement parameters and context expressions work. A replacement parameter takes the form of _!string!_; whenever this pattern is found, the inner string is extracted and looked up as the name for another Var. The lookup repeats; if the value found contains '!string!', the lookup is repeated until no more replacement parameters are found. This allows complex replacement patterns to be defined.
 
 Additionally, the hierarchy of components, containers (NSMultiComponent, NSComponentGroup, and NSMultiComponentGroup) and the model class is taken into account when searching for a variable. If the variable can't be found defined on the current component, the enclosing variable container is searched, progressively moving to the model class itself. If the variable can't be found on the model class, then the variable is undefined, and an exception may be raised (depending on how the search was initiated). This allows for complex replacement patterns to be defined which have different parts of the pattern filled in at different levels of the namespace.
 
@@ -588,6 +591,95 @@ Grid-5
 >>>
 ```
 
-There's a lot compressed into a small space in this example
+At the most global level, the NODE_NAME Var is defined with a value that contains two replacement parameter patterns. The first, BASE_NAME, is a Var defined on the grid NSMultiComponent object, and has a value of 'Grid'. The second, NODE_ID, is defined on the Component managed by NSMultiComponent, and has a value of _ctxt.name_. This context expression represents the name used to reach this component *when the expression is evaluated*. Context expressions aren't evaluated until they are used, and hence the value of this expression will depend on what node in the grid it is evaluated for. In this case, it is evaluateed for ns.grid[5], and hence ctxt.name will have a value of '5'. For each grid component created, the value of ctxt.name will match the key used in ns.grid[key].
+
+It's also worth noting in the two different methods used to set Vars on namespace model components. In the first method, Vars can be set using the keyword argument "variables"; the value must be an iterable (list) of Var objects to set on the component. In the second method, Vars are added to a component with the add_variable() method, which takes an arbitrary number of Var objects when called, separated by ','. The add_variable() method has a return value of the component the method was invoked on, and hence the value of VarExample.grid is still an NSMultiComponent.
+
+### Variable setting and overrides
+
 ## <a href="configmodels">Configuration models</a>
 
+The configuration model is what instructs Actuator to do to the new provisioned infrastructure in order to make it ready to run application software. The configuration model has two main aspects:
+
+1. A declaration of the tasks that need to be performed
+2. A declaration of the dependencies between the tasks that will dictate the order of performance
+
+Together, this provides Actuator the information it needs to perform all configuration tasks on the proper system components in the proper order.
+
+### <a name="taskdec">Declaring tasks</a>
+
+Tasks must be declared relative to a Namespace and its Components; it is the components that inform the config model where the tasks are to altimately be run. In the following examples, we'll use the this simple namespace that sets up a target component where some files are to be copied, as well as a couple of Vars that dictate where the files will go.
+
+```python
+class SimpleNamespace(NamespaceSpec):
+  with_variables(Var("DEST", "/tmp"),
+                 Var("PKG", "actuator"),
+                 Var("CMD_TARGET", "127.0.0.1"))
+  copy_target = Component("copy_target", host_ref="!CMD_TARGET!")
+ns = SimpleNamespace()
+```
+
+We've established several Vars at the model level, one which includes a hard-coded IP to use for commands, in this case 'localhost', and a single component that will be the target of the files we want to copy. *NOTE*: Actuator uses [Ansible](https://pypi.python.org/pypi/ansible/1.7.2) under the covers for managing the execution of commands over ssh, and hence for this example to work it must be run on a *nix box that has appropriate ssh keys set up to allow for passwordless login.
+
+Declaring tasks is a matter of creating one or more instances of various task classes which are Actuator analogs for Ansible modules. In this example, we'll declare two tasks: one which will remove any past files copied to the target (only really needed for non-dynamic hosts), and another that will copy the files to the target, in this case the Actuator package itself.
+
+```python
+import os, os.path
+import actuator
+from actuator import ConfigSpec, CopyFileTask, CommandTask
+
+#find the path to actuator; if it is under our cwd, the it won't be at an absolute path
+actuator_path = actuator.__file__
+if not os.path.isabs(actuator_path):
+  actuator_path = os.path.join(os.getcwd(), "!PKG!")
+  
+class SimpleConfig(ConfigSpec):
+  cleanup = CommandTask("clean", "/bin/rm -f !PKG!", chdir="!DEST!",
+                        task_component=SimipleNamespace.copy_target)
+  copy = CopyFileTask("copy-file", "!DEST!", src=actuator_path,
+                      task_component=SimpleNamespace.copy_target)
+```
+
+This config model is set up to run the cleanup and copy tasks on whatever host is identified by the value of the _task_component_ keyword argument. Note the use of replacement parameters in the various argument strings to the tasks; these will be evaluated against the available Vars visible to the namespace component identified by task_component.
+
+Once a a config model has been created, it can be given to an execution agent for processing against a specific namespace:
+
+```python
+from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
+cfg = SimpleConfig()
+ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                           namespace_model_instance=ns)
+ea.perform_config()
+```
+
+If all ssh keys have been set up properly, a copy of the Actuator package will be in /tmp after the config is performed.
+
+### <a name="taskdeps">Declaring dependencies</a>
+
+This is a fully functional config model, but there's a good chance it will give wrong or inconsistent results. The reason is that Actuator hasn't been told anything about the order of performing the config tasks. Hence, Actuator will perform these tasks in parallel, and the end result will simply depend on the relative scheduling timings of the ssh session set up for each task.
+
+What we want to do is add dependency information to the model so that Actuator knows the proper order to perform the tasks. To do this, we use the with_dependencies() function and the '|' and '&' symbols to describe the dependencies of tasks. Adding this to the above config model, we would get the following:
+
+```python
+import os, os.path
+import actuator
+from actuator import ConfigSpec, CopyFileTask, CommandTask
+
+#find the path to actuator; if it is under our cwd, the it won't be at an absolute path
+actuator_path = actuator.__file__
+if not os.path.isabs(actuator_path):
+  actuator_path = os.path.join(os.getcwd(), "!PKG!")
+  
+class SimpleConfig(ConfigSpec):
+  cleanup = CommandTask("clean", "/bin/rm -f !PKG!", chdir="!DEST!",
+                        task_component=SimipleNamespace.copy_target)
+  copy = CopyFileTask("copy-file", "!DEST!", src=actuator_path,
+                      task_component=SimpleNamespace.copy_target)
+  with_dependencies( cleanup | copy )
+```
+
+Actuator uses some of the notation from [Celery](http://www.celeryproject.org/) to describe task dependencies. The pipe symbol '|' means perform the task on the left before the task on the right. This provides Actuator sufficient information to determine which task(s) to start with and what follows each as they complete.
+
+### <a name="depno">Dependency notation</a>
+
+Using dependency notation and the with)
