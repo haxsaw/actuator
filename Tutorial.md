@@ -21,7 +21,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
 5. [Configuration models](#configmodels)
   1. [Declaring tasks](#taskdec)
   2. [Declaring dependencies](#taskdeps)
-  3. [Dependency notation](#depno)
+  3. [Dependency expressions](#depexp)
 6. Execution Models (yet to come)
 
 ## <a name="intro">Intro</a>
@@ -675,11 +675,57 @@ class SimpleConfig(ConfigSpec):
                         task_component=SimipleNamespace.copy_target)
   copy = CopyFileTask("copy-file", "!DEST!", src=actuator_path,
                       task_component=SimpleNamespace.copy_target)
+  #NOTE: this call must be within the config model, not after it!
   with_dependencies( cleanup | copy )
 ```
 
 Actuator uses some of the notation from [Celery](http://www.celeryproject.org/) to describe task dependencies. The pipe symbol '|' means perform the task on the left before the task on the right. This provides Actuator sufficient information to determine which task(s) to start with and what follows each as they complete.
 
-### <a name="depno">Dependency notation</a>
+### <a name="depexp">Dependency expressions</a>
 
-Using dependency notation and the with)
+By using dependency expressions and the with_dependencies() function, dependency graphs of arbitrary complexity can be declared. For this next section, we'll assume a config model with 5 tasks in it, t1..t5. The following invocations of the with_dependencies() function will yield identical dependency graphs, where each task is done in series, and a task doesn't start until the one before it completes.
+
+```python
+with_dependencies( t1 | t2 | t3 | t4 | t5 )
+#or 
+with_dependencies( t1 | t2,
+                   t2 | t3,
+                   t3 | t4 | t5)
+#or the following, which is two independent invocations of with_dependencies()
+with_dependencies( t1 | t2 | t3 )
+with_dependencies( t3 | t4 | t5 )
+#or various combinations of the above
+```
+
+The with_dependencies() function can take any number of dependency expressions and be invoked any number of times. It will collect all dependency expressions from all the arguments and each invocation and assemble a dependency graph that instructs it how to perform the config model's tasks. All tasks that don't appear an any dependency expression are performed immedicately.
+
+The above example illustrates how to arrange task in series, but what about tasks that can be performed in parallel? To indicate the eligibility of tasks to be performed in parallel, use the '&' operator in task dependency expressions. Using the same five tasks from above, the follow would instruct Actuator to perform the identified tasks in parallel:
+
+```python
+#Perform t1 first, then t2 and t3 together, and then t4 and t5 serially
+with_dependencies( t1 | (t2 & t3) | t4 | t5 )
+#the same, but with implicit parallelism
+with_dependencies( t1 | t2, t1 | t3, t2 | t4, t3 | t4, t4 | t5 )
+
+#Perform t1 and t2 together, then t3, followed by t4 and t5 together
+with_dependencies( (t1 & t2) | t3 | (t4 & t5) )
+#the same, but with multiple expressions
+with_dependencies( (t1 & t2) | t3, t3 | (t4 & t5) )
+#the same, but with multiple invocations of with_dependencies
+with_dependencies( (t1 & t2) | t3 )
+with_dependencies( t3 | (t4 & t5) )
+
+#Perform t1 then t2 in parallel with t3, all of which can be done in parallel with t4 then t5
+with_dependencies( ((t1 | t2) & t3) & (t4 | t5) )
+
+#Perform t1..t5 in parallel, but then remember that t1 has to be done before t4 and add that
+#dependency in
+with_dependencies( t1 & t2 & t3 & t4 & t5 )
+with_dependencies( t1 | t4 )
+#the same, but after fixing your original mistake
+with_dependencies( (t1 | t4) & t2 & t3 & t5 )
+```
+
+As we can see, dependency expressions can be arbitrarily nested, and the expressions can be layered on additively 
+
+Each of th
