@@ -575,7 +575,19 @@ We've seen examples of both plain strings and model references as values, and no
 
 Additionally, the hierarchy of components, containers (NSMultiComponent, NSComponentGroup, and NSMultiComponentGroup) and the model class is taken into account when searching for a variable. If the variable can't be found defined on the current component, the enclosing variable container is searched, progressively moving to the model class itself. If the variable can't be found on the model class, then the variable is undefined, and an exception may be raised (depending on how the search was initiated). This allows for complex replacement patterns to be defined which have different parts of the pattern filled in at different levels of the namespace.
 
-The following example will make this more concrete. Here we will create a Namespace model that defines a variable "NODE_NAME" that is composed of a base name plus an id specific to the node
+The following example will make this more concrete. Here we will create a Namespace model that defines a variable "NODE_NAME" that is composed of a base name plus an id specific to the node. While NODE_NAME will be defined at a global level in the model, the two other variables the comprise NODE_NAME, BASE_NAME and NODE_ID, will be defined on different model objects.
 
+```python
+>>> class VarExample(NamespaceSpec):
+...   with_variables(Var("NODE_NAME", "!BASE_NAME!-!NODE_ID!"))
+...   grid = (NSMultiComponent(Component("worker", variables=[Var("NODE_ID", ctxt.name)]))
+...            .add_variable(Var("BASE_NAME", "Grid")))
+>>> ns = VarExample()
+>>> ns.grid[5].var_value("NODE_NAME")
+Grid-5
+>>>
+```
+
+There's a lot compressed into a small space in this example
 ## <a href="configmodels">Configuration models</a>
 
