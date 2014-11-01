@@ -183,19 +183,15 @@ class AbstractModelingEntity(object):
         """
         return self.__class__
         
-    def clone(self, clone_cache, clone_into_class=None):
+    def clone(self, clone_into_class=None):
         "this doesn't work with circular object refs yet"
-        #clone_cache is a map that maps original instances to their clones
-        clone = clone_cache.get(self)
-        if clone is None:
-            args, kwargs = self.get_init_args()
-            new_args = [(arg.clone(clone_cache) if isinstance(arg, AbstractModelingEntity) else arg)
-                        for arg in args]
-            new_kwargs = {k:(v.clone(clone_cache) if isinstance(v, AbstractModelingEntity) else v)
-                          for k, v in kwargs.items()}
-            clone_class = self.get_class() if clone_into_class is None else clone_into_class
-            clone = clone_class(*new_args, **new_kwargs)
-            clone_cache[self] = clone
+        args, kwargs = self.get_init_args()
+        new_args = [(arg.clone() if isinstance(arg, AbstractModelingEntity) else arg)
+                    for arg in args]
+        new_kwargs = {k:(v.clone() if isinstance(v, AbstractModelingEntity) else v)
+                      for k, v in kwargs.items()}
+        clone_class = self.get_class() if clone_into_class is None else clone_into_class
+        clone = clone_class(*new_args, **new_kwargs)
         return clone
     
     
@@ -240,10 +236,9 @@ class _ComputeModelComponents(object):
 class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
     def __init__(self, logicalName, **kwargs):
         super(ComponentGroup, self).__init__(logicalName)
-        clone_cache = {}
         for k, v in kwargs.items():
             if isinstance(v, AbstractModelingEntity):
-                setattr(self, k, v.clone(clone_cache))
+                setattr(self, k, v.clone())
             else:
                 raise TypeError("arg %s has a value that isn't a kind of AbstractModelingEntity: %s" % (k, str(v)))
         self._kwargs = kwargs
@@ -266,7 +261,7 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
 class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     def __init__(self, templateComponent):
         super(MultiComponent, self).__init__("")
-        self.templateComponent = templateComponent.clone({})
+        self.templateComponent = templateComponent.clone()
         self._instances = {}
         
     def _fix_arguments(self):
@@ -284,7 +279,6 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return self.templateComponent
         
     def get_init_args(self):
-#         args = (self.templateComponent.clone({}),)
         args = (self.templateComponent,)
         return (args, {})
         

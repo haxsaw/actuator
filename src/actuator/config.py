@@ -180,8 +180,9 @@ class ConfigSpec(object):
         for v, k in self._node_dict.items():
             if not isinstance(v, _ConfigTask):
                 raise ConfigException("'%s' is not a task" % k)
-            clone = v.clone(clone_dict)
+            clone = v.clone()
             clone._set_model_instance(self)
+            clone_dict[v] = clone
             setattr(self, k, clone)
         self.dependencies = [d.clone(clone_dict)
                              for d in self.get_class_dependencies()]
@@ -217,9 +218,17 @@ class TaskGroup(Orable, _Cloneable):
         self.args = list(args)
         
     def clone(self, clone_dict):
-        args = [clone_dict[arg] if arg in clone_dict else arg.clone(clone_dict)
-                for arg in self.args]
-        return TaskGroup(*args)
+        new_args = []
+        for arg in self.args:
+            if arg in clone_dict:
+                new_args.append(clone_dict[arg])
+            else:
+                if isinstance(arg, _ConfigTask):
+                    raise ConfigException("Found a task that didn't get cloned properly: %s" % arg.name)
+                clone = arg.clone(clone_dict)
+                clone_dict[arg] = clone
+                new_args.append(clone)
+        return TaskGroup(*new_args)
         
     def _or_result_class(self):
         return _Dependency

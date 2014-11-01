@@ -254,8 +254,8 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         if variables is not None:
             self.add_variable(*variables)
             
-    def clone(self, clone_dict, clone_into_class=None):
-        clone = super(Component, self).clone(clone_dict, clone_into_class=clone_into_class)
+    def clone(self, clone_into_class=None):
+        clone = super(Component, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         return clone
     
@@ -310,8 +310,8 @@ class NSComponentGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContain
         for c in [v for k, v in self.__dict__.items() if k in self._kwargs]:
             c._set_model_instance(mi)
 
-    def clone(self, clone_cache, clone_into_class=None):
-        clone = super(NSComponentGroup, self).clone(clone_cache, clone_into_class=clone_into_class)
+    def clone(self, clone_into_class=None):
+        clone = super(NSComponentGroup, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         clone._set_parent(self.parent_container)
         for c in (v for k, v in clone.__dict__.items() if k in self._kwargs):
@@ -335,10 +335,10 @@ class NSMultiComponent(ModelInstanceFinderMixin, MultiComponent, VariableContain
         for c in self.instances().values():
             c._set_model_instance(mi)
             
-    def clone(self, clone_cache, clone_into_class=None):
-        clone = super(NSMultiComponent, self).clone(clone_cache, clone_into_class=clone_into_class)
+    def clone(self, clone_into_class=None):
+        clone = super(NSMultiComponent, self).clone(clone_into_class=clone_into_class)
         for k, v in self._instances.items():
-            child = v.clone(clone_cache)
+            child = v.clone()
             child._set_parent(clone)
             clone._instances[k] = child
         clone._set_parent(self.parent_container)
@@ -371,13 +371,10 @@ class NamespaceSpecMeta(SpecBaseMeta):
     model_ref_class = ModelReference
     def __new__(cls, name, bases, attr_dict):
         cmapper = get_mapper(_namespace_mapper_domain)
-        clone_cache = {}
         for k, v in attr_dict.items():
             if isinstance(v, (ComponentGroup, MultiComponent, MultiComponentGroup)):
                 mapped_class = cmapper[v.__class__]
-                attr_dict[k] = v.clone(clone_cache, clone_into_class=mapped_class)
-#         if _common_vars not in attr_dict:
-#             attr_dict[_common_vars] = []
+                attr_dict[k] = v.clone(clone_into_class=mapped_class)
         newbie = super(NamespaceSpecMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
         return newbie
@@ -391,12 +388,11 @@ class NamespaceSpec(VariableContainer, SpecBase):
         super(NamespaceSpec, self).__init__()
         components = set()
         clone_map = {}
-        clone_cache = {}
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, (Component, ComponentGroup, MultiComponent, MultiComponentGroup)):
                 components.add((k, v))
         for k, c in components:
-            clone = c.clone(clone_cache)
+            clone = c.clone()
             clone._set_model_instance(self)
             clone._set_parent(self)
             clone_map[c] = (k, clone)
@@ -441,11 +437,10 @@ class NamespaceSpec(VariableContainer, SpecBase):
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
         
     def add_components(self, **kwargs):
-        clone_cache = {}
         for k, v in kwargs.items():
             if not isinstance(v, Component):
                 raise NamespaceException("%s is not a kind of component" % str(v))
-            clone = v.clone(clone_cache)
+            clone = v.clone()
             self._components[k] = clone
             self.__dict__[k] = clone
         return self

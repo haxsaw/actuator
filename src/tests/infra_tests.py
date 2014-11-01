@@ -938,6 +938,16 @@ def test150():
         raise False, "Should not have been able to call get_admin_ip()"
     except TypeError, e:
         assert "Not implemented" in e.message
+        
+def test151():
+    s = Server("someserver", mem="8GB")
+    class Test(InfraSpec):
+        s1 = s
+        s2 = s
+        s3 = s
+        
+    inst = Test("test")
+    assert len(inst.components()) == 3
     
     
 def do_all():
@@ -945,7 +955,7 @@ def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
-
+            
 
 if __name__ == "__main__":
     do_all()

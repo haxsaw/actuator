@@ -571,6 +571,21 @@ def test35():
                           t3 | t5)
         
     assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
+    
+def test36():
+    class NS(NamespaceSpec):
+        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    ns = NS()
+    
+    class Cfg(ConfigSpec):
+        grid_prep = NullTask("gp", path="gp", task_component_list=NS.grid)
+    cfg = Cfg()
+    
+    for i in range(5):
+        _ = ns.grid[i]
+        
+    assert len(cfg.get_tasks()) == 5 
+    
 
 
 

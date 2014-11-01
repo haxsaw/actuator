@@ -103,11 +103,10 @@ class InfraSpec(SpecBase):
     def __init__(self, name):
         super(InfraSpec, self).__init__()
         self.name = name
-        clone_cache = {}   #maps 
         ga = super(InfraSpec, self).__getattribute__
         attrdict = self.__dict__
         for k, v in ga(InfraSpecMeta._COMPONENTS).items():
-            attrdict[k] = clone = v.clone(clone_cache)
+            attrdict[k] = clone = v.clone()
             clone._set_model_instance(self)
         self.provisioning_computed = False
         

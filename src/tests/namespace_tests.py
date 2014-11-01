@@ -739,7 +739,7 @@ def test63():
     ns = NS()
     for i in range(5):
         _ = ns.grid[i]
-    clone = ns.grid.clone({})
+    clone = ns.grid.clone()
     assert len(clone) == 5
     
 def test64():
