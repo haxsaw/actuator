@@ -578,7 +578,7 @@ def test36():
     ns = NS()
     
     class Cfg(ConfigSpec):
-        grid_prep = NullTask("gp", path="gp", task_component_list=NS.grid)
+        grid_prep = MultiTask(NS.grid, NullTask("gp", path="gp"))
     cfg = Cfg()
     
     for i in range(5):

@@ -69,6 +69,8 @@ class Orable(object):
         return TaskGroup
     
     def __nonzero__(self):
+        #everything needs to return False as otherwise expression
+        #short-circuiting may cause some of the expression to get skipped
         return False
     
     def __and__(self, other):
@@ -150,6 +152,28 @@ class _ConfigTask(Orable, ModelComponent):
     def perform(self):
         raise TypeError("Derived class must implement")
     
+    
+class RendezvousTask(_ConfigTask):
+    def perform(self):
+        return
+    
+
+class MultiTask(_ConfigTask):
+    def __init__(self, name, template, host_ref_list=None, **kwargs):
+        super(MultiTask, self).__init__(name, **kwargs)
+        self.template = None
+        self._template = template
+        self.host_ref_list = None
+        self._host_ref_list = host_ref_list
+        
+    def _or_result_class(self):
+        return _Dependency
+    
+    def _fix_arguments(self):
+        super(MultiTask, self)._fix_arguments()
+        self.template = self._get_arg_value(self._template)
+        self.host_ref_list = self._get_arg_value(self.host_ref_list)
+        
     
 class ConfigSpecMeta(type):
     def __new__(cls, name, bases, attr_dict):
