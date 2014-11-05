@@ -93,8 +93,8 @@ class ExecutionAgent(object):
             self.node_lock.release()
         
     def _perform_task(self, task):
-        task.fix_arguments()
-        task.task_component.fix_arguments()
+#         task.fix_arguments()
+#         task.task_component.fix_arguments()
         task.perform()
         
     def abort_process_tasks(self):
@@ -114,11 +114,16 @@ class ExecutionAgent(object):
         if self.namespace_mi and self.config_mi:
             self.config_mi.set_namespace(self.namespace_mi)
             nodes = self.config_mi.get_tasks()
-            self.num_tasks_to_perform = len(nodes)
+            for n in nodes:
+                n.fix_arguments()
             deps = self.config_mi.get_dependencies()
             graph = nx.DiGraph()
-            graph.add_nodes_from(nodes, ins_traversed=0)
+#             graph.add_nodes_from(nodes, ins_traversed=0)
+            graph.add_nodes_from(nodes)
             graph.add_edges_from( [d.edge() for d in deps] )
+            self.num_tasks_to_perform = len(graph.nodes())
+            for n in graph.nodes():
+                graph.node[n]["ins_traversed"] = 0
             self.stop = False
             self.error_details = None
             #start the workers

@@ -361,7 +361,8 @@ class ReportingTask(_ConfigTask):
         return args, kwargs
         
     def perform(self):
-        self.report(self.target.name.value(), self.name)
+#         self.report(self.target.name.value(), self.name)
+        self.report(self.task_component.name.value(), self.name)
 
 
 class BogusServerRef(ServerRef):
@@ -578,7 +579,7 @@ def test36():
     ns = NS()
     
     class Cfg(ConfigSpec):
-        grid_prep = MultiTask(NS.grid, NullTask("gp", path="gp"), NS.grid)
+        grid_prep = MultiTask("grid_prep", NullTask("gp", path="gp"), NS.grid)
     cfg = Cfg()
     
     for i in range(5):
@@ -594,7 +595,7 @@ def test37():
     ns = NS()
     
     class Cfg(ConfigSpec):
-        grid_prep = MultiTask(NS.grid, NullTask("gp", path="gp"), NS.grid)
+        grid_prep = MultiTask("grid_prep", NullTask("gp", path="gp"), NS.grid)
     cfg = Cfg()
     
     _ = ns.grid[0]
@@ -604,6 +605,40 @@ def test37():
     assert (len(cfg.grid_prep.instances) == 1 and
             cfg.grid_prep.instances[0].name == "gp-grid_0")
     
+def test38():
+    class NS(NamespaceSpec):
+        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    ns = NS()
+    
+    class Cfg(ConfigSpec):
+        grid_prep = MultiTask("grid_prep", NullTask("gp", path="gp"), NS.grid)
+    cfg = Cfg()
+    
+    _ = ns.grid[0]
+    cfg.set_namespace(ns)
+    cfg.grid_prep._fix_arguments()
+    
+    assert (len(cfg.grid_prep.instances) == 1 and
+            cfg.grid_prep.instances[0].name == "gp-grid_0")
+
+def test39():
+    cap = Capture()
+             
+    class NS(NamespaceSpec):
+        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    ns = NS()
+         
+    class Cfg(ConfigSpec):
+        grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
+                              NS.grid)
+    cfg = Cfg()
+    
+    for i in range(5):
+        _ = ns.grid[i]
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+    assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
 def do_all():
     setup()

@@ -200,7 +200,11 @@ class ConfigSpec(object):
         self.namespace_model_instance = namespace
         
     def get_dependencies(self):
-        return list(self.dependencies)
+        inst_nodes = [getattr(self, name) for name in self._node_dict.values()]
+        return list(itertools.chain(self.dependencies,
+                                    list(itertools.chain(*[n.unpack()
+                                                           for n in inst_nodes
+                                                           if isinstance(n, _Unpackable)]))))
     
     @classmethod
     def get_class_dependencies(cls):
@@ -276,6 +280,9 @@ class MultiTask(_ConfigTask, _Unpackable):
         self.dependencies = []
         self.instances = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
+        
+    def perform(self):
+        return
         
     def _or_result_class(self):
         return _Dependency
