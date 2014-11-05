@@ -23,8 +23,10 @@
 Created on 7 Sep 2014
 '''
 import itertools
+from collections import Iterable
 import networkx as nx
-from actuator.modeling import ModelComponent, ModelReference
+from actuator.modeling import ModelComponent, ModelReference,\
+    AbstractModelReference
 from actuator.namespace import _ComputableValue
 from actuator.utils import ClassModifier, process_modifiers
 
@@ -158,23 +160,6 @@ class RendezvousTask(_ConfigTask):
         return
     
 
-class MultiTask(_ConfigTask):
-    def __init__(self, name, template, host_ref_list=None, **kwargs):
-        super(MultiTask, self).__init__(name, **kwargs)
-        self.template = None
-        self._template = template
-        self.host_ref_list = None
-        self._host_ref_list = host_ref_list
-        
-    def _or_result_class(self):
-        return _Dependency
-    
-    def _fix_arguments(self):
-        super(MultiTask, self)._fix_arguments()
-        self.template = self._get_arg_value(self._template)
-        self.host_ref_list = self._get_arg_value(self.host_ref_list)
-        
-    
 class ConfigSpecMeta(type):
     def __new__(cls, name, bases, attr_dict):
         all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, _ConfigTask)}
@@ -232,9 +217,21 @@ class ConfigSpec(object):
 class _Cloneable(object):
     def clone(self, clone_dict):
         raise TypeError("Derived class must implement")
+    
+    
+class _Unpackable(object):
+    def unpack(self):
+        """
+        This method instructs the receiving object to represent any high-level constructs that
+        represent dependency expression as simply instances of _Dependency objects
+        involving tasks alone. This is because the workflow machinery can only operate
+        on dependencies involving performable tasks and not the high-level representations
+        that are used for dependency expressions.
+        """
+        return []
                     
     
-class TaskGroup(Orable, _Cloneable):
+class TaskGroup(Orable, _Cloneable, _Unpackable):
     def __init__(self, *args):
         for arg in args:
             if not isinstance(arg, Orable):
@@ -260,7 +257,7 @@ class TaskGroup(Orable, _Cloneable):
     def unpack(self):
         return list(itertools.chain(*[arg.unpack()
                                       for arg in self.args
-                                      if isinstance(arg, (_Dependency, TaskGroup))]))
+                                      if isinstance(arg, _Unpackable)]))
     
     def entry_nodes(self):
         return list(itertools.chain(*[arg.entry_nodes() for arg in self.args]))
@@ -269,7 +266,62 @@ class TaskGroup(Orable, _Cloneable):
         return list(itertools.chain(*[arg.exit_nodes() for arg in self.args]))
     
 
-class _Dependency(Orable, _Cloneable):
+class MultiTask(_ConfigTask, _Unpackable):
+    def __init__(self, name, template, task_component_list, **kwargs):
+        super(MultiTask, self).__init__(name, **kwargs)
+        self.template = None
+        self._template = template
+        self.task_component_list = None
+        self._task_component_list = task_component_list
+        self.dependencies = []
+        self.instances = []
+        self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
+        
+    def _or_result_class(self):
+        return _Dependency
+    
+    def get_init_args(self):
+        args, kwargs = super(MultiTask, self).get_init_args()
+        args = args + (self._template, self._task_component_list)
+        return args, kwargs
+    
+    def _fix_arguments(self):
+        super(MultiTask, self)._fix_arguments()
+        self.template = self._get_arg_value(self._template)
+        self.task_component_list = self._get_arg_value(self._task_component_list)
+        if isinstance(self.task_component_list, AbstractModelReference):
+            try:
+                keys = self.task_component_list.keys()
+                comp_refs = [self.task_component_list[k] for k in keys]
+            except TypeError, _:
+                raise ConfigException("The value for task_component_list provided to the MultiTask "
+                                      "component named {} does not support 'keys()', "
+                                      "and so can't be used to acquire a list of components "
+                                      "that the task should be run against".format(self.name))
+        elif isinstance(self.task_component_list, Iterable):
+            comp_refs = self.task_component_list
+        for ref in comp_refs:
+            clone = self.template.clone()
+            clone.name = "{}-{}".format(clone.name, ref.name.value())
+            clone._task_component = ref
+            clone._set_model_instance(self._model_instance)
+            clone._fix_arguments()
+            self.instances.append(clone)
+        self.dependencies = list(itertools.chain([_Dependency(self, c)
+                                                  for c in self.instances],
+                                                 [_Dependency(c, self.rendezvous)
+                                                  for c in self.instances]))
+        
+    def exit_nodes(self):
+        return self.rendezvous
+    
+    def unpack(self):
+        deps = list(self.dependencies)
+        deps.extend(itertools.chain(*[c.unpack() for c in self.instances if isinstance(c, _Unpackable)]))
+        return deps
+        
+    
+class _Dependency(Orable, _Cloneable, _Unpackable):
     def __init__(self, from_task, to_task):
         if not isinstance(from_task, Orable):
             raise ConfigException("from_task is not a kind of _ConfigTask")
@@ -309,9 +361,9 @@ class _Dependency(Orable, _Cloneable):
         dependencies between just tasks.
         """
         deps = []
-        if isinstance(self.from_task, (_Dependency, TaskGroup)):
+        if isinstance(self.from_task, _Unpackable):
             deps.extend(self.from_task.unpack())
-        if isinstance(self.to_task, (_Dependency, TaskGroup)):
+        if isinstance(self.to_task, _Unpackable):
             deps.extend(self.to_task.unpack())
         entries = self.from_task.exit_nodes()
         exits = self.to_task.entry_nodes()

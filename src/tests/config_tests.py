@@ -578,16 +578,32 @@ def test36():
     ns = NS()
     
     class Cfg(ConfigSpec):
-        grid_prep = MultiTask(NS.grid, NullTask("gp", path="gp"))
+        grid_prep = MultiTask(NS.grid, NullTask("gp", path="gp"), NS.grid)
     cfg = Cfg()
     
     for i in range(5):
         _ = ns.grid[i]
-        
-    assert len(cfg.get_tasks()) == 5 
+    cfg.set_namespace(ns)
+    cfg.grid_prep._fix_arguments()
     
-
-
+    assert len(cfg.grid_prep.instances) == 5
+    
+def test37():
+    class NS(NamespaceSpec):
+        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    ns = NS()
+    
+    class Cfg(ConfigSpec):
+        grid_prep = MultiTask(NS.grid, NullTask("gp", path="gp"), NS.grid)
+    cfg = Cfg()
+    
+    _ = ns.grid[0]
+    cfg.set_namespace(ns)
+    cfg.grid_prep._fix_arguments()
+    
+    assert (len(cfg.grid_prep.instances) == 1 and
+            cfg.grid_prep.instances[0].name == "gp-grid_0")
+    
 
 def do_all():
     setup()
