@@ -489,6 +489,12 @@ class ModelInstanceReference(AbstractModelReference):
         return key in value
     
     
+class RefSelTest(object):
+    def __init__(self, test_op, test_arg=None):
+        self.test_op = test_op
+        self.test_arg = test_arg
+        
+        
 class RefSelectBuilder(object):
     ALL = "all"
     KEY = "key"
@@ -506,38 +512,34 @@ class RefSelectBuilder(object):
                 self.name = name
                 self.parent = parent
                 self.ref = ref
-                self.filter_op = self.builder.ALL
-                self.filter_arg = None
+                self.tests = []
                 
             def all(self):
-                self.filter_op = self.builder.ALL
+                self.tests.append(RefSelTest(self.builder.ALL))
                 return self
             
             def key(self, key):
-                self.filter_op = self.builder.KEY
-                self.filter_arg = key
+                self.tests.append(RefSelTest(self.builder.KEY, key))
                 return self
             
             def keyin(self, keyiter):
-                self.filter_op = self.builder.KEYIN
-                self.filter_arg = set(keyiter)
+                self.tests.append(RefSelTest(self.builder.KEYIN, set(keyiter)))
                 return self
                 
             def match(self, regexp_pattern):
-                self.filter_op = self.builder.PATRN
-                self.filter_arg = re.compile(regexp_pattern)
+                self.tests.append(RefSelTest(self.builder.PATRN,
+                                                 re.compile(regexp_pattern)))
                 return self
             
             def no_match(self, regexp_pattern):
-                self.filter_op = self.builder.NOT_PATRN
-                self.filter_arg = re.compile(regexp_pattern)
+                self.tests.append(RefSelTest(self.builder.NOT_PATRN,
+                                                 re.compile(regexp_pattern)))
                 return self
             
             def pred(self, predicate):
                 if not callable(predicate):
                     raise ActuatorException("The provided predicate isn't callable")
-                self.filter_op = self.builder.PRED
-                self.filter_arg = predicate
+                self.tests.append(RefSelTest(self.builder.PRED, predicate))
                 return self
                 
             def __getattr__(self, attrname):
@@ -568,41 +570,44 @@ class RefSelectBuilder(object):
                          self.NOT_PATRN:self._not_pattern_test,
                          self.PRED:self._pred_test}
         
-    def _all_test(self, key, element):
+    def _all_test(self, key, test):
         return True
     
-    def _key_test(self, key, element):
-        return key == element.filter_arg
+    def _key_test(self, key, test):
+        return key == test.test_arg
     
-    def _keyin_test(self, key, element):
-        return key in [KeyAsAttr(k) for k in element.filter_arg]
+    def _keyin_test(self, key, test):
+        return key in [KeyAsAttr(k) for k in test.test_arg]
     
-    def _pattern_test(self, key, element):
-        return element.filter_arg.search(key)
+    def _pattern_test(self, key, test):
+        return test.test_arg.search(key)
     
-    def _not_pattern_test(self, key, element):
-        return not element.filter_arg.search(key)
+    def _not_pattern_test(self, key, test):
+        return not test.test_arg.search(key)
     
-    def _pred_test(self, key, element):
-        return element.filter_arg(key)
+    def _pred_test(self, key, test):
+        return test.test_arg(key)
     
     def _do_test(self, key, element):
-        return self.test_map[element.filter_op](KeyAsAttr(key), element)
+        key = KeyAsAttr(key)
+        tests = element.tests[:]
+        result = True
+        while result and tests:
+            test = tests[0]
+            tests = tests[1:]
+            result = self.test_map[test.test_op](key, test)
+        return result
 
     def __getattr__(self, attrname):
         ref = getattr(self.model, attrname)
         return self.element_class(attrname, ref)
     
-#     def union(self, *exprs):
-#         for expr in exprs:
-#             if not isinstance(expr, self.element_class):
-#                 raise ActuatorException("The following arg is not a select expression: %s" % str(expr))
-#             self.expr_list.append(expr)
-#         return self
-#     
-#     def __call__(self, inst):
-#         return set(itertools.chain(*[e(inst) for e in self.expr_list]))
-    
+    def union(self, *exprs):
+        for expr in exprs:
+            if not isinstance(expr, self.element_class):
+                raise ActuatorException("The following arg is not a select expression: %s" % str(expr))
+        return RefSelectUnion(self, *exprs)
+     
     def _execute(self, element, inst):
         work_list = element._expand()
         selected = [inst]
@@ -616,6 +621,15 @@ class RefSelectBuilder(object):
             selected = itertools.chain(*next_selected)
             work_list = work_list[1:]
         return set(selected)
+    
+    
+class RefSelectUnion(object):
+    def __init__(self, builder, *exprs):
+        self.builder = builder
+        self.exprs = exprs
+        
+    def __call__(self, inst):
+        return set(itertools.chain(*[e(inst) for e in self.exprs]))
     
     
 class SpecBaseMeta(type):

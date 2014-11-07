@@ -200,6 +200,54 @@ def test14():
     result = qexp(infra)
     assert len(result) == 10
 
+def test15():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.union(Infra.q.clusters.match("(NY|LN)").workers,
+                         Infra.q.clusters.key("SG").leader)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 21
+
+def test16():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    def lt_seven(key):
+        return int(key) < 7
+    
+    qexp = Infra.q.clusters.workers.pred(evens_only).pred(lt_seven)
+    
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 20
+
+def test17():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    try:
+        _ = Infra.q.cluster.workers
+        assert False, "This should have complained about 'cluster' not being an attribute"
+    except AttributeError, e:
+        assert "cluster" in e.message.lower()
+    
 
 def do_all():
     setup()
