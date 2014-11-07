@@ -640,6 +640,36 @@ def test39():
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
+def test40():
+    cap = Capture()
+             
+    class NS(NamespaceSpec):
+        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+        static = Component("static", host_ref="127.0.0.1")
+    ns = NS()
+         
+    class Cfg(ConfigSpec):
+        grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
+                              NS.grid)
+        before = ReportingTask("before", target=NS.static, report=cap)
+        after = ReportingTask("after", target=NS.static, report=cap)
+        with_dependencies(before | grid_prep | after)
+    cfg = Cfg()
+    
+    for i in range(3):
+        _ = ns.grid[i]
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+    assert (len(cfg.grid_prep.instances) == 3 and
+            len(cap.performed) == 5 and
+            (cap.pos("static", "before") < cap.pos("grid_0", "rt-grid_0") and
+             cap.pos("static", "before") < cap.pos("grid_1", "rt-grid_1") and
+             cap.pos("static", "before") < cap.pos("grid_2", "rt-grid_2") and
+             cap.pos("static", "after") > cap.pos("grid_0", "rt-grid_0") and
+             cap.pos("static", "after") > cap.pos("grid_1", "rt-grid_1") and
+             cap.pos("static", "after") > cap.pos("grid_2", "rt-grid_2")))
+
 def do_all():
     setup()
     for k, v in globals().items():

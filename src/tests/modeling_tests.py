@@ -28,6 +28,7 @@ from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
 from actuator.namespace import NSComponentGroup, NSMultiComponent, NSMultiComponentGroup
 from actuator.infra import InfraSpec
 from actuator.provisioners.example_components import Server
+from actuator.modeling import CallContext
 
 
 def setup():
@@ -84,6 +85,120 @@ def test07():
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
     assert not inst.grid
+    
+def test08():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.all().workers
+    for i in range(2):
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 20
+
+def test09():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.all().workers.keyin([0, 1, 2, 3, 4])
+    for i in range(2):
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 10
+
+def test10():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.match("(NY|LN)").workers
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 20
+
+def test11():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.no_match("(NY|LN)").workers
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 30
+
+def test12():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    qexp = Infra.q.clusters.workers.pred(evens_only)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 25
+
+def test13():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    qexp = Infra.q.clusters.match("(LN|NY)").workers.pred(evens_only)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    result = qexp(infra)
+    assert len(result) == 10
+
+def test14():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       cell=ComponentGroup("cell",
+                                                           foreman=Server("foreman", mem="8"),
+                                                           workers=MultiComponent(Server("worker", mem="8GB"))
+                                                           )
+                                       )
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    qexp = Infra.q.clusters.match("(LN|NY)").cell.workers.pred(evens_only)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.cell.workers[j]
+    result = qexp(infra)
+    assert len(result) == 10
 
 
 def do_all():

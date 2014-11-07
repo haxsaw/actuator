@@ -109,6 +109,9 @@ class _ConfigTask(Orable, ModelComponent):
         self.repeat_interval = None
         self._repeat_interval = repeat_interval
         
+    def _embedded_exittask_attrnames(self):
+        return []
+        
     def get_task_host(self):
         if self.task_component:
             host = (self.task_component.host_ref
@@ -186,12 +189,16 @@ class ConfigSpec(object):
     def __init__(self, namespace_model_instance=None):
         self.namespace_model_instance = namespace_model_instance
         clone_dict = {}
+        #NOTE! _node_dict is an inverted dictionary (the string keys are
+        #stored as values
         for v, k in self._node_dict.items():
             if not isinstance(v, _ConfigTask):
                 raise ConfigException("'%s' is not a task" % k)
             clone = v.clone()
             clone._set_model_instance(self)
             clone_dict[v] = clone
+            for etan in v._embedded_exittask_attrnames():
+                clone_dict[getattr(v, etan)] = getattr(clone, etan)
             setattr(self, k, clone)
         self.dependencies = [d.clone(clone_dict)
                              for d in self.get_class_dependencies()]
@@ -280,9 +287,12 @@ class MultiTask(_ConfigTask, _Unpackable):
         self.dependencies = []
         self.instances = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
-        
+                
     def perform(self):
         return
+    
+    def _embedded_exittask_attrnames(self):
+        return ["rendezvous"]
         
     def _or_result_class(self):
         return _Dependency
@@ -320,7 +330,7 @@ class MultiTask(_ConfigTask, _Unpackable):
                                                   for c in self.instances]))
         
     def exit_nodes(self):
-        return self.rendezvous
+        return [self.rendezvous]
     
     def unpack(self):
         deps = list(self.dependencies)
