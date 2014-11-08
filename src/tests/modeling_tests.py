@@ -22,10 +22,8 @@
 '''
 Created on 7 Jun 2014
 '''
-from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
-                          Component, with_components, MultiComponent, 
-                          MultiComponentGroup, ComponentGroup, ctxt, ActuatorException)
-from actuator.namespace import NSComponentGroup, NSMultiComponent, NSMultiComponentGroup
+from actuator import (MultiComponent, 
+                          MultiComponentGroup, ComponentGroup, ctxt)
 from actuator.infra import InfraSpec
 from actuator.provisioners.example_components import Server
 from actuator.modeling import CallContext
@@ -86,6 +84,17 @@ def test07():
     inst = Infra("iter")
     assert not inst.grid
     
+    
+class FakeReference(object):
+    """
+    This class is used to act like a component in a model simply to satisfy the
+    interface contract of AbstractModelReference in order to construct
+    CallContext objects in tests below
+    """
+    def __init__(self, name):
+        self._name = name
+        
+
 def test08():
     class Infra(InfraSpec):
         clusters = MultiComponentGroup("cluster",
@@ -97,9 +106,10 @@ def test08():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 20
-
+    
 def test09():
     class Infra(InfraSpec):
         clusters = MultiComponentGroup("cluster",
@@ -111,7 +121,8 @@ def test09():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 10
 
 def test10():
@@ -125,7 +136,8 @@ def test10():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 20
 
 def test11():
@@ -139,7 +151,8 @@ def test11():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 30
 
 def test12():
@@ -157,7 +170,8 @@ def test12():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 25
 
 def test13():
@@ -175,7 +189,8 @@ def test13():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 10
 
 def test14():
@@ -197,7 +212,8 @@ def test14():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.cell.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 10
 
 def test15():
@@ -212,7 +228,8 @@ def test15():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 21
 
 def test16():
@@ -234,7 +251,8 @@ def test16():
         cluster = infra.clusters[i]
         for j in range(10):
             _ = cluster.workers[j]
-    result = qexp(infra)
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
     assert len(result) == 20
 
 def test17():
@@ -247,6 +265,15 @@ def test17():
         assert False, "This should have complained about 'cluster' not being an attribute"
     except AttributeError, e:
         assert "cluster" in e.message.lower()
+        
+def test18():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    assert infra.nexus
+
     
 
 def do_all():

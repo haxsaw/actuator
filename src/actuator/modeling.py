@@ -27,6 +27,8 @@ import sys
 import re
 import itertools
 
+from actuator.utils import ClassMapper
+
 class ActuatorException(Exception): pass
 
 
@@ -552,8 +554,8 @@ class RefSelectBuilder(object):
                         raise
                 return self.__class__(attrname, next_ref, parent=self)
             
-            def __call__(self, inst):
-                return self.builder._execute(self, inst)
+            def __call__(self, ctxt):
+                return self.builder._execute(self, ctxt)
             
             def _expand(self):
                 if self.parent is not None:
@@ -608,9 +610,9 @@ class RefSelectBuilder(object):
                 raise ActuatorException("The following arg is not a select expression: %s" % str(expr))
         return RefSelectUnion(self, *exprs)
      
-    def _execute(self, element, inst):
+    def _execute(self, element, ctxt):
         work_list = element._expand()
-        selected = [inst]
+        selected = [ctxt.model]
         while work_list:
             item = work_list[0]
             named = [getattr(i, item.name) for i in selected]
@@ -628,10 +630,36 @@ class RefSelectUnion(object):
         self.builder = builder
         self.exprs = exprs
         
-    def __call__(self, inst):
-        return set(itertools.chain(*[e(inst) for e in self.exprs]))
+    def __call__(self, ctxt):
+        return set(itertools.chain(*[e(ctxt) for e in self.exprs]))
     
     
+class Nexus(object):
+    """
+    A nexus is where, for a given instance of a system, models and their
+    instances can be recorded and then looked up by other components. In
+    particular, model instances can be looked up by either the class of the
+    instance, or by a base class of the instance. This way, one model instance can
+    find another instance by way of the instance class or base class. This can
+    be used when processing reference selection expressions or context
+    expressions.
+    """
+    def __init__(self):
+        self.mapper = ClassMapper()
+        
+    def capture_model_to_instance(self, model_class, instance, aliases=None):
+        self.mapper[model_class] = instance
+        if aliases:
+            for alias in aliases:
+                self.mapper[alias] = instance
+        
+    def find_instance(self, model_class):
+        return self.mapper.get(model_class)
+    
+    def merge_from(self, other_nexus):
+        self.mapper.update(other_nexus.mapper)
+
+
 class SpecBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
@@ -655,6 +683,15 @@ class SpecBaseMeta(type):
 
 class SpecBase(_ComputeModelComponents):
     __metaclass__ = SpecBaseMeta
+    
+    def __init__(self, nexus=None):
+        super(SpecBase, self).__init__()
+        self.nexus = nexus if nexus else Nexus()
+        self.nexus.capture_model_to_instance(self.__class__, self)
+        
+    def update_nexus(self, new_nexus):
+        new_nexus.merge_from(self.nexus)
+        self.nexus = new_nexus
     
     def get_inst_ref(self, model_ref):
         ref = self
