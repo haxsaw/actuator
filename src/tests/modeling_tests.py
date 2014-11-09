@@ -22,12 +22,11 @@
 '''
 Created on 7 Jun 2014
 '''
-from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
-                          Component, with_components, MultiComponent, 
-                          MultiComponentGroup, ComponentGroup, ctxt, ActuatorException)
-from actuator.namespace import NSComponentGroup, NSMultiComponent, NSMultiComponentGroup
+from actuator import (MultiComponent, 
+                          MultiComponentGroup, ComponentGroup, ctxt)
 from actuator.infra import InfraSpec
 from actuator.provisioners.example_components import Server
+from actuator.modeling import CallContext
 
 
 def setup():
@@ -84,7 +83,198 @@ def test07():
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
     assert not inst.grid
+    
+    
+class FakeReference(object):
+    """
+    This class is used to act like a component in a model simply to satisfy the
+    interface contract of AbstractModelReference in order to construct
+    CallContext objects in tests below
+    """
+    def __init__(self, name):
+        self._name = name
+        
 
+def test08():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.all().workers
+    for i in range(2):
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 20
+    
+def test09():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.all().workers.keyin([0, 1, 2, 3, 4])
+    for i in range(2):
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 10
+
+def test10():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.match("(NY|LN)").workers
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 20
+
+def test11():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.clusters.no_match("(NY|LN)").workers
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 30
+
+def test12():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    qexp = Infra.q.clusters.workers.pred(evens_only)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 25
+
+def test13():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    qexp = Infra.q.clusters.match("(LN|NY)").workers.pred(evens_only)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 10
+
+def test14():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       cell=ComponentGroup("cell",
+                                                           foreman=Server("foreman", mem="8"),
+                                                           workers=MultiComponent(Server("worker", mem="8GB"))
+                                                           )
+                                       )
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    qexp = Infra.q.clusters.match("(LN|NY)").cell.workers.pred(evens_only)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.cell.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 10
+
+def test15():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    qexp = Infra.q.union(Infra.q.clusters.match("(NY|LN)").workers,
+                         Infra.q.clusters.key("SG").leader)
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 21
+
+def test16():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    
+    def evens_only(key):
+        return int(key) % 2 == 0
+    
+    def lt_seven(key):
+        return int(key) < 7
+    
+    qexp = Infra.q.clusters.workers.pred(evens_only).pred(lt_seven)
+    
+    for i in ["NY", "LN", "SG", "TK", "ZU"]:
+        cluster = infra.clusters[i]
+        for j in range(10):
+            _ = cluster.workers[j]
+    ctxt = CallContext(infra, FakeReference("wibble"))
+    result = qexp(ctxt)
+    assert len(result) == 20
+
+def test17():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    try:
+        _ = Infra.q.cluster.workers
+        assert False, "This should have complained about 'cluster' not being an attribute"
+    except AttributeError, e:
+        assert "cluster" in e.message.lower()
+        
+def test18():
+    class Infra(InfraSpec):
+        clusters = MultiComponentGroup("cluster",
+                                       leader=Server("leader", mem="8GB"),
+                                       workers=MultiComponent(Server("worker", mem="8GB")))
+    infra = Infra("infra")
+    assert infra.nexus
+
+    
 
 def do_all():
     setup()

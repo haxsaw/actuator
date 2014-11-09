@@ -24,7 +24,10 @@ Created on 3 Oct 2014
 '''
 import uuid
 import sys
+import re
+import itertools
 
+from actuator.utils import ClassMapper
 
 class ActuatorException(Exception): pass
 
@@ -157,7 +160,11 @@ class AbstractModelingEntity(object):
     def _get_arg_value(self, arg):
         if callable(arg):
             try:
-                ctx = CallContext(self.get_model_instance(), AbstractModelReference.find_ref_for_obj(self))
+                if isinstance(arg, (SelectElement, RefSelectUnion)):
+                    model = self.get_model_instance().nexus.find_instance(arg.builder.model)
+                else:
+                    model = self.get_model_instance()
+                ctx = CallContext(model, AbstractModelReference.find_ref_for_obj(self))
                 value = arg(ctx)
                 if isinstance(value, ModelInstanceReference):
                     value = value.value()
@@ -486,8 +493,191 @@ class ModelInstanceReference(AbstractModelReference):
         if not hasattr(value, "__contains__"):
             raise TypeError("object of type %s does not support 'in'" % str(value))
         return key in value
-            
     
+    
+class RefSelTest(object):
+    def __init__(self, test_op, test_arg=None):
+        self.test_op = test_op
+        self.test_arg = test_arg
+        
+        
+class SelectElement(object):
+    builder = None
+    def __init__(self, name, ref, parent=None):
+        self.name = name
+        self.parent = parent
+        self.ref = ref
+        self.tests = []
+        
+    def all(self):
+        self.tests.append(RefSelTest(self.builder.ALL))
+        return self
+    
+    def key(self, key):
+        self.tests.append(RefSelTest(self.builder.KEY, key))
+        return self
+    
+    def keyin(self, keyiter):
+        self.tests.append(RefSelTest(self.builder.KEYIN, set(keyiter)))
+        return self
+        
+    def match(self, regexp_pattern):
+        self.tests.append(RefSelTest(self.builder.PATRN,
+                                         re.compile(regexp_pattern)))
+        return self
+    
+    def no_match(self, regexp_pattern):
+        self.tests.append(RefSelTest(self.builder.NOT_PATRN,
+                                         re.compile(regexp_pattern)))
+        return self
+    
+    def pred(self, predicate):
+        if not callable(predicate):
+            raise ActuatorException("The provided predicate isn't callable")
+        self.tests.append(RefSelTest(self.builder.PRED, predicate))
+        return self
+        
+    def __getattr__(self, attrname):
+        try:
+            next_ref = getattr(self.ref, attrname)
+        except AttributeError, _:
+            if isinstance(self.ref.value(), MultiComponent):
+                next_ref = getattr(self.ref.templateComponent, attrname)
+            else:
+                raise
+        return self.__class__(attrname, next_ref, parent=self)
+    
+    def __call__(self, ctxt):
+        return self.builder._execute(self, ctxt)
+    
+    def _expand(self):
+        if self.parent is not None:
+            return self.parent._expand() + [self]
+        else:
+            return [self]
+
+
+class RefSelectBuilder(object):
+    ALL = "all"
+    KEY = "key"
+    KEYIN = "keyin"
+    PATRN = "pattern"
+    NOT_PATRN = "not pattern"
+    PRED = "predicate"
+    filter_ops = [ALL, KEY, KEYIN, PATRN, NOT_PATRN, PRED]
+    def __init__(self, model):
+        super(RefSelectBuilder, self).__init__()
+        
+        class LocalSelectElement(SelectElement):
+            builder = self
+        
+        self.element_class = LocalSelectElement
+        self.model = model
+        self.test_map = {self.ALL:self._all_test,
+                         self.KEY:self._key_test,
+                         self.KEYIN:self._keyin_test,
+                         self.PATRN:self._pattern_test,
+                         self.NOT_PATRN:self._not_pattern_test,
+                         self.PRED:self._pred_test}
+        
+    def _all_test(self, key, test):
+        return True
+    
+    def _key_test(self, key, test):
+        return key == test.test_arg
+    
+    def _keyin_test(self, key, test):
+        return key in [KeyAsAttr(k) for k in test.test_arg]
+    
+    def _pattern_test(self, key, test):
+        return test.test_arg.search(key)
+    
+    def _not_pattern_test(self, key, test):
+        return not test.test_arg.search(key)
+    
+    def _pred_test(self, key, test):
+        return test.test_arg(key)
+    
+    def _do_test(self, key, element):
+        key = KeyAsAttr(key)
+        tests = element.tests[:]
+        result = True
+        while result and tests:
+            test = tests[0]
+            tests = tests[1:]
+            result = self.test_map[test.test_op](key, test)
+        return result
+
+    def __getattr__(self, attrname):
+        ref = getattr(self.model, attrname)
+        return self.element_class(attrname, ref)
+    
+    def union(self, *exprs):
+        for expr in exprs:
+            if not isinstance(expr, self.element_class):
+                raise ActuatorException("The following arg is not a select expression: %s" % str(expr))
+        return RefSelectUnion(self, *exprs)
+     
+    def _execute(self, element, ctxt):
+        work_list = element._expand()
+        selected = [ctxt.model]
+        while work_list:
+            item = work_list[0]
+            named = [getattr(i, item.name) for i in selected]
+            next_selected = [([v for k, v in n.items() if self._do_test(k, item)]
+                              if isinstance(n.value(), MultiComponent)
+                              else [n])
+                             for n in named]
+            selected = itertools.chain(*next_selected)
+            work_list = work_list[1:]
+        return set(selected)
+    
+    
+class RefSelectUnion(object):
+    def __init__(self, builder, *exprs):
+        self.builder = builder
+        self.exprs = exprs
+        
+    def __call__(self, ctxt):
+        return set(itertools.chain(*[e(ctxt) for e in self.exprs]))
+    
+    
+class _Nexus(object):
+    """
+    A nexus is where, for a given instance of a system, models and their
+    instances can be recorded and then looked up by other components. In
+    particular, model instances can be looked up by either the class of the
+    instance, or by a base class of the instance. This way, one model instance can
+    find another instance by way of the instance class or base class. This can
+    be used when processing reference selection expressions or context
+    expressions.
+    """
+    def __init__(self):
+        self.mapper = ClassMapper()
+        
+    def capture_model_to_instance(self, model_class, instance):
+        """
+        Associate a model class to an instance of that class. Actually causes a series
+        of associations to be created, following the inheritance chain for the
+        class and mapping each base class to the instance, as we can't be sure
+        which class will be used to try to locate the instance, the specific one
+        or a more general one. Mapping terminates when SpecBase is encountered
+        in the mro.
+        """
+        self.mapper[model_class] = instance
+        for base in model_class.__mro__:
+            if base in [SpecBase, _NexusMember]:
+                break
+            if issubclass(base, (SpecBase, _NexusMember)):
+                self.mapper[base] = instance
+        
+    def find_instance(self, model_class):
+        return self.mapper.get(model_class)
+    
+    def merge_from(self, other_nexus):
+        self.mapper.update(other_nexus.mapper)
+
+
 class SpecBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
@@ -497,7 +687,9 @@ class SpecBaseMeta(type):
             if isinstance(v, AbstractModelingEntity):
                 components[n] = v
         attr_dict[cls._COMPONENTS] = components
-        return super(SpecBaseMeta, cls).__new__(cls, name, bases, attr_dict)
+        newbie = super(SpecBaseMeta, cls).__new__(cls, name, bases, attr_dict)
+        setattr(newbie, 'q', RefSelectBuilder(newbie))
+        return newbie
     
     def __getattribute__(cls, attrname):  #  @NoSelf
         ga = super(SpecBaseMeta, cls).__getattribute__
@@ -505,9 +697,20 @@ class SpecBaseMeta(type):
                  if attrname in ga(SpecBaseMeta._COMPONENTS) and cls.model_ref_class
                  else ga(attrname))
         return value
+    
+    
+class _NexusMember(object):
+    def __init__(self, nexus=None):
+        super(_NexusMember, self).__init__()
+        self.nexus = nexus if nexus else _Nexus()
+        self.nexus.capture_model_to_instance(self.__class__, self)
+        
+    def update_nexus(self, new_nexus):
+        new_nexus.merge_from(self.nexus)
+        self.nexus = new_nexus
 
 
-class SpecBase(_ComputeModelComponents):
+class SpecBase(_NexusMember, _ComputeModelComponents):
     __metaclass__ = SpecBaseMeta
     
     def get_inst_ref(self, model_ref):

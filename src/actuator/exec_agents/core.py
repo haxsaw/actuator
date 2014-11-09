@@ -48,7 +48,7 @@ class ConfigRecord(object):
 class ExecutionAgent(object):
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
-                 num_threads=5):
+                 num_threads=1):
         #@TODO: need to add a test for the type of the exec_model_instance 
         self.exec_mi = exec_model_instance
         if config_model_instance is not None and not isinstance(config_model_instance, ConfigSpec):
@@ -93,8 +93,8 @@ class ExecutionAgent(object):
             self.node_lock.release()
         
     def _perform_task(self, task):
-        task.fix_arguments()
-        task.task_component.fix_arguments()
+#         task.fix_arguments()
+#         task.task_component.fix_arguments()
         task.perform()
         
     def abort_process_tasks(self):
@@ -112,13 +112,19 @@ class ExecutionAgent(object):
         
     def perform_config(self, completion_record=None):
         if self.namespace_mi and self.config_mi:
-            self.config_mi.set_namespace(self.namespace_mi)
+#             self.config_mi.set_namespace(self.namespace_mi)
+            self.config_mi.update_nexus(self.namespace_mi.nexus)
             nodes = self.config_mi.get_tasks()
-            self.num_tasks_to_perform = len(nodes)
+            for n in nodes:
+                n.fix_arguments()
             deps = self.config_mi.get_dependencies()
             graph = nx.DiGraph()
-            graph.add_nodes_from(nodes, ins_traversed=0)
+#             graph.add_nodes_from(nodes, ins_traversed=0)
+            graph.add_nodes_from(nodes)
             graph.add_edges_from( [d.edge() for d in deps] )
+            self.num_tasks_to_perform = len(graph.nodes())
+            for n in graph.nodes():
+                graph.node[n]["ins_traversed"] = 0
             self.stop = False
             self.error_details = None
             #start the workers
