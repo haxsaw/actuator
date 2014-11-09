@@ -597,7 +597,7 @@ It's also worth noting in the two different methods used to set Vars on namespac
 
 ### Variable setting and overrides
 
-## <a href="configmodels">Configuration models</a>
+## <a name="configmodels">Configuration models</a>
 
 The configuration model is what instructs Actuator to do to the new provisioned infrastructure in order to make it ready to run application software. The configuration model has two main aspects:
 
