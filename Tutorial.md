@@ -722,10 +722,10 @@ with_dependencies( ((t1 | t2) & t3) & (t4 | t5) )
 #dependency in
 with_dependencies( t1 & t2 & t3 & t4 & t5 )
 with_dependencies( t1 | t4 )
-#the same, but after fixing your original mistake
+#the same, but after fixing your original oversight
 with_dependencies( (t1 | t4) & t2 & t3 & t5 )
 ```
 
-As we can see, dependency expressions can be arbitrarily nested, and the expressions can be layered on additively 
+As we can see, dependency expressions can be arbitrarily nested, and the expressions can be layered on additively to create complex relationships that can't be expression in a single expression.
 
 Each of th
