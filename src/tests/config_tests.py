@@ -689,6 +689,28 @@ def test41():
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
+def test42():
+    cap = Capture()
+             
+    class NS(NamespaceSpec):
+        grid1 = NSMultiComponent(Component("grid1", host_ref="127.0.0.1"))
+        grid2 = NSMultiComponent(Component("grid2", host_ref="127.0.0.1"))
+    ns = NS()
+         
+    class Cfg(ConfigSpec):
+        grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
+                              NS.q.union(NS.q.grid1, NS.q.grid2))
+    cfg = Cfg()
+    
+    for i in range(5):
+        _ = ns.grid1[i]
+    for i in range(3):
+        _ = ns.grid2[i]
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+    assert len(cfg.grid_prep.instances) == 8 and len(cap.performed) == 8
+
 def do_all():
     setup()
     test37()
