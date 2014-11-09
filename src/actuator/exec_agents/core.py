@@ -48,7 +48,7 @@ class ConfigRecord(object):
 class ExecutionAgent(object):
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
-                 num_threads=5):
+                 num_threads=1):
         #@TODO: need to add a test for the type of the exec_model_instance 
         self.exec_mi = exec_model_instance
         if config_model_instance is not None and not isinstance(config_model_instance, ConfigSpec):
@@ -112,7 +112,8 @@ class ExecutionAgent(object):
         
     def perform_config(self, completion_record=None):
         if self.namespace_mi and self.config_mi:
-            self.config_mi.set_namespace(self.namespace_mi)
+#             self.config_mi.set_namespace(self.namespace_mi)
+            self.config_mi.update_nexus(self.namespace_mi.nexus)
             nodes = self.config_mi.get_tasks()
             for n in nodes:
                 n.fix_arguments()

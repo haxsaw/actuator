@@ -603,7 +603,7 @@ def test37():
     cfg.grid_prep._fix_arguments()
     
     assert (len(cfg.grid_prep.instances) == 1 and
-            cfg.grid_prep.instances[0].name == "gp-grid_0")
+            cfg.grid_prep.instances.value()[0].name == "gp-grid_0")
     
 def test38():
     class NS(NamespaceSpec):
@@ -619,7 +619,7 @@ def test38():
     cfg.grid_prep._fix_arguments()
     
     assert (len(cfg.grid_prep.instances) == 1 and
-            cfg.grid_prep.instances[0].name == "gp-grid_0")
+            cfg.grid_prep.instances.value()[0].name == "gp-grid_0")
 
 def test39():
     cap = Capture()
@@ -670,8 +670,28 @@ def test40():
              cap.pos("static", "after") > cap.pos("grid_1", "rt-grid_1") and
              cap.pos("static", "after") > cap.pos("grid_2", "rt-grid_2")))
 
+def test41():
+    cap = Capture()
+             
+    class NS(NamespaceSpec):
+        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    ns = NS()
+         
+    class Cfg(ConfigSpec):
+        grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
+                              NS.q.grid)
+    cfg = Cfg()
+    
+    for i in range(5):
+        _ = ns.grid[i]
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+    assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
+
 def do_all():
     setup()
+    test37()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

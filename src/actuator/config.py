@@ -25,9 +25,10 @@ Created on 7 Sep 2014
 import itertools
 from collections import Iterable
 import networkx as nx
-from actuator.modeling import ModelComponent, ModelReference,\
-    AbstractModelReference
-from actuator.namespace import _ComputableValue
+from actuator.modeling import (ModelComponent, ModelReference,
+                               AbstractModelReference, ModelInstanceReference, SpecBase,
+    SpecBaseMeta)
+from actuator.namespace import _ComputableValue, NamespaceSpec
 from actuator.utils import ClassModifier, process_modifiers
 
 class ConfigException(Exception): pass
@@ -135,7 +136,7 @@ class _ConfigTask(Orable, ModelComponent):
             cv = _ComputableValue(val)
             val = cv.expand(self.task_component)
         elif isinstance(val, ModelReference) and self._model_instance:
-            val = self._model_instance.namespace_model_instance.get_inst_ref(val)
+            val = self._model_instance.get_namespace().get_inst_ref(val)
         return val
             
     def _fix_arguments(self):
@@ -163,7 +164,7 @@ class RendezvousTask(_ConfigTask):
         return
     
 
-class ConfigSpecMeta(type):
+class ConfigSpecMeta(SpecBaseMeta):
     def __new__(cls, name, bases, attr_dict):
         all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, _ConfigTask)}
         attr_dict[_node_dict] = all_tasks
@@ -183,10 +184,12 @@ class ConfigSpecMeta(type):
         return newbie
     
 
-class ConfigSpec(object):
+class ConfigSpec(SpecBase):
     __metaclass__ = ConfigSpecMeta
+    ref_class = ModelInstanceReference
     
-    def __init__(self, namespace_model_instance=None):
+    def __init__(self, namespace_model_instance=None, nexus=None):
+        super(ConfigSpec, self).__init__(nexus=nexus)
         self.namespace_model_instance = namespace_model_instance
         clone_dict = {}
         #NOTE! _node_dict is an inverted dictionary (the string keys are
@@ -200,14 +203,20 @@ class ConfigSpec(object):
             for etan in v._embedded_exittask_attrnames():
                 clone_dict[getattr(v, etan)] = getattr(clone, etan)
             setattr(self, k, clone)
+            _ = getattr(self, k)  #this primes the reference machinery
         self.dependencies = [d.clone(clone_dict)
                              for d in self.get_class_dependencies()]
             
     def set_namespace(self, namespace):
         self.namespace_model_instance = namespace
         
+    def get_namespace(self):
+        if not self.namespace_model_instance:
+            self.namespace_model_instance = self.nexus.find_instance(NamespaceSpec)
+        return self.namespace_model_instance
+        
     def get_dependencies(self):
-        inst_nodes = [getattr(self, name) for name in self._node_dict.values()]
+        inst_nodes = [getattr(self, name).value() for name in self._node_dict.values()]
         return list(itertools.chain(self.dependencies,
                                     list(itertools.chain(*[n.unpack()
                                                            for n in inst_nodes
@@ -222,7 +231,7 @@ class ConfigSpec(object):
         return deps
     
     def get_tasks(self):
-        return [getattr(self, k) for k in self._node_dict.values()]
+        return [getattr(self, k).value() for k in self._node_dict.values()]
 
 
 class _Cloneable(object):
