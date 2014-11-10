@@ -64,7 +64,8 @@ Cloud support modules are only required for the cloud systems you wish to provis
 You can find a discussion of the basic concepts and an overview of the use of Actuator [here](Tutorial.md).
 
 ## <a name="hattips">Acknowledgements</a>
-The following projects have provided inspiration, ideas, or approaches that are used in Actuator.
+The following projects and people have provided inspiration, ideas, or approaches that are used in Actuator.
 
 - [Elixir](http://elixir.ematia.de/trac/): Actuator's declarative style has been informed by Elixir's declarative ORM approach. Additionally, Actuator uses a similar mechanism to Elixir's for its "with_" functions that provide modifications to a modeling class (such as with_variables() and with_components()).
 - [Celery](http://www.celeryproject.org/): Actuator has re-used some of Celery's notation for describing dependencies between tasks and other entities.
+- [John Nolan](https://www.linkedin.com/pub/john-s-nolan/1/7/a8a), who provided sounding board for ideas and spent time pairing on an initial implementation.
