@@ -68,4 +68,4 @@ The following projects and people have provided inspiration, ideas, or approache
 
 - [Elixir](http://elixir.ematia.de/trac/): Actuator's declarative style has been informed by Elixir's declarative ORM approach. Additionally, Actuator uses a similar mechanism to Elixir's for its "with_" functions that provide modifications to a modeling class (such as with_variables() and with_components()).
 - [Celery](http://www.celeryproject.org/): Actuator has re-used some of Celery's notation for describing dependencies between tasks and other entities.
-- [John Nolan](https://www.linkedin.com/pub/john-s-nolan/1/7/a8a), who provided sounding board for ideas and spent time pairing on an initial implementation.
+- [John Nolan](https://www.linkedin.com/pub/john-s-nolan/1/7/a8a), who provided a sounding board for ideas and spent time pairing on an initial implementation.
