@@ -174,6 +174,22 @@ class InfraSpec(SpecBase):
         return dict(self.__dict__)
     
     
-class ServerRef(object):
-    def get_admin_ip(self):
+class IPAddressable(object):
+    def ip(self):
         raise TypeError("Not implemented")
+    
+    
+class StaticServer(IPAddressable, Provisionable):
+    def __init__(self, name, hostname_or_ip):
+        super(StaticServer, self).__init__(name)
+        self.hostname_or_ip = None
+        self._hostname_or_ip = hostname_or_ip
+        
+    def _fix_arguments(self):
+        self.hostname_or_ip = self._get_arg_value(self._hostname_or_ip)
+        
+    def get_init_args(self):
+        return ((self.name, self._hostname_or_ip), {})
+    
+    def ip(self):
+        return self.hostname_or_ip

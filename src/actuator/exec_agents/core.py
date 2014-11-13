@@ -48,7 +48,7 @@ class ConfigRecord(object):
 class ExecutionAgent(object):
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
-                 num_threads=1):
+                 num_threads=5):
         #@TODO: need to add a test for the type of the exec_model_instance 
         self.exec_mi = exec_model_instance
         if config_model_instance is not None and not isinstance(config_model_instance, ConfigSpec):
@@ -73,24 +73,34 @@ class ExecutionAgent(object):
         self.error_details = None
         
     def perform_task(self, graph, task):
-        try:
-            self._perform_task(task)
-        except Exception, _:
-            self.error_details = sys.exc_info()
-            self.abort_process_tasks()
-        else:
-            
-            self.node_lock.acquire()
-            self.num_tasks_to_perform -= 1
-            if self.num_tasks_to_perform == 0:
-                self.stop = True
-                self.completion_lock.release()
+        try_count = 0
+        success = False
+        while try_count < task.repeat_count and not success:
+            try_count += 1
+            try:
+                self._perform_task(task)
+                success = True
+            except Exception, _:
+                print ">>>Task Exception for %s!" % task.name
+                if try_count < task.repeat_count:
+                    print "Retrying %s" % task.name
+                self.error_details = sys.exc_info()
+#                 self.abort_process_tasks()
             else:
-                for successor in graph.successors_iter(task):
-                    graph.node[successor]["ins_traversed"] += 1
-                    if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
-                        self.task_queue.put((graph, successor))
-            self.node_lock.release()
+                self.node_lock.acquire()
+                self.num_tasks_to_perform -= 1
+                if self.num_tasks_to_perform == 0:
+                    self.stop = True
+#                     self.completion_lock.release()
+                else:
+                    for successor in graph.successors_iter(task):
+                        graph.node[successor]["ins_traversed"] += 1
+                        if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
+                            self.task_queue.put((graph, successor))
+                self.node_lock.release()
+        if not success:
+            print "ABORTING"
+            self.abort_process_tasks()
         
     def _perform_task(self, task):
 #         task.fix_arguments()
@@ -99,7 +109,10 @@ class ExecutionAgent(object):
         
     def abort_process_tasks(self):
         self.stop = True
-        self.completion_lock.release()
+#         try:
+#             self.completion_lock.release()
+#         except:
+#             pass
         
     def process_tasks(self):
         while not self.stop:
@@ -132,11 +145,13 @@ class ExecutionAgent(object):
                 worker = threading.Thread(target=self.process_tasks)
                 worker.start()
             #queue the initial tasks
+#             self.completion_lock.acquire()
             for task in (t for t in nodes if graph.in_degree(t) == 0):
                 self.task_queue.put((graph, task))
-            self.completion_lock.acquire()
             #now wait to be signaled it finished
-            self.completion_lock.acquire()
+#             self.completion_lock.acquire()
+            while not self.stop:
+                time.sleep(0.2)
             if self.error_details:
                 raise self.error_details[1], None, self.error_details[2]
         else:

@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from actuator.infra import IPAddressable
 
 '''
 Created on 7 Sep 2014
@@ -54,14 +55,39 @@ def with_dependencies(cls, *args, **kwargs):
             raise ConfigException("Argument %s is not a dependency: %s" % str(arg))
     deps.extend(list(args))
     
-_node_dict = "_node_dict"
+_config_options = "__config_options__"
+_legal_options = set(["default_task_component"])
 @ClassModifier
-def with_tasks(cls, *args, **kwargs):
-    task_nodes = cls.__dict__.get(_node_dict)
-    if task_nodes is None:
-        task_nodes = {}
-        setattr(cls, _node_dict, task_nodes)
-    task_nodes.update({v:k for k, v in kwargs.items()})
+def with_config_options(cls, *args, **kwargs):
+    opts = cls.__dict__.get(_config_options)
+    if opts is None:
+        opts = {}
+        setattr(cls, _config_options, opts)
+    for k, v in kwargs.items():
+        if k not in _legal_options:
+            raise ConfigException("Unrecognized option: {}".format(k))
+        opts[k] = v
+    
+_node_dict = "_node_dict"
+#
+#@FIXME at the moment, this capability doesn't make sense in the larger scheme of
+#config specs; this is because although you could theoretically add a bunch of
+#tasks from some task library, you won't have access to the objects to enter
+#them into dependency expressions in any easy way. Even if you added the expressions
+#in the same library module and just added them with "with_dependencies", you
+#would still have an awkward time knintting those in to the overall dependency
+#structure of the config. So until that gets figured out this functionality
+#is off. Besides, it isn't working properly anyway, as the base metaclass
+#expects things to be dumped into the "__components" dict in the class,
+#not '_node_dict'
+#
+# @ClassModifier
+# def with_tasks(cls, *args, **kwargs):
+#     task_nodes = cls.__dict__.get(_node_dict)
+#     if task_nodes is None:
+#         task_nodes = {}
+#         setattr(cls, _node_dict, task_nodes)
+#     task_nodes.update({v:k for k, v in kwargs.items()})
     
 
 class Orable(object):
@@ -96,8 +122,8 @@ class Orable(object):
 
 
 class _ConfigTask(Orable, ModelComponent):
-    def __init__(self, name, task_component=None, run_from=None, repeat_til_success=False,
-                 repeat_count=1, repeat_interval=5):
+    def __init__(self, name, task_component=None, run_from=None, repeat_til_success=True,
+                 repeat_count=2, repeat_interval=5):
         super(_ConfigTask, self).__init__(name)
         self.task_component = None
         self._task_component = task_component
@@ -120,6 +146,9 @@ class _ConfigTask(Orable, ModelComponent):
                     else self.task_component.host_ref.value())
         else:
             host = None
+        if isinstance(host, IPAddressable):
+            host.fix_arguments()
+            host = host.ip()
         return host
         
     def get_init_args(self):
@@ -159,7 +188,11 @@ class _ConfigTask(Orable, ModelComponent):
         raise TypeError("Derived class must implement")
     
     
-class RendezvousTask(_ConfigTask):
+class StructuralTask(object):
+    pass
+    
+    
+class RendezvousTask(_ConfigTask, StructuralTask):
     def perform(self):
         return
     
@@ -286,7 +319,7 @@ class TaskGroup(Orable, _Cloneable, _Unpackable):
         return list(itertools.chain(*[arg.exit_nodes() for arg in self.args]))
     
 
-class MultiTask(_ConfigTask, _Unpackable):
+class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
     def __init__(self, name, template, task_component_list, **kwargs):
         super(MultiTask, self).__init__(name, **kwargs)
         self.template = None
@@ -313,6 +346,7 @@ class MultiTask(_ConfigTask, _Unpackable):
     
     def _fix_arguments(self):
         super(MultiTask, self)._fix_arguments()
+        self.rendezvous.fix_arguments()
         self.template = self._get_arg_value(self._template)
         self.task_component_list = self._get_arg_value(self._task_component_list)
         if isinstance(self.task_component_list, AbstractModelReference):

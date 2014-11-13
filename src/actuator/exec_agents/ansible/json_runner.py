@@ -20,24 +20,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
-#patch in the subprocess32 module so that it gets picked up
-#instead of the 2.7.x subprocess module
-import subprocess
-import subprocess32
-subprocess32._args_from_interpreter_flags = subprocess._args_from_interpreter_flags
-sys.modules["subprocess"] = subprocess32
-del subprocess
+'''
+Created on Nov 13, 2014
+'''
 
-from modeling import MultiComponent, MultiComponentGroup, ComponentGroup, ctxt, ActuatorException
-from infra import (InfraSpec, InfraException, with_infra_components, StaticServer)
-from namespace import (Var, NamespaceSpec, with_variables, NamespaceException, Component,
-                       with_components, NSMultiComponent, NSComponentGroup,
-                       NSMultiComponentGroup)
-from config import (ConfigSpec, with_searchpath, with_dependencies, MakeDir, Template,
-                    CopyAssets, ConfigJob, ConfigException, TaskGroup, NullTask,
-                    MultiTask)
-from provisioners.core import ProvisionerException
-from exec_agents.core import ExecutionAgent, ExecutionException
-from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
-                          CopyFileTask)
+import sys
+import json
+import traceback
+import actuator   #this must come before importing ansible; it patches subprocess
+from ansible.runner import Runner
+
+
+def run_from_json(json_msg):
+    kwargs = json.loads(json_msg)
+    runner = Runner(**kwargs)
+    result = runner.run()
+    return json.dumps(result)
+
+
+if __name__ == "__main__":
+    msg = sys.stdin.read()
+    try:
+        result = run_from_json(msg)
+        sys.stdout.write(result)
+        sys.stdout.flush()
+    except Exception, e:
+        sys.stderr.write(e.message)
+        etype, evalue, tb = sys.exc_info()
+        traceback.print_exception(etype, evalue, tb, file=sys.stderr)
+        sys.stderr.flush()
+    sys.exit(0)

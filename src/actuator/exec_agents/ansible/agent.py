@@ -22,9 +22,16 @@
 '''
 Created on Oct 21, 2014
 '''
-from ansible.runner import Runner
+import json
+import sys
 
+# from ansible.runner import Runner
+import subprocess32
+
+from actuator.infra import IPAddressable
 from actuator.exec_agents.core import ExecutionAgent, ExecutionException
+from actuator.exec_agents.ansible import json_runner
+from actuator.config import StructuralTask
 from actuator.config_tasks import *
 from actuator.utils import capture_mapping, get_mapper
 
@@ -59,7 +66,9 @@ class TaskProcessor(object):
                 raise ExecutionException("{module} {task} failed on {host} with the following message: {msg}"
                                          .format(module=self.module_name(),
                                                  task=task.name,
-                                                 msg=result["contacted"][host]["msg"],
+                                                 msg=(result["contacted"][host]["msg"]
+                                                      if result["contacted"][host]["msg"]
+                                                      else "NO MESSAGE"),
                                                  host=host))
 
 
@@ -137,35 +146,38 @@ class CopyFileProcessor(TaskProcessor):
         if task.validate is not None: cmplx["validate"] = task.validate
         return args
     
-#     def result_check(self, task, result):
-#         if len(result["dark"]):
-#             raise ExecutionException("Unable to reach {hosts} for {module} {cmd}"
-#                                      .format(hosts=":".join(result["dark"].keys()),
-#                                              cmd=task.free_form,
-#                                              module=self.module_name()))
-#         else:
-#             host = task.get_task_host()
-#             if "msg" in result["contacted"][host]:
-#                 raise ExecutionException("{module} {cmd} failed on {host} with the following message: {msg}"
-#                                          .format(module=self.module_name(),
-#                                                  cmd=task.free_form,
-#                                                  msg=result["contacted"][host]["msg"],
-#                                                  host=host))
-
 
 class AnsibleExecutionAgent(ExecutionAgent):
     def _perform_task(self, task):
-        cmapper = get_mapper(_agent_domain)
-        processor = cmapper[task.__class__]()
         task.fix_arguments()
-        task.task_component.fix_arguments()
-        task_host = task.get_task_host()
-        if task_host is not None:
-            hlist = [task_host]
+        if isinstance(task, StructuralTask):
+            task.perform()
         else:
-            raise ExecutionException("We need a default execution host")
-        kwargs = processor.make_args(task, hlist)
-        runner = Runner(**kwargs)
-        result = runner.run()
-        processor.result_check(task, result)
+            cmapper = get_mapper(_agent_domain)
+            processor = cmapper[task.__class__]()
+#             task.fix_arguments()
+            task.task_component.fix_arguments()
+            task_host = task.get_task_host()
+            if task_host is not None:
+                print "Task %s being run on %s" % (task.name, task_host)
+                hlist = [task_host]
+            else:
+                raise ExecutionException("We need a default execution host")
+            kwargs = processor.make_args(task, hlist)
+            kwargs["forks"] = 1
+            msg = json.dumps(kwargs)
+            args = [sys.executable,
+                    json_runner.__file__]
+            proc = subprocess32.Popen(args, stdin=subprocess32.PIPE,
+                                      stdout=subprocess32.PIPE,
+                                      stderr=subprocess32.PIPE)
+            proc.stdin.write(msg)
+            proc.stdin.flush()
+            proc.stdin.close()
+            reply = proc.stdout.read()
+            result = json.loads(reply)
+#             result = json.loads(json_runner.run_from_json(msg))
+#             runner = Runner(**kwargs)
+#             result = runner.run()
+            processor.result_check(task, result)
         return

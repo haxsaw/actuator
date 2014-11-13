@@ -46,8 +46,8 @@ class ScriptTask(_ConfigTask):
         kwargs["removes"] = self._removes
         return args, kwargs
 
-    def fix_arguments(self):
-        super(ScriptTask, self).fix_arguments()
+    def _fix_arguments(self):
+        super(ScriptTask, self)._fix_arguments()
         self.free_form = self._get_arg_value(self._free_form)
         self.creates = self._get_arg_value(self._creates)
         self.removes = self._get_arg_value(self._removes)
@@ -72,8 +72,8 @@ class CommandTask(ScriptTask):
         kwargs["warn"] = self._warn
         return args, kwargs
 
-    def fix_arguments(self):
-        super(CommandTask, self).fix_arguments()
+    def _fix_arguments(self):
+        super(CommandTask, self)._fix_arguments()
         self.chdir = self._get_arg_value(self._chdir)
         self.executable = self._get_arg_value(self._executable)
         self.warn = self._get_arg_value(self._warn)
@@ -142,8 +142,8 @@ class CopyFileTask(_ConfigTask):
         kwargs["validate"] = self._validate
         return args, kwargs
     
-    def fix_arguments(self):
-        super(CopyFileTask, self).fix_arguments()
+    def _fix_arguments(self):
+        super(CopyFileTask, self)._fix_arguments()
         self.dest = self._get_arg_value(self._dest)
         self.backup = self._get_arg_value(self._backup)
         self.backup = "yes" if self.backup else "no"

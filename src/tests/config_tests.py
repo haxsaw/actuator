@@ -25,7 +25,7 @@ Created on 13 Jul 2014
 '''
 from actuator import *
 from actuator.config import _Dependency, _ConfigTask
-from actuator.infra import ServerRef
+from actuator.infra import IPAddressable
 
 MyConfig = None
 search_path = ["p1", "p2", "p3"]
@@ -365,11 +365,11 @@ class ReportingTask(_ConfigTask):
         self.report(self.task_component.name.value(), self.name)
 
 
-class BogusServerRef(ServerRef):
-    def get_admin_ip(self):
+class BogusServerRef(IPAddressable):
+    def ip(self):
         return "8.8.8.8"
     
-    admin_ip = property(get_admin_ip)
+    admin_ip = property(ip)
         
 
 def test27():
@@ -713,7 +713,6 @@ def test42():
 
 def do_all():
     setup()
-    test37()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

@@ -929,13 +929,13 @@ def test149():
         assert "has already been" in e.message
         
 def test150():
-    from actuator.infra import ServerRef
-    class NoAdminIP(ServerRef):
+    from actuator.infra import IPAddressable
+    class NoAdminIP(IPAddressable):
         pass
     s = NoAdminIP()
     try:
-        _ = s.get_admin_ip()
-        raise False, "Should not have been able to call get_admin_ip()"
+        _ = s.ip()
+        raise False, "Should not have been able to call ip()"
     except TypeError, e:
         assert "Not implemented" in e.message
         

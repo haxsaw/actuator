@@ -286,6 +286,7 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
                 tmp_ref = AbstractModelReference.find_ref_for_obj(self._get_arg_value(host_ref))
                 if tmp_ref is not None:
                     host_ref = tmp_ref
+#                     host_ref.fix_arguments()
             self.host_ref = host_ref
             
     def get_init_args(self):

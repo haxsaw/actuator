@@ -28,7 +28,7 @@ import socket
 import os.path
 from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
                       with_variables, ExecutionException, CommandTask,
-                      ScriptTask, CopyFileTask)
+                      ScriptTask, CopyFileTask, InfraSpec, StaticServer)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 
 
@@ -210,8 +210,32 @@ def test009():
     except ExecutionException, e:
         assert False, e.message
     
+def test010():
+    class SimpleInfra(InfraSpec):
+        testbox = StaticServer("testbox", find_ip())
+    infra = SimpleInfra("simple")
+        
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("CMD_TARGET", find_ip()),
+                       Var("WHERE", "/bin"))
+        cmd_target = Component("cmd-target", host_ref=SimpleInfra.testbox)
+    ns = SimpleNamespace()
+    ns.compute_provisioning_for_environ(infra)
+          
+    class SimpleConfig(ConfigSpec):
+        ping = CommandTask("cmd", "/bin/ls", chdir="!WHERE!",
+                           task_component=SimpleNamespace.cmd_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
+
 
 def do_all():
+    test010()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
