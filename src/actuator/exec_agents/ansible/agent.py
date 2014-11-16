@@ -23,17 +23,13 @@
 Created on Oct 21, 2014
 '''
 import json
-import sys
 
-# from ansible.runner import Runner
-import subprocess32
-
-from actuator.infra import IPAddressable
 from actuator.exec_agents.core import ExecutionAgent, ExecutionException
-from actuator.exec_agents.ansible import json_runner
 from actuator.config import StructuralTask
 from actuator.config_tasks import *
 from actuator.utils import capture_mapping, get_mapper
+
+from ansible.runner import Runner
 
 _agent_domain = "ANSIBLE_AGENT"
 
@@ -54,22 +50,37 @@ class TaskProcessor(object):
     def _make_args(self, task):
         raise TypeError("derived class must implement")
     
-    def result_check(self, task, result):
+    def result_check(self, task, result, logfile=None):
         if len(result["dark"]):
-            raise ExecutionException("Unable to reach {hosts} for {module} {task}"
+            emessage = ("Unable to reach {hosts} for {module} {task}"
                                      .format(hosts=":".join(result["dark"].keys()),
                                              task=task.name,
                                              module=self.module_name()))
+            if logfile:
+                logfile.write("{}\n".format(emessage))
+            raise ExecutionException(emessage)
         else:
             host = task.get_task_host()
             if "msg" in result["contacted"][host]:
-                raise ExecutionException("{module} {task} failed on {host} with the following message: {msg}"
-                                         .format(module=self.module_name(),
-                                                 task=task.name,
-                                                 msg=(result["contacted"][host]["msg"]
-                                                      if result["contacted"][host]["msg"]
-                                                      else "NO MESSAGE"),
-                                                 host=host))
+                emessage = ("{module} {task} failed on {host} with the following emessage: {msg}"
+                                .format(module=self.module_name(),
+                                        task=task.name,
+                                        msg=(result["contacted"][host]["msg"]
+                                             if result["contacted"][host]["msg"]
+                                             else "NO MESSAGE"),
+                                        host=host))
+                if logfile:
+                    logfile.write("{}\n".format(emessage))
+                raise ExecutionException(emessage)
+            elif result["contacted"][host]["rc"] != 0:
+                emessage = ("{module} {task} failed on {host} with the following return code: {rc}"
+                                .format(module=self.module_name(),
+                                        task=task.name,
+                                        host=host,
+                                        rc=result["contacted"][host]["rc"]))
+                if logfile:
+                    logfile.write("{}\n".format(emessage))
+                raise ExecutionException(emessage)
 
 
 @capture_mapping(_agent_domain, PingTask)
@@ -148,7 +159,7 @@ class CopyFileProcessor(TaskProcessor):
     
 
 class AnsibleExecutionAgent(ExecutionAgent):
-    def _perform_task(self, task):
+    def _perform_task(self, task, logfile=None):
         task.fix_arguments()
         if isinstance(task, StructuralTask):
             task.perform()
@@ -159,25 +170,33 @@ class AnsibleExecutionAgent(ExecutionAgent):
             task.task_component.fix_arguments()
             task_host = task.get_task_host()
             if task_host is not None:
-                print "Task %s being run on %s" % (task.name, task_host)
+                msg = "Task {} being run on {}".format(task.name, task_host)
+                if logfile:
+                    logfile.write("{}\n".format(msg))
+#                 print msg
                 hlist = [task_host]
             else:
                 raise ExecutionException("We need a default execution host")
             kwargs = processor.make_args(task, hlist)
             kwargs["forks"] = 1
-            msg = json.dumps(kwargs)
-            args = [sys.executable,
-                    json_runner.__file__]
-            proc = subprocess32.Popen(args, stdin=subprocess32.PIPE,
-                                      stdout=subprocess32.PIPE,
-                                      stderr=subprocess32.PIPE)
-            proc.stdin.write(msg)
-            proc.stdin.flush()
-            proc.stdin.close()
-            reply = proc.stdout.read()
-            result = json.loads(reply)
-#             result = json.loads(json_runner.run_from_json(msg))
-#             runner = Runner(**kwargs)
-#             result = runner.run()
-            processor.result_check(task, result)
+            if logfile:
+                logfile.write(">>>Params:\n{}\n".format(json.dumps(kwargs)))
+            
+#             msg = json.dumps(kwargs)
+#             args = [sys.executable,
+#                     json_runner.__file__]
+#             proc = subprocess32.Popen(args, stdin=subprocess32.PIPE,
+#                                       stdout=subprocess32.PIPE,
+#                                       stderr=subprocess32.PIPE)
+#             proc.stdin.write(msg)
+#             proc.stdin.flush()
+#             proc.stdin.close()
+#             reply = proc.stdout.read()
+#             result = json.loads(reply)
+            
+            runner = Runner(**kwargs)
+            result = runner.run()
+            if logfile:
+                logfile.write(">>>Result:\n{}\n".format(json.dumps(result)))
+            processor.result_check(task, result, logfile=logfile)
         return
