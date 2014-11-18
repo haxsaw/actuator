@@ -84,7 +84,8 @@ def test003():
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
-        ping = PingTask("ping", task_component=SimpleNamespace.ping_target)
+        ping = PingTask("ping", task_component=SimpleNamespace.ping_target,
+                        repeat_count=1)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns)
@@ -92,7 +93,7 @@ def test003():
         ea.perform_config()
         assert False, "This should have caused an error to be raised"
     except ExecutionException, e:
-        assert "not.an.ip.addy" in e.message
+        assert len(ea.get_aborted_tasks()) == 1
         
 def test004():
     class SimpleNamespace(NamespaceSpec):
@@ -128,6 +129,8 @@ def test005():
         assert False, e.message
 
 def test006():
+    """test006 should raise an exception during perform_config() because
+    /bin/wibble doesn't exist"""
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()))
         cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
@@ -135,7 +138,8 @@ def test006():
           
     class SimpleConfig(ConfigSpec):
         ping = CommandTask("cmd", "/bin/wibble", chdir="/home/tom",
-                           task_component=SimpleNamespace.cmd_target)
+                           task_component=SimpleNamespace.cmd_target,
+                           repeat_count=1)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns)
@@ -143,7 +147,7 @@ def test006():
         ea.perform_config()
         assert False, "this should have failed"
     except ExecutionException, e:
-        assert "failed on" in e.message
+        assert len(ea.get_aborted_tasks()) == 1
 
 def test007():
     class SimpleNamespace(NamespaceSpec):
@@ -195,11 +199,13 @@ def test009():
     ns = SimpleNamespace()
     
     class SimpleConfig(ConfigSpec):
-        cleanup = CommandTask("clean", "/bin/rm -f !PKG!", chdir="!DEST!",
-                              task_component=SimpleNamespace.copy_target)
+        cleanup = CommandTask("clean", "/bin/rm -rf !PKG!", chdir="!DEST!",
+                              task_component=SimpleNamespace.copy_target,
+                              repeat_count=1)
         copy = CopyFileTask("copy-file", "!DEST!",
                             src=os.path.join(os.getcwd(), "!PKG!"),
-                            task_component=SimpleNamespace.copy_target)
+                            task_component=SimpleNamespace.copy_target,
+                            repeat_count=1)
         with_dependencies(cleanup | copy)
         
     cfg = SimpleConfig()
@@ -208,6 +214,11 @@ def test009():
     try:
         ea.perform_config()
     except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
         assert False, e.message
     
 def test010():
@@ -235,7 +246,7 @@ def test010():
 
 
 def do_all():
-    test010()
+    test001()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

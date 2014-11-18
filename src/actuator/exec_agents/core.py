@@ -26,6 +26,8 @@ import Queue
 import threading
 import time
 import sys
+import traceback
+import random
 
 import networkx as nx
 from actuator import ConfigSpec, NamespaceSpec, InfraSpec, ActuatorException
@@ -66,13 +68,30 @@ class ExecutionAgent(object):
         self.task_queue = Queue.Queue()
         self.node_lock = threading.Lock()
         self.stop = False
+        self.aborted_tasks = []
         self.num_tasks_to_perform = None
         self.config_record = None
         self.num_threads = num_threads
         self.do_log = do_log
         self.retry_wait = 20
         
+    def record_aborted_task(self, task, etype, value, tb):
+        self.aborted_tasks.append( (task, etype, value, tb) )
+        
+    def has_aborted_tasks(self):
+        return len(self.aborted_tasks) > 0
+    
+    def get_aborted_tasks(self):
+        """
+        Returns a list of 4-tuples: the task that aborted, the exception type, the exception
+        value, and the traceback.
+        """
+        return list(self.aborted_tasks)
+        
     def perform_task(self, graph, task):
+        #start with a small random wait to try to avoid too many things going to the
+        #same machine at the same time
+        time.sleep(random.uniform(0.2, 2.5))
         try_count = 0
         success = False
         while try_count < task.repeat_count and not success:
@@ -89,12 +108,19 @@ class ExecutionAgent(object):
                 if logfile:
                     logfile.write("{}\n".format(msg))
 #                 print msg
+                etype, value, tb = sys.exc_info()
                 if try_count < task.repeat_count:
-                    msg = "Retrying {} again in {} secs".format(task.name, self.retry_wait)
+                    retry_wait = task.repeat_count * task.repeat_interval
+                    msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
                     if logfile:
                         logfile.write("{}\n".format(msg))
+                        traceback.print_exception(etype, value, tb, file=logfile)
 #                     print msg
-                    time.sleep(self.retry_wait)
+                    time.sleep(retry_wait)
+                else:
+                    self.record_aborted_task(task, etype, value, tb)
+                del etype, value, tb
+                sys.exc_clear()
             else:
                 self.node_lock.acquire()
                 self.num_tasks_to_perform -= 1
@@ -114,7 +140,7 @@ class ExecutionAgent(object):
 #             print "ABORTING"
             self.abort_process_tasks()
         
-    def _perform_task(self, task):
+    def _perform_task(self, task, logfile=None):
         task.perform()
         
     def abort_process_tasks(self):
@@ -153,5 +179,7 @@ class ExecutionAgent(object):
             #now wait to be signaled it finished
             while not self.stop:
                 time.sleep(0.2)
+            if self.aborted_tasks:
+                raise ExecutionException("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")

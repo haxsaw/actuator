@@ -72,7 +72,7 @@ class TaskProcessor(object):
                 if logfile:
                     logfile.write("{}\n".format(emessage))
                 raise ExecutionException(emessage)
-            elif result["contacted"][host]["rc"] != 0:
+            elif "rc" in result["contacted"][host] and result["contacted"][host]["rc"] != 0:
                 emessage = ("{module} {task} failed on {host} with the following return code: {rc}"
                                 .format(module=self.module_name(),
                                         task=task.name,

@@ -24,7 +24,7 @@ from actuator.namespace import NSMultiComponent
 Created on 13 Jul 2014
 '''
 from actuator import *
-from actuator.config import _Dependency, _ConfigTask
+from actuator.config import _Dependency, _ConfigTask, StructuralTask
 from actuator.infra import IPAddressable
 
 MyConfig = None
@@ -344,7 +344,7 @@ class Capture(object):
         return self.performed.index((name, task))
         
     
-class ReportingTask(_ConfigTask):
+class ReportingTask(_ConfigTask, StructuralTask):
     def __init__(self, name, target=None, report=lambda n, o: (n, o), **kwargs):
         super(ReportingTask, self).__init__(name, task_component=target, **kwargs)
         self.target = target
@@ -394,13 +394,13 @@ def test28():
     ns = PingNamespace()
         
     class PingConfig(ConfigSpec):
-        t3 = ReportingTask("t3", target=PingNamespace.ping_target, report=cap)
-        t2 = ReportingTask("t2", target=PingNamespace.ping_target, report=cap)
-        t1 = ReportingTask("t1", target=PingNamespace.ping_target, report=cap)
+        t3 = ReportingTask("t3", target=PingNamespace.ping_target, report=cap, repeat_count=1)
+        t2 = ReportingTask("t2", target=PingNamespace.ping_target, report=cap, repeat_count=1)
+        t1 = ReportingTask("t1", target=PingNamespace.ping_target, report=cap, repeat_count=1)
         with_dependencies(t1 | t2 | t3)
     
     cfg = PingConfig()
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns, do_log=True)
     ea.perform_config()
     assert (cap.pos("ping_target", PingConfig.t1.name) <
             cap.pos("ping_target", PingConfig.t2.name) <
@@ -712,6 +712,7 @@ def test42():
     assert len(cfg.grid_prep.instances) == 8 and len(cap.performed) == 8
 
 def do_all():
+    test28()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):

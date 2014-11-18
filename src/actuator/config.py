@@ -123,7 +123,7 @@ class Orable(object):
 
 class _ConfigTask(Orable, ModelComponent):
     def __init__(self, name, task_component=None, run_from=None, repeat_til_success=True,
-                 repeat_count=2, repeat_interval=5):
+                 repeat_count=1, repeat_interval=15):
         super(_ConfigTask, self).__init__(name)
         self.task_component = None
         self._task_component = task_component
