@@ -56,7 +56,8 @@ def with_dependencies(cls, *args, **kwargs):
     deps.extend(list(args))
     
 _config_options = "__config_options__"
-_legal_options = set(["default_task_component"])
+_default_task_component = "_default_task_component"
+_legal_options = set([_default_task_component])
 @ClassModifier
 def with_config_options(cls, *args, **kwargs):
     opts = cls.__dict__.get(_config_options)
@@ -144,8 +145,13 @@ class _ConfigTask(Orable, ModelComponent):
             host = (self.task_component.host_ref
                     if isinstance(self.task_component.host_ref, basestring)
                     else self.task_component.host_ref.value())
+        elif self._model_instance:
+            #fetch the default host where tasks are to be performed;
+            #this can raise an exception if the model doesn't have a
+            #default host
+            host = self._model_instance.get_task_host()
         else:
-            host = None
+            raise ConfigException("Can't find a host for task  {}".format(self.name))
         if isinstance(host, IPAddressable):
             host.fix_arguments()
             host = host.ip()
@@ -201,6 +207,8 @@ class ConfigSpecMeta(SpecBaseMeta):
     def __new__(cls, name, bases, attr_dict):
         all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, _ConfigTask)}
         attr_dict[_node_dict] = all_tasks
+        if _config_options not in attr_dict:
+            attr_dict[_config_options] = {}
         newbie = super(ConfigSpecMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
         for v, k in getattr(newbie, _node_dict).items():
@@ -239,6 +247,30 @@ class ConfigSpec(SpecBase):
             _ = getattr(self, k)  #this primes the reference machinery
         self.dependencies = [d.clone(clone_dict)
                              for d in self.get_class_dependencies()]
+        #default option values
+        self.default_task_component = None
+        self.default_task_host = None
+        opts = object.__getattribute__(self, _config_options)
+        for k, v in opts.items():
+            if k == _default_task_component:
+                self.default_task_component = v
+                
+    def get_task_host(self):
+        if self.default_task_component:
+            if isinstance(self.default_task_component.host_ref, basestring):
+                host = self.default_task_component.host_ref
+            elif isinstance(self.default_task_component, (ModelReference, ModelInstanceReference)):
+                if self.namespace_model_instance is None:
+                    raise ConfigException("ConfigSpec instance can't get a default task host from a Namespace model reference without an instance of that model")
+                task_comp = self.namespace_model_instance.get_inst_ref(self.default_task_component)
+                task_comp.fix_arguments()
+                host = task_comp.host_ref.value()
+                if isinstance(host, IPAddressable):
+                    host.fix_arguments()
+                    host = host.ip()
+            return host
+        else:
+            raise ConfigException("No default task component defined on the config model")
             
     def set_namespace(self, namespace):
         self.namespace_model_instance = namespace

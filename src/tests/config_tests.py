@@ -24,7 +24,8 @@ from actuator.namespace import NSMultiComponent
 Created on 13 Jul 2014
 '''
 from actuator import *
-from actuator.config import _Dependency, _ConfigTask, StructuralTask
+from actuator.config import _Dependency, _ConfigTask, StructuralTask,\
+    with_config_options
 from actuator.infra import IPAddressable
 
 MyConfig = None
@@ -710,9 +711,51 @@ def test42():
     ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 8 and len(cap.performed) == 8
+    
+def test43():
+    """
+    test43: set a default task performance host using the 'default_task_component'
+    kwarg of with_config_options(), and then create a task with no task_component.
+    create an instance of the config, and see that get_task_host() on the
+    config's task returns the component's ip address
+    """
+    cap = Capture()
+    
+    class NS(NamespaceSpec):
+        task_performer = Component("tp", host_ref="127.0.0.1")
+    ns = NS()
+        
+    class Cfg(ConfigSpec):
+        with_config_options(_default_task_component=NS.task_performer)
+        a_task = ReportingTask("atask", report=cap)
+    cfg = Cfg()
+    cfg.set_namespace(ns)
+    
+    assert cfg.a_task.get_task_host() == "127.0.0.1"
+
+# def test44():
+#     """
+#     test44: like test43, but get the task host from a StaticServer in the
+#     infra model
+#     """
+#     cap = Capture()
+#     class Infra(InfraSpec):
+#         setup_server = StaticServer("setup_helper", "127.0.0.1")
+#     infra = Infra("helper")
+#     
+#     class NS(NamespaceSpec):
+#         task_performer = Component("tp", host_ref=Infra.setup_server)
+#     ns = NS()
+#         
+#     class Cfg(ConfigSpec):
+#         with_config_options(_default_task_component=NS.task_performer)
+#         a_task = ReportingTask("atask", report=cap)
+#     cfg = Cfg()
+#     
+#     assert cfg.a_task.get_task_host() == "127.0.0.1"
 
 def do_all():
-    test28()
+    test43()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
