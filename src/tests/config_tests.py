@@ -384,7 +384,8 @@ def test27():
         ping_task = ReportingTask("ping", target=PingNamespace.ping_target, report=cap)
         
     cfg = PingConfig()
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert cap.performed
     
@@ -401,7 +402,8 @@ def test28():
         with_dependencies(t1 | t2 | t3)
     
     cfg = PingConfig()
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns, do_log=True)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert (cap.pos("ping_target", PingConfig.t1.name) <
             cap.pos("ping_target", PingConfig.t2.name) <
@@ -425,7 +427,8 @@ def test29():
                           t5 | t3)
     
     cfg = PingConfig()
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert (cap.pos("ping_target", PingConfig.t1.name) <
             cap.pos("ping_target", PingConfig.t2.name) <
@@ -450,7 +453,8 @@ def test30():
         _ = ns.ping_targets[i]
          
     cfg = ElasticConfig()
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert (len(ns.ping_targets) == 5 and
             (set(["0", "1", "2", "3", "4"]) == set(ns.ping_targets.keys())) and
@@ -480,7 +484,8 @@ def test31():
         
     ns = SimpleNS()
     cfg = SimpleCfg()
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert (cfg.comp_task.vars["ID"] == "right!" and
             cfg.comp_task.vars["THREE"] == "drei" and
@@ -511,7 +516,8 @@ def test32():
         
     ns = SimpleNS()
     cfg = SimpleCfg()
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert (cfg.comp_task.vars["ID"] == "wrong" and
             cfg.comp_task.vars["THREE"] == "3" and
@@ -637,7 +643,8 @@ def test39():
     for i in range(5):
         _ = ns.grid[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
@@ -660,7 +667,8 @@ def test40():
     for i in range(3):
         _ = ns.grid[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert (len(cfg.grid_prep.instances) == 3 and
             len(cap.performed) == 5 and
@@ -686,7 +694,8 @@ def test41():
     for i in range(5):
         _ = ns.grid[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
@@ -708,7 +717,8 @@ def test42():
     for i in range(3):
         _ = ns.grid2[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 8 and len(cap.performed) == 8
     

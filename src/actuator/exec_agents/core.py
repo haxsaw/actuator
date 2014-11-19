@@ -50,7 +50,7 @@ class ConfigRecord(object):
 class ExecutionAgent(object):
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
-                 num_threads=5, do_log=False):
+                 num_threads=5, do_log=False, no_delay=False):
         #@TODO: need to add a test for the type of the exec_model_instance 
         self.exec_mi = exec_model_instance
         if config_model_instance is not None and not isinstance(config_model_instance, ConfigSpec):
@@ -73,7 +73,7 @@ class ExecutionAgent(object):
         self.config_record = None
         self.num_threads = num_threads
         self.do_log = do_log
-        self.retry_wait = 20
+        self.no_delay = no_delay
         
     def record_aborted_task(self, task, etype, value, tb):
         self.aborted_tasks.append( (task, etype, value, tb) )
@@ -91,7 +91,8 @@ class ExecutionAgent(object):
     def perform_task(self, graph, task):
         #start with a small random wait to try to avoid too many things going to the
         #same machine at the same time
-        time.sleep(random.uniform(0.2, 2.5))
+        if not self.no_delay:
+            time.sleep(random.uniform(0.2, 2.5))
         try_count = 0
         success = False
         while try_count < task.repeat_count and not success:
