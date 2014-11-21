@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from actuator.infra import IPAddressable
+# from __builtin__ import None
 
 '''
 Created on 7 Sep 2014
@@ -56,7 +57,7 @@ def with_dependencies(cls, *args, **kwargs):
     deps.extend(list(args))
     
 _config_options = "__config_options__"
-_default_task_component = "_default_task_component"
+_default_task_component = "default_task_component"
 _legal_options = set([_default_task_component])
 @ClassModifier
 def with_config_options(cls, *args, **kwargs):
@@ -137,25 +138,34 @@ class _ConfigTask(Orable, ModelComponent):
         self.repeat_interval = None
         self._repeat_interval = repeat_interval
         
+    def set_task_component(self, task_component):
+        self._task_component = task_component
+        
     def _embedded_exittask_attrnames(self):
         return []
         
     def get_task_host(self):
-        if self.task_component:
-            host = (self.task_component.host_ref
-                    if isinstance(self.task_component.host_ref, basestring)
-                    else self.task_component.host_ref.value())
-        elif self._model_instance:
-            #fetch the default host where tasks are to be performed;
-            #this can raise an exception if the model doesn't have a
-            #default host
-            host = self._model_instance.get_task_host()
-        else:
-            raise ConfigException("Can't find a host for task  {}".format(self.name))
+        comp = self.get_task_component()
+        host = (comp.host_ref
+                if isinstance(comp.host_ref, basestring)
+                else comp.host_ref.value())
         if isinstance(host, IPAddressable):
             host.fix_arguments()
             host = host.ip()
         return host
+    
+    def get_task_component(self):
+        self.fix_arguments()
+        if self.task_component is not None:
+            comp = self.task_component
+        elif self._model_instance:
+            #fetch the default task component for the entire model
+            #this can raise an exception if there isn't a
+            #default task component defined for the model
+            comp = self._model_instance.get_task_component()
+        else:
+            raise ConfigException("Can't find a task component for task {}".format(self.name))
+        return comp
         
     def get_init_args(self):
         return ((self.name,), {"task_component":self._task_component,
@@ -249,29 +259,50 @@ class ConfigSpec(SpecBase):
                              for d in self.get_class_dependencies()]
         #default option values
         self.default_task_component = None
-        self.default_task_host = None
         opts = object.__getattribute__(self, _config_options)
         for k, v in opts.items():
             if k == _default_task_component:
                 self.default_task_component = v
                 
+    def set_task_component(self, task_component):
+        if not isinstance(task_component, AbstractModelReference):
+            raise ConfigException("A default task component was supplied that isn't some kind of model reference: %s" %
+                                  str(task_component))
+        self.default_task_component = task_component
+                
+    def get_graph(self, with_fix=False):
+        nodes = self.get_tasks()
+        if with_fix:
+            for n in nodes:
+                n.fix_arguments()
+        deps = self.get_dependencies()
+        graph = nx.DiGraph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from( [d.edge() for d in deps] )
+        return graph
+        
     def get_task_host(self):
-        if self.default_task_component:
-            if isinstance(self.default_task_component.host_ref, basestring):
-                host = self.default_task_component.host_ref
-            elif isinstance(self.default_task_component, (ModelReference, ModelInstanceReference)):
-                if self.namespace_model_instance is None:
-                    raise ConfigException("ConfigSpec instance can't get a default task host from a Namespace model reference without an instance of that model")
-                task_comp = self.namespace_model_instance.get_inst_ref(self.default_task_component)
-                task_comp.fix_arguments()
-                host = task_comp.host_ref.value()
-                if isinstance(host, IPAddressable):
-                    host.fix_arguments()
-                    host = host.ip()
-            return host
-        else:
+        comp = self.get_task_component()
+        host = (comp.host_ref
+                if isinstance(comp.host_ref, basestring)
+                else comp.host_ref.value())
+        if isinstance(host, IPAddressable):
+            host.fix_arguments()
+            host = host.ip()
+        return host        
+    
+    def get_task_component(self):
+        if self.default_task_component is None:
             raise ConfigException("No default task component defined on the config model")
-            
+
+        if self.namespace_model_instance is None:
+            raise ConfigException("ConfigSpec instance can't get a default task host from a Namespace model reference without an instance of that model")
+        
+        comp_ref = self.namespace_model_instance.get_inst_ref(self.default_task_component)
+        comp_ref.fix_arguments()
+#         return comp_ref.host_ref.value()
+        return comp_ref.value()
+  
     def set_namespace(self, namespace):
         self.namespace_model_instance = namespace
         
@@ -350,6 +381,66 @@ class TaskGroup(Orable, _Cloneable, _Unpackable):
     def exit_nodes(self):
         return list(itertools.chain(*[arg.exit_nodes() for arg in self.args]))
     
+    
+class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
+    def __init__(self, name, cfg_class, init_args=None, **kwargs):
+        super(ConfigClassTask, self).__init__(name, **kwargs)
+        self.cfg_class = cfg_class
+        self.init_args = None
+        self._init_args = init_args
+        self.instance = None
+        self.dependencies = []
+        self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
+        self.graph = None
+        
+    def get_graph(self, with_fix=False):
+        if with_fix:
+            if self.graph:
+                graph = self.graph
+            else:
+                graph = self.graph = self.instance.get_graph(with_fix=with_fix)
+        else:
+            graph = self.instance.get_graph()
+        return graph
+        
+    def perform(self):
+        return
+    
+    def _or_result_class(self):
+        return _Dependency
+    
+    def get_init_args(self):
+        args, kwargs = super(ConfigClassTask, self).get_init_args()
+        args = args + (self.cfg_class,)
+        kwargs["init_args"] = self._init_args
+        return args, kwargs
+    
+    def _fix_arguments(self):
+        super(ConfigClassTask, self)._fix_arguments()
+        self.init_args = self._get_arg_value(self._init_args)
+        init_args = self.init_args if self.init_args else ()
+        model = self._model_instance
+        self.instance = self.cfg_class(*init_args,
+                                       namespace_model_instance=model.get_namespace(),
+                                       nexus=model.nexus)     
+#         self.instance.set_task_component(self.get_task_host())   
+        self.instance.set_task_component(self.task_component)   
+        graph = self.get_graph(with_fix=True)
+        entry_nodes = [n for n in graph.nodes() if graph.in_degree(n) == 0]
+        exit_nodes = [n for n in graph.nodes() if graph.out_degree(n) == 0]
+        self.dependencies = itertools.chain([_Dependency(self, c) for c in entry_nodes],
+                                            [_Dependency(c, self.rendezvous) for c in exit_nodes])
+
+    def _embedded_exittask_attrnames(self):
+        return ["rendezvous"]
+    
+    def unpack(self):
+        deps = list(self.dependencies)
+        graph = self.get_graph(with_fix=True)
+        deps.extend(itertools.chain(*[c.unpack() for c in graph.nodes()
+                                      if isinstance(c, _Unpackable)]))
+        return deps
+
 
 class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
     def __init__(self, name, template, task_component_list, **kwargs):

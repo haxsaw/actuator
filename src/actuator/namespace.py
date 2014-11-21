@@ -425,6 +425,12 @@ class NamespaceSpec(VariableContainer, SpecBase):
     def get_infra_model(self):
         return self.infra
     
+    def set_infra_model(self, infra_model):
+        if self.infra is None:
+            self.infra = infra_model
+        elif self.infra is not infra_model:
+            raise NamespaceException("A different infra model has already been supplied")
+    
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):
         self.infra = infra_instance
         if exclude_refs is None:

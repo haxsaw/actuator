@@ -159,23 +159,18 @@ class ExecutionAgent(object):
     def perform_config(self, completion_record=None):
         if self.namespace_mi and self.config_mi:
             self.config_mi.update_nexus(self.namespace_mi.nexus)
-            nodes = self.config_mi.get_tasks()
-            for n in nodes:
-                n.fix_arguments()
-            deps = self.config_mi.get_dependencies()
-            graph = nx.DiGraph()
-            graph.add_nodes_from(nodes)
-            graph.add_edges_from( [d.edge() for d in deps] )
+            graph = self.config_mi.get_graph(with_fix=True)
             self.num_tasks_to_perform = len(graph.nodes())
             for n in graph.nodes():
                 graph.node[n]["ins_traversed"] = 0
+                n.fix_arguments()
             self.stop = False
             #start the workers
             for _ in range(self.num_threads):
                 worker = threading.Thread(target=self.process_tasks)
                 worker.start()
             #queue the initial tasks
-            for task in (t for t in nodes if graph.in_degree(t) == 0):
+            for task in (t for t in graph.nodes() if graph.in_degree(t) == 0):
                 self.task_queue.put((graph, task))
             #now wait to be signaled it finished
             while not self.stop:

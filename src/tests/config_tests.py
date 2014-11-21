@@ -362,8 +362,14 @@ class ReportingTask(_ConfigTask, StructuralTask):
         return args, kwargs
         
     def perform(self):
-#         self.report(self.target.name.value(), self.name)
-        self.report(self.task_component.name.value(), self.name)
+#         self.report(self.task_component.name.value(), self.name)
+        comp = self.get_task_component()
+        if not isinstance(comp, basestring):
+            if isinstance(comp.name, basestring):
+                comp = comp.name
+            else:
+                comp = comp.name.value()
+        self.report(comp, self.name)
 
 
 class BogusServerRef(IPAddressable):
@@ -736,36 +742,103 @@ def test43():
     ns = NS()
         
     class Cfg(ConfigSpec):
-        with_config_options(_default_task_component=NS.task_performer)
+        with_config_options(default_task_component=NS.task_performer)
         a_task = ReportingTask("atask", report=cap)
     cfg = Cfg()
     cfg.set_namespace(ns)
     
     assert cfg.a_task.get_task_host() == "127.0.0.1"
 
-# def test44():
-#     """
-#     test44: like test43, but get the task host from a StaticServer in the
-#     infra model
-#     """
-#     cap = Capture()
-#     class Infra(InfraSpec):
-#         setup_server = StaticServer("setup_helper", "127.0.0.1")
-#     infra = Infra("helper")
-#     
-#     class NS(NamespaceSpec):
-#         task_performer = Component("tp", host_ref=Infra.setup_server)
-#     ns = NS()
-#         
-#     class Cfg(ConfigSpec):
-#         with_config_options(_default_task_component=NS.task_performer)
-#         a_task = ReportingTask("atask", report=cap)
-#     cfg = Cfg()
-#     
-#     assert cfg.a_task.get_task_host() == "127.0.0.1"
+def test44():
+    """
+    test44: like test43, but get the task host from a StaticServer in the
+    infra model
+    """
+    cap = Capture()
+    class Infra(InfraSpec):
+        setup_server = StaticServer("setup_helper", "127.0.0.1")
+    infra = Infra("helper")
+      
+    class NS(NamespaceSpec):
+        task_performer = Component("tp", host_ref=Infra.setup_server)
+    ns = NS()
+    ns.set_infra_model(infra)
+          
+    class Cfg(ConfigSpec):
+        with_config_options(default_task_component=NS.task_performer)
+        a_task = ReportingTask("atask", report=cap)
+    cfg = Cfg()
+    cfg.set_namespace(ns)
+      
+    assert cfg.a_task.get_task_host() == "127.0.0.1"
+    
+def test44a():
+    """
+    test44a: like test44, setting the component on the task instead of getting
+    it via the default for the config model
+    """
+    cap = Capture()
+    class Infra(InfraSpec):
+        setup_server = StaticServer("setup_helper", "127.0.0.1")
+    infra = Infra("helper")
+    infra.setup_server.fix_arguments()
+      
+    class NS(NamespaceSpec):
+        task_performer = Component("tp", host_ref=Infra.setup_server)
+    ns = NS()
+    ns.set_infra_model(infra)
+    ns.task_performer.fix_arguments()
+          
+    class Cfg(ConfigSpec):
+        a_task = ReportingTask("atask", report=cap, target=NS.task_performer)
+    cfg = Cfg()
+    cfg.set_namespace(ns)
+    cfg.a_task.fix_arguments()
+      
+    assert cfg.a_task.get_task_host() == "127.0.0.1"
+    
+def test45():
+    """
+    test45: check if you drive config tasks from a nested config class
+    """
+    class Infra(InfraSpec):
+        setup_server = StaticServer("setup_helper", "127.0.0.1")
+    infra = Infra("helper")
+    infra.setup_server.fix_arguments()
+    
+    class NS(NamespaceSpec):
+        task_performer = Component("tp", host_ref=Infra.setup_server)
+    ns = NS()
+    ns.set_infra_model(infra)
+    ns.task_performer.fix_arguments()
+    
+    cap = Capture()
+    class InnerCfg(ConfigSpec):
+        task = ReportingTask("inner_task", report=cap)
+        
+    class OuterCfg(ConfigSpec):
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        
+    cfg = OuterCfg()
+    cfg.set_namespace(ns)
+    cfg.wrapped_task.fix_arguments()
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        infra_model_instance=infra, no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
+        assert False, e.message
+
+    assert len(cap.performed) == 1
 
 def do_all():
-    test43()
+    test30()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):

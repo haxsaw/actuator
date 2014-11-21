@@ -767,6 +767,45 @@ def test65():
     value = ns.grid[5].var_value("NODE_NAME")
     assert value and value == "Grid-5"
 
+def test66():
+    class Infra(InfraSpec):
+        controller = Server("controller", mem="16GB")
+        grid = MultiComponent(Server("grid-node", mem="8GB"))
+          
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+    infra = Infra("multi_comp")
+    ns = NS()
+    ns.set_infra_model(infra)
+    try:
+        ns.set_infra_model(infra)
+        assert True
+    except NamespaceException, _:
+        assert False, "Setting the same infra model twice shouldn't be a problem"
+     
+def test67():
+    class Infra1(InfraSpec):
+        controller = Server("controller", mem="16GB")
+        grid = MultiComponent(Server("grid-node", mem="8GB"))
+          
+    class Infra2(InfraSpec):
+        controller = Server("controller", mem="16GB")
+        grid = MultiComponent(Server("grid-node", mem="8GB"))
+          
+    class NS(NamespaceSpec):
+        with_variables(Var("MYSTERY", "WRONG!"))
+        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra1.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+    infra1 = Infra1("multi_comp")
+    infra2 = Infra2("i2")
+    ns = NS()
+    ns.set_infra_model(infra1)
+    try:
+        ns.set_infra_model(infra2)
+        assert False, "This should have complained about getting a different infra model"
+    except NamespaceException, _:
+        assert True
+     
 
 def do_all():
     setup()

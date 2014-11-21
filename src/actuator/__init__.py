@@ -36,7 +36,7 @@ from namespace import (Var, NamespaceSpec, with_variables, NamespaceException, C
                        NSMultiComponentGroup)
 from config import (ConfigSpec, with_searchpath, with_dependencies, MakeDir, Template,
                     CopyAssets, ConfigJob, ConfigException, TaskGroup, NullTask,
-                    MultiTask)
+                    MultiTask, ConfigClassTask)
 from provisioners.core import ProvisionerException
 from exec_agents.core import ExecutionAgent, ExecutionException
 from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
