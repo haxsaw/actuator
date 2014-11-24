@@ -300,7 +300,6 @@ class ConfigSpec(SpecBase):
         
         comp_ref = self.namespace_model_instance.get_inst_ref(self.default_task_component)
         comp_ref.fix_arguments()
-#         return comp_ref.host_ref.value()
         return comp_ref.value()
   
     def set_namespace(self, namespace):
@@ -313,10 +312,10 @@ class ConfigSpec(SpecBase):
         
     def get_dependencies(self):
         inst_nodes = [getattr(self, name).value() for name in self._node_dict.values()]
-        return list(itertools.chain(self.dependencies,
-                                    list(itertools.chain(*[n.unpack()
+        return list(itertools.chain(list(itertools.chain(*[n.unpack()
                                                            for n in inst_nodes
-                                                           if isinstance(n, _Unpackable)]))))
+                                                           if isinstance(n, _Unpackable)])),
+                                    *[d.unpack() for d in self.dependencies]))
     
     @classmethod
     def get_class_dependencies(cls):
@@ -397,8 +396,12 @@ class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
         if with_fix:
             if self.graph:
                 graph = self.graph
-            else:
+            elif self.instance is not None:
                 graph = self.graph = self.instance.get_graph(with_fix=with_fix)
+            else:
+                init_args = self.init_args if self.init_args else ()
+                instance = self.cfg_class(*init_args)
+                graph = instance.get_graph()
         else:
             graph = self.instance.get_graph()
         return graph
@@ -423,14 +426,17 @@ class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
         self.instance = self.cfg_class(*init_args,
                                        namespace_model_instance=model.get_namespace(),
                                        nexus=model.nexus)     
-#         self.instance.set_task_component(self.get_task_host())   
         self.instance.set_task_component(self.task_component)   
         graph = self.get_graph(with_fix=True)
         entry_nodes = [n for n in graph.nodes() if graph.in_degree(n) == 0]
         exit_nodes = [n for n in graph.nodes() if graph.out_degree(n) == 0]
-        self.dependencies = itertools.chain([_Dependency(self, c) for c in entry_nodes],
+        self.dependencies = itertools.chain(self.instance.get_dependencies(),
+                                            [_Dependency(self, c) for c in entry_nodes],
                                             [_Dependency(c, self.rendezvous) for c in exit_nodes])
 
+    def exit_nodes(self):
+        return [self.rendezvous]
+    
     def _embedded_exittask_attrnames(self):
         return ["rendezvous"]
     
@@ -492,8 +498,9 @@ class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
             self.instances.append(clone)
         self.dependencies = list(itertools.chain([_Dependency(self, c)
                                                   for c in self.instances],
-                                                 [_Dependency(c, self.rendezvous)
-                                                  for c in self.instances]))
+                                                 [_Dependency(xit, self.rendezvous)
+                                                  for c in self.instances
+                                                  for xit in c.exit_nodes()]))
         
     def exit_nodes(self):
         return [self.rendezvous]

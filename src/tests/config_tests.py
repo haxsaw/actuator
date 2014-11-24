@@ -18,11 +18,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.namespace import NSMultiComponent
 
 '''
 Created on 13 Jul 2014
 '''
+
+import threading
+
 from actuator import *
 from actuator.config import _Dependency, _ConfigTask, StructuralTask,\
     with_config_options
@@ -821,7 +823,6 @@ def test45():
         
     cfg = OuterCfg()
     cfg.set_namespace(ns)
-    cfg.wrapped_task.fix_arguments()
     
     ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
@@ -837,8 +838,271 @@ def test45():
 
     assert len(cap.performed) == 1
 
+def test46():
+    """
+    test46: wrap a config class with a sequence of tasks in ConfigClassTask
+    wrapper and ensure they all get performed in order
+    """
+    class Infra(InfraSpec):
+        setup_server = StaticServer("setup_helper", "127.0.0.1")
+    infra = Infra("helper")
+    
+    class NS(NamespaceSpec):
+        task_performer = Component("tp", host_ref=Infra.setup_server)
+    ns = NS()
+    ns.set_infra_model(infra)
+    
+    cap = Capture()
+    class InnerCfg(ConfigSpec):
+        t1 = ReportingTask("inner_task1", report=cap)
+        t2 = ReportingTask("inner_task2", report=cap)
+        t3 = ReportingTask("inner_task3", report=cap)
+        with_dependencies(t1 | t2 | t3)
+        
+    class OuterCfg(ConfigSpec):
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        
+    cfg = OuterCfg()
+    cfg.set_namespace(ns)
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        infra_model_instance=infra, no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
+        assert False, e.message
+
+    assert (len(cap.performed) == 3 and
+            cap.pos("tp", "inner_task1") < cap.pos("tp", "inner_task2") and
+            cap.pos("tp", "inner_task2") < cap.pos("tp", "inner_task3"))
+
+def test47():
+    """
+    test47: wrap a config class with a sequence of tasks in ConfigClassTask
+    wrapper, then drive the creation of instances of the ConfigClassTask
+    with a MultiTask wrapper.
+    """
+    class IPGen(object):
+        def __init__(self):
+            self.host_part = 0
+            
+        def __call__(self, context):
+            self.host_part += 1
+            return "127.0.0.{}".format(self.host_part)
+    ipgen = IPGen()
+        
+    class Infra(InfraSpec):
+        setup_server = MultiComponent(StaticServer("setup_helper", ipgen))
+    infra = Infra("helper")
+    
+    class NS(NamespaceSpec):
+        task_component = NSMultiComponent(Component("tp",
+                                                    host_ref=ctxt.model.infra.setup_server[ctxt.name]))
+    ns = NS()
+    ns.set_infra_model(infra)
+    for i in range(3):
+        _ = ns.task_component[i]
+    
+    cap = Capture()
+    class InnerCfg(ConfigSpec):
+        t1 = ReportingTask("inner_task1", report=cap)
+        t2 = ReportingTask("inner_task2", report=cap)
+        t3 = ReportingTask("inner_task3", report=cap)
+        with_dependencies(t1 | t2 | t3)
+        
+    class OuterCfg(ConfigSpec):
+        wrapped_task = MultiTask("setupSuite",
+                                 ConfigClassTask("wrapper", InnerCfg),
+                                 NS.q.task_component.all())
+        
+    cfg = OuterCfg()
+    cfg.set_namespace(ns)
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        infra_model_instance=infra, no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
+        assert False, e.message
+
+    assert len(cap.performed) == 9
+
+def test48():
+    """
+    test48: wrap a config class with a sequence of tasks in ConfigClassTask
+    wrapper and ensure they all get performed in order, and the set up a final
+    task in the outer config class and ensure that is is performed last
+    """
+    class Infra(InfraSpec):
+        setup_server = StaticServer("setup_helper", "127.0.0.1")
+    infra = Infra("helper")
+    
+    class NS(NamespaceSpec):
+        task_performer = Component("tp", host_ref=Infra.setup_server)
+        default = Component("default", host_ref="127.0.1.1")
+    ns = NS()
+    ns.set_infra_model(infra)
+    
+    cap = Capture()
+    class InnerCfg(ConfigSpec):
+        t1 = ReportingTask("inner_task1", report=cap)
+        t2 = ReportingTask("inner_task2", report=cap)
+        t3 = ReportingTask("inner_task3", report=cap)
+        with_dependencies(t1 | t2 | t3)
+        
+    class OuterCfg(ConfigSpec):
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        final = ReportingTask("final", target=NS.default, report=cap)
+        with_dependencies(wrapped_task | final)
+        
+    cfg = OuterCfg()
+    cfg.set_namespace(ns)
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        infra_model_instance=infra, no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
+        assert False, e.message
+
+    assert (len(cap.performed) == 4 and
+            cap.pos("tp", "inner_task1") < cap.pos("tp", "inner_task2") and
+            cap.pos("tp", "inner_task2") < cap.pos("tp", "inner_task3") and
+            cap.pos("tp", "inner_task3") < cap.pos("default", "final"))
+
+def test49():
+    """
+    test49: wrap a config class with a sequence of tasks in ConfigClassTask
+    wrapper and ensure they all get performed in order, and then set up
+    initial and final tasks in the outer config and make sure everything is
+    happening in the right order
+    """
+    class Infra(InfraSpec):
+        setup_server = StaticServer("setup_helper", "127.0.0.1")
+    infra = Infra("helper")
+    
+    class NS(NamespaceSpec):
+        task_performer = Component("tp", host_ref=Infra.setup_server)
+        default = Component("default", host_ref="127.0.1.1")
+    ns = NS()
+    ns.set_infra_model(infra)
+    
+    cap = Capture()
+    class InnerCfg(ConfigSpec):
+        t1 = ReportingTask("inner_task1", report=cap)
+        t2 = ReportingTask("inner_task2", report=cap)
+        t3 = ReportingTask("inner_task3", report=cap)
+        
+        with_dependencies(t1 | t2 | t3)
+        
+    class OuterCfg(ConfigSpec):
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        initial = ReportingTask("initial", target=NS.default, report=cap)
+        final = ReportingTask("final", target=NS.default, report=cap)
+        
+        with_dependencies(initial | wrapped_task | final)
+        
+    cfg = OuterCfg()
+    cfg.set_namespace(ns)
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        infra_model_instance=infra, no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
+        assert False, e.message
+
+    assert (len(cap.performed) == 5 and
+            cap.pos("tp", "inner_task1") < cap.pos("tp", "inner_task2") and
+            cap.pos("tp", "inner_task2") < cap.pos("tp", "inner_task3") and
+            cap.pos("tp", "inner_task3") < cap.pos("default", "final") and
+            cap.pos("default", "initial") < cap.pos("tp", "inner_task1"))
+
+def test50():
+    """
+    test50: wrap a config class with a sequence of tasks in ConfigClassTask
+    wrapper, then drive the creation of instances of the ConfigClassTask
+    with a MultiTask wrapper.
+    """
+    class IPGen(object):
+        def __init__(self):
+            self.host_part = 0
+            
+        def __call__(self, context):
+            self.host_part += 1
+            return "127.0.0.{}".format(self.host_part)
+    ipgen = IPGen()
+        
+    class Infra(InfraSpec):
+        setup_server = MultiComponent(StaticServer("setup_helper", ipgen))
+    infra = Infra("helper")
+    
+    class NS(NamespaceSpec):
+        task_component = NSMultiComponent(Component("tp",
+                                                    host_ref=ctxt.model.infra.setup_server[ctxt.name]))
+        default = Component("default", "127.0.1.1")
+    ns = NS()
+    ns.set_infra_model(infra)
+    for i in range(3):
+        _ = ns.task_component[i]
+    
+    cap = Capture()
+    class InnerCfg(ConfigSpec):
+        t1 = ReportingTask("inner_task1", report=cap)
+        t2 = ReportingTask("inner_task2", report=cap)
+        t3 = ReportingTask("inner_task3", report=cap)
+        with_dependencies(t1 | t2 | t3)
+        
+    class OuterCfg(ConfigSpec):
+        wrapped_task = MultiTask("setupSuite",
+                                 ConfigClassTask("wrapper", InnerCfg),
+                                 NS.q.task_component.all())
+        initial = ReportingTask("initial", target=NS.default, report=cap)
+        final = ReportingTask("final", target=NS.default, report=cap)
+        
+        with_dependencies(initial | wrapped_task | final)
+        
+    cfg = OuterCfg()
+    cfg.set_namespace(ns)
+    
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+                        infra_model_instance=infra, no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
+        assert False, e.message
+
+    assert (len(cap.performed) == 11 and
+            cap.pos("default", "final") == len(cap.performed) -1 and
+            cap.pos("default", "initial") == 0)
+
+
 def do_all():
-    test30()
     setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
