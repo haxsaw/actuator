@@ -24,11 +24,14 @@ from actuator.config import with_dependencies
 Created on Oct 21, 2014
 '''
 
+import sys
 import socket
+import os
 import os.path
 from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
                       with_variables, ExecutionException, CommandTask,
-                      ScriptTask, CopyFileTask, InfraSpec, StaticServer)
+                      ScriptTask, CopyFileTask, InfraSpec, StaticServer,
+                      ProcessCopyFileTask)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 
 
@@ -243,10 +246,59 @@ def test010():
         ea.perform_config()
     except ExecutionException, e:
         assert False, e.message
+        
+def test011():
+    """
+    test011: this test checks the basic behavior of the ProcessCopyFileTask.
+    The copied file should have the supplied Vars replacing the variable
+    references in the file. 
+    
+    NOTE: this test will only work if run from the directory above the tests 
+    directory
+    """
+    test_file_path = None
+    test_file = "test011.txt"
+    for root, _, files in os.walk(os.getcwd()):
+        if test_file in files:
+            test_file_path = os.path.join(root, test_file)
+            break
+    assert test_file_path, "Can't find the test file {}; aborting test".format(test_file)
+    
+    class SimpleInfra(InfraSpec):
+        testbox = StaticServer("testbox", find_ip())
+    infra = SimpleInfra("simple")
+    
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("DEST", "/tmp/${FILE}"),
+                       Var("FILE", test_file),
+                       Var("var1", "summat"),
+                       Var("var2", "or"),
+                       Var("var3", "the"),
+                       Var("var4", "other"))
+        target = Component("target", host_ref=SimpleInfra.testbox)
+    ns = SimpleNamespace()
+        
+    class SimpleConfig(ConfigSpec):
+        process = ProcessCopyFileTask("pcf", "${DEST}",
+                                      src=test_file_path,
+                                      task_component=SimpleNamespace.target,
+                                      repeat_count=1)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns)
+    try:
+        ea.perform_config()
+        assert "summat or the other" == file("/tmp/test011.txt", "r").read()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
 
 
 def do_all():
-    test001()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

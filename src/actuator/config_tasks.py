@@ -18,6 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from nose.util import src
+from actuator.exec_agents.core import ExecutionException
 
 '''
 Created on Oct 22, 2014
@@ -163,3 +164,11 @@ class CopyFileTask(_ConfigTask):
         self.src = self._get_arg_value(self._src)
         self.validate = self._get_arg_value(self._validate)
     
+    
+class ProcessCopyFileTask(CopyFileTask):
+    def __init__(self, *args, **kwargs):
+        if "src" not in kwargs and "content" not in kwargs:
+            raise ExecutionException("ProcessCopoyFileTask must be given either "
+                                     "the 'src' or 'content' keyword arguments")
+        super(ProcessCopyFileTask, self).__init__(*args, **kwargs)
+

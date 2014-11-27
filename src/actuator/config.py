@@ -138,6 +138,13 @@ class _ConfigTask(Orable, ModelComponent):
         self.repeat_interval = None
         self._repeat_interval = repeat_interval
         
+    def task_variables(self):
+        the_vars = {}
+        if self.task_component is not None:
+            the_vars = {k:v.get_value(self.task_component)
+                        for k, v in self.task_component.get_visible_vars().items()}
+        return the_vars
+        
     def set_task_component(self, task_component):
         self._task_component = task_component
         

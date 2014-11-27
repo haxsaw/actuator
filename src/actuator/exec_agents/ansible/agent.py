@@ -22,7 +22,11 @@
 '''
 Created on Oct 21, 2014
 '''
+
+import os.path
 import json
+
+from mako.template import Template
 
 from actuator.exec_agents.core import ExecutionAgent, ExecutionException
 from actuator.config import StructuralTask
@@ -42,8 +46,7 @@ class TaskProcessor(object):
     
     def make_args(self, task, hlist):
         kwargs = {"host_list":hlist,
-                  "environment":{k:v.get_value(task.task_component)
-                                 for k, v in task.task_component.get_visible_vars().items()}}
+                  "environment":task.task_variables()}
         kwargs.update(self._make_args(task))
         return kwargs
     
@@ -155,6 +158,26 @@ class CopyFileProcessor(TaskProcessor):
         if task.seuser is not None: cmplx["seuser"] = task.seuser
         if task.src is not None: cmplx["src"] = task.src
         if task.validate is not None: cmplx["validate"] = task.validate
+        return args
+    
+    
+@capture_mapping(_agent_domain, ProcessCopyFileTask)
+class ProcessCopyFileProcessor(CopyFileProcessor):
+    def _make_args(self, task):
+        args = super(ProcessCopyFileProcessor, self)._make_args(task)
+        complex_args = args["complex_args"]
+        if "src" in complex_args:
+            if not os.path.exists(complex_args["src"]):
+                raise ExecutionException("Can't find the file {}".format(complex_args["src"]))
+            content = file(complex_args["src"], "r").read()
+        else:
+            content = complex_args["content"]
+            
+        template = Template(content)
+        result = template.render(**task.task_variables())
+        complex_args["content"] = result
+        try: del complex_args["src"]
+        except: pass
         return args
     
 

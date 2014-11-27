@@ -8,6 +8,7 @@ ipaddress
 networkx
 ansible
 subprocess32
+mako
 
 Testing support packages:
 fake-factory (Faker)
