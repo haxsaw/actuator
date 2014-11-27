@@ -47,6 +47,12 @@ def setup():
     
 def make_dep_tuple_set(config):
     return set([(d.from_task.path, d.to_task.path) for d in config.get_class_dependencies()])
+
+
+def pretty_deps(deps):
+    return [("{}-{}".format(d.from_task.name, str(id(d.from_task))[-4:]),
+             "{}-{}".format(d.to_task.name, str(id(d.to_task))[-4:]))
+            for d in deps]
     
     
 def test01():
@@ -484,7 +490,7 @@ def test31():
                        Var("ONE", "1"),
                        Var("TWO", "2"),
                        Var("THREE", "3"))
-        comp = Component("test-comp", host_ref="!ID!").add_variable(Var("ID", "right!"),
+        comp = Component("test-comp", host_ref="${ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
     class SimpleCfg(ConfigSpec):
@@ -516,7 +522,7 @@ def test32():
                        Var("ONE", "1"),
                        Var("TWO", "2"),
                        Var("THREE", "3"))
-        comp = Component("test-comp", host_ref="!ID!").add_variable(Var("ID", "right!"),
+        comp = Component("test-comp", host_ref="${ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
     class SimpleCfg(ConfigSpec):

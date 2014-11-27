@@ -40,7 +40,7 @@ class NS(NamespaceSpec):
                    Var("REQ_PORT", "3000"),
                    Var("WORK_Q", System.workq.provisionedName),
                    Var("WORK_Q_MGR", System.workq.qmanager),
-                   Var("NODE_ID", "node-!ID!"))
+                   Var("NODE_ID", "node-${ID}"))
     grid = {}
     for i in range(5):
         name = "grid_%d" % i
@@ -78,7 +78,7 @@ class DynNS(NamespaceSpec):
                    Var("REQ_PORT", "3000"),
                    Var("WORK_Q", System.workq.provisionedName),
                    Var("WORK_Q_MGR", System.workq.qmanager),
-                   Var("NODE_ID", "node-!ID!"))
+                   Var("NODE_ID", "node-${ID}"))
     MultiComponent(GridComponent("grid-node", host_ref=System.grid[ctxt.comp.name.val])
                         .add_variable(Var("ID", str(ctxt.comp.name.val))))
     req_handler = Component("req_handler", host_ref=System.compute_req_handler)

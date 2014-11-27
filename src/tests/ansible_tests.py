@@ -64,7 +64,7 @@ def test001():
 def test002():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("PING_TARGET", find_ip()))
-        ping_target = Component("ping-target", host_ref="!PING_TARGET!")
+        ping_target = Component("ping-target", host_ref="${PING_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -80,7 +80,7 @@ def test002():
 def test003():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("PING_TARGET", "not.an.ip.addy"))
-        ping_target = Component("ping-target", host_ref="!PING_TARGET!")
+        ping_target = Component("ping-target", host_ref="${PING_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -98,7 +98,7 @@ def test003():
 def test004():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -114,7 +114,7 @@ def test004():
 def test005():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -133,7 +133,7 @@ def test006():
     /bin/wibble doesn't exist"""
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -153,11 +153,11 @@ def test007():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
-        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
-        ping = CommandTask("cmd", "/bin/ls", chdir="!WHERE!",
+        ping = CommandTask("cmd", "/bin/ls", chdir="${WHERE}",
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
@@ -174,7 +174,7 @@ def test008():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
-        cmd_target = Component("cmd-target", host_ref="!CMD_TARGET!")
+        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
     ns = SimpleNamespace()
            
     class SimpleConfig(ConfigSpec):
@@ -199,11 +199,11 @@ def test009():
     ns = SimpleNamespace()
     
     class SimpleConfig(ConfigSpec):
-        cleanup = CommandTask("clean", "/bin/rm -rf !PKG!", chdir="!DEST!",
+        cleanup = CommandTask("clean", "/bin/rm -rf ${PKG}", chdir="${DEST}",
                               task_component=SimpleNamespace.copy_target,
                               repeat_count=1)
-        copy = CopyFileTask("copy-file", "!DEST!",
-                            src=os.path.join(os.getcwd(), "!PKG!"),
+        copy = CopyFileTask("copy-file", "${DEST}",
+                            src=os.path.join(os.getcwd(), "${PKG}"),
                             task_component=SimpleNamespace.copy_target,
                             repeat_count=1)
         with_dependencies(cleanup | copy)
@@ -234,7 +234,7 @@ def test010():
     ns.compute_provisioning_for_environ(infra)
           
     class SimpleConfig(ConfigSpec):
-        ping = CommandTask("cmd", "/bin/ls", chdir="!WHERE!",
+        ping = CommandTask("cmd", "/bin/ls", chdir="${WHERE}",
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,

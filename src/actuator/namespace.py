@@ -27,7 +27,7 @@ from actuator.utils import ClassModifier, process_modifiers, capture_mapping, ge
 from actuator.modeling import (AbstractModelReference, ModelComponent, SpecBase,
                                ModelReference, ModelInstanceReference, SpecBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
-                               AbstractModelingEntity, ContextExpr)
+                               ContextExpr)
 
 
 class NamespaceException(Exception): pass
@@ -42,7 +42,10 @@ class _ModelRefSetAcquireable(object):
 
 
 class _ComputableValue(_ModelRefSetAcquireable):
-    _replacement_pattern = re.compile("\![a-zA-Z_]+[a-zA-Z0-9_]*\!")
+    #Mako-compatible replacement
+    _replacement_pattern = re.compile("\$\{[a-zA-Z_]+[a-zA-Z0-9_]*\}")
+    _prefix_len = 2
+    _suffix_len = 1
     def __init__(self, value):
         if isinstance(value, basestring):
             self.value = str(value)
@@ -81,7 +84,8 @@ class _ComputableValue(_ModelRefSetAcquireable):
         while m:
             leader = value[:m.start()]
             trailer = value[m.end():]
-            name = value[m.start()+1:m.end()-1]
+#             name = value[m.start()+1:m.end()-1]
+            name = value[m.start()+self._prefix_len:m.end()-self._suffix_len]
             if name in history:
                 raise NamespaceException("detected variable replacement loop with %s" % name)
             var, _ = context.find_variable(name)
