@@ -808,7 +808,7 @@ As mentioned above, a reference selection expression is initiated by accessing t
 
 Each attribute access in a reference selection expression will yield either a single-valued attribute (such as a Component in a NamespaceSpec), or a collection of values as represented by wrappers such as NSMultiComponent or NSMultiComponentGroup. In this latter case, it is possible to restrict the set of references selected through the use of test methods which will filter out unwanted references in the collection. In either case, such references may be followed by further attribute accesses into the model, and attributes will be accessed only on the items selected to this point.
 
-A contrived example will illustrate this; consider the following three-leve nested namespace model:
+A contrived example will illustrate this; consider the following nested namespace model:
 
 ```python
 class Contrived(NamespaceSpec):
@@ -857,4 +857,12 @@ Contrived.q.union(Contrived.q.top.key("NY").leader,
 #and the key is in "NY", "LN" (in other words, an empty list)
 Contrived.top.match("S.*").keyin(["NY", "LN"])
 ```
+
+The following tests are available to filter out unwanted references:
+- *all()* selects all items; this is actually the implicit action when naming an attribute that is a collection of items
+- *key(string)* only selects the items whose key matches the supplied string
+- *keyin(iterable)* only selects the items whose keys are in the supplied iterable of keys
+- *match(regex_string)* only selects items whose key matches the supplied regex string
+- *no_match(regex_string)* only selects items whose key doesn't match the supplied regex string
+- *pred(callable)* only selects items for which the supplied callable returns True. The callable is supplied with one argument, the key of the item it to determine if it should be included.
 
