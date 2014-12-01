@@ -22,6 +22,9 @@ Actuator allows you to use Python to declaratively describe system infra, config
   1. [Declaring tasks](#taskdec)
   2. [Declaring dependencies](#taskdeps)
   3. [Dependency expressions](#depexp)
+  4. [Auto-scaling tasks](#taskscaling)
+  5. [Config classes as tasks](#classtasks)
+  6. [Query expressions](#queryexps)
 6. Execution Models (yet to come)
 
 ## <a name="intro">Intro</a>
@@ -574,7 +577,7 @@ Namespaces and their components serve as containers for *Var* objects. These obj
 
 Vars associate a 'name' (the first parameter) with a value (the second parameter). The value parameter of a Var can be one of several kinds of objects: it may be a plain string, a string with a replacement paremeter in it, a reference to an infra model element that results in a string, or context expression that results in a string.
 
-We've seen examples of both plain strings and model references as values, and now will look at how replacement parameters and context expressions work. A replacement parameter takes the form of _!string!_; whenever this pattern is found, the inner string is extracted and looked up as the name for another Var. The lookup repeats; if the value found contains '!string!', the lookup is repeated until no more replacement parameters are found. This allows complex replacement patterns to be defined.
+We've seen examples of both plain strings and model references as values, and now will look at how replacement parameters and context expressions work. A replacement parameter takes the form of _!{string}_; whenever this pattern is found, the inner string is extracted and looked up as the name for another Var. The lookup repeats; if the value found contains '!{string}', the lookup is repeated until no more replacement parameters are found. This allows complex replacement patterns to be defined.
 
 Additionally, the hierarchy of components, containers (NSMultiComponent, NSComponentGroup, and NSMultiComponentGroup) and the model class is taken into account when searching for a variable. If the variable can't be found defined on the current component, the enclosing variable container is searched, progressively moving to the model class itself. If the variable can't be found on the model class, then the variable is undefined, and an exception may be raised (depending on how the search was initiated). This allows for complex replacement patterns to be defined which have different parts of the pattern filled in at different levels of the namespace.
 
@@ -582,7 +585,7 @@ The following example will make this more concrete. Here we will create a Namesp
 
 ```python
 >>> class VarExample(NamespaceSpec):
-...   with_variables(Var("NODE_NAME", "!BASE_NAME!-!NODE_ID!"))
+...   with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
 ...   grid = (NSMultiComponent(Component("worker", variables=[Var("NODE_ID", ctxt.name)]))
 ...            .add_variable(Var("BASE_NAME", "Grid")))
 >>> ns = VarExample()
@@ -615,7 +618,7 @@ class SimpleNamespace(NamespaceSpec):
   with_variables(Var("DEST", "/tmp"),
                  Var("PKG", "actuator"),
                  Var("CMD_TARGET", "127.0.0.1"))
-  copy_target = Component("copy_target", host_ref="!CMD_TARGET!")
+  copy_target = Component("copy_target", host_ref="!{CMD_TARGET}")
 ns = SimpleNamespace()
 ```
 
@@ -631,12 +634,12 @@ from actuator import ConfigSpec, CopyFileTask, CommandTask
 #find the path to actuator; if it is under our cwd, the it won't be at an absolute path
 actuator_path = actuator.__file__
 if not os.path.isabs(actuator_path):
-  actuator_path = os.path.join(os.getcwd(), "!PKG!")
+  actuator_path = os.path.join(os.getcwd(), "!{PKG}")
   
 class SimpleConfig(ConfigSpec):
-  cleanup = CommandTask("clean", "/bin/rm -f !PKG!", chdir="!DEST!",
+  cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
                         task_component=SimipleNamespace.copy_target)
-  copy = CopyFileTask("copy-file", "!DEST!", src=actuator_path,
+  copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
                       task_component=SimpleNamespace.copy_target)
 ```
 
@@ -668,12 +671,12 @@ from actuator import ConfigSpec, CopyFileTask, CommandTask
 #find the path to actuator; if it is under our cwd, the it won't be at an absolute path
 actuator_path = actuator.__file__
 if not os.path.isabs(actuator_path):
-  actuator_path = os.path.join(os.getcwd(), "!PKG!")
+  actuator_path = os.path.join(os.getcwd(), "!{PKG}")
   
 class SimpleConfig(ConfigSpec):
-  cleanup = CommandTask("clean", "/bin/rm -f !PKG!", chdir="!DEST!",
+  cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
                         task_component=SimipleNamespace.copy_target)
-  copy = CopyFileTask("copy-file", "!DEST!", src=actuator_path,
+  copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
                       task_component=SimpleNamespace.copy_target)
   #NOTE: this call must be within the config model, not after it!
   with_dependencies( cleanup | copy )
@@ -699,7 +702,7 @@ with_dependencies( t3 | t4 | t5 )
 
 The with_dependencies() function can take any number of dependency expressions and be invoked any number of times. It will collect all dependency expressions from all the arguments and each invocation and assemble a dependency graph that instructs it how to perform the config model's tasks. All tasks that don't appear an any dependency expression are performed immedicately.
 
-The above example illustrates how to arrange task in series, but what about tasks that can be performed in parallel? To indicate the eligibility of tasks to be performed in parallel, use the '&' operator in task dependency expressions. Using the same five tasks from above, the follow would instruct Actuator to perform the identified tasks in parallel:
+The above example illustrates how to arrange task in series, but what about tasks that can be performed in parallel? To indicate the eligibility of tasks to be performed in parallel, use the '&' operator in task dependency expressions. Using the same five tasks from above, the following would instruct Actuator to perform the identified tasks in parallel:
 
 ```python
 #Perform t1 first, then t2 and t3 together, and then t4 and t5 serially
@@ -726,6 +729,29 @@ with_dependencies( t1 | t4 )
 with_dependencies( (t1 | t4) & t2 & t3 & t5 )
 ```
 
-As we can see, dependency expressions can be arbitrarily nested, and the expressions can be layered on additively to create complex relationships that can't be expression in a single expression.
+As we can see, dependency expressions can be arbitrarily nested, and the expressions can be layered on additively to create complex relationships that can't be expressed with a single expression.
 
-Each of th
+### <a name="taskscaling">Auto-scaling tasks</a>
+
+For situations where there are multiple identical hosts that all requre the same configuration tasks, Actuator provides a means to identify the task to perform on each host and scale the number of tasks actually performed depending on how many hosts are in an instance of the model. The _MultiTask_ wrapper allows you to wrap another task and associate the wrapped task with a reference that names a group of hosts on which to perform the task.
+
+To illustrate how this works, we'll introduce a new Namespace class that has a variable aspect to it:
+
+```python
+class GridNamespace(NamespaceSpec):
+  grid = NSMultiComponent(Component("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
+  
+class GridConfig(ConfigSpec):
+  reset = MultiTask("reset", CommandTask("remove", "/bin/rm -rf /some/path/*"),
+                    GridNamespace.q.grid.all())
+  copy = MultiTask("copy", CopyFileTask("copy-tarball', '/some/path/software.tgz',
+                                        src='/some/local/path/software.tgz'),
+                   GridNamespace.q.grid.all())
+  with_dependencies(reset | copy)
+```
+
+In the above example, the Namespace model has a component 'grid' that can grow to define an aribitrary number of components. For each grid node, we want to clear out a directory and then transfer a tarball to be unpacked in that same directory. To do this flexibly, we wrap the task we want to run on a group of components in a MultiTask, providing a name for the MultiTask, a template task to apply to all the components, and then a list of components to apply the task to, in this case GridNamespacce.q.grid.all().
+
+The 'q' attribute of GridNamespace is supplied by model base class. It signals the start of a _reference selection expression_, which is a logical expression that yields a list of references to elements of a model. In this case, the expression will make the template task apply to every component that is generated in the namespace. Reference selection expressions will be gone into in more deal below.
+
+For the purposes of setting up dependencies, MultTasks can be treated like any other task; that is, they can appear in dependency expressions. The dependency system will ensure that all instances of the template task complete before the MultiTask itself completes.
