@@ -62,7 +62,7 @@ class NS2(NamespaceSpec):
                    Var("REQ_PORT", "3000"),
                    Var("WORK_Q", System2.workq.provisionedName),
                    Var("WORK_Q_MGR", System2.workq.qmanager),
-                   Var("NODE_ID", "node-${ID}"))
+                   Var("NODE_ID", "node-!{ID}"))
     grid = {}
     for i in range(5):
         name = "grid_%d" % i
@@ -78,7 +78,7 @@ def NS2_factory(grid_size=5):
                        Var("REQ_PORT", "3000"),
                        Var("WORK_Q", System2.workq.provisionedName),
                        Var("WORK_Q_MGR", System2.workq.qmanager),
-                       Var("NODE_ID", "node-${ID}"))
+                       Var("NODE_ID", "node-!{ID}"))
         grid = {}
         for i in range(grid_size):
             name = "grid_%d" % i

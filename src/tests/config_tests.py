@@ -490,7 +490,7 @@ def test31():
                        Var("ONE", "1"),
                        Var("TWO", "2"),
                        Var("THREE", "3"))
-        comp = Component("test-comp", host_ref="${ID}").add_variable(Var("ID", "right!"),
+        comp = Component("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
     class SimpleCfg(ConfigSpec):
@@ -522,7 +522,7 @@ def test32():
                        Var("ONE", "1"),
                        Var("TWO", "2"),
                        Var("THREE", "3"))
-        comp = Component("test-comp", host_ref="${ID}").add_variable(Var("ID", "right!"),
+        comp = Component("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
     class SimpleCfg(ConfigSpec):

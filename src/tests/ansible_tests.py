@@ -58,7 +58,8 @@ def test001():
         ping = PingTask("ping", task_component=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
@@ -67,14 +68,15 @@ def test001():
 def test002():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("PING_TARGET", find_ip()))
-        ping_target = Component("ping-target", host_ref="${PING_TARGET}")
+        ping_target = Component("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
         ping = PingTask("ping", task_component=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
@@ -83,7 +85,7 @@ def test002():
 def test003():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("PING_TARGET", "not.an.ip.addy"))
-        ping_target = Component("ping-target", host_ref="${PING_TARGET}")
+        ping_target = Component("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -91,7 +93,8 @@ def test003():
                         repeat_count=1)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
         assert False, "This should have caused an error to be raised"
@@ -101,14 +104,15 @@ def test003():
 def test004():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
+        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
         ping = CommandTask("cmd", "/bin/ls /home/tom", task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
@@ -117,7 +121,7 @@ def test004():
 def test005():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
+        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -125,7 +129,8 @@ def test005():
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
@@ -136,7 +141,7 @@ def test006():
     /bin/wibble doesn't exist"""
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
+        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -145,7 +150,8 @@ def test006():
                            repeat_count=1)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
         assert False, "this should have failed"
@@ -156,15 +162,16 @@ def test007():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
-        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
+        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
-        ping = CommandTask("cmd", "/bin/ls", chdir="${WHERE}",
+        ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
@@ -177,7 +184,7 @@ def test008():
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
-        cmd_target = Component("cmd-target", host_ref="${CMD_TARGET}")
+        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
            
     class SimpleConfig(ConfigSpec):
@@ -185,7 +192,8 @@ def test008():
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
@@ -202,18 +210,19 @@ def test009():
     ns = SimpleNamespace()
     
     class SimpleConfig(ConfigSpec):
-        cleanup = CommandTask("clean", "/bin/rm -rf ${PKG}", chdir="${DEST}",
+        cleanup = CommandTask("clean", "/bin/rm -rf !{PKG}", chdir="!{DEST}",
                               task_component=SimpleNamespace.copy_target,
                               repeat_count=1)
-        copy = CopyFileTask("copy-file", "${DEST}",
-                            src=os.path.join(os.getcwd(), "${PKG}"),
+        copy = CopyFileTask("copy-file", "!{DEST}",
+                            src=os.path.join(os.getcwd(), "!{PKG}"),
                             task_component=SimpleNamespace.copy_target,
                             repeat_count=1)
         with_dependencies(cleanup | copy)
         
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
@@ -237,39 +246,43 @@ def test010():
     ns.compute_provisioning_for_environ(infra)
           
     class SimpleConfig(ConfigSpec):
-        ping = CommandTask("cmd", "/bin/ls", chdir="${WHERE}",
+        ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
     except ExecutionException, e:
         assert False, e.message
         
-def test011():
-    """
-    test011: this test checks the basic behavior of the ProcessCopyFileTask.
-    The copied file should have the supplied Vars replacing the variable
-    references in the file. 
-    
-    NOTE: this test will only work if run from the directory above the tests 
-    directory
-    """
+        
+def find_file(test_file):
     test_file_path = None
-    test_file = "test011.txt"
     for root, _, files in os.walk(os.getcwd()):
         if test_file in files:
             test_file_path = os.path.join(root, test_file)
             break
     assert test_file_path, "Can't find the test file {}; aborting test".format(test_file)
+    return test_file_path
+
+
+def test011():
+    """
+    test011: this test checks the basic behavior of the ProcessCopyFileTask.
+    The copied file should have the supplied Vars replacing the variable
+    references in the file. 
+    """
+    test_file = "test011.txt"
+    test_file_path = find_file(test_file)
     
     class SimpleInfra(InfraSpec):
         testbox = StaticServer("testbox", find_ip())
     infra = SimpleInfra("simple")
     
     class SimpleNamespace(NamespaceSpec):
-        with_variables(Var("DEST", "/tmp/${FILE}"),
+        with_variables(Var("DEST", "/tmp/!{FILE}"),
                        Var("FILE", test_file),
                        Var("var1", "summat"),
                        Var("var2", "or"),
@@ -279,16 +292,116 @@ def test011():
     ns = SimpleNamespace()
         
     class SimpleConfig(ConfigSpec):
-        process = ProcessCopyFileTask("pcf", "${DEST}",
+        reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
+                            task_component=SimpleNamespace.target)
+        process = ProcessCopyFileTask("pcf", "!{DEST}",
                                       src=test_file_path,
                                       task_component=SimpleNamespace.target,
                                       repeat_count=1)
+        with_dependencies(reset | process)
     cfg = SimpleConfig()
+    
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+                               namespace_model_instance=ns,
+                               no_delay=True)
     try:
         ea.perform_config()
-        assert "summat or the other" == file("/tmp/test011.txt", "r").read()
+        file_content = file("/tmp/test011.txt", "r").read()
+        assert "summat or the other" == file_content
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
+
+def test012():
+    """
+    test012: this checks ProcessCopyFileTask if not all Vars are supplied.
+    This re-uses the test011.txt file. The variable 'var3' won't be supplied. 
+    """
+    test_file = "test012.txt"
+    test_file_path = find_file(test_file)
+    
+    class SimpleInfra(InfraSpec):
+        testbox = StaticServer("testbox", find_ip())
+    infra = SimpleInfra("simple")
+    
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("DEST", "/tmp/!{FILE}"),
+                       Var("FILE", test_file),
+                       Var("var1", "summat"),
+                       Var("var2", "or"),
+#                        Var("var3", "the"),  #This one is to be missing
+                       Var("var4", "other"))
+        target = Component("target", host_ref=SimpleInfra.testbox)
+    ns = SimpleNamespace()
+        
+    class SimpleConfig(ConfigSpec):
+        reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
+                            task_component=SimpleNamespace.target)
+        process = ProcessCopyFileTask("pcf", "!{DEST}",
+                                      src=test_file_path,
+                                      task_component=SimpleNamespace.target,
+                                      repeat_count=1)
+        with_dependencies(reset | process)
+    cfg = SimpleConfig()
+    
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+        assert False, "this should have raised an exception about not finding var3"
+    except ExecutionException, _:
+        found_it = False
+        for _, _, value, _ in ea.get_aborted_tasks():
+            if 'var3' in value.message:
+                found_it = True
+                break
+        assert found_it, "an exception was raised, but not about missing var3"
+
+def test013():
+    """
+    test013: Similar to test011, but with multi-line files.
+    The replacements should be made across all lines of the file 
+    """
+    test_file = "test013.txt"
+    test_file_path = find_file(test_file)
+    
+    class SimpleInfra(InfraSpec):
+        testbox = StaticServer("testbox", find_ip())
+    infra = SimpleInfra("simple")
+    
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("DEST", "/tmp/!{FILE}"),
+                       Var("FILE", test_file),
+                       Var("var1", "summat"),
+                       Var("var2", "or"),
+                       Var("var3", "the"),
+                       Var("var4", "other"))
+        target = Component("target", host_ref=SimpleInfra.testbox)
+    ns = SimpleNamespace()
+        
+    class SimpleConfig(ConfigSpec):
+        reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
+                            task_component=SimpleNamespace.target)
+        process = ProcessCopyFileTask("pcf", "!{DEST}",
+                                      src=test_file_path,
+                                      task_component=SimpleNamespace.target,
+                                      repeat_count=1)
+        with_dependencies(reset | process)
+    cfg = SimpleConfig()
+    
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+        file_content = [l.strip()
+                        for l in file("/tmp/test013.txt", "r").readlines()]
+        assert "summat or" == file_content[0] and "the other" == file_content[1]
     except ExecutionException, e:
         import traceback
         for task, etype, value, tb in ea.get_aborted_tasks():

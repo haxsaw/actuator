@@ -43,7 +43,9 @@ class _ModelRefSetAcquireable(object):
 
 class _ComputableValue(_ModelRefSetAcquireable):
     #Mako-compatible replacement
-    _replacement_pattern = re.compile("\$\{[a-zA-Z_]+[a-zA-Z0-9_]*\}")
+    _prefix = r'\!{'
+    _suffix = r'}'
+    _replacement_pattern = re.compile("%s[a-zA-Z_]+[a-zA-Z0-9_]*%s" % (_prefix, _suffix))
     _prefix_len = 2
     _suffix_len = 1
     def __init__(self, value):
@@ -65,11 +67,13 @@ class _ComputableValue(_ModelRefSetAcquireable):
     def value_is_external(self):
         return hasattr(self.value, "value")
         
-    def expand(self, context, allow_unexpanded=False):
+    def expand(self, context, allow_unexpanded=False, raise_on_unexpanded=False):
         history = set([])
-        return self._expand(context, history, allow_unexpanded)
+        return self._expand(context, history, allow_unexpanded=allow_unexpanded,
+                            raise_on_unexpanded=raise_on_unexpanded)
         
-    def _expand(self, context, history, allow_unexpanded=False):
+    def _expand(self, context, history, allow_unexpanded=False,
+                raise_on_unexpanded=False):
         if isinstance(self.value, AbstractModelReference):
             infra = context.find_infra_model()
             val = infra.get_inst_ref(self.value).value() if infra is not None else None
@@ -90,7 +94,9 @@ class _ComputableValue(_ModelRefSetAcquireable):
                 raise NamespaceException("detected variable replacement loop with %s" % name)
             var, _ = context.find_variable(name)
             if var is None:
-                if not allow_unexpanded:
+                if raise_on_unexpanded:
+                    raise NamespaceException("Unable to determine value for '{}'".format(name))
+                elif not allow_unexpanded:
                     value = None
                 break
             else:

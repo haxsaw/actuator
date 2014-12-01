@@ -26,12 +26,11 @@ Created on Oct 21, 2014
 import os.path
 import json
 
-from mako.template import Template
-
-from actuator.exec_agents.core import ExecutionAgent, ExecutionException
+from actuator.exec_agents.core import ExecutionAgent
 from actuator.config import StructuralTask
 from actuator.config_tasks import *
 from actuator.utils import capture_mapping, get_mapper
+from actuator.namespace import _ComputableValue
 
 from ansible.runner import Runner
 
@@ -172,9 +171,10 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
             content = file(complex_args["src"], "r").read()
         else:
             content = complex_args["content"]
-            
-        template = Template(content)
-        result = template.render(**task.task_variables())
+
+        cv = _ComputableValue(content)
+        result = cv.expand(task.get_task_component(), raise_on_unexpanded=True)
+        
         complex_args["content"] = result
         try: del complex_args["src"]
         except: pass

@@ -53,14 +53,14 @@ def setup():
         with_variables(Var("HOST", "wibble"),
                        Var("PORT", "1234"),
                        Var("REGION", "NY"),
-                       Var("SIMPLE", "${REGION}"),
-                       Var("HOST-REGION", "${REGION}-${HOST}"),
-                       Var("ONE", "${TWO}"),
-                       Var("TWO", "${THREE}"),
-                       Var("THREE", "${ONE}"),
-                       Var("EMBEDDED", "some text with ${REGION} in it"),
-                       Var("REPEATED", "${HOST} is ${HOST}"),
-                       Var("INCOMPLETE", "this won't expand; ${SORRY}"),
+                       Var("SIMPLE", "!{REGION}"),
+                       Var("HOST-REGION", "!{REGION}-!{HOST}"),
+                       Var("ONE", "!{TWO}"),
+                       Var("TWO", "!{THREE}"),
+                       Var("THREE", "!{ONE}"),
+                       Var("EMBEDDED", "some text with !{REGION} in it"),
+                       Var("REPEATED", "!{HOST} is !{HOST}"),
+                       Var("INCOMPLETE", "this won't expand; !{SORRY}"),
                        Var("NONE", None),
                        Var("REF_TEST_NONE", FakeLogicalRef(None)),
                        Var("REF_TEST_VALUE", FakeLogicalRef("gabagabahey")))
@@ -116,7 +116,7 @@ def test007():
 def test008():
     inst = MyNS()
     v, p = inst.find_variable("INCOMPLETE")
-    assert v.get_value(p, allow_unexpanded=True) == "this won't expand; ${SORRY}", \
+    assert v.get_value(p, allow_unexpanded=True) == "this won't expand; !{SORRY}", \
         "allowing unexpanded returns didn't yield the expected value"
         
 def test009():
@@ -350,7 +350,7 @@ def test28():
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"),
-                       Var("SERVER_ID", "server_${ID}")
+                       Var("SERVER_ID", "server_!{ID}")
                        )
         
         servers = {nf(i):Component(nf(i),
@@ -372,7 +372,7 @@ def test29():
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"),
-                       Var("SERVER_ID", "server_${ID}")
+                       Var("SERVER_ID", "server_!{ID}")
                        )
         
         servers = {nf(i):Component(nf(i),
@@ -391,8 +391,8 @@ def test30():
     
     nf = lambda x: "reg_srvr_%d" % x
     class NS30(NamespaceSpec):
-        with_variables(Var("TRICKY", "${NAME} with id ${SERVER_ID}"),
-                       Var("SERVER_ID", "server_${ID}")
+        with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
+                       Var("SERVER_ID", "server_!{ID}")
                        )
         server1 = (Component(nf(1), host_ref=Infra30.regional_server)
                    .add_variable(Var("ID", str(1)), Var("NAME", nf(1))))
@@ -407,8 +407,8 @@ def test30():
 def test31():
     nf = lambda x: "reg_srvr_%d" % x
     class NS31(NamespaceSpec):
-        with_variables(Var("TRICKY", "${NAME} with id ${SERVER_ID}"),
-                       Var("SERVER_ID", "server_${ID}"),
+        with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
+                       Var("SERVER_ID", "server_!{ID}"),
                        Var("NAME", "--WRONG!!")
                        )
         server1 = (Component(nf(1))
@@ -435,8 +435,8 @@ def test32():
     
     nf = lambda x: "reg_srvr_%d" % x
     class NS32(NamespaceSpec):
-        with_variables(Var("TRICKY", "${NAME} with id ${SERVER_ID}"),
-                       Var("SERVER_ID", "server_${ID}")
+        with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
+                       Var("SERVER_ID", "server_!{ID}")
                        )
         server1 = (Component(nf(1), host_ref=Infra32.regional_server)
                    .add_variable(Var("ID", str(1)), Var("NAME", nf(1))))
@@ -744,7 +744,7 @@ def test63():
     
 def test64():
     class NS(NamespaceSpec):
-        with_variables(Var("NODE_NAME", "${BASE_NAME}-${NODE_ID}"))
+        with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
         grid = (NSMultiComponent(Component("worker",
                                           variables=[Var("NODE_ID", ctxt.name)]))
                 .add_variable(Var("BASE_NAME", "Grid")))
@@ -759,7 +759,7 @@ def test65():
     #a context expression, it gets evaluated relative to the context that
     #needs its value, and the name in this context is '5'
     class NS(NamespaceSpec):
-        with_variables(Var("NODE_NAME", "${BASE_NAME}-${NODE_ID}"),
+        with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"),
                        Var("NODE_ID", ctxt.name))
         grid = (NSMultiComponent(Component("worker"))
                 .add_variable(Var("BASE_NAME", "Grid")))
