@@ -24,7 +24,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   3. [Dependency expressions](#depexp)
   4. [Auto-scaling tasks](#taskscaling)
   5. [Config classes as tasks](#classtasks)
-  6. [Reference Selection expressions](#refselect)
+  6. [Reference selection expressions](#refselect)
 6. Execution Models (yet to come)
 
 ## <a name="intro">Intro</a>
@@ -795,3 +795,66 @@ class GridConfig(ConfigSpec):
 In this example, the ConfigClassTask wrapper makes the NodeConfig model appear to be a plain task, and allows the MultiTask wrapper to create as many instances of NodeConfig as needed according to the the number of items that are returned by the reference selection expression, GridNamespace.q.grid.all().
 
 The big operational difference here is that each "reset | copy" pipeline operates in parallel on each component named by GridNamespace.q.grid.all(). In the MultiTask example, all _resets_ had to complete before the first _copy_ could start on *any* component, but with ConfigClassTask, if one node finishes its _reset_ before another, that node's _copy_ task can start right away. This means that slow nodes don't slow down all work within the MultiTask. The MultiTask still won't complete until all of the ConfigClassTask instances complete, but overall progress will be less "lumpy" than if each MultiTask had to wait until the slowest task completed.
+
+Notice that nowhere in the NodeConfig model is a _task_component_ identified. This is characteristic of models that are to be wrapped with ConfigClassTask-- the task_component will be externally supplied, and hence no reference is required within the model that is to be wrapped. Here, the MultiTask supplies the task_component value from the GridNamespace.q.grid.all() expression.
+
+ConfigClassTask can be used independently of the MultiTask wrapper; it is a first-class task that can be expressed within a model and can enter into dependency expressions. When used this way, a task_component must be supplied to the ConfigClassTask, and this can be done in the normal way with the task_component keyword argument.
+
+### <a name="refselect">Reference selection expressions</a>
+
+In the above sections on the MultiTask and ConfigClassTask, the notion of referencce selection expressions was introduced. This section will go into these expressions in more detail an explain how they can be used to select references. Although their primary use is to select namespace model component references, these expressions can be used with any model to select a set of references for a variety of purposes.
+
+As mentioned above, a reference selection expression is initiated by accessing the 'q' attribute on a model class. After the 'q', attributes of the model and its objects can be performed just as if you were doing so in the model class itself. However, instead of generating a single model reference, such accesses further define an expression that will yield a list of references into the model.
+
+Each attribute access in a reference selection expression will yield either a single-valued attribute (such as a Component in a NamespaceSpec), or a collection of values as represented by wrappers such as NSMultiComponent or NSMultiComponentGroup. In this latter case, it is possible to restrict the set of references selected through the use of test methods which will filter out unwanted references in the collection. In either case, such references may be followed by further attribute accesses into the model, and attributes will be accessed only on the items selected to this point.
+
+A contrived example will illustrate this; consider the following three-leve nested namespace model:
+
+```python
+class Contrived(NamespaceSpec):
+  top = NSMultiComponent(NSMultiComponentGroup("site",
+                                               leader=Component('leader'),
+                                               grid=NSMultiComponent(Component('grid-node'))))
+```
+
+Further, suppose we created an instance of this model and populated it by generating the references shown:
+
+```python
+con = Contrived()
+for city in ["NY", "LN", "TK", "SG", "HK", "SF"]:
+  for i in range(20):
+    _ = con.top[city].grid[i]
+```
+
+We can then construct the following expressions to select lists of component references from this instance:
+
+```python
+#list of leader Components regardless of the instance of top
+Contrived.q.top.all().leader
+
+#1-element list of leader Component for the top['NY'] instance
+Contrived.q.top.key("NY").leader
+
+#list of all grid Components under top['NY']
+Contrived.q.top.key("NY").grid.all()
+
+#list of all grid Components under top["NY"], top["LN"] and top["TK"]
+Contrived.q.top.keyin(["NY", "LN", "TK"]).grid.all()
+
+#list of all leader Components who's top key starts with 'S'
+Contrived.q.top.match("S.*").leader
+
+#list of all even numbered grid Components for top["HK"]
+def even_test(key):
+  return int(key) % 2 == 0
+Contrived.q.top.key("HK").grid.pred(even_test)
+
+#list of the leader and all grid Components for top["NY"]
+Contrived.q.union(Contrived.q.top.key("NY").leader,
+                  Contrived.q.top.key("NY").grid.all())
+                  
+#list of leaders where top key starts with S,
+#and the key is in "NY", "LN" (in other words, an empty list)
+Contrived.top.match("S.*").keyin(["NY", "LN"])
+```
+
