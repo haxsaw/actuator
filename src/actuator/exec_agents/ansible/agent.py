@@ -26,7 +26,7 @@ Created on Oct 21, 2014
 import os.path
 import json
 
-from actuator.exec_agents.core import ExecutionAgent
+from actuator.exec_agents.core import ExecutionAgent, ExecutionException
 from actuator.config import StructuralTask
 from actuator.config_tasks import *
 from actuator.utils import capture_mapping, get_mapper
