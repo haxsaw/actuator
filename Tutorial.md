@@ -24,7 +24,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   3. [Dependency expressions](#depexp)
   4. [Auto-scaling tasks](#taskscaling)
   5. [Config classes as tasks](#classtasks)
-  6. [Query expressions](#queryexps)
+  6. [Reference Selection expressions](#refselect)
 6. Execution Models (yet to come)
 
 ## <a name="intro">Intro</a>
@@ -733,13 +733,14 @@ As we can see, dependency expressions can be arbitrarily nested, and the express
 
 ### <a name="taskscaling">Auto-scaling tasks</a>
 
-For situations where there are multiple identical hosts that all requre the same configuration tasks, Actuator provides a means to identify the task to perform on each host and scale the number of tasks actually performed depending on how many hosts are in an instance of the model. The _MultiTask_ wrapper allows you to wrap another task and associate the wrapped task with a reference that names a group of hosts on which to perform the task.
+For situations where there are multiple identical hosts that all requre the same configuration tasks, Actuator provides a means to identify the task to perform on each host and scale the number of tasks actually performed depending on how many hosts are in an instance of the model. The *MultiTask* wrapper allows you to wrap another task and associate the wrapped task with a reference that names a group of hosts on which to perform the task.
 
 To illustrate how this works, we'll introduce a new Namespace class that has a variable aspect to it:
 
 ```python
 class GridNamespace(NamespaceSpec):
   grid = NSMultiComponent(Component("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
+  
   
 class GridConfig(ConfigSpec):
   reset = MultiTask("reset", CommandTask("remove", "/bin/rm -rf /some/path/*"),
@@ -755,3 +756,42 @@ In the above example, the Namespace model has a component 'grid' that can grow t
 The 'q' attribute of GridNamespace is supplied by model base class. It signals the start of a _reference selection expression_, which is a logical expression that yields a list of references to elements of a model. In this case, the expression will make the template task apply to every component that is generated in the namespace. Reference selection expressions will be gone into in more deal below.
 
 For the purposes of setting up dependencies, MultTasks can be treated like any other task; that is, they can appear in dependency expressions. The dependency system will ensure that all instances of the template task complete before the MultiTask itself completes.
+
+### <a name="classtasks">Config classes as tasks</a>
+
+MultiTasks make it easy to create configuration models that automatically scale relative to an instance of a namespace. However, MultiTasks may be limiting in some circumstances:
+
+- Since the MultiTask can't finish until all of its template instances finish, overall progress may be slowed due to a single slow-completing template task.
+- Expressing complex dependencies in terms of MultiTask tasks can be subject to slow progress, again due to the completion requirement for each template instance inside each MultiTask.
+
+What we would like is to be able to express a set of tasks and their dependencies, and then have the set of tasks be applied to a single host. If we could then wrap up such a representation in a MultiTask, we can have different components proceed through their complex set of config tasks at varying rates, allowing better ovverall progress even if one component is processing tasks slowly.
+
+Fortunately, we already have a mechanism for modeling this situation: the config model itself! What is needed is to be able to treat a config model as if it were a task. To do that, we use the *ConfigClassTask* wrapper; this wrapper allows a config model to be used as if it was task, providing the means to define a set of tasks to be performed on a single component, all with their own dependencies.
+
+To illustrate this, we'll re-write the above example with a ConfigClassTask to wrap up the operations that are all to be carried out on a single component:
+
+```python
+#this is the same namespace model as above
+class GridNamespace(NamespaceSpec):
+  grid = NSMultiComponent(Component("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
+
+
+#this config model is new; it defines all the tasks and dependencies for a single component
+#Notice that there is no mention of a 'component' within this model
+class NodeConfig(ConfigSpec):
+  reset = CommandTask("remove", "/bin/rm -rf /some/path/*")
+  copy = CopyFileTask("copy-tarball', '/some/path/software.tgz',
+                      src='/some/local/path/software.tgz')
+  with_dependencies(reset | copy)
+  
+
+#this model now uses the NodeConfig model in a MultiTask to define all the tasks that need
+#to be carried out on each component
+class GridConfig(ConfigSpec):
+  setup_nodes = MultiTask("setup-nodes", ConfigClassTask("setup-suite", NodeConfig),
+                          GridNamespace.q.grid.all())
+```
+
+In this example, the ConfigClassTask wrapper makes the NodeConfig model appear to be a plain task, and allows the MultiTask wrapper to create as many instances of NodeConfig as needed according to the the number of items that are returned by the reference selection expression, GridNamespace.q.grid.all().
+
+The big operational difference here is that each "reset | copy" pipeline operates in parallel on each component named by GridNamespace.q.grid.all(). In the MultiTask example, all _resets_ had to complete before the first _copy_ could start on *any* component, but with ConfigClassTask, if one node finishes its _reset_ before another, that node's _copy_ task can start right away. This means that slow nodes don't slow down all work within the MultiTask. The MultiTask still won't complete until all of the ConfigClassTask instances complete, but overall progress will be less "lumpy" than if each MultiTask had to wait until the slowest task completed.
