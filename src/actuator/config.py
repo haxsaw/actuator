@@ -186,7 +186,8 @@ class _ConfigTask(Orable, ModelComponent):
         if isinstance(val, basestring):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
-            val = cv.expand(self.task_component)
+#             val = cv.expand(self.task_component)
+            val = cv.expand(self.get_task_component())
         elif isinstance(val, ModelReference) and self._model_instance:
             val = self._model_instance.get_namespace().get_inst_ref(val)
         return val

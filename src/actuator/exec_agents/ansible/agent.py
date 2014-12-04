@@ -190,7 +190,8 @@ class AnsibleExecutionAgent(ExecutionAgent):
             cmapper = get_mapper(_agent_domain)
             processor = cmapper[task.__class__]()
 #             task.fix_arguments()
-            task.task_component.fix_arguments()
+#             task.task_component.fix_arguments()
+            task.get_task_component().fix_arguments()
             task_host = task.get_task_host()
             if task_host is not None:
                 msg = "Task {} being run on {}".format(task.name, task_host)
