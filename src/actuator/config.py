@@ -140,9 +140,10 @@ class _ConfigTask(Orable, ModelComponent):
         
     def task_variables(self):
         the_vars = {}
-        if self.task_component is not None:
-            the_vars = {k:v.get_value(self.task_component)
-                        for k, v in self.task_component.get_visible_vars().items()}
+        task_component = self.get_task_component()
+        if task_component is not None:
+            the_vars = {k:v.get_value(task_component)
+                        for k, v in task_component.get_visible_vars().items()}
         return the_vars
         
     def set_task_component(self, task_component):
@@ -186,7 +187,6 @@ class _ConfigTask(Orable, ModelComponent):
         if isinstance(val, basestring):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
-#             val = cv.expand(self.task_component)
             val = cv.expand(self.get_task_component())
         elif isinstance(val, ModelReference) and self._model_instance:
             val = self._model_instance.get_namespace().get_inst_ref(val)
@@ -434,7 +434,7 @@ class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
         self.instance = self.cfg_class(*init_args,
                                        namespace_model_instance=model.get_namespace(),
                                        nexus=model.nexus)     
-        self.instance.set_task_component(self.task_component)   
+        self.instance.set_task_component(self.get_task_component())   
         graph = self.get_graph(with_fix=True)
         entry_nodes = [n for n in graph.nodes() if graph.in_degree(n) == 0]
         exit_nodes = [n for n in graph.nodes() if graph.out_degree(n) == 0]

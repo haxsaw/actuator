@@ -370,7 +370,6 @@ class ReportingTask(_ConfigTask, StructuralTask):
         return args, kwargs
         
     def perform(self):
-#         self.report(self.task_component.name.value(), self.name)
         comp = self.get_task_component()
         if not isinstance(comp, basestring):
             if isinstance(comp.name, basestring):
@@ -482,7 +481,7 @@ def test31():
             
         def perform(self):
             vv = self._model_instance.namespace_model_instance.comp.get_visible_vars()
-            self.vars.update({v.name:v.get_value(self.task_component)
+            self.vars.update({v.name:v.get_value(self.get_task_component())
                               for v in vv.values()})
         
     class SimpleNS(NamespaceSpec):
@@ -514,7 +513,7 @@ def test32():
             
         def perform(self):
             vv = self._model_instance.namespace_model_instance.get_visible_vars()
-            self.vars.update({v.name:v.get_value(self.task_component)
+            self.vars.update({v.name:v.get_value(self.get_task_component())
                               for v in vv.values()})
         
     class SimpleNS(NamespaceSpec):

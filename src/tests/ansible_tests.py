@@ -18,7 +18,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.config import with_dependencies
+from actuator.config import with_dependencies, MultiTask, ConfigClassTask
+from actuator.namespace import NSMultiComponent
 
 '''
 Created on Oct 21, 2014
@@ -31,7 +32,7 @@ import os.path
 from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
                       with_variables, ExecutionException, CommandTask,
                       ScriptTask, CopyFileTask, InfraSpec, StaticServer,
-                      ProcessCopyFileTask)
+                      ProcessCopyFileTask, ctxt)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 
 
@@ -258,12 +259,17 @@ def test010():
         assert False, e.message
         
         
-def find_file(test_file):
-    test_file_path = None
-    for root, _, files in os.walk(os.getcwd()):
-        if test_file in files:
-            test_file_path = os.path.join(root, test_file)
-            break
+def find_file(test_file, start_path=None):
+    if start_path is None:
+        start_path = os.getcwd()
+    if os.path.isabs(test_file):
+        test_file_path = test_file
+    else:
+        test_file_path = None
+        for root, _, files in os.walk(start_path):
+            if test_file in files:
+                test_file_path = os.path.join(root, test_file)
+                break
     assert test_file_path, "Can't find the test file {}; aborting test".format(test_file)
     return test_file_path
 
@@ -319,7 +325,7 @@ def test011():
 def test012():
     """
     test012: this checks ProcessCopyFileTask if not all Vars are supplied.
-    This re-uses the test011.txt file. The variable 'var3' won't be supplied. 
+    The variable 'var3' won't be supplied. 
     """
     test_file = "test012.txt"
     test_file_path = find_file(test_file)
@@ -402,6 +408,53 @@ def test013():
         file_content = [l.strip()
                         for l in file("/tmp/test013.txt", "r").readlines()]
         assert "summat or" == file_content[0] and "the other" == file_content[1]
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
+
+def test014():
+    """
+    test014: multiple copies of the same task going against the same host to
+    see if any parallel processing issues arise. 
+    """
+    test_file = "test014-BigTextFile.txt"
+    test_file_path = find_file(test_file)
+    
+    class SimpleInfra(InfraSpec):
+        testbox = StaticServer("testbox", find_ip())
+    infra = SimpleInfra("simple")
+    
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("PREFIX", ctxt.name),
+                       Var("DEST", "/tmp/!{PREFIX}-!{FILE}"),
+                       Var("FILE", test_file))
+        target = NSMultiComponent(Component("target", host_ref=SimpleInfra.testbox))
+    ns = SimpleNamespace()
+    
+    class SingleCopy(ConfigSpec):
+        reset = CommandTask("014_reset", "/bin/rm -rf !{DEST}", removes="!{DEST}")
+        copy = CopyFileTask("014_cpf", "!{DEST}",
+                            src=test_file_path)
+        with_dependencies(reset | copy)
+        
+    class MultiCopy(ConfigSpec):
+        task_suite = MultiTask("all-copies", ConfigClassTask("one-copy", SingleCopy),
+                               SimpleNamespace.q.target.all())
+        
+    cfg = MultiCopy()
+    
+    for i in range(5):
+        _ = ns.target[i]
+    
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               num_threads=5, no_delay=True)
+    try:
+        ea.perform_config()
     except ExecutionException, e:
         import traceback
         for task, etype, value, tb in ea.get_aborted_tasks():

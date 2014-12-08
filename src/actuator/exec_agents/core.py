@@ -98,7 +98,7 @@ class ExecutionAgent(object):
         while try_count < task.repeat_count and not success:
             try_count += 1
             if self.do_log:
-                logfile=open("{}-try{}.txt".format(task.name, try_count), "w")
+                logfile=open("{}.{}-try{}.txt".format(task.name, str(task._id)[-4:], try_count), "w")
             else:
                 logfile=None
             try:
@@ -108,15 +108,13 @@ class ExecutionAgent(object):
                 msg = ">>>Task Exception for {}!".format(task.name)
                 if logfile:
                     logfile.write("{}\n".format(msg))
-#                 print msg
                 etype, value, tb = sys.exc_info()
                 if try_count < task.repeat_count:
-                    retry_wait = task.repeat_count * task.repeat_interval
+                    retry_wait = try_count * task.repeat_interval
                     msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
                     if logfile:
                         logfile.write("{}\n".format(msg))
                         traceback.print_exception(etype, value, tb, file=logfile)
-#                     print msg
                     time.sleep(retry_wait)
                 else:
                     self.record_aborted_task(task, etype, value, tb)

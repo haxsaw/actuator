@@ -22,6 +22,7 @@
 Created on 7 Sep 2014
 '''
 import sys
+import os, os.path
 
 class ClassMapper(dict):
     def __getitem__(self, item):
@@ -82,3 +83,20 @@ def process_modifiers(obj):
     modifiers = getattr(obj, MODIFIERS, [])
     for modifier, args, kwargs in modifiers:
         modifier.process(obj, *args, **kwargs)
+        
+        
+def find_file(test_file, start_path=None):
+    if start_path is None:
+        start_path = os.getcwd()
+    if os.path.isabs(test_file):
+        test_file_path = test_file
+    else:
+        test_file_path = None
+        for root, _, files in os.walk(start_path):
+            if test_file in files:
+                test_file_path = os.path.join(root, test_file)
+                break
+    assert test_file_path, "Can't the file {}; aborting test".format(test_file)
+    return test_file_path
+
+

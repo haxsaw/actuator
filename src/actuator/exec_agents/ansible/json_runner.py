@@ -27,7 +27,7 @@ Created on Nov 13, 2014
 import sys
 import json
 import traceback
-import actuator   #this must come before importing ansible; it patches subprocess
+# import actuator   #this must come before importing ansible; it patches subprocess
 from ansible.runner import Runner
 
 
