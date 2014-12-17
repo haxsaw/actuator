@@ -48,7 +48,11 @@ class TaskProcessor(object):
     
     def make_args(self, task, hlist):
         kwargs = {"host_list":hlist,
-                  "environment":task.task_variables()}
+                  "environment":task.task_variables(),
+                  "remote_user":task.remote_user,
+                  "remote_pass":task.remote_pass,
+                  "private_key_file":task.private_key_file
+                }
         kwargs.update(self._make_args(task))
         return kwargs
     

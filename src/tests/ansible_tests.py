@@ -34,6 +34,7 @@ from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
                       ScriptTask, CopyFileTask, InfraSpec, StaticServer,
                       ProcessCopyFileTask, ctxt)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
+from actuator.utils import find_file
 
 
 def find_ip():
@@ -259,19 +260,19 @@ def test010():
         assert False, e.message
         
         
-def find_file(test_file, start_path=None):
-    if start_path is None:
-        start_path = os.getcwd()
-    if os.path.isabs(test_file):
-        test_file_path = test_file
-    else:
-        test_file_path = None
-        for root, _, files in os.walk(start_path):
-            if test_file in files:
-                test_file_path = os.path.join(root, test_file)
-                break
-    assert test_file_path, "Can't find the test file {}; aborting test".format(test_file)
-    return test_file_path
+# def find_file(filename, start_path=None):
+#     if start_path is None:
+#         start_path = os.getcwd()
+#     if os.path.isabs(filename):
+#         test_file_path = filename
+#     else:
+#         test_file_path = None
+#         for root, _, files in os.walk(start_path):
+#             if filename in files:
+#                 test_file_path = os.path.join(root, filename)
+#                 break
+#     assert test_file_path, "Can't find the test file {}; aborting test".format(filename)
+#     return test_file_path
 
 
 def test011():
@@ -463,6 +464,27 @@ def test014():
             print
         assert False, e.message
 
+def test015():
+    "test015: try pinging as another user"
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("PING_TARGET", find_ip()),
+                       Var("RUSER", "lxle1"))
+        ping_target = Component("ping-target", host_ref=find_ip())
+    ns = SimpleNamespace()
+       
+    class SimpleConfig(ConfigSpec):
+        ping = PingTask("ping", task_component=SimpleNamespace.ping_target,
+                        remote_user="!{RUSER}",
+                        private_key_file=find_file("lxle1-dev-key"))
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        assert False, e.message
+      
 
 def do_all():
     for k, v in globals().items():

@@ -168,7 +168,7 @@ class CopyFileTask(_ConfigTask):
 class ProcessCopyFileTask(CopyFileTask):
     def __init__(self, *args, **kwargs):
         if "src" not in kwargs and "content" not in kwargs:
-            raise ExecutionException("ProcessCopoyFileTask must be given either "
+            raise ExecutionException("ProcessCopyFileTask must be given either "
                                      "the 'src' or 'content' keyword arguments")
         super(ProcessCopyFileTask, self).__init__(*args, **kwargs)
 

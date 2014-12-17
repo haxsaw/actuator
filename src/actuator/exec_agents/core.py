@@ -61,6 +61,9 @@ class ExecutionAgent(object):
             raise ExecutionException("namespace_model_instance isn't an instance of NamespaceSpec")
         self.namespace_mi = namespace_model_instance
         
+        if self.config_mi is not None:
+            self.config_mi.set_namespace(self.namespace_mi)
+        
         if infra_model_instance is not None and not isinstance(infra_model_instance, InfraSpec):
             raise ExecutionException("infra_model_instance isn't an instance of InfraSpec")
         self.infra_mi = infra_model_instance

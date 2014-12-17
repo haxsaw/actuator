@@ -18,12 +18,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.infra import IPAddressable
-# from __builtin__ import None
 
 '''
 Created on 7 Sep 2014
 '''
+
+import getpass
 import itertools
 from collections import Iterable
 import networkx as nx
@@ -32,6 +32,7 @@ from actuator.modeling import (ModelComponent, ModelReference,
     SpecBaseMeta)
 from actuator.namespace import _ComputableValue, NamespaceSpec
 from actuator.utils import ClassModifier, process_modifiers
+from actuator.infra import IPAddressable
 
 class ConfigException(Exception): pass
 
@@ -125,7 +126,8 @@ class Orable(object):
 
 class _ConfigTask(Orable, ModelComponent):
     def __init__(self, name, task_component=None, run_from=None, repeat_til_success=True,
-                 repeat_count=1, repeat_interval=15):
+                 repeat_count=1, repeat_interval=15, remote_user=getpass.getuser(),
+                 remote_pass=None, private_key_file=None):
         super(_ConfigTask, self).__init__(name)
         self.task_component = None
         self._task_component = task_component
@@ -137,6 +139,12 @@ class _ConfigTask(Orable, ModelComponent):
         self._repeat_count = repeat_count
         self.repeat_interval = None
         self._repeat_interval = repeat_interval
+        self.remote_user = None
+        self._remote_user = remote_user
+        self.remote_pass = None
+        self._remote_pass = remote_pass
+        self.private_key_file = None
+        self._private_key_file = private_key_file
         
     def task_variables(self):
         the_vars = {}
@@ -180,14 +188,28 @@ class _ConfigTask(Orable, ModelComponent):
                               "run_from":self._run_from,
                               "repeat_til_success":self._repeat_til_success,
                               "repeat_count":self._repeat_count,
-                              "repeat_interval":self._repeat_interval})
+                              "repeat_interval":self._repeat_interval,
+                              "remote_user":self._remote_user,
+                              "remote_pass":self.remote_pass,
+                              "private_key_file":self._private_key_file
+                              })
         
     def _get_arg_value(self, arg):
         val = super(_ConfigTask, self)._get_arg_value(arg)
         if isinstance(val, basestring):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
-            val = cv.expand(self.get_task_component())
+            try:
+                var_context = self.get_task_component()
+            except ConfigException, _:
+                mi = self.get_model_instance()
+                if mi is None:
+                    raise ConfigException("Can't find a model to get a default var context")
+                var_context = mi.namespace_model_instance
+                if var_context is None:
+                    raise ConfigException("Can't find a namespace to use as a var context")
+            val = cv.expand(var_context)
+#             val = cv.expand(self.get_task_component())
         elif isinstance(val, ModelReference) and self._model_instance:
             val = self._model_instance.get_namespace().get_inst_ref(val)
         return val
@@ -198,6 +220,9 @@ class _ConfigTask(Orable, ModelComponent):
         self.repeat_til_success = self._get_arg_value(self._repeat_til_success)
         self.repeat_count = self._get_arg_value(self._repeat_count)
         self.repeat_interval = self._get_arg_value(self._repeat_interval)
+        self.remote_user = self._get_arg_value(self._remote_user)
+        self.remote_pass = self._get_arg_value(self._remote_pass)
+        self.private_key_file = self._get_arg_value(self._private_key_file)
         
     def _or_result_class(self):
         return _Dependency
@@ -413,6 +438,10 @@ class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
         else:
             graph = self.instance.get_graph()
         return graph
+    
+    def _set_model_instance(self, mi):
+        super(ConfigClassTask, self)._set_model_instance(mi)
+        self.rendezvous._set_model_instance(mi)
         
     def perform(self):
         return
@@ -467,6 +496,10 @@ class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
         self.instances = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
                 
+    def _set_model_instance(self, mi):
+        super(MultiTask, self)._set_model_instance(mi)
+        self.rendezvous._set_model_instance(mi)
+        
     def perform(self):
         return
     
@@ -502,7 +535,7 @@ class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
             clone.name = "{}-{}".format(clone.name, ref.name.value())
             clone._task_component = ref
             clone._set_model_instance(self._model_instance)
-            clone._fix_arguments()
+            clone.fix_arguments()
             self.instances.append(clone)
         self.dependencies = list(itertools.chain([_Dependency(self, c)
                                                   for c in self.instances],

@@ -88,7 +88,6 @@ class _ComputableValue(_ModelRefSetAcquireable):
         while m:
             leader = value[:m.start()]
             trailer = value[m.end():]
-#             name = value[m.start()+1:m.end()-1]
             name = value[m.start()+self._prefix_len:m.end()-self._suffix_len]
             if name in history:
                 raise NamespaceException("detected variable replacement loop with %s" % name)

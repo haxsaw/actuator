@@ -85,18 +85,19 @@ def process_modifiers(obj):
         modifier.process(obj, *args, **kwargs)
         
         
-def find_file(test_file, start_path=None):
+def find_file(filename, start_path=None):
+    test_file_path = None
     if start_path is None:
         start_path = os.getcwd()
-    if os.path.isabs(test_file):
-        test_file_path = test_file
+    if os.path.isabs(filename):
+        if os.path.exists(filename):
+            test_file_path = filename
     else:
-        test_file_path = None
         for root, _, files in os.walk(start_path):
-            if test_file in files:
-                test_file_path = os.path.join(root, test_file)
+            if filename in files:
+                test_file_path = os.path.join(root, filename)
                 break
-    assert test_file_path, "Can't the file {}; aborting test".format(test_file)
+    assert test_file_path, "Can't the file {}; aborting find".format(filename)
     return test_file_path
 
 

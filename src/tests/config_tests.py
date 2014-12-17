@@ -605,7 +605,7 @@ def test36():
     for i in range(5):
         _ = ns.grid[i]
     cfg.set_namespace(ns)
-    cfg.grid_prep._fix_arguments()
+    cfg.grid_prep.fix_arguments()
     
     assert len(cfg.grid_prep.instances) == 5
     
@@ -620,7 +620,7 @@ def test37():
     
     _ = ns.grid[0]
     cfg.set_namespace(ns)
-    cfg.grid_prep._fix_arguments()
+    cfg.grid_prep.fix_arguments()
     
     assert (len(cfg.grid_prep.instances) == 1 and
             cfg.grid_prep.instances.value()[0].name == "gp-grid_0")
@@ -636,7 +636,7 @@ def test38():
     
     _ = ns.grid[0]
     cfg.set_namespace(ns)
-    cfg.grid_prep._fix_arguments()
+    cfg.grid_prep.fix_arguments()
     
     assert (len(cfg.grid_prep.instances) == 1 and
             cfg.grid_prep.instances.value()[0].name == "gp-grid_0")
@@ -1109,6 +1109,7 @@ def test50():
 
 def do_all():
     setup()
+    test37()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
