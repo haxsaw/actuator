@@ -60,16 +60,20 @@ class TaskProcessor(object):
         raise TypeError("derived class must implement")
     
     def result_check(self, task, result, logfile=None):
+        host = task.get_task_host()
         if len(result["dark"]):
-            emessage = ("Unable to reach {hosts} for {module} {task}"
+            cmd_msg = (result["dark"][host]["msg"]
+                       if "msg" in result["dark"][host]
+                       else "-NO FURTHER INFO-")
+            emessage = ("Unable to reach {hosts} for {module} {task}:{cmd_msg}"
                                      .format(hosts=":".join(result["dark"].keys()),
                                              task=task.name,
-                                             module=self.module_name()))
+                                             module=self.module_name(),
+                                             cmd_msg=cmd_msg))
             if logfile:
                 logfile.write("{}\n".format(emessage))
             raise ExecutionException(emessage)
         else:
-            host = task.get_task_host()
             if "msg" in result["contacted"][host]:
                 emessage = ("{module} {task} failed on {host} with the following emessage: {msg}"
                                 .format(module=self.module_name(),

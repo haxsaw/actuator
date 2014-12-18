@@ -190,7 +190,7 @@ class _ConfigTask(Orable, ModelComponent):
                               "repeat_count":self._repeat_count,
                               "repeat_interval":self._repeat_interval,
                               "remote_user":self._remote_user,
-                              "remote_pass":self.remote_pass,
+                              "remote_pass":self._remote_pass,
                               "private_key_file":self._private_key_file
                               })
         

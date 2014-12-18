@@ -485,8 +485,61 @@ def test015():
     except ExecutionException, e:
         assert False, e.message
       
+def test016():
+    "test016: try writing a file into another user's directory"
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("PING_TARGET", find_ip()),
+                       Var("RUSER", "lxle1"))
+        copy_target = Component("ping-target", host_ref=find_ip())
+    ns = SimpleNamespace()
+       
+    class SimpleConfig(ConfigSpec):
+        copy = CopyFileTask("cpf", "/home/tom/tmp/failure.txt",
+                            task_component=SimpleNamespace.copy_target,
+                            remote_user="!{RUSER}",
+                            private_key_file=find_file("lxle1-dev-key"),
+                            content="This shouldn't get written!\n",
+                            )
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+        assert False, "This copy should not have succeeded"
+    except ExecutionException, _:
+        pass
+      
+def test017():
+    "test017: try pinging as another user, use password instead of key"
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("PING_TARGET", find_ip()),
+                       Var("RUSER", "lxle1"),
+                       Var("RPASS", "dryw1bbles"))
+        ping_target = Component("ping-target", host_ref=find_ip())
+    ns = SimpleNamespace()
+       
+    class SimpleConfig(ConfigSpec):
+        ping = PingTask("ping", task_component=SimpleNamespace.ping_target,
+                        remote_user="!{RUSER}",
+                        remote_pass="!{RPASS}")
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
+      
 
 def do_all():
+    test017()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
