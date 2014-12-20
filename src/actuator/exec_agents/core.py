@@ -29,7 +29,6 @@ import sys
 import traceback
 import random
 
-import networkx as nx
 from actuator import ConfigSpec, NamespaceSpec, InfraSpec, ActuatorException
 
 

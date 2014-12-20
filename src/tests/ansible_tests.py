@@ -511,7 +511,7 @@ def test016():
         pass
       
 def test017():
-    "test017: try pinging as another user, use password instead of key"
+    "test017: ping as another user, use password instead of key: requires sshpass, but frequently fails anyway with a Broken Pipe for some reason"
     class SimpleNamespace(NamespaceSpec):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"),
@@ -537,9 +537,86 @@ def test017():
             print
         assert False, e.message
       
+def test018():
+    "test018: ping as two different users"
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("PING_TARGET", find_ip()),
+                       Var("RUSER1", "lxle1"))
+        ping1_target = Component("ping1-target", host_ref=find_ip())
+        ping2_target = Component("ping2-target", host_ref=find_ip())
+    ns = SimpleNamespace()
+       
+    class SimpleConfig(ConfigSpec):
+        ping1 = PingTask("ping", task_component=SimpleNamespace.ping1_target,
+                        remote_user="!{RUSER1}",
+                        private_key_file=find_file("lxle1-dev-key"))
+        ping2 = PingTask("ping", task_component=SimpleNamespace.ping2_target)
+    cfg = SimpleConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
+      
+def test019():
+    "test019: clear and copy files"
+    the_ip = find_ip()
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("PING_TARGET", the_ip),
+                       Var("RUSER1", "lxle1"),
+                       Var("RUSER2", "tom"),
+                       Var("TARGET", "019target.txt"),
+                       Var("DIRPATH", "/home/!{RUSER}/tmp"),
+                       Var("FILEPATH", "!{DIRPATH}/!{TARGET}"))
+        copy1_target = Component("copy1_target", host_ref=the_ip,
+                                 variables=[Var("RUSER", "!{RUSER1}")])
+        copy2_target = Component("copy2_target", host_ref=the_ip,
+                                 variables=[Var("RUSER", "!{RUSER2}")])
+    ns = SimpleNamespace()
+     
+    class CopyConfig(ConfigSpec):
+        make = CommandTask("make", "/bin/mkdir -p !{DIRPATH}",
+                           creates="!{DIRPATH}")
+        remove = CommandTask("remove", "/bin/rm -f !{FILEPATH}")
+        copy = CopyFileTask("copy-file", "!{FILEPATH}",
+                            content="This should be in !{RUSER}'s tmp\n")
+        with_dependencies(make | remove | copy)
+         
+    class CopyAllConfig(ConfigSpec):
+        u1_copy = ConfigClassTask("u1-copy", CopyConfig,
+                                  task_component=SimpleNamespace.copy1_target,
+                                  remote_user="!{RUSER}",
+                                  private_key_file=find_file("lxle1-dev-key"))
+        u2_copy = ConfigClassTask("u2-copy", CopyConfig,
+                                  task_component=SimpleNamespace.copy2_target,
+                                  remote_user="!{RUSER}")
+         
+        
+    cfg = CopyAllConfig()
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+        assert (os.path.exists(ns.copy1_target.var_value("FILEPATH")) and
+                os.path.exists(ns.copy2_target.var_value("FILEPATH")))
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
+      
 
 def do_all():
-    test017()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

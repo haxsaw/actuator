@@ -28,8 +28,8 @@ import itertools
 from collections import Iterable
 import networkx as nx
 from actuator.modeling import (ModelComponent, ModelReference,
-                               AbstractModelReference, ModelInstanceReference, SpecBase,
-    SpecBaseMeta)
+                               AbstractModelReference, ModelInstanceReference,
+                               SpecBase, SpecBaseMeta)
 from actuator.namespace import _ComputableValue, NamespaceSpec
 from actuator.utils import ClassModifier, process_modifiers
 from actuator.infra import IPAddressable
@@ -122,12 +122,12 @@ class Orable(object):
     
     def exit_nodes(self):
         return []
-
-
+    
+    
 class _ConfigTask(Orable, ModelComponent):
     def __init__(self, name, task_component=None, run_from=None, repeat_til_success=True,
-                 repeat_count=1, repeat_interval=15, remote_user=getpass.getuser(),
-                 remote_pass=None, private_key_file=None):
+                 repeat_count=1, repeat_interval=15, remote_user=None,
+                 remote_pass=None, private_key_file=None, delegate=None):
         super(_ConfigTask, self).__init__(name)
         self.task_component = None
         self._task_component = task_component
@@ -145,6 +145,7 @@ class _ConfigTask(Orable, ModelComponent):
         self._remote_pass = remote_pass
         self.private_key_file = None
         self._private_key_file = private_key_file
+        self.delegate = delegate
         
     def task_variables(self):
         the_vars = {}
@@ -159,6 +160,33 @@ class _ConfigTask(Orable, ModelComponent):
         
     def _embedded_exittask_attrnames(self):
         return []
+    
+    def _set_delegate(self, delegate):
+        self.delegate = delegate
+    
+    def get_remote_user(self):
+        remote_user = (self.remote_user
+                       if self.remote_user is not None
+                       else (self.delegate.get_remote_user()
+                             if self.delegate is not None
+                             else None))
+        return remote_user
+    
+    def get_remote_pass(self):
+        remote_pass = (self.remote_pass
+                       if self.remote_pass is not None
+                       else (self.delegate.get_remote_pass()
+                             if self.delegate is not None
+                             else None))
+        return remote_pass
+    
+    def get_private_key_file(self):
+        private_key_file = (self.private_key_file
+                            if self.private_key_file is not None
+                            else (self.delegate.get_private_key_file()
+                                  if self.delegate is not None
+                                  else None))
+        return private_key_file
         
     def get_task_host(self):
         comp = self.get_task_component()
@@ -272,9 +300,15 @@ class ConfigSpec(SpecBase):
     __metaclass__ = ConfigSpecMeta
     ref_class = ModelInstanceReference
     
-    def __init__(self, namespace_model_instance=None, nexus=None):
+    def __init__(self, namespace_model_instance=None, nexus=None,
+                 remote_user=None, remote_pass=None, private_key_file=None,
+                 delegate=None):
         super(ConfigSpec, self).__init__(nexus=nexus)
         self.namespace_model_instance = namespace_model_instance
+        self.remote_user = remote_user
+        self.remote_pass = remote_pass
+        self.private_key_file = private_key_file
+        self.delegate = delegate
         clone_dict = {}
         #NOTE! _node_dict is an inverted dictionary (the string keys are
         #stored as values
@@ -282,6 +316,7 @@ class ConfigSpec(SpecBase):
             if not isinstance(v, _ConfigTask):
                 raise ConfigException("'%s' is not a task" % k)
             clone = v.clone()
+            clone._set_delegate(self)
             clone._set_model_instance(self)
             clone_dict[v] = clone
             for etan in v._embedded_exittask_attrnames():
@@ -297,6 +332,33 @@ class ConfigSpec(SpecBase):
             if k == _default_task_component:
                 self.default_task_component = v
                 
+    def _set_delegate(self, delegate):
+        self.delegate = delegate
+    
+    def get_remote_user(self):
+        remote_user = (self.remote_user
+                       if self.remote_user is not None
+                       else (self.delegate.get_remote_user()
+                             if self.delegate is not None
+                             else None))
+        return remote_user
+    
+    def get_remote_pass(self):
+        remote_pass = (self.remote_pass
+                       if self.remote_pass is not None
+                       else (self.delegate.get_remote_pass()
+                             if self.delegate is not None
+                             else None))
+        return remote_pass
+    
+    def get_private_key_file(self):
+        private_key_file = (self.private_key_file
+                            if self.private_key_file is not None
+                            else (self.delegate.get_private_key_file()
+                                  if self.delegate is not None
+                                  else None))
+        return private_key_file
+        
     def set_task_component(self, task_component):
         if not isinstance(task_component, AbstractModelReference):
             raise ConfigException("A default task component was supplied that isn't some kind of model reference: %s" %
@@ -416,6 +478,8 @@ class TaskGroup(Orable, _Cloneable, _Unpackable):
     
 class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
     def __init__(self, name, cfg_class, init_args=None, **kwargs):
+        if not issubclass(cfg_class, ConfigSpec):
+            raise ConfigException("The cfg_class parameter isn't a subclass of ConfigSpec")
         super(ConfigClassTask, self).__init__(name, **kwargs)
         self.cfg_class = cfg_class
         self.init_args = None
@@ -462,8 +526,9 @@ class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
         model = self._model_instance
         self.instance = self.cfg_class(*init_args,
                                        namespace_model_instance=model.get_namespace(),
-                                       nexus=model.nexus)     
-        self.instance.set_task_component(self.get_task_component())   
+                                       nexus=model.nexus)
+        self.instance.set_task_component(self.get_task_component())
+        self.instance._set_delegate(self)
         graph = self.get_graph(with_fix=True)
         entry_nodes = [n for n in graph.nodes() if graph.in_degree(n) == 0]
         exit_nodes = [n for n in graph.nodes() if graph.out_degree(n) == 0]

@@ -25,6 +25,7 @@ Created on Oct 21, 2014
 
 import os.path
 import json
+import getpass
 # import sys
 # import subprocess32
 # import json_runner
@@ -47,12 +48,20 @@ class TaskProcessor(object):
         raise TypeError("Derived class must implement module_name()")
     
     def make_args(self, task, hlist):
+        remote_user = task.remote_user if task.remote_user is not None else getpass.getuser()
+        
         kwargs = {"host_list":hlist,
-                  "environment":task.task_variables(),
-                  "remote_user":task.remote_user,
-                  "remote_pass":task.remote_pass,
-                  "private_key_file":task.private_key_file
-                }
+                  "environment":task.task_variables()
+                  }
+        remote_user = task.get_remote_user()
+        if remote_user is not None:
+            kwargs["remote_user"] = remote_user
+        remote_pass = task.get_remote_pass()
+        if remote_pass is not None:
+            kwargs["remote_pass"] = remote_pass
+        private_key_file = task.get_private_key_file()
+        if private_key_file is not None:
+            kwargs["private_key_file"] = private_key_file
         kwargs.update(self._make_args(task))
         return kwargs
     

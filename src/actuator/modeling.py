@@ -75,8 +75,8 @@ class CallContext(object):
         self.model = model_inst
         self.comp = component
         self.name = component._name
-
-
+        
+        
 class AbstractModelingEntity(object):
     def __init__(self, name, *args, **kwargs):
         model = kwargs.get("model_instance")
