@@ -29,12 +29,19 @@ import sys
 import socket
 import os
 import os.path
+import stat
 from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
                       with_variables, ExecutionException, CommandTask,
                       ScriptTask, CopyFileTask, InfraSpec, StaticServer,
                       ProcessCopyFileTask, ctxt)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 from actuator.utils import find_file
+
+
+def setup():
+    #make sure the private key is read-only for the owner
+    pkeyfile = find_file("lxle1-dev-key")
+    os.chmod(pkeyfile, stat.S_IRUSR|stat.S_IWUSR)
 
 
 def find_ip():
@@ -483,6 +490,11 @@ def test015():
     try:
         ea.perform_config()
     except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
         assert False, e.message
       
 def test016():
@@ -693,6 +705,7 @@ def test021():
       
 
 def do_all():
+    setup()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
