@@ -48,8 +48,6 @@ class TaskProcessor(object):
         raise TypeError("Derived class must implement module_name()")
     
     def make_args(self, task, hlist):
-        remote_user = task.remote_user if task.remote_user is not None else getpass.getuser()
-        
         kwargs = {"host_list":hlist,
                   "environment":task.task_variables()
                   }

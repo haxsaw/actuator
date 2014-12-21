@@ -597,6 +597,7 @@ class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
             comp_refs = self.task_component_list
         for ref in comp_refs:
             clone = self.template.clone()
+            clone._set_delegate(self)
             clone.name = "{}-{}".format(clone.name, ref.name.value())
             clone._task_component = ref
             clone._set_model_instance(self._model_instance)

@@ -615,6 +615,82 @@ def test019():
             print
         assert False, e.message
       
+def test020():
+    "test020: write some data to a user's tmp dir based on config-level user"
+    from datetime import datetime
+    target = "/home/lxle1/tmp/020test.txt"
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("TARGET_FILE", target))
+        copy_target = Component("copy-target", host_ref=find_ip())
+    ns = SimpleNamespace()
+    
+    now_str = datetime.now().ctime()
+    class SimpleConfig(ConfigSpec):
+        copy = CopyFileTask("cpf", "!{TARGET_FILE}",
+                            task_component=SimpleNamespace.copy_target,
+                            content="This content created at: {}\n".format(now_str),
+                            )
+    #we're testing if setting the user stuff at this level works right
+    cfg = SimpleConfig(remote_user="lxle1",
+                       private_key_file=find_file("lxle1-dev-key"))
+    
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+        assert now_str in "".join(file(target, "r").readlines())
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
+      
+def test021():
+    "test021: Have a multi-task get the proper user from the config class"
+    from datetime import datetime
+    target_dir = "/home/lxle1/tmp/test021"
+    num_files = 5
+    class SimpleNamespace(NamespaceSpec):
+        with_variables(Var("TARGET_DIR", target_dir),
+                       Var("COMPNUM", ctxt.name),
+                       Var("FILE_NAME", "!{TARGET_DIR}/!{COMPNUM}-target.txt"))
+        targets = NSMultiComponent(Component("pseudo-component", host_ref=find_ip()))
+        
+    ns = SimpleNamespace()
+    for i in range(num_files):
+        _ = ns.targets[i]
+    
+    now_str = datetime.now().ctime()
+    class SimpleConfig(ConfigSpec):
+        clear = CommandTask("clear-previous", "/bin/rm -rf !{TARGET_DIR}",
+                            task_component=SimpleNamespace.targets[0])
+        make = CommandTask("make-output-dir", "/bin/mkdir -p !{TARGET_DIR}",
+                           task_component=SimpleNamespace.targets[0])
+        copies = MultiTask("copy", CopyFileTask("cpf", "!{FILE_NAME}",
+                                                content="Created at: {}\n".format(now_str)),
+                           SimpleNamespace.q.targets.all())
+        with_dependencies(clear | make | copies)
+    #we're testing if setting the user stuff at this level works right
+    cfg = SimpleConfig(remote_user="lxle1",
+                       private_key_file=find_file("lxle1-dev-key"))
+    
+    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+                               namespace_model_instance=ns,
+                               no_delay=True)
+    try:
+        ea.perform_config()
+        assert num_files == len(os.listdir(target_dir))
+    except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb, file=sys.stdout)
+            print
+        assert False, e.message
+      
 
 def do_all():
     for k, v in globals().items():
