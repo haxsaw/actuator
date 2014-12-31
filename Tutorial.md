@@ -350,7 +350,7 @@ class SingleOpenstackServer(InfraSpec):
   #etc...
 ```
 
-The RouterGateway and RouterInterface components both require a model reference to a Router component as their second argument. Now, after the SingleOpenstackServer class is defined, this reference would be easy to obtain with an expression such as SingleOpenstackServer.router. However, within the class defintion, the class object doesn't exist yet, and so trying to use an expression like:
+The RouterGateway and RouterInterface resources both require a model reference to a Router resource as their second argument. Now, after the SingleOpenstackServer class is defined, this reference would be easy to obtain with an expression such as SingleOpenstackServer.router. However, within the class defintion, the class object doesn't exist yet, and so trying to use an expression like:
 
 ```python
   gateway = RouterGateway("actuator_ex1_gateway", SingleOpenstackServer.router, "external")
@@ -358,7 +358,7 @@ The RouterGateway and RouterInterface components both require a model reference 
 
 will yield a NameError exception saying that "SingleOpenstackServer" is not defined.
 
-This is where context expressions come in. Every time a component in a model is processed by Actuator, a processing context is created. The _context_ wraps up:
+This is where context expressions come in. Every time a component in a model is processed by Actuator (be it a resource or some other component), a processing context is created. The _context_ wraps up:
 
 - the instance of the model the component is part of,
 - the component itself,
@@ -397,46 +397,46 @@ ctxt.model.server.iface.addr0
 As mentioned previously, context expressions provide a way to express model relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
 
 ## <a name="nsmodels">Namespace models</a>
-The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical components of a system, relating these components to the infrastructure elements where the components are to execute, and providing the means to identify what configuration task is to be carried out for each component as well as what executables are involved with making the component function.
+The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical roles of a system, relating these roles to the infrastructure elements where the roles are to execute, and providing the means to identify what configuration task is to be carried out for each role as well as what executables are involved with making the role function.
 
 A namespace model has four aspects. It provides the means to:
 
-1. ...define the logical execution components of a system
-2. ...define the relationships between logical components and hosts in the infra model where the components are to execute
-3. ...arrange the components in a meaningful hierarchy
-4. ...establish names within the hierachy whose values will impact configuration activities and the operation of the components
+1. ...define the logical execution roles of a system
+2. ...define the relationships between logical roles and hosts in the infra model where the roles are to execute
+3. ...arrange the roles in a meaningful hierarchy
+4. ...establish names within the hierachy whose values will impact configuration activities and the operation of the roles
 
 ### <a name="simplensexample">An example</a>
-Here's a trivial example that demonstrates the basic features of a namespace. It will model two components, an app server and a computation engine, and use the SingleOpenstackServer infra model from above for certain values:
+Here's a trivial example that demonstrates the basic features of a namespace. It will model two roles, an app server and a computation engine, and use the SingleOpenstackServer infra model from above for certain values:
 
 ```python
-from actuator import Var, NamespaceSpec, Component, with_variables
+from actuator import Var, NamespaceModel, Role, with_variables
 
-class SOSNamespace(NamespaceSpec):
+class SOSNamespace(NamespaceModel):
   with_variables(Var("COMP_SERVER_HOST", SingleOpenstackServer.server.iface0.addr0),
                  Var("COMP_SERVER_PORT", '8081'),
                  Var("EXTERNAL_APP_SERVER_IP", SingleOpenstackServer.fip.ip),
                  Var("APP_SERVER_PORT", '8080'))
                  
-  app_server = (Component("app_server", host_ref=SingleOpenstackServer.server)
+  app_server = (Role("app_server", host_ref=SingleOpenstackServer.server)
                   .add_variable(Var("APP_SERVER_HOST", SingleOpenstackServer.server.iface0.addr0)))
                                 
-  compute_server = Component("compute_server", host_ref=SingleOpenstackServer.server)
+  compute_server = Role("compute_server", host_ref=SingleOpenstackServer.server)
 ```
 
-First, some global Vars are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by creating a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all components.
+First, some global Vars (variables) are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by creating a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all components.
 
-Next comes the app_server component, which is declared with a call to Component. Besides a name, Component is supplied a host_ref in the form of Server model reference from the SingleOpenstackserver model. This tells the namespace that this component's configuration tasks and executables will be run on whatever host is provisioned for this part of the model. The app_server component is also supplied a private Var object that captures the host IP where the server will run. While the app_server binds to an IP on the subnet, the FloatingIP associated with this subnet IP will enable the server to be reached from outside the subnet.
+Next comes the app_server role, which is declared with a call to Role. Besides a name, Role is supplied a host_ref in the form of Server model reference from the SingleOpenstackserver model. This tells the namespace that this component's configuration tasks and executables will be run on whatever host is provisioned for this part of the model. The app_server component is also supplied a private Var object that captures the host IP where the server will run. While the app_server binds to an IP on the subnet, the FloatingIP associated with this subnet IP will enable the server to be reached from the outside world.
 
-Finally, we declare the compute_server Component. Similar to the app_server Component, the compute_server Component identifies the Server where it will run by setting the host_ref keyword to a infra model reference for the Server to use. In this example, both Components will be run on the same server.
+Finally, we declare the compute_server Role. Similar to the app_server Role, the compute_server Role identifies the Server where it will run by setting the host_ref keyword to a infra model reference for the Server to use. In this example, both Components will be run on the same server.
 
 When an instance of the namespace is created, useful questions can be posed to the instance:
-* We can ask for a list of components
-* We can ask for all the Vars (and their values) from the perspective of a specific component
-* We can identify any Vars whose value can't be resolved from the perspective of each component
+* We can ask for a list of roles
+* We can ask for all the Vars (and their values) from the perspective of a specific role
+* We can identify any Vars whose value can't be resolved from the perspective of each role
 * We can ask to compute the necessary provisioning based on the namespace and an infra model instance
 
-That looks something like this:
+These operations look something like this:
 ```python
 >>> sos = SingleOpenstackServer("sos")
 >>> ns = SOSNamespace()
@@ -486,7 +486,7 @@ First, the class factory approach:
 ```python
 def grid_namespace_factory(num_workers=10):
 
-  class GridNamespace(NamespaceSpec):
+  class GridNamespace(NamespaceModel):
     with_variables(Var("FOREMAN_EXTERNAL_IP", MultipleServers.fip.ip),
                    Var("FOREMAN_INTERNAL_IP", MultipleServers.foreman.iface0.addr0),
                    Var("FOREMAN_EXTERNAL_PORT", "3000"),
@@ -537,7 +537,7 @@ Now the second approach, which utilizes some other capabilities of Actuator. Nam
 Using this approach, the solution looks like the following:
 
 ```python
-class GridNamespace(NamespaceSpec):
+class GridNamespace(NamespaceModel):
   with_variables(Var("FOREMAN_EXTERNAL_IP", MultipleServers.fip.ip),
                  Var("FOREMAN_INTERNAL_IP", MultipleServers.foreman.iface0.addr0),
                  Var("FOREMAN_EXTERNAL_PORT", "3000"),
@@ -584,7 +584,7 @@ Additionally, the hierarchy of components, containers (NSMultiComponent, NSCompo
 The following example will make this more concrete. Here we will create a Namespace model that defines a variable "NODE_NAME" that is composed of a base name plus an id specific to the node. While NODE_NAME will be defined at a global level in the model, the two other variables the comprise NODE_NAME, BASE_NAME and NODE_ID, will be defined on different model objects.
 
 ```python
->>> class VarExample(NamespaceSpec):
+>>> class VarExample(NamespaceModel):
 ...   with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
 ...   grid = (NSMultiComponent(Component("worker", variables=[Var("NODE_ID", ctxt.name)]))
 ...            .add_variable(Var("BASE_NAME", "Grid")))
@@ -614,7 +614,7 @@ Together, this provides Actuator the information it needs to perform all configu
 Tasks must be declared relative to a Namespace and its Components; it is the components that inform the config model where the tasks are to altimately be run. In the following examples, we'll use the this simple namespace that sets up a target component where some files are to be copied, as well as a couple of Vars that dictate where the files will go.
 
 ```python
-class SimpleNamespace(NamespaceSpec):
+class SimpleNamespace(NamespaceModel):
   with_variables(Var("DEST", "/tmp"),
                  Var("PKG", "actuator"),
                  Var("CMD_TARGET", "127.0.0.1"))
@@ -738,7 +738,7 @@ For situations where there are multiple identical hosts that all requre the same
 To illustrate how this works, we'll introduce a new Namespace class that has a variable aspect to it:
 
 ```python
-class GridNamespace(NamespaceSpec):
+class GridNamespace(NamespaceModel):
   grid = NSMultiComponent(Component("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
   
   
@@ -772,7 +772,7 @@ To illustrate this, we'll re-write the above example with a ConfigClassTask to w
 
 ```python
 #this is the same namespace model as above
-class GridNamespace(NamespaceSpec):
+class GridNamespace(NamespaceModel):
   grid = NSMultiComponent(Component("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
 
 
@@ -806,12 +806,12 @@ In the above sections on the MultiTask and ConfigClassTask, the notion of refere
 
 As mentioned above, a reference selection expression is initiated by accessing the 'q' attribute on a model class. After the 'q', attributes of the model and its objects can be performed just as if you were doing so in the model class itself. However, instead of generating a single model reference, such accesses further define an expression that will yield a list of references into the model.
 
-Each attribute access in a reference selection expression will yield either a single-valued attribute (such as a Component in a NamespaceSpec), or a collection of values as represented by wrappers such as NSMultiComponent or NSMultiComponentGroup. In this latter case, it is possible to restrict the set of references selected through the use of test methods which will filter out unwanted references in the collection. In either case, such references may be followed by further attribute accesses into the model, and attributes will be accessed only on the items selected to this point.
+Each attribute access in a reference selection expression will yield either a single-valued attribute (such as a Component in a NamespaceModel), or a collection of values as represented by wrappers such as NSMultiComponent or NSMultiComponentGroup. In this latter case, it is possible to restrict the set of references selected through the use of test methods which will filter out unwanted references in the collection. In either case, such references may be followed by further attribute accesses into the model, and attributes will be accessed only on the items selected to this point.
 
 A contrived example will illustrate this; consider the following nested namespace model:
 
 ```python
-class Contrived(NamespaceSpec):
+class Contrived(NamespaceModel):
   top = NSMultiComponent(NSMultiComponentGroup("site",
                                                leader=Component('leader'),
                                                grid=NSMultiComponent(Component('grid-node'))))
