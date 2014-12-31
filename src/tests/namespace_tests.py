@@ -588,35 +588,6 @@ def test49():
     var, _ = ns.kids[0].find_variable("MYSTERY")
     assert var.get_value(ns.kids[0].value()) == "maybe..." 
 
-def test50():
-    class Infra(InfraModel):
-        controller = Server("controller", mem="16GB")
-        grid = MultiResource(Server("grid-node", mem="8GB"))
-          
-    class NS(NamespaceModel):
-        with_variables(Var("MYSTERY", "WRONG!"))
-        grid = MultiRole(Role("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
-    infra = Infra("multi_comp")
-    ns = NS()
-    for i in range(5):
-        _ = ns.grid[i]
-    assert len(infra.grid) == 0
-     
-def test51():
-    class Infra(InfraModel):
-        controller = Server("controller", mem="16GB")
-        grid = MultiResource(Server("grid-node", mem="8GB"))
-          
-    class NS(NamespaceModel):
-        with_variables(Var("MYSTERY", "WRONG!"))
-        grid = MultiRole(Role("grid-node", multi_ref=Infra.grid, multi_key=ctxt.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
-    infra = Infra("multi_comp")
-    ns = NS()
-    for i in range(5):
-        _ = ns.grid[i]
-    ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 5
-     
 def test52():
     class Infra(InfraModel):
         controller = Server("controller", mem="16GB")
@@ -718,20 +689,6 @@ def test60():
     except TypeError, e:
         assert "is not a var" in e.message.lower()
         
-def test61():
-    try:
-        _ = Role("oops", host_ref=1, multi_ref=1)
-        assert False, "Should have had a complaint about having both a host_ref and a multi_ref"
-    except NamespaceException, e:
-        assert "only one of" in e.message.lower()
-        
-def test62():
-    try:
-        _ = Role("oops", multi_ref=1)
-        assert False, "Should have had a complaint about not having a multi_key with a multi_ref"
-    except NamespaceException, e:
-        assert "must also" in e.message.lower()
-        
 def test63():
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
@@ -767,45 +724,6 @@ def test65():
     value = ns.grid[5].var_value("NODE_NAME")
     assert value and value == "Grid-5"
 
-def test66():
-    class Infra(InfraModel):
-        controller = Server("controller", mem="16GB")
-        grid = MultiResource(Server("grid-node", mem="8GB"))
-          
-    class NS(NamespaceModel):
-        with_variables(Var("MYSTERY", "WRONG!"))
-        grid = MultiRole(Role("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
-    infra = Infra("multi_comp")
-    ns = NS()
-    ns.set_infra_model(infra)
-    try:
-        ns.set_infra_model(infra)
-        assert True
-    except NamespaceException, _:
-        assert False, "Setting the same infra model twice shouldn't be a problem"
-     
-def test67():
-    class Infra1(InfraModel):
-        controller = Server("controller", mem="16GB")
-        grid = MultiResource(Server("grid-node", mem="8GB"))
-          
-    class Infra2(InfraModel):
-        controller = Server("controller", mem="16GB")
-        grid = MultiResource(Server("grid-node", mem="8GB"))
-          
-    class NS(NamespaceModel):
-        with_variables(Var("MYSTERY", "WRONG!"))
-        grid = MultiRole(Role("grid-node", multi_ref=Infra1.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
-    infra1 = Infra1("multi_comp")
-    infra2 = Infra2("i2")
-    ns = NS()
-    ns.set_infra_model(infra1)
-    try:
-        ns.set_infra_model(infra2)
-        assert False, "This should have complained about getting a different infra model"
-    except NamespaceException, _:
-        assert True
-     
 
 def do_all():
     setup()

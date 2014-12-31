@@ -244,22 +244,10 @@ class ModelInstanceFinderMixin(object):
     
     
 class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
-#     __metadata__ = ComponentMeta
-    def __init__(self, name, host_ref=None, variables=None, model=None, multi_ref=None,
-                 multi_key=None):
+    def __init__(self, name, host_ref=None, variables=None, model=None):
         super(Role, self).__init__(name, model_instance=model)
-#         if host_ref is None and multi_ref is None:
-#             raise NamespaceException("one of host_ref or multi_ref must be supplied to Role")
-        if host_ref is not None and multi_ref is not None:
-            raise NamespaceException("only one of host_ref or multi_ref can be used at a time")
-        if multi_ref is not None and multi_key is None:
-            raise NamespaceException("If multi_ref is supplied, multi_key must also be supplied")
         self.host_ref = None
         self._host_ref = host_ref
-        self.multi_ref = None
-        self._multi_ref = multi_ref
-        self.multi_key = None
-        self._multi_key = multi_key
         if variables is not None:
             self.add_variable(*variables)
             
@@ -274,36 +262,26 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
             val = cv.expand(self)
-#         elif isinstance(val, ModelReference) and self._model_instance:
-#             val = self._model_instance.get_inst_ref(val)
         return val
             
     def _fix_arguments(self):
-        if self._multi_ref is not None:
-            self.multi_ref = self._get_arg_value(self._multi_ref)
-            self.multi_key = self._get_arg_value(self._multi_key)
-            self.host_ref = self.multi_ref[self.multi_key]
-        else:
-            host_ref = self._get_arg_value(self._host_ref)
-            if not isinstance(host_ref, AbstractModelReference):
-                #@FIXME: The problem here is that it won't always be possible
-                #to find a ref object of some kind. If the value supplied was
-                #a hard-coded string or variable override, then there will
-                #never be a ref object available for it. In that case we
-                #need to return the object that was already there. This is
-                #probably going to happen more often that we'd like
-                tmp_ref = AbstractModelReference.find_ref_for_obj(self._get_arg_value(host_ref))
-                if tmp_ref is not None:
-                    host_ref = tmp_ref
-#                     host_ref.fix_arguments()
-            self.host_ref = host_ref
+        host_ref = self._get_arg_value(self._host_ref)
+        if not isinstance(host_ref, AbstractModelReference):
+            #@FIXME: The problem here is that it won't always be possible
+            #to find a ref object of some kind. If the value supplied was
+            #a hard-coded string or variable override, then there will
+            #never be a ref object available for it. In that case we
+            #need to return the object that was already there. This is
+            #probably going to happen more often that we'd like
+            tmp_ref = AbstractModelReference.find_ref_for_obj(self._get_arg_value(host_ref))
+            if tmp_ref is not None:
+                host_ref = tmp_ref
+        self.host_ref = host_ref
             
     def get_init_args(self):
         _, kwargs = super(Role, self).get_init_args()
         kwargs.update({"host_ref":self._host_ref,
-                       "variables":self.variables.values(),
-                       "multi_ref":self._multi_ref,
-                       "multi_key":self._multi_key})
+                       "variables":self.variables.values(),})
         return ((self.name,), kwargs)
         
     def _get_model_refs(self):
