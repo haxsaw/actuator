@@ -11,8 +11,8 @@ Actuator allows you to use Python to declaratively describe system infra, config
   4. [Execution Model](#ov_execmodel)
 3. [Infra models](#inframodels)
   1. [A simple Openstack example](#simple_openstack_example)
-  2. [Multiple Components](#multi_components)
-  3. [Component Groups](#component_groups)
+  2. [Multiple Components](#multi_resources)
+  3. [Component Groups](#resource_groups)
   4. [Model References and Context Expressions](#modrefs_ctxtexprs)
 4. [Namespace models](#nsmodels)
   1. [An example](#simplensexample)
@@ -29,7 +29,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
 
 ## <a name="intro">Intro</a>
 
-Actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, defining the names that govern operation, configuring the infra for the software that is to be run, and then executing that system's code on the configured infra.
+Actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, defining the roles that define the system and the names that govern their operation, configuring the infra for the software that is to be run, and then executing that system's code on the configured infra.
 
 It does this by providing facilities that allow a system to be described as a collection of *models* in a declarative fashion directly in Python code, in a manner similar to various declarative systems for ORMs (Elixir being a prime example). Being in Python, these models:
 
@@ -37,12 +37,12 @@ It does this by providing facilities that allow a system to be described as a co
 - can be integrated with other Python packages
 - can be authored and browsed in existing IDEs
 - can be debugged with standard tools
-- can be used in a variety of ways
+- can be inspected for auditing and other purposes
 - and can be factored into multiple modules of reusable sets of declarative components
 
 And while each model provides capabilties on their own, they can be inter-related to not only exchange information, but to allow instances of a model to tailor the content of other models.
 
-Actuator uses a Python *class* as the basis for defining a model, and the class serves as a logical description of the item being modeled; for instance a collection of infrastructure components for a system. These model classes can have both static and dynamic aspects, and can themselves be easily created within a factory function to make the classes' content highly variable.
+Actuator uses a Python *class* as the basis for defining a model, and the class serves as a logical description of the item being modeled; for instance a collection of infrastructure resources for a system. These model classes can have both static and dynamic aspects, and can themselves be easily created within a factory function to make the classes' content highly variable.
 
 Actuator models can be related to each other so that their structure and data can inform and sometimes drive the content of other models.
 
@@ -52,40 +52,40 @@ Actuator splits the modeling space into four parts:
 
 ###<a name="ov_inframodel">Infra Model</a>
 
-The *infra model*, established with a subclass of **InfraSpec**, defines all the cloud-provisionable infrastructure components of a system and their inter-relationships. Infra models can have fixed components that are always provisioned with each instance of the model class, as well as variable components that allow multiple copies of components to be easily created on an instance by instance basis. The infra model also has facilities to define groups of components that can be created as a whole, and an arbitrary number of copies of these groups can be created for each instance. References into the infra model can be held by other models, and these references can be subsequently evaluated against an instance of the infra model to extract data from that particular instance. For example, a namespace model may need the IP address from a particular server in an infra model, and so the namespace model may hold a reference into the infra model for the IP address attribute that yields the actual IP address of a provisioned server when an instance of that infra model is provisioned.
+The *infra model*, established with a subclass of **InfraModel**, defines all the infrastructure resources of a system and their inter-relationships. Infra models can have fixed components that are always provisioned with each instance of the model class, as well as variable components that allow multiple copies of components to be easily created on an instance-by-instance basis. The infra model also has facilities to define groups of components that can be created as a whole, and an arbitrary number of copies of these groups can be created for each instance. References into the infra model can be held by other models, and these references can be subsequently evaluated against an instance of the infra model to extract data from that particular instance. For example, a namespace model may need the IP address from a particular server in an infra model, and so the namespace model may hold a reference into the infra model for the IP address attribute that yields the actual IP address of a provisioned server when an instance of that infra model is provisioned.
 
 ###<a name="ov_namespacemodel">Namespace Model</a>
 
-The *namespace model*, established with a subclass of **NamespaceSpec**, defines a hierarchical namespace which defines all the names that are important to the run-time components of a system. Names in the namespace can be used for a variety of purposes, such as setting up environment variables, or establishing name-value pairs for processing template files such as scripts or properties files. The names in the namespace are organized into system components which map onto the executable software in a system, and each system component's namespace is composed of any names specific to that component, plus the names that are defined higher up in the namespace hierarchy. Values for the names can be baked into the model, supplied at model class instantiation, by setting values on the model class instnace, or can be acquired by resolving references to other models such as the infra model.
+The *namespace model*, established with a subclass of **NamespaceModel**, defines a hierarchical namespace based around system "roles" which defines all the names that are important to the configuration and run-time operation of a system. A "role" can be thought of as a software component of a system; for instance, a system might have a database role, an app server role, or a grid node role. Names in the namespace can be used for a variety of purposes, such as setting up environment variables, or establishing name-value pairs for processing template files such as scripts or properties files. The names in the namespace are associated with the namespace's roles, and each system role's view of the namespace is composed of any names specific to that role, plus the names that are defined higher up in the namespace hierarchy. Values for the names can be baked into the model, supplied at model class instantiation, by setting values on the model class instance, or can be acquired by resolving references to other models such as the infra model.
 
 ###<a name="ov_configmodel">Configuration Model</a>
 
-The *configuration model*, established with a subclass of **ConfigSpec**, defines all the tasks to perform on the system components' infrastructure that make them ready to run the system's executables. The configuration model defines tasks to be performed on the logical system components of the namespace model, which in turn inidicates what infrastructure is involved in the configuration tasks. The configuration model also captures task dependencies so that the configuration tasks are all performed in the proper order.
+The *configuration model*, established with a subclass of **ConfigModel**, defines all the tasks to perform on the system roles' infrastructure that make them ready to run the system's executables. The configuration model defines tasks to be performed on the logical system roles of the namespace model, which in turn inidicates what infrastructure is involved in the configuration tasks. The configuration model also captures task dependencies so that the configuration tasks are all performed in the proper order. Configuration models can also be treated as tasks and used within other configuration models.
 
 ###<a name="ov_execmodel">Execution Model</a>
 
-The *execution model*, established with a subclass of **ExecutionSpec**, defines the actual processes to run for each system component named in the namespace model. Like with the configuration model, dependencies between the executables can be expressed so that a particular startup order can be enforced.
+The *execution model*, established with a subclass of **ExecutionModel**, defines the actual processes to run for each system component named in the namespace model. Like with the configuration model, dependencies between the executables can be expressed so that a particular startup order can be enforced.
 
 Each model can be built and used independently, but it is the inter-relationships between the models that give Actuator its representational power.
 
-Actuator then provides a number of support objects that can take instances of these models and processes their informantion, turning it into actions in the cloud. So for instance, a provisioner can take an infra model instance and manage the process of provisioning the infra it describes, and another can marry that instance with a namespace to fully populate a namespace model instance so that the configurator can carry out configuration tasks, and so on.
+Actuator then provides a number of support tools that can take instances of these models and processes their informantion, turning it into actions in the cloud. So for instance, a provisioner can take an infra model instance and manage the process of provisioning the infra it describes, and another can marry that instance with a namespace to fully populate a namespace model instance so that the configurator can carry out configuration tasks, and so on.
 
 As may have been guessed, the key model in Actuator is the namespace model, as it serves as the focal point to tie all the other models together.
 
 ##<a name="inframodels">Infra models</a>
 
-Although the namespace model is the one that is most central in Actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynmaically provisionable infra components and describes how they relate to each other. The model can define groups of components and components that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
+Although the namespace model is the one that is most central in Actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynamically provisionable infra resources and describes how they relate to each other. The model can define groups of resources and resources that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
 
 ### <a name="simple_openstack_example">A simple Openstack example</a>
-The best place to start is to develop a model that can be used to provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra in a declarative fashion. This example will use components built the [Openstack](http://www.openstack.org/) binding to Actuator.
+The best place to start is to develop a model that can be used to provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra's resources in a declarative fashion. This example will use components built using the [Openstack](http://www.openstack.org/) binding to Actuator.
 
 ```python
-from actuator import InfraSpec, ctxt
+from actuator import InfraModel, ctxt
 from actuator.provisioners.openstack.components import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
-class SingleOpenstackServer(InfraSpec):
+class SingleOpenstackServer(InfraModel):
   server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
   net = Network("actuator_ex1_net")
   fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
@@ -108,7 +108,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common steps to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common component groups: providing a dictionary of components to the with_infra_components function, and using the [ComponetGroup](#component_groups) wrapper class to define a group of standard components. We'll recast the above example using with_infra_components():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_infra_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_infra_components():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -121,30 +121,30 @@ gateway_components = {"net":Network("actuator_ex1_net"),
                                                ctxt.model.subnet)}
 
 
-class SingleOpenstackServer(InfraSpec):
-  with_infra_components(**gateway_components)
+class SingleOpenstackServer(InfraModel):
+  with_infra_resources(**gateway_components)
   server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
   fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
 ```
 
-With with_infra_components(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
+With with_infra_resources(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
 
-### <a name="multi_components">Multiple components</a>
-If you require a set of identical components to be created in a model, the MultiComponent wrapper provides a way to declare a component as a template and then to get as many copies of that template stamped out as required:
+### <a name="multi_resources">Multiple resources</a>
+If you require a set of identical components to be created in a model, the MultiResource wrapper provides a way to declare a resource as a template and then to get as many copies of that template created as required:
 
 <a name="multiservers">&nbsp;</a>
 ```python
-from actuator import InfraSpec, MultiComponent, ctxt, with_infra_components
+from actuator import InfraSpec, MultiResource, ctxt, with_infra_resources
 from actuator.provisioners.openstack.components import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
-class MultipleServers(InfraSpec):
+class MultipleServers(InfraModel):
   #
   #First, declare the common networking components with with_infra_components
   #
-  with_infra_components(**gateway_components)
+  with_infra_resources(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the workers. It will need a
@@ -154,13 +154,13 @@ class MultipleServers(InfraSpec):
   fip = FloatingIP("actuator_ex2_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
   #
-  #finally, declare the workers MultiComponent
+  #finally, declare the workers MultiResource
   #
-  workers = MultiComponent(Server("worker", "Ubuntu 13.10", "m1.small",
+  workers = MultiResource(Server("worker", "Ubuntu 13.10", "m1.small",
                                   nics=[ctxt.model.net]))
 ```
 
-The *workers* MultiComponent works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template component is created:
+The *workers* MultiResource works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template component is created:
 
 ```python
 >>> inst2 = MultipleServers("two")
@@ -174,7 +174,7 @@ The *workers* MultiComponent works like a dictionary in that it can be accessed 
 >>>
 ```
 
-Keys are always coerced to strings, and for each new instance of the MultiComponent template that is created, the original name is appened with '_{key}' to make each instance distinct.
+Keys are always coerced to strings, and for each new instance of the MultiResource template that is created, the original name is appened with '_{key}' to make each instance distinct.
 
 ```python
 >>> for w in inst2.workers.instances().values():
@@ -188,12 +188,12 @@ worker_4
 >>>
 ```
 
-### <a name="component_groups">Component Groups</a>
+### <a name="resource_groups">Resource Groups</a>
 
-If you require a group of different resources to be provisioned as a unit, the ComponentGroup() wrapper provides a way to define a template of multiple resources that will be provisioned as a whole. The following example shows how the boilerplate gateway components could be expressed using a ComponentGroup().
+If you require a group of different resources to be provisioned as a unit, the ResourceGroup() wrapper provides a way to define a template of multiple resources that will be provisioned as a whole. The following example shows how the boilerplate gateway components could be expressed using a ResourceGroup().
 
 ```python
-gateway_component = ComponentGroup("gateway", net=Network("actuator_ex1_net"),
+gateway_component = ResourceGroup("gateway", net=Network("actuator_ex1_net"),
                               subnet=Subnet("actuator_ex1_subnet", ctxt.comp.container.net,
                                           "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
                               router=Router("actuator_ex1_router"),
@@ -203,20 +203,20 @@ gateway_component = ComponentGroup("gateway", net=Network("actuator_ex1_net"),
                                                      ctxt.comp.container.subnet))
 
 
-class SingleOpenstackServer(InfraSpec):
+class SingleOpenstackServer(InfraModel):
   gateway = gateway_component
   server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.gateway.net])
   fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
 ```
 
-The keyword args used in creating the ComponentGroup become the attributes of the instances of the group.
+The keyword args used in creating the ResourceGroup become the attributes of the instances of the group.
 
-If you require a group of different resources to be provisioned together repeatedly, the MultiComponentGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiComponentGroup() is simply a shorthand for wrapping a ComponentGroup in a MultiComponent. The following model only uses Servers in the template, but any component (including ComponentGroups and MultiComponents) can appear in a MultiComponentGroup.
+If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. The following model only uses Servers in the template, but any component (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
 
 <a name="multigroups">&nbsp;</a>
 ```python
-from actuator import InfraSpec, MultiComponent, MultiComponentGroup, ctxt
+from actuator import InfraModel, MultiResource, MultiResourceGroup, ctxt
 from actuator.provisioners.openstack.components import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
@@ -225,7 +225,7 @@ class MultipleGroups(InfraSpec):
   #
   #First, declare the common networking components
   #
-  with_infra_components(**gateway_components)
+  with_infra_resources(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the leaders of clusters. It will need a
@@ -238,16 +238,16 @@ class MultipleGroups(InfraSpec):
   #finally, declare a "cluster"; a leader that coordinates the workers in the
   #cluster, which operate under the leader's direction
   #
-  cluster = MultiComponentGroup("cluster",
+  cluster = MultiResourceGroup("cluster",
                                 leader=Server("leader", "Ubuntu 13.10", "m1.small",
                                               nics=[ctxt.model.net]),
-                                workers=MultiComponent(Server("cluster_node",
+                                workers=MultiResource(Server("cluster_node",
                                                               "Ubuntu 13.10",
                                                               "m1.small",
                                                               nics=[ctxt.model.net])))
 ```
 
-The keyword args used in creating the ComponentGroup become the attributes of the instances of the group; hence the following expressions are fine:
+The keyword args used in creating the ResourceGroup become the attributes of the instances of the group; hence the following expressions are fine:
 
 ```python
 >>> inst3 = MultipleGroups("three")
@@ -269,13 +269,13 @@ The keyword args used in creating the ComponentGroup become the attributes of th
 >>>
 ```
 
-This model will behave similarly to the MultiServer attribute in the previous model; that is, the *cluster* attribute can be treated like a dictionary and keys will cause a new instance of the MultiComponentGroup to be created. Note also that you can nest MultiComponents in MultiComponentGroups, and vice versa.
+This model will behave similarly to the MultiServer model above; that is, the *cluster* attribute can be treated like a dictionary and keys will cause a new instance of the MultiResourceGroup to be created. Note also that you can nest MultiResources in MultiResourceGroups, and vice versa.
 
 
 ### <a name="modrefs_ctxtexprs">Model References and Context Expressions</a>
 A few of the examples above have shown that accessing model attributes results in a reference object of some sort. These objects are the key to declaratively relating aspects of various models to one another. For instance, a reference to the attribute that stores the IP address of a provisioned server can be used as the value of a variable in the namespace model, and once the IP address is known, the variable will have a meaningful value.
 
-There are two different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between class memebers is required in the middle of a class definition, model references aren't yet available, and hence can't be used.
+There are two different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between memebers is required in the middle of a model class definition, model references aren't yet available, and hence can't be used.
 
 The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference.
 
@@ -285,26 +285,26 @@ Once a model class has been defined, you can create expressions that refer to at
 
 ```python
 >>> SingleOpenstackServer.server
-<actuator.infra.InfraModelReference object at 0x0291CB70>
+<actuator.infra.ModelReference object at 0x0291CB70>
 >>> SingleOpenstackServer.server.iface0
-<actuator.infra.InfraModelReference object at 0x02920110>
+<actuator.infra.ModelReference object at 0x02920110>
 >>> SingleOpenstackServer.server.iface0.addr0
-<actuator.infra.InfraModelReference object at 0x0298C110>
+<actuator.infra.ModelReference object at 0x0298C110>
 >>>
 ```
 
 Likewise, you can create references to attributes on instances of the model class:
 ```python
 >>> inst.server
-<actuator.infra.InfraModelInstanceReference object at 0x0298C6B0>
+<actuator.infra.ModelInstanceReference object at 0x0298C6B0>
 >>> inst.server.iface0
-<actuator.infra.InfraModelInstanceReference object at 0x0298C6D0>
+<actuator.infra.ModelInstanceReference object at 0x0298C6D0>
 >>> inst.server.iface0.addr0
-<actuator.infra.InfraModelInstanceReference object at 0x0298CAD0>
+<actuator.infra.ModelInstanceReference object at 0x0298CAD0>
 >>>
 ```
 
-All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a component or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of an infra model; they refer to an actual component or attribute (although the value of the attribute may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a component or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a  model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
