@@ -31,7 +31,7 @@ NovaClient = ocf.get_nova_client_class()
 NeutronClient = ocf.get_neutron_client_class()
 from actuator.provisioners.openstack.components import _ComponentSorter, SecGroupRule
 
-from actuator.infra import InfraSpec
+from actuator.infra import InfraModel
 from actuator.provisioners.core import BaseProvisioner, ProvisionerException, BaseProvisioningRecord
 
 
@@ -284,7 +284,7 @@ class OpenstackProvisioner(BaseProvisioner):
                 self.nvclient.servers.add_floating_ip(server, fip, associated_ip)
         
     def _provision(self, infraspec_instance):
-        assert isinstance(infraspec_instance, InfraSpec)
+        assert isinstance(infraspec_instance, InfraModel)
         record = OpenstackProvisioningRecord(uuid.uuid4())
         self.workflow_sorter.sort_provisionables(infraspec_instance.components())
         infraspec_instance.refs_for_components()

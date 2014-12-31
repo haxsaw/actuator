@@ -24,10 +24,12 @@ Created on 7 Sep 2014
 '''
 
 from actuator.utils import ClassModifier, process_modifiers
-from actuator.modeling import (ActuatorException,SpecBaseMeta, SpecBase,
+from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                ModelComponent, AbstractModelingEntity,
                                ModelInstanceReference, KeyAsAttr,
-                               _ComputeModelComponents, ModelReference)
+                               _ComputeModelComponents, ModelReference,
+                               ComponentGroup, MultiComponent,
+                               MultiComponentGroup)
 
 
 class InfraException(ActuatorException): pass
@@ -47,12 +49,12 @@ _recognized_options = set(["long_names"])
 #         setattr(cls, _infra_options, opts_dict)
 #     for k, v in kwargs.items():
 #         if k not in _recognized_options:
-#             raise InfraException("Unrecognized InfraSpec option: %s" % k)
+#             raise InfraException("Unrecognized InfraModel option: %s" % k)
 #         opts_dict[k] = v
 
 
 @ClassModifier
-def with_infra_components(cls, *args, **kwargs):
+def with_infra_resources(cls, *args, **kwargs):
     """
     This function attaches additional _components onto a class object.
 
@@ -62,7 +64,7 @@ def with_infra_components(cls, *args, **kwargs):
         all be derived from AbstractModelingEntity
     :return: None
     """
-    components = getattr(cls, InfraSpecMeta._COMPONENTS)
+    components = getattr(cls, InfraModelMeta._COMPONENTS)
     if components is None:
         raise InfraException("FATAL ERROR: no component collection on the class object")
     for k, v in kwargs.items():
@@ -73,6 +75,20 @@ def with_infra_components(cls, *args, **kwargs):
     return
 
 
+class ResourceGroup(ComponentGroup):
+    pass
+
+
+class MultiResource(MultiComponent):
+    pass
+
+
+class MultiResourceGroup(MultiComponentGroup):
+    def __new__(self, name, **kwargs):
+        group = ResourceGroup(name, **kwargs)
+        return MultiResource(group)
+
+
 class Provisionable(ModelComponent):
     """
     This class serves as a marker class for any AbstractModelingEntity derived class as something
@@ -81,11 +97,11 @@ class Provisionable(ModelComponent):
     pass
         
 
-class InfraSpecMeta(SpecBaseMeta):
+class InfraModelMeta(ModelBaseMeta):
     model_ref_class = ModelReference
 
     def __new__(cls, name, bases, attr_dict):
-        new_class = super(InfraSpecMeta, cls).__new__(cls, name, bases, attr_dict)
+        new_class = super(InfraModelMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(new_class)
         new_class._class_refs_for_components()
         #
@@ -96,30 +112,29 @@ class InfraSpecMeta(SpecBaseMeta):
         return new_class
             
 
-class InfraSpec(SpecBase):
-    __metaclass__ = InfraSpecMeta
+class InfraModel(ModelBase):
+    __metaclass__ = InfraModelMeta
     ref_class = ModelInstanceReference
     
     def __init__(self, name):
-        super(InfraSpec, self).__init__()
+        super(InfraModel, self).__init__()
         self.name = name
-        ga = super(InfraSpec, self).__getattribute__
+        ga = super(InfraModel, self).__getattribute__
         attrdict = self.__dict__
-        for k, v in ga(InfraSpecMeta._COMPONENTS).items():
+        for k, v in ga(InfraModelMeta._COMPONENTS).items():
             attrdict[k] = clone = v.clone()
             clone._set_model_instance(self)
         self.provisioning_computed = False
         
     def validate_args(self):
-        for component in self.__class__.__dict__[InfraSpecMeta._COMPONENTS].values():
+        for component in self.__class__.__dict__[InfraModelMeta._COMPONENTS].values():
             component._validate_args(self)
         
     def provisioning_been_computed(self):
         return self.provisioning_computed
     
-#     def provisionables(self):
     def components(self):
-        comps = super(InfraSpec, self).components()
+        comps = super(InfraModel, self).components()
         #We need some place where we have a reasonable expectations
         #that all logical refs have been eval'd against the model instance
         #and hence we can tell every Provisionable that's out there so we
@@ -159,7 +174,7 @@ class InfraSpec(SpecBase):
     @classmethod
     def _class_refs_for_components(cls, my_ref=None):
         all_refs = set()
-        for k, v in cls.__dict__[InfraSpecMeta._COMPONENTS].items():
+        for k, v in cls.__dict__[InfraModelMeta._COMPONENTS].items():
             if isinstance(v, Provisionable):
                 if isinstance(k, KeyAsAttr):  #this probably isn't possible
                     all_refs.add(my_ref[k])

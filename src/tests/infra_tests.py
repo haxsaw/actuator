@@ -22,28 +22,29 @@
 '''
 Created on 4 Jun 2014
 '''
-from actuator import (InfraSpec, MultiComponent, MultiComponentGroup, ComponentGroup, ctxt)
+from actuator import (InfraModel, MultiResourceGroup, ComponentGroup, ctxt)
 from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,
-                               AbstractModelingEntity)
-from actuator.infra import (with_infra_components, InfraException)
+                               AbstractModelingEntity, MultiComponent)
+from actuator.infra import (with_infra_resources, InfraException, ResourceGroup,
+                            MultiResource, MultiResourceGroup)
 from actuator.provisioners.example_components import Server, Database
 
 MyInfra = None
 
 def setup():
     global MyInfra
-    class MyInfraLocal(InfraSpec):
+    class MyInfraLocal(InfraModel):
         other = "some data"
         server = Server("wibble", mem="16GB")
-        grid = MultiComponent(Server("grid-comp", mem="8GB"))
+        grid = MultiResource(Server("grid-comp", mem="8GB"))
         database = Database("db")
-        workers = MultiComponentGroup("workers",
+        workers = MultiResourceGroup("workers",
                                       handler=Server("handler", mem="4GB"),
                                       query=Server("query", mem="8GB"),
                                       ncube=Server("ncube", mem="16GB"))
-        composite = MultiComponentGroup("grid",
-                                        grid=MultiComponent(Server("grid-comp", mem="8GB")),
-                                        workers=MultiComponentGroup("inner_workers",
+        composite = MultiResourceGroup("grid",
+                                        grid=MultiResource(Server("grid-comp", mem="8GB")),
+                                        workers=MultiResourceGroup("inner_workers",
                                                                     handler=Server("handler", mem="4GB"),
                                                                     query=Server("query", mem="8GB"),
                                                                     ncube=Server("ncube", mem="16GB")))
@@ -100,11 +101,11 @@ def test12():
     
 def test13():
     assert MyInfra.grid[1].__class__ == ModelReference, \
-        "did not get a ref for a keyed MultiComponent"
+        "did not get a ref for a keyed MultiResource"
     
 def test14():
     assert MyInfra.grid.__class__ == ModelReference, \
-        "did not get a ref for a MultiComponent"
+        "did not get a ref for a MultiResource"
     
 def test15():
     assert MyInfra.grid[1] is MyInfra.grid[1], \
@@ -341,25 +342,25 @@ def test71():
     assert len(inst.composite[5].workers.instances()) == 0
     
 def test72():
-    assert MyInfra.composite[1].value().__class__.__name__ == "ComponentGroup"
+    assert MyInfra.composite[1].value().__class__.__name__ == "ResourceGroup"
     
 def test73():
     assert MyInfra.grid[1].value().__class__ is Server
     
 def test74():
     inst = MyInfra("test74")
-    assert inst.composite[1].value().__class__.__name__ == "ComponentGroup"
+    assert inst.composite[1].value().__class__.__name__ == "ResourceGroup"
     
 def test75():
     inst = MyInfra("test75")
     assert inst.grid[1].value().__class__ is Server
     
 def test76():
-    assert MyInfra.composite.value().__class__ in (MultiComponentGroup, MultiComponent)
+    assert MyInfra.composite.value().__class__ in (MultiResourceGroup, MultiResource)
     
 def test77():
     inst = MyInfra("test77")
-    assert inst.composite.value().__class__ in (MultiComponentGroup, MultiComponent)
+    assert inst.composite.value().__class__ in (MultiResourceGroup, MultiResource)
     
 def test78():
     modrefs = [MyInfra.composite,
@@ -393,8 +394,8 @@ def test82():
     assert len(inst.components()) == 2
     
 def test83():
-    class ProvTest(InfraSpec):
-        grid = MultiComponent(Server("prov1", mem="8GB"))
+    class ProvTest(InfraModel):
+        grid = MultiResource(Server("prov1", mem="8GB"))
     inst = ProvTest("prov1")
     _ = inst.grid[1]
     assert len(inst.components()) == 1
@@ -589,39 +590,39 @@ def test118():
         assert False, "got an unexpected exception: '%s'" % e.message
         
 def test119():
-    class CGTest1(InfraSpec):
-        group = ComponentGroup("group",
+    class CGTest1(InfraModel):
+        group = ResourceGroup("group",
                                reqhandler=Server("reqhandler", mem="8GB"),
                                db=Database("db"))
     inst = CGTest1("cgtest1")
     assert inst.group.reqhandler
     
 def test120():
-    class CGTest2(InfraSpec):
-        group = ComponentGroup("group",
+    class CGTest2(InfraModel):
+        group = ResourceGroup("group",
                                reqhandler=Server("reqhandler", mem="8GB"),
-                               grid=MultiComponent(Server("grid", mem="8GB")))
+                               grid=MultiResource(Server("grid", mem="8GB")))
     inst = CGTest2("cgt2")
     _ = inst.group.grid[1]
     assert inst.group.grid[1] is inst.group.grid[1]
     
 def test121():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
-                                 grid=MultiComponent(Server("grid", mem="8GB")))
-    class CGTest3(InfraSpec):
+                                 grid=MultiResource(Server("grid", mem="8GB")))
+    class CGTest3(InfraModel):
         overlord = Server("overlord", mem="8GB")
-        groups = MultiComponent(group_thing)
+        groups = MultiResource(group_thing)
         
     inst = CGTest3("cgt3")
     _ = inst.groups[1].grid[2]
     assert inst.groups[1].grid[2].value() is not inst.groups[2].grid[1].value()
     
 def test122():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
-                                 grid=MultiComponent(Server("grid", mem="8GB")))
-    class CGTest4(InfraSpec):
+                                 grid=MultiResource(Server("grid", mem="8GB")))
+    class CGTest4(InfraModel):
         group = group_thing
 
     inst1 = CGTest4("cgt4-1")
@@ -629,13 +630,13 @@ def test122():
     assert inst1.group.reqhandler.value() is not inst2.group.reqhandler.value()
 
 def test123():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
-                                 grid=MultiComponent(Server("grid", mem="8GB")))
-    class CGTest5a(InfraSpec):
+                                 grid=MultiResource(Server("grid", mem="8GB")))
+    class CGTest5a(InfraModel):
         group = group_thing
 
-    class CGTest5b(InfraSpec):
+    class CGTest5b(InfraModel):
         group = group_thing
 
     inst1 = CGTest5a("cgt5a-1")
@@ -643,11 +644,11 @@ def test123():
     assert inst1.group.value() is not inst2.group.value()
     
 def test124():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
-                                 grid=MultiComponent(Server("grid", mem="8GB",
+                                 grid=MultiResource(Server("grid", mem="8GB",
                                                             rhm=ctxt.comp.container.container.reqhandler.mem)))
-    class CGTest6(InfraSpec):
+    class CGTest6(InfraModel):
         group = group_thing
         
     inst = CGTest6("ctg6")
@@ -660,11 +661,11 @@ def test124():
         assert False, "Fixing the arguments failed; %s" % e.message
     
 def test125():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
-                                 grid=MultiComponent(Server("grid", mem="8GB",
+                                 grid=MultiResource(Server("grid", mem="8GB",
                                                             rhm=ctxt.comp.container.container.reqhandler.mem)))
-    class CGTest7(InfraSpec):
+    class CGTest7(InfraModel):
         group = group_thing
         
     inst = CGTest7("ctg7")
@@ -674,10 +675,10 @@ def test125():
     assert inst.group.grid[0].rhm.value() is inst.group.grid[1].rhm.value()
 
 def test126():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
                                  slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem))
-    class CGTest8(InfraSpec):
+    class CGTest8(InfraModel):
         group = group_thing
         
     inst = CGTest8("ctg8")
@@ -686,10 +687,10 @@ def test126():
     assert inst.group.slave.mem.value() == "8GB"
 
 def test127():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
                                  slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem))
-    class CGTest9(InfraSpec):
+    class CGTest9(InfraModel):
         top = Server("topper", mem=ctxt.model.group.reqhandler.mem)
         group = group_thing
         
@@ -701,11 +702,11 @@ def test127():
     assert inst.top.mem.value() == "8GB"
 
 def test128():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
                                  slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem,
                                               path=ctxt.comp.container.reqhandler._path))
-    class CGTest10(InfraSpec):
+    class CGTest10(InfraModel):
         group = group_thing
         
     inst = CGTest10("cgt10")
@@ -718,9 +719,9 @@ def test130():
     class BadRefClass(AbstractModelReference):
         pass
     
-    class Test130(InfraSpec):
+    class Test130(InfraModel):
         ref_class = BadRefClass
-        grid = MultiComponent(Server("grid", mem="8GB"))
+        grid = MultiResource(Server("grid", mem="8GB"))
         
     inst = Test130("t130")
     try:
@@ -730,13 +731,13 @@ def test130():
         assert "get_item_ref_obj" in e.message
         
 def test131():
-    class Test131(InfraSpec):
+    class Test131(InfraModel):
         server = Server("dummy", mem="8GB", adict={'a':1, 'b':2, 'c':3})
     inst = Test131("t131")
     assert inst.server.adict['a'] == 1
     
 def test132():
-    class Test132(InfraSpec):
+    class Test132(InfraModel):
         server = Server("dummy", mem="8GB", no_key=5)
     inst = Test132("t132")
     try:
@@ -749,7 +750,7 @@ def test133():
     def tfunc(context):
         return context.model.server.mem
     
-    class Test133(InfraSpec):
+    class Test133(InfraModel):
         reqhandler = Server("dummy1", mem=tfunc)
         server = Server("dummy2", mem="16GB")
     
@@ -762,19 +763,19 @@ def test134():
     components = {"server":Server("dummy", mem="16GB"),
                   "db":Database("db", wibble=9)}
 
-    class Test134(InfraSpec):
-        with_infra_components(**components)
+    class Test134(InfraModel):
+        with_infra_resources(**components)
 
     inst = Test134("t134")
     assert inst.server.mem.value() == "16GB" and inst.db.wibble.value() == 9
 
 def test135():
-    group_thing = ComponentGroup("group",
+    group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
-                                 slaves=MultiComponent(Server("grid", mem=ctxt.comp.container.container.reqhandler.mem)))
+                                 slaves=MultiResource(Server("grid", mem=ctxt.comp.container.container.reqhandler.mem)))
     components = {"group":group_thing}
-    class Test135(InfraSpec):
-        with_infra_components(**components)
+    class Test135(InfraModel):
+        with_infra_resources(**components)
 
     inst = Test135("t135")
     _ = inst.group.slaves[1]
@@ -785,8 +786,8 @@ def test135():
     assert inst.group.slaves[2].mem.value() == "8GB"
     
 def test136():
-    class Test136(InfraSpec):
-        hive = MultiComponent(Server("worker", mem="8GB"))
+    class Test136(InfraModel):
+        hive = MultiResource(Server("worker", mem="8GB"))
         
     inst = Test136("t136")
     for i in range(5):
@@ -795,8 +796,8 @@ def test136():
     assert len(inst.hive.keys()) == 5
     
 def test137():
-    class Test137(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test137(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test137("t137")
     for i in range(5):
@@ -805,8 +806,8 @@ def test137():
     assert len(inst.hive.values()) == 5 and inst.hive[2] in inst.hive.values()
 
 def test138():
-    class Test138(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test138(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test138("t138")
     for i in range(5):
@@ -816,8 +817,8 @@ def test138():
     assert len(d) == 5 and inst.hive[1] in d.values()
 
 def test139():
-    class Test139(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test139(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test139("t139")
     for i in range(5):
@@ -826,8 +827,8 @@ def test139():
     assert inst.hive.has_key(3)
     
 def test140():
-    class Test140(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test140(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test140("t140")
     for i in range(5):
@@ -836,8 +837,8 @@ def test140():
     assert inst.hive.get(3) is inst.hive[3]
     
 def test141():
-    class Test141(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test141(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test141("t141")
     for i in range(5):
@@ -846,8 +847,8 @@ def test141():
     assert len([k for k in inst.hive.iterkeys()]) == 5
     
 def test142():
-    class Test142(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test142(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test142("t142")
     for i in range(5):
@@ -857,8 +858,8 @@ def test142():
     assert len(l) == 5 and inst.hive[4] in l
     
 def test143():
-    class Test143(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test143(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test143("t143")
     for i in range(5):
@@ -868,8 +869,8 @@ def test143():
     assert len(d) == 5 and inst.hive[0] in d.values()
     
 def test144():
-    class Test144(InfraSpec):
-        hive = MultiComponent(Server("drone", mem="8GB"))
+    class Test144(InfraModel):
+        hive = MultiResource(Server("drone", mem="8GB"))
          
     inst = Test144("t144")
     for i in range(5):
@@ -877,9 +878,9 @@ def test144():
     assert 3 in inst.hive
     
 def test145():
-    class Test145(InfraSpec):
-        hive = MultiComponent(ComponentGroup("crowd", drones=Server("drone", mem="8GB"),
-                                             dregs=MultiComponent(Server("dreg", mem="2GB"))))
+    class Test145(InfraModel):
+        hive = MultiResource(ResourceGroup("crowd", drones=Server("drone", mem="8GB"),
+                                             dregs=MultiResource(Server("dreg", mem="2GB"))))
          
     inst = Test145("t145")
     for i in range(5):
@@ -894,8 +895,8 @@ def test145():
             inst.hive[0].dregs[2] in d.values())
     
 def test146():
-    class Test(InfraSpec):
-        grid = MultiComponent(Server("grid-node", mem="8GB"))
+    class Test(InfraModel):
+        grid = MultiResource(Server("grid-node", mem="8GB"))
     
     inst = Test("key")
     for i in range(5):
@@ -904,21 +905,21 @@ def test146():
     
 def test147():
     try:
-        class Test(InfraSpec):
+        class Test(InfraModel):
             app_server = Server("app_server", mem="8GB")
-            with_infra_components(grid="not a component")
+            with_infra_resources(grid="not a component")
         assert False, "The class def should have raised an exception"
     except InfraException, e:
         assert "grid is not derived" in e.message
     
 def test148():
-    class Test(InfraSpec):
+    class Test(InfraModel):
         app_server = Server("app_server", mem="8GB")
     inst = Test("inst")
     assert not inst.provisioning_been_computed()
     
 def test149():
-    class Test(InfraSpec):
+    class Test(InfraModel):
         app_server = Server("app_server", mem="8GB")
     inst = Test("inst")
     inst.compute_provisioning_from_refs([Test.app_server])
@@ -941,7 +942,7 @@ def test150():
         
 def test151():
     s = Server("someserver", mem="8GB")
-    class Test(InfraSpec):
+    class Test(InfraModel):
         s1 = s
         s2 = s
         s3 = s

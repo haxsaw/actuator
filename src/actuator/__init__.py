@@ -40,10 +40,11 @@ if not os.environ.get("ACTUATOR_ALLOW_SSH_ARGS"):
 
 
 from modeling import MultiComponent, MultiComponentGroup, ComponentGroup, ctxt, ActuatorException
-from infra import (InfraSpec, InfraException, with_infra_components, StaticServer)
-from namespace import (Var, NamespaceSpec, with_variables, NamespaceException, Component,
-                       with_components, NSMultiComponent, NSComponentGroup,
-                       NSMultiComponentGroup)
+from infra import (InfraModel, InfraException, with_infra_resources, StaticServer,
+                   ResourceGroup, MultiResource, MultiResourceGroup)
+from namespace import (Var, NamespaceModel, with_variables, NamespaceException, Role,
+                       with_components, MultiRole, RoleGroup,
+                       MultiRoleGroup)
 from config import (ConfigSpec, with_searchpath, with_dependencies, MakeDir, Template,
                     CopyAssets, ConfigJob, ConfigException, TaskGroup, NullTask,
                     MultiTask, ConfigClassTask)

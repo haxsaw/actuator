@@ -22,11 +22,11 @@
 '''
 Created on 7 Jun 2014
 '''
-from actuator import (Var, NamespaceSpec, with_variables, NamespaceException,
-                          Component, with_components, MultiComponent, 
-                          MultiComponentGroup, ComponentGroup, ctxt, ActuatorException)
-from actuator.namespace import NSComponentGroup, NSMultiComponent, NSMultiComponentGroup
-from actuator.infra import InfraSpec
+from actuator import (Var, NamespaceModel, with_variables, NamespaceException,
+                          Role, with_components, MultiResource, 
+                          MultiResourceGroup, ctxt, ActuatorException)
+from actuator.namespace import RoleGroup, MultiRole, MultiRoleGroup
+from actuator.infra import InfraModel
 from actuator.modeling import AbstractModelReference
 from actuator.provisioners.example_components import Server
 
@@ -49,7 +49,7 @@ def setup():
         def get_inst_ref(self, fakeref):
             return fakeref
     
-    class MyNamespaceLocal(NamespaceSpec):
+    class MyNamespaceLocal(NamespaceModel):
         with_variables(Var("HOST", "wibble"),
                        Var("PORT", "1234"),
                        Var("REGION", "NY"),
@@ -129,7 +129,7 @@ def test009():
     
 def test010():
     try:
-        class MyNamespaceLocal(NamespaceSpec):
+        class MyNamespaceLocal(NamespaceModel):
             with_variables(("YEP", "NOPE"))
         _ = MyNamespaceLocal()
         assert False, "Was allowed to use with_variables with something not a Var"
@@ -185,40 +185,40 @@ def test018():
     assert v.value_is_external()
     
 def test019():
-    class NS19(NamespaceSpec):
+    class NS19(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"))
-        app_server = Component("app_server")
+        app_server = Role("app_server")
     
     inst = NS19()
     assert inst._components["app_server"] == inst.app_server.value()
     
 def test020():
-    class NS20(NamespaceSpec):
+    class NS20(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"))
-        app_server = Component("app_server")
+        app_server = Role("app_server")
     
     inst = NS20()
     assert inst.app_server is not NS20.app_server
 
 def test021():
-    class NS21(NamespaceSpec):
+    class NS21(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"))
         queries = {}
         for i in range(5):
-            queries["query_%d" % i] = Component("query_%d" % i)
+            queries["query_%d" % i] = Role("query_%d" % i)
         with_components(**queries)
         del queries
         
     assert NS21.query_1
     
 def test022():
-    class NS22(NamespaceSpec):
+    class NS22(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"))
@@ -229,41 +229,41 @@ def test022():
     assert v1.get_value(p1) and v2.get_value(p2)
 
 def test023():
-    class Infra23(InfraSpec):
+    class Infra23(InfraModel):
         app = Server("app")
-        query = MultiComponent(Server("query", mem="8GB"))
-        grid = MultiComponentGroup("grid",
+        query = MultiResource(Server("query", mem="8GB"))
+        grid = MultiResourceGroup("grid",
                                    handler=Server("handler", mem="8GB"),
                                    compute=Server("compute", mem="16GB"))
-    class NS23(NamespaceSpec):
+    class NS23(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"))
-        app_server = Component("app_server", host_ref=Infra23.app)
+        app_server = Role("app_server", host_ref=Infra23.app)
         queries = {}
         for i in range(5):
-            queries["query_%d" % i] = Component("query_%d" % i, host_ref=Infra23.query[i])
+            queries["query_%d" % i] = Role("query_%d" % i, host_ref=Infra23.query[i])
         with_components(**queries)
         del i, queries
         
     assert NS23.query_0
     
 def test24():
-    class Infra24(InfraSpec):
+    class Infra24(InfraModel):
         app = Server("app")
-        query = MultiComponent(Server("query", mem="8GB"))
-        grid = MultiComponentGroup("grid",
+        query = MultiResource(Server("query", mem="8GB"))
+        grid = MultiResourceGroup("grid",
                                    handler=Server("handler", mem="8GB"),
                                    compute=Server("compute", mem="16GB"))
 
-    class NS24(NamespaceSpec):
+    class NS24(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"))
-        app_server = Component("app_server", host_ref=Infra24.app)
+        app_server = Role("app_server", host_ref=Infra24.app)
         queries = {}
         for i in range(5):
-            queries["query_%d" % i] = Component("query_%d" % i, host_ref=Infra24.query[i])
+            queries["query_%d" % i] = Role("query_%d" % i, host_ref=Infra24.query[i])
         with_components(**queries)
         del i, queries
 
@@ -273,22 +273,22 @@ def test24():
     assert len(infra.components()) == 6
 
 def test25():
-    class Infra25(InfraSpec):
+    class Infra25(InfraModel):
         app = Server("app")
-        query = MultiComponent(Server("query", mem="8GB"))
-        grid = MultiComponentGroup("grid",
+        query = MultiResource(Server("query", mem="8GB"))
+        grid = MultiResourceGroup("grid",
                                    handler=Server("handler", mem="8GB"),
                                    compute=Server("compute", mem="16GB"))
 
-    class NS25(NamespaceSpec):
+    class NS25(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"),
                        Var("APP_HOST", Infra25.query[10].provisionedName))
-        app_server = Component("app_server", host_ref=Infra25.app)
+        app_server = Role("app_server", host_ref=Infra25.app)
         queries = {}
         for i in range(5):
-            queries["query_%d" % i] = Component("query_%d" % i, host_ref=Infra25.query[i])
+            queries["query_%d" % i] = Role("query_%d" % i, host_ref=Infra25.query[i])
         with_components(**queries)
         del i, queries
 
@@ -298,20 +298,20 @@ def test25():
     assert len(infra.components()) == 7
 
 def test26():
-    class Infra26(InfraSpec):
+    class Infra26(InfraModel):
         app = Server("app")
-        query = MultiComponent(Server("query", mem="8GB"))
-        grid = MultiComponentGroup("grid",
+        query = MultiResource(Server("query", mem="8GB"))
+        grid = MultiResourceGroup("grid",
                                    handler=Server("handler", mem="8GB"),
                                    compute=Server("compute", mem="16GB"))
 
-    class NS26(NamespaceSpec):
+    class NS26(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"),
                        Var("APP_HOST", Infra26.app.provisionedName),
                        Var("QUERY_HOST", Infra26.query[0]))
-        app_server = Component("app_server", host_ref=Infra26.app)
+        app_server = Role("app_server", host_ref=Infra26.app)
 
     infra = Infra26("infra26")
     env = NS26()
@@ -320,20 +320,20 @@ def test26():
     assert len(infra.components()) == 1, "override didn't wipe out ref to a new query server"
 
 def test27():
-    class Infra27(InfraSpec):
+    class Infra27(InfraModel):
         app = Server("app")
-        query = MultiComponent(Server("query", mem="8GB"))
-        grid = MultiComponentGroup("grid",
+        query = MultiResource(Server("query", mem="8GB"))
+        grid = MultiResourceGroup("grid",
                                    handler=Server("handler", mem="8GB"),
                                    compute=Server("compute", mem="16GB"))
     
-    class NS27(NamespaceSpec):
+    class NS27(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"),
                        Var("APP_HOST", Infra27.app.provisionedName),
                        Var("QUERY_HOST", Infra27.query[0]))
-        app_server = Component("app_server", host_ref=Infra27.app)
+        app_server = Role("app_server", host_ref=Infra27.app)
     
     infra = Infra27("infra26")
     env = NS27()
@@ -342,18 +342,18 @@ def test27():
     assert len(provs) == 0, "exclusions didn't wipe out the provisioning"
 
 def test28():
-    class Infra28(InfraSpec):
-        regional_server = MultiComponent(Server("regional_server", mem="16GB"))
+    class Infra28(InfraModel):
+        regional_server = MultiResource(Server("regional_server", mem="16GB"))
     
     nf = lambda x: "reg_srvr_%d" % x
-    class NS28(NamespaceSpec):
+    class NS28(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"),
                        Var("SERVER_ID", "server_!{ID}")
                        )
         
-        servers = {nf(i):Component(nf(i),
+        servers = {nf(i):Role(nf(i),
                                    host_ref=Infra28.regional_server[nf(i)])
                          .add_variable(Var("ID", str(i)))
                    for i in range(5)}
@@ -364,18 +364,18 @@ def test28():
     assert ns.reg_srvr_0 is not None
 
 def test29():
-    class Infra29(InfraSpec):
-        regional_server = MultiComponent(Server("regional_server", mem="16GB"))
+    class Infra29(InfraModel):
+        regional_server = MultiResource(Server("regional_server", mem="16GB"))
     
     nf = lambda x: "reg_srvr_%d" % x
-    class NS29(NamespaceSpec):
+    class NS29(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
                        Var("QUERY_PORT", "8081"),
                        Var("GRID_PORT", "8082"),
                        Var("SERVER_ID", "server_!{ID}")
                        )
         
-        servers = {nf(i):Component(nf(i),
+        servers = {nf(i):Role(nf(i),
                                    host_ref=Infra29.regional_server[nf(i)])
                          .add_variable(Var("ID", str(i)))
                    for i in range(5)}
@@ -386,18 +386,18 @@ def test29():
     assert ns.reg_srvr_0.future("SERVER_ID").value() == "server_0"
 
 def test30():
-    class Infra30(InfraSpec):
+    class Infra30(InfraModel):
         regional_server = Server("regional_server", mem="16GB")
     
     nf = lambda x: "reg_srvr_%d" % x
-    class NS30(NamespaceSpec):
+    class NS30(NamespaceModel):
         with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
                        Var("SERVER_ID", "server_!{ID}")
                        )
-        server1 = (Component(nf(1), host_ref=Infra30.regional_server)
+        server1 = (Role(nf(1), host_ref=Infra30.regional_server)
                    .add_variable(Var("ID", str(1)), Var("NAME", nf(1))))
 
-        server2 = (Component(nf(2), host_ref=Infra30.regional_server)
+        server2 = (Role(nf(2), host_ref=Infra30.regional_server)
                    .add_variable(Var("ID", str(2)), Var("NAME", nf(2))))
 
         
@@ -406,16 +406,16 @@ def test30():
 
 def test31():
     nf = lambda x: "reg_srvr_%d" % x
-    class NS31(NamespaceSpec):
+    class NS31(NamespaceModel):
         with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
                        Var("SERVER_ID", "server_!{ID}"),
                        Var("NAME", "--WRONG!!")
                        )
-        server1 = (Component(nf(1))
+        server1 = (Role(nf(1))
                    .add_variable(Var("ID", str(1)),
                                  Var("NAME", nf(1))))
 
-        server2 = (Component(nf(2))
+        server2 = (Role(nf(2))
                    .add_variable(Var("ID", str(2)),
                                  Var("NAME", nf(2))))
 
@@ -430,15 +430,15 @@ def test31():
     assert expected == results
 
 def test32():
-    class Infra32(InfraSpec):
+    class Infra32(InfraModel):
         regional_server = Server("regional_server", mem="16GB")
     
     nf = lambda x: "reg_srvr_%d" % x
-    class NS32(NamespaceSpec):
+    class NS32(NamespaceModel):
         with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
                        Var("SERVER_ID", "server_!{ID}")
                        )
-        server1 = (Component(nf(1), host_ref=Infra32.regional_server)
+        server1 = (Role(nf(1), host_ref=Infra32.regional_server)
                    .add_variable(Var("ID", str(1)), Var("NAME", nf(1))))
         
     ns = NS32()
@@ -447,155 +447,155 @@ def test32():
     assert ns.find_infra_model() is infra and ns.server1.find_infra_model() is infra
     
 def test33():
-    class NS33(NamespaceSpec):
+    class NS33(NamespaceModel):
         with_variables(Var("TEST", "NOPE"))
         
     ns = NS33()
-    ns.add_components(server1=Component("server1").add_variable(Var("TEST", "YEP")))
+    ns.add_components(server1=Role("server1").add_variable(Var("TEST", "YEP")))
     assert ns.server1.future("TEST").value() == "YEP"
 
 def test34():
-    class NS34(NamespaceSpec):
+    class NS34(NamespaceModel):
         with_variables(Var("TEST", "NOPE"))
         
     ns = NS34()
-    server1 = Component("server1").add_variable(Var("TEST", "YEP"))
+    server1 = Role("server1").add_variable(Var("TEST", "YEP"))
     ns.add_components(server1=server1)
     server1.add_variable(Var("TEST", "--REALLY NOPE--"))
     assert ns.server1.future("TEST").value() == "YEP"
 
 def test35():
-    class NS35(NamespaceSpec):
+    class NS35(NamespaceModel):
         with_variables(Var("TEST", "NOPE"))
         
     ns = NS35()
-    server1 = Component("server1").add_variable(Var("TEST", "YEP"))
+    server1 = Role("server1").add_variable(Var("TEST", "YEP"))
     ns.add_components(server1=server1)
     ns.server1.add_variable(Var("TEST", "YEP YEP"))
     assert ns.server1.future("TEST").value() == "YEP YEP"
 
 def test36():
-    class NS36(NamespaceSpec):
+    class NS36(NamespaceModel):
         with_variables(Var("TEST", "NOPE"))
         
     ns = NS36()
-    server1 = Component("server1").add_variable(Var("TEST", "YEP"))
-    ns.add_components(server1=server1, server2=Component("server2"))
+    server1 = Role("server1").add_variable(Var("TEST", "YEP"))
+    ns.add_components(server1=server1, server2=Role("server2"))
     ns.server1.add_override(Var("TEST", "YEP YEP YEP"))
     assert ns.server1.future("TEST").value() == "YEP YEP YEP"
     
 def test37():
-    class NS37(NamespaceSpec):
+    class NS37(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid")
+        daddy = Role("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
+        kid = Role("kid")
     ns = NS37()
     assert ns.daddy.future("MYSTERY").value() == "RIGHT!"
     
 def test38():
-    class NS38(NamespaceSpec):
+    class NS38(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid")
-    assert not isinstance(NS38.daddy, Component)
+        daddy = Role("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
+        kid = Role("kid")
+    assert not isinstance(NS38.daddy, Role)
  
 def test39():
-    class NS39(NamespaceSpec):
+    class NS39(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid")
+        daddy = Role("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
+        kid = Role("kid")
     ns = NS39()
     assert NS39.daddy is not ns.daddy
  
 def test40():
-    class NS40(NamespaceSpec):
+    class NS40(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid")
+        daddy = Role("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
+        kid = Role("kid")
     ns = NS40()
     assert ns.daddy is ns.get_inst_ref(NS40.daddy)
  
 def test41():
-    class NS41(NamespaceSpec):
+    class NS41(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid")
+        daddy = Role("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
+        kid = Role("kid")
     ns = NS41()
     assert not isinstance(ns.daddy.name, basestring)
  
 def test42():
-    class NS42(NamespaceSpec):
+    class NS42(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        daddy = Component("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
-        kid = Component("kid")
+        daddy = Role("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
+        kid = Role("kid")
     ns = NS42()
     assert ns.daddy.name.value() == "daddy"
  
 def test43():
-    class NS43(NamespaceSpec):
+    class NS43(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        family = NSComponentGroup("family", daddy=Component("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
-                                kid=Component("kid"))
+        family = RoleGroup("family", daddy=Role("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
+                                kid=Role("kid"))
     ns = NS43()
     assert ns.family.daddy.name.value() == "daddy"
  
 def test44():
-    class NS44(NamespaceSpec):
+    class NS44(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        family = NSComponentGroup("family",
-                                  daddy=Component("daddy"),
-                                  kid=Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+        family = RoleGroup("family",
+                                  daddy=Role("daddy"),
+                                  kid=Role("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS44()
     var, _ = ns.family.kid.find_variable("MYSTERY")
     assert var.get_value(ns.family.kid.value()) == "RIGHT!"
 
 def test45():
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+        kids = MultiRole(Role("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS()
     var, _ = ns.kids.find_variable("MYSTERY")
     assert var.get_value(ns.kids.value()) == "RIGHT!"
 
 def test46():
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+        kids = MultiRole(Role("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS()
     var, _ = ns.kids[0].find_variable("MYSTERY")
     assert var.get_value(ns.kids[0].value()) == "RIGHT!"
 
 def test47():
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+        kids = MultiRole(Role("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS()
     assert ns.kids[0] is ns.kids[0]
 
 def test48():
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        kids = NSMultiComponent(Component("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+        kids = MultiRole(Role("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns1 = NS()
     ns2 = NS()
     assert ns1.kids[0] is not ns2.kids[0]
 
 def test49():
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        kids = NSMultiComponent(Component("kid").add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+        kids = MultiRole(Role("kid").add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS()
     var, _ = ns.kids[0].find_variable("MYSTERY")
     assert var.get_value(ns.kids[0].value()) == "maybe..." 
 
 def test50():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         controller = Server("controller", mem="16GB")
-        grid = MultiComponent(Server("grid-node", mem="8GB"))
+        grid = MultiResource(Server("grid-node", mem="8GB"))
           
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("multi_comp")
     ns = NS()
     for i in range(5):
@@ -603,13 +603,13 @@ def test50():
     assert len(infra.grid) == 0
      
 def test51():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         controller = Server("controller", mem="16GB")
-        grid = MultiComponent(Server("grid-node", mem="8GB"))
+        grid = MultiResource(Server("grid-node", mem="8GB"))
           
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra.grid, multi_key=ctxt.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("grid-node", multi_ref=Infra.grid, multi_key=ctxt.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("multi_comp")
     ns = NS()
     for i in range(5):
@@ -618,15 +618,15 @@ def test51():
     assert len(infra.grid) == 5
      
 def test52():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         controller = Server("controller", mem="16GB")
-        grid = MultiComponentGroup("pod", foreman=Server("foreman", mem="8GB"),
+        grid = MultiResourceGroup("pod", foreman=Server("foreman", mem="8GB"),
                                    worker=Server("grid-node", mem="8GB"))
           
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponentGroup("pod", foreman=Component("foreman", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].foreman),
-                                     worker=Component("grid-node", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRoleGroup("pod", foreman=Role("foreman", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].foreman),
+                                     worker=Role("grid-node", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("mcg")
     ns = NS()
     for i in range(5):
@@ -635,17 +635,17 @@ def test52():
     assert len(infra.grid) == 5 and len(infra.components()) == 11
      
 def test53():
-    class Infra(InfraSpec):
-        grid = MultiComponentGroup("grid",
+    class Infra(InfraModel):
+        grid = MultiResourceGroup("grid",
                                    foreman=Server("foreman", mem="8GB"),
-                                   workers=MultiComponent(Server("grid-node", mem="8GB")))
+                                   workers=MultiResource(Server("grid-node", mem="8GB")))
           
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponentGroup("pod",
-                                     foreman=Component("foreman",
+        grid = MultiRoleGroup("pod",
+                                     foreman=Role("foreman",
                                                        host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].foreman),
-                                     workers=NSMultiComponent(Component("grid-node",
+                                     workers=MultiRole(Role("grid-node",
                                                                         host_ref=ctxt.model.infra.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("mcg")
     ns = NS()
@@ -657,12 +657,12 @@ def test53():
     assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.components()) == 8
      
 def test54():
-    class Infra(InfraSpec):
-        grid = MultiComponent(Server("foreman", mem="8GB"))
+    class Infra(InfraModel):
+        grid = MultiResource(Server("foreman", mem="8GB"))
           
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponent(Component("foreman", host_ref=ctxt.model.infra.grid[0])).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("foreman", host_ref=ctxt.model.infra.grid[0])).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("mcg")
     ns = NS()
     for i in [2,4]:
@@ -671,16 +671,16 @@ def test54():
     assert len(infra.grid) == 1 and len(infra.components()) == 1
 
 def test56():
-    class Infra(InfraSpec):
-        grid = MultiComponent(Server("node", mem="8GB"))
+    class Infra(InfraModel):
+        grid = MultiResource(Server("node", mem="8GB"))
         
     def bad_comp(ctxt):
         #generate an attribute error
         [].wibble
         
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponent(Component("foreman", host_ref=bad_comp)).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("foreman", host_ref=bad_comp)).add_variable(Var("MYSTERY", "RIGHT!"))
 
     infra = Infra("mcg")
     ns = NS()
@@ -720,22 +720,22 @@ def test60():
         
 def test61():
     try:
-        _ = Component("oops", host_ref=1, multi_ref=1)
+        _ = Role("oops", host_ref=1, multi_ref=1)
         assert False, "Should have had a complaint about having both a host_ref and a multi_ref"
     except NamespaceException, e:
         assert "only one of" in e.message.lower()
         
 def test62():
     try:
-        _ = Component("oops", multi_ref=1)
+        _ = Role("oops", multi_ref=1)
         assert False, "Should have had a complaint about not having a multi_key with a multi_ref"
     except NamespaceException, e:
         assert "must also" in e.message.lower()
         
 def test63():
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponent(Component("foreman")).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("foreman")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS()
     for i in range(5):
         _ = ns.grid[i]
@@ -743,9 +743,9 @@ def test63():
     assert len(clone) == 5
     
 def test64():
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
-        grid = (NSMultiComponent(Component("worker",
+        grid = (MultiRole(Role("worker",
                                           variables=[Var("NODE_ID", ctxt.name)]))
                 .add_variable(Var("BASE_NAME", "Grid")))
     ns = NS()
@@ -758,23 +758,23 @@ def test65():
     #it gets evaluated in the context of ns.grid[5]. Since the value is
     #a context expression, it gets evaluated relative to the context that
     #needs its value, and the name in this context is '5'
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"),
                        Var("NODE_ID", ctxt.name))
-        grid = (NSMultiComponent(Component("worker"))
+        grid = (MultiRole(Role("worker"))
                 .add_variable(Var("BASE_NAME", "Grid")))
     ns = NS()
     value = ns.grid[5].var_value("NODE_NAME")
     assert value and value == "Grid-5"
 
 def test66():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         controller = Server("controller", mem="16GB")
-        grid = MultiComponent(Server("grid-node", mem="8GB"))
+        grid = MultiResource(Server("grid-node", mem="8GB"))
           
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("grid-node", multi_ref=Infra.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("multi_comp")
     ns = NS()
     ns.set_infra_model(infra)
@@ -785,17 +785,17 @@ def test66():
         assert False, "Setting the same infra model twice shouldn't be a problem"
      
 def test67():
-    class Infra1(InfraSpec):
+    class Infra1(InfraModel):
         controller = Server("controller", mem="16GB")
-        grid = MultiComponent(Server("grid-node", mem="8GB"))
+        grid = MultiResource(Server("grid-node", mem="8GB"))
           
-    class Infra2(InfraSpec):
+    class Infra2(InfraModel):
         controller = Server("controller", mem="16GB")
-        grid = MultiComponent(Server("grid-node", mem="8GB"))
+        grid = MultiResource(Server("grid-node", mem="8GB"))
           
-    class NS(NamespaceSpec):
+    class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = NSMultiComponent(Component("grid-node", multi_ref=Infra1.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("grid-node", multi_ref=Infra1.grid, multi_key=ctxt.comp.name).add_variable(Var("MYSTERY", "maybe..."))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra1 = Infra1("multi_comp")
     infra2 = Infra2("i2")
     ns = NS()

@@ -29,8 +29,8 @@ from collections import Iterable
 import networkx as nx
 from actuator.modeling import (ModelComponent, ModelReference,
                                AbstractModelReference, ModelInstanceReference,
-                               SpecBase, SpecBaseMeta)
-from actuator.namespace import _ComputableValue, NamespaceSpec
+                               ModelBase, ModelBaseMeta)
+from actuator.namespace import _ComputableValue, NamespaceModel
 from actuator.utils import ClassModifier, process_modifiers
 from actuator.infra import IPAddressable
 
@@ -274,7 +274,7 @@ class RendezvousTask(_ConfigTask, StructuralTask):
         return
     
 
-class ConfigSpecMeta(SpecBaseMeta):
+class ConfigSpecMeta(ModelBaseMeta):
     def __new__(cls, name, bases, attr_dict):
         all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, _ConfigTask)}
         attr_dict[_node_dict] = all_tasks
@@ -296,7 +296,7 @@ class ConfigSpecMeta(SpecBaseMeta):
         return newbie
     
 
-class ConfigSpec(SpecBase):
+class ConfigSpec(ModelBase):
     __metaclass__ = ConfigSpecMeta
     ref_class = ModelInstanceReference
     
@@ -402,7 +402,7 @@ class ConfigSpec(SpecBase):
         
     def get_namespace(self):
         if not self.namespace_model_instance:
-            self.namespace_model_instance = self.nexus.find_instance(NamespaceSpec)
+            self.namespace_model_instance = self.nexus.find_instance(NamespaceModel)
         return self.namespace_model_instance
         
     def get_dependencies(self):

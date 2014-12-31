@@ -24,8 +24,8 @@ Created on 7 Sep 2014
 '''
 import re
 from actuator.utils import ClassModifier, process_modifiers, capture_mapping, get_mapper
-from actuator.modeling import (AbstractModelReference, ModelComponent, SpecBase,
-                               ModelReference, ModelInstanceReference, SpecBaseMeta,
+from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase,
+                               ModelReference, ModelInstanceReference, ModelBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
                                ContextExpr)
 
@@ -236,20 +236,20 @@ class ModelInstanceFinderMixin(object):
         if self._model_instance:
             result = self._model_instance
         elif self.parent_container is not None:
-            if isinstance(self.parent_container, NamespaceSpec):
+            if isinstance(self.parent_container, NamespaceModel):
                 result = self.parent_container
             else:
                 result = self.parent_container.get_model_instance()
         return result
     
     
-class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
+class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
 #     __metadata__ = ComponentMeta
     def __init__(self, name, host_ref=None, variables=None, model=None, multi_ref=None,
                  multi_key=None):
-        super(Component, self).__init__(name, model_instance=model)
+        super(Role, self).__init__(name, model_instance=model)
 #         if host_ref is None and multi_ref is None:
-#             raise NamespaceException("one of host_ref or multi_ref must be supplied to Component")
+#             raise NamespaceException("one of host_ref or multi_ref must be supplied to Role")
         if host_ref is not None and multi_ref is not None:
             raise NamespaceException("only one of host_ref or multi_ref can be used at a time")
         if multi_ref is not None and multi_key is None:
@@ -264,12 +264,12 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             self.add_variable(*variables)
             
     def clone(self, clone_into_class=None):
-        clone = super(Component, self).clone(clone_into_class=clone_into_class)
+        clone = super(Role, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         return clone
     
     def _get_arg_value(self, arg):
-        val = super(Component, self)._get_arg_value(arg)
+        val = super(Role, self)._get_arg_value(arg)
         if isinstance(val, basestring):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
@@ -299,7 +299,7 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             self.host_ref = host_ref
             
     def get_init_args(self):
-        _, kwargs = super(Component, self).get_init_args()
+        _, kwargs = super(Role, self).get_init_args()
         kwargs.update({"host_ref":self._host_ref,
                        "variables":self.variables.values(),
                        "multi_ref":self._multi_ref,
@@ -307,21 +307,21 @@ class Component(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         return ((self.name,), kwargs)
         
     def _get_model_refs(self):
-        modelrefs = super(Component, self)._get_model_refs()
+        modelrefs = super(Role, self)._get_model_refs()
         if self.host_ref is not None:
             modelrefs.add(self.host_ref)
         return modelrefs
                 
     
 @capture_mapping(_namespace_mapper_domain, ComponentGroup)
-class NSComponentGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
+class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
     def _set_model_instance(self, mi):
-        super(NSComponentGroup, self)._set_model_instance(mi)
+        super(RoleGroup, self)._set_model_instance(mi)
         for c in [v for k, v in self.__dict__.items() if k in self._kwargs]:
             c._set_model_instance(mi)
 
     def clone(self, clone_into_class=None):
-        clone = super(NSComponentGroup, self).clone(clone_into_class=clone_into_class)
+        clone = super(RoleGroup, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         clone._set_parent(self.parent_container)
         for c in (v for k, v in clone.__dict__.items() if k in self._kwargs):
@@ -332,21 +332,21 @@ class NSComponentGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContain
         return clone
     
     def _get_model_refs(self):
-        modelrefs = super(NSComponentGroup, self)._get_model_refs()
+        modelrefs = super(RoleGroup, self)._get_model_refs()
         for c in self.components():
             modelrefs |= c._get_model_refs()
         return modelrefs
     
 
 @capture_mapping(_namespace_mapper_domain, MultiComponent)
-class NSMultiComponent(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
+class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
     def _set_model_instance(self, mi):
-        super(NSMultiComponent, self)._set_model_instance(mi)
+        super(MultiRole, self)._set_model_instance(mi)
         for c in self.instances().values():
             c._set_model_instance(mi)
             
     def clone(self, clone_into_class=None):
-        clone = super(NSMultiComponent, self).clone(clone_into_class=clone_into_class)
+        clone = super(MultiRole, self).clone(clone_into_class=clone_into_class)
         for k, v in self._instances.items():
             child = v.clone()
             child._set_parent(clone)
@@ -358,26 +358,26 @@ class NSMultiComponent(ModelInstanceFinderMixin, MultiComponent, VariableContain
         return clone
     
     def get_instance(self, key):
-        inst = super(NSMultiComponent, self).get_instance(key)
+        inst = super(MultiRole, self).get_instance(key)
         inst._set_parent(self)
         inst._set_model_instance(self._model_instance)
         return inst
     
     def _get_model_refs(self):
-        modelrefs = super(NSMultiComponent, self)._get_model_refs()
+        modelrefs = super(MultiRole, self)._get_model_refs()
         for c in self.instances().values():
             modelrefs |= c._get_model_refs()
         return modelrefs
     
 
 @capture_mapping(_namespace_mapper_domain, MultiComponentGroup)
-class NSMultiComponentGroup(NSMultiComponent, VariableContainer):
+class MultiRoleGroup(MultiRole, VariableContainer):
     def __new__(self, name, **kwargs):
-        group = NSComponentGroup(name, **kwargs)
-        return NSMultiComponent(group)
+        group = RoleGroup(name, **kwargs)
+        return MultiRole(group)
     
         
-class NamespaceSpecMeta(SpecBaseMeta):
+class NamespaceModelMeta(ModelBaseMeta):
     model_ref_class = ModelReference
     def __new__(cls, name, bases, attr_dict):
         cmapper = get_mapper(_namespace_mapper_domain)
@@ -385,21 +385,21 @@ class NamespaceSpecMeta(SpecBaseMeta):
             if isinstance(v, (ComponentGroup, MultiComponent, MultiComponentGroup)):
                 mapped_class = cmapper[v.__class__]
                 attr_dict[k] = v.clone(clone_into_class=mapped_class)
-        newbie = super(NamespaceSpecMeta, cls).__new__(cls, name, bases, attr_dict)
+        newbie = super(NamespaceModelMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
         return newbie
     
 
-class NamespaceSpec(VariableContainer, SpecBase):
-    __metaclass__ = NamespaceSpecMeta
+class NamespaceModel(VariableContainer, ModelBase):
+    __metaclass__ = NamespaceModelMeta
     ref_class = ModelInstanceReference
 
     def __init__(self):
-        super(NamespaceSpec, self).__init__()
+        super(NamespaceModel, self).__init__()
         components = set()
         clone_map = {}
         for k, v in self.__class__.__dict__.items():
-            if isinstance(v, (Component, ComponentGroup, MultiComponent, MultiComponentGroup)):
+            if isinstance(v, (Role, ComponentGroup, MultiComponent, MultiComponentGroup)):
                 components.add((k, v))
         for k, c in components:
             clone = c.clone()
@@ -416,14 +416,14 @@ class NamespaceSpec(VariableContainer, SpecBase):
         self.infra = None
         
     def __new__(cls, *args, **kwargs):
-        inst = super(NamespaceSpec, cls).__new__(cls, *args, **kwargs)
+        inst = super(NamespaceModel, cls).__new__(cls, *args, **kwargs)
         return inst
     
     def _comp_source(self):
         return self.get_components()
     
     def _get_model_refs(self):
-        modelrefs = super(NamespaceSpec, self)._get_model_refs()
+        modelrefs = super(NamespaceModel, self)._get_model_refs()
         for c in self._components.values():
             modelrefs |= c._get_model_refs()
         return modelrefs
@@ -454,7 +454,7 @@ class NamespaceSpec(VariableContainer, SpecBase):
         
     def add_components(self, **kwargs):
         for k, v in kwargs.items():
-            if not isinstance(v, Component):
+            if not isinstance(v, Role):
                 raise NamespaceException("%s is not a kind of component" % str(v))
             clone = v.clone()
             self._components[k] = clone

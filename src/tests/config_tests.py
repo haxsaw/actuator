@@ -389,8 +389,8 @@ class BogusServerRef(IPAddressable):
 def test27():
     cap = Capture()
         
-    class PingNamespace(NamespaceSpec):
-        ping_target = Component("ping_target", host_ref=BogusServerRef())
+    class PingNamespace(NamespaceModel):
+        ping_target = Role("ping_target", host_ref=BogusServerRef())
     ns = PingNamespace()
         
     class PingConfig(ConfigSpec):
@@ -404,8 +404,8 @@ def test27():
     
 def test28():
     cap = Capture()
-    class PingNamespace(NamespaceSpec):
-        ping_target = Component("ping_target", host_ref=BogusServerRef())
+    class PingNamespace(NamespaceModel):
+        ping_target = Role("ping_target", host_ref=BogusServerRef())
     ns = PingNamespace()
         
     class PingConfig(ConfigSpec):
@@ -424,8 +424,8 @@ def test28():
         
 def test29():
     cap = Capture()
-    class PingNamespace(NamespaceSpec):
-        ping_target = Component("ping_target", host_ref=BogusServerRef())
+    class PingNamespace(NamespaceModel):
+        ping_target = Role("ping_target", host_ref=BogusServerRef())
     ns = PingNamespace()
         
     class PingConfig(ConfigSpec):
@@ -452,9 +452,9 @@ def test29():
     
 def test30():
     cap = Capture()
-    class ElasticNamespace(NamespaceSpec):
-        ping_targets = NSMultiComponent(Component("ping-target", host_ref=BogusServerRef()))
-        pong_targets = NSMultiComponent(Component("pong-target", host_ref=BogusServerRef()))
+    class ElasticNamespace(NamespaceModel):
+        ping_targets = MultiRole(Role("ping-target", host_ref=BogusServerRef()))
+        pong_targets = MultiRole(Role("pong-target", host_ref=BogusServerRef()))
     ns = ElasticNamespace()
      
     class ElasticConfig(ConfigSpec):
@@ -484,12 +484,12 @@ def test31():
             self.vars.update({v.name:v.get_value(self.get_task_component())
                               for v in vv.values()})
         
-    class SimpleNS(NamespaceSpec):
+    class SimpleNS(NamespaceModel):
         with_variables(Var("ID", "wrong"),
                        Var("ONE", "1"),
                        Var("TWO", "2"),
                        Var("THREE", "3"))
-        comp = Component("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
+        comp = Role("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
     class SimpleCfg(ConfigSpec):
@@ -516,12 +516,12 @@ def test32():
             self.vars.update({v.name:v.get_value(self.get_task_component())
                               for v in vv.values()})
         
-    class SimpleNS(NamespaceSpec):
+    class SimpleNS(NamespaceModel):
         with_variables(Var("ID", "wrong"),
                        Var("ONE", "1"),
                        Var("TWO", "2"),
                        Var("THREE", "3"))
-        comp = Component("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
+        comp = Role("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
     class SimpleCfg(ConfigSpec):
@@ -594,8 +594,8 @@ def test35():
     assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
     
 def test36():
-    class NS(NamespaceSpec):
-        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    class NS(NamespaceModel):
+        grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
     
     class Cfg(ConfigSpec):
@@ -610,8 +610,8 @@ def test36():
     assert len(cfg.grid_prep.instances) == 5
     
 def test37():
-    class NS(NamespaceSpec):
-        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    class NS(NamespaceModel):
+        grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
     
     class Cfg(ConfigSpec):
@@ -626,8 +626,8 @@ def test37():
             cfg.grid_prep.instances.value()[0].name == "gp-grid_0")
     
 def test38():
-    class NS(NamespaceSpec):
-        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    class NS(NamespaceModel):
+        grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
     
     class Cfg(ConfigSpec):
@@ -644,8 +644,8 @@ def test38():
 def test39():
     cap = Capture()
              
-    class NS(NamespaceSpec):
-        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    class NS(NamespaceModel):
+        grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
          
     class Cfg(ConfigSpec):
@@ -664,9 +664,9 @@ def test39():
 def test40():
     cap = Capture()
              
-    class NS(NamespaceSpec):
-        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
-        static = Component("static", host_ref="127.0.0.1")
+    class NS(NamespaceModel):
+        grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
+        static = Role("static", host_ref="127.0.0.1")
     ns = NS()
          
     class Cfg(ConfigSpec):
@@ -695,8 +695,8 @@ def test40():
 def test41():
     cap = Capture()
              
-    class NS(NamespaceSpec):
-        grid = NSMultiComponent(Component("grid", host_ref="127.0.0.1"))
+    class NS(NamespaceModel):
+        grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
          
     class Cfg(ConfigSpec):
@@ -715,9 +715,9 @@ def test41():
 def test42():
     cap = Capture()
              
-    class NS(NamespaceSpec):
-        grid1 = NSMultiComponent(Component("grid1", host_ref="127.0.0.1"))
-        grid2 = NSMultiComponent(Component("grid2", host_ref="127.0.0.1"))
+    class NS(NamespaceModel):
+        grid1 = MultiRole(Role("grid1", host_ref="127.0.0.1"))
+        grid2 = MultiRole(Role("grid2", host_ref="127.0.0.1"))
     ns = NS()
          
     class Cfg(ConfigSpec):
@@ -744,8 +744,8 @@ def test43():
     """
     cap = Capture()
     
-    class NS(NamespaceSpec):
-        task_performer = Component("tp", host_ref="127.0.0.1")
+    class NS(NamespaceModel):
+        task_performer = Role("tp", host_ref="127.0.0.1")
     ns = NS()
         
     class Cfg(ConfigSpec):
@@ -762,12 +762,12 @@ def test44():
     infra model
     """
     cap = Capture()
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
     infra = Infra("helper")
       
-    class NS(NamespaceSpec):
-        task_performer = Component("tp", host_ref=Infra.setup_server)
+    class NS(NamespaceModel):
+        task_performer = Role("tp", host_ref=Infra.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
           
@@ -785,13 +785,13 @@ def test44a():
     it via the default for the config model
     """
     cap = Capture()
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
     infra = Infra("helper")
     infra.setup_server.fix_arguments()
       
-    class NS(NamespaceSpec):
-        task_performer = Component("tp", host_ref=Infra.setup_server)
+    class NS(NamespaceModel):
+        task_performer = Role("tp", host_ref=Infra.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
     ns.task_performer.fix_arguments()
@@ -808,13 +808,13 @@ def test45():
     """
     test45: check if you drive config tasks from a nested config class
     """
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
     infra = Infra("helper")
     infra.setup_server.fix_arguments()
     
-    class NS(NamespaceSpec):
-        task_performer = Component("tp", host_ref=Infra.setup_server)
+    class NS(NamespaceModel):
+        task_performer = Role("tp", host_ref=Infra.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
     ns.task_performer.fix_arguments()
@@ -848,12 +848,12 @@ def test46():
     test46: wrap a config class with a sequence of tasks in ConfigClassTask
     wrapper and ensure they all get performed in order
     """
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
     infra = Infra("helper")
     
-    class NS(NamespaceSpec):
-        task_performer = Component("tp", host_ref=Infra.setup_server)
+    class NS(NamespaceModel):
+        task_performer = Role("tp", host_ref=Infra.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
     
@@ -901,12 +901,12 @@ def test47():
             return "127.0.0.{}".format(self.host_part)
     ipgen = IPGen()
         
-    class Infra(InfraSpec):
-        setup_server = MultiComponent(StaticServer("setup_helper", ipgen))
+    class Infra(InfraModel):
+        setup_server = MultiResource(StaticServer("setup_helper", ipgen))
     infra = Infra("helper")
     
-    class NS(NamespaceSpec):
-        task_component = NSMultiComponent(Component("tp",
+    class NS(NamespaceModel):
+        task_component = MultiRole(Role("tp",
                                                     host_ref=ctxt.model.infra.setup_server[ctxt.name]))
     ns = NS()
     ns.set_infra_model(infra)
@@ -948,13 +948,13 @@ def test48():
     wrapper and ensure they all get performed in order, and the set up a final
     task in the outer config class and ensure that is is performed last
     """
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
     infra = Infra("helper")
     
-    class NS(NamespaceSpec):
-        task_performer = Component("tp", host_ref=Infra.setup_server)
-        default = Component("default", host_ref="127.0.1.1")
+    class NS(NamespaceModel):
+        task_performer = Role("tp", host_ref=Infra.setup_server)
+        default = Role("default", host_ref="127.0.1.1")
     ns = NS()
     ns.set_infra_model(infra)
     
@@ -997,13 +997,13 @@ def test49():
     initial and final tasks in the outer config and make sure everything is
     happening in the right order
     """
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
     infra = Infra("helper")
     
-    class NS(NamespaceSpec):
-        task_performer = Component("tp", host_ref=Infra.setup_server)
-        default = Component("default", host_ref="127.0.1.1")
+    class NS(NamespaceModel):
+        task_performer = Role("tp", host_ref=Infra.setup_server)
+        default = Role("default", host_ref="127.0.1.1")
     ns = NS()
     ns.set_infra_model(infra)
     
@@ -1058,14 +1058,14 @@ def test50():
             return "127.0.0.{}".format(self.host_part)
     ipgen = IPGen()
         
-    class Infra(InfraSpec):
-        setup_server = MultiComponent(StaticServer("setup_helper", ipgen))
+    class Infra(InfraModel):
+        setup_server = MultiResource(StaticServer("setup_helper", ipgen))
     infra = Infra("helper")
     
-    class NS(NamespaceSpec):
-        task_component = NSMultiComponent(Component("tp",
+    class NS(NamespaceModel):
+        task_component = MultiRole(Role("tp",
                                                     host_ref=ctxt.model.infra.setup_server[ctxt.name]))
-        default = Component("default", "127.0.1.1")
+        default = Role("default", "127.0.1.1")
     ns = NS()
     ns.set_infra_model(infra)
     for i in range(3):

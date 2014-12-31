@@ -29,7 +29,7 @@ import sys
 import traceback
 import random
 
-from actuator import ConfigSpec, NamespaceSpec, InfraSpec, ActuatorException
+from actuator import ConfigSpec, NamespaceModel, InfraModel, ActuatorException
 
 
 class ExecutionException(ActuatorException): pass
@@ -56,15 +56,15 @@ class ExecutionAgent(object):
             raise ExecutionException("config_model_instance argument isn't an instance of ConfigSpec")
         self.config_mi = config_model_instance
         
-        if namespace_model_instance is not None and not isinstance(namespace_model_instance, NamespaceSpec):
-            raise ExecutionException("namespace_model_instance isn't an instance of NamespaceSpec")
+        if namespace_model_instance is not None and not isinstance(namespace_model_instance, NamespaceModel):
+            raise ExecutionException("namespace_model_instance isn't an instance of NamespaceModel")
         self.namespace_mi = namespace_model_instance
         
         if self.config_mi is not None:
             self.config_mi.set_namespace(self.namespace_mi)
         
-        if infra_model_instance is not None and not isinstance(infra_model_instance, InfraSpec):
-            raise ExecutionException("infra_model_instance isn't an instance of InfraSpec")
+        if infra_model_instance is not None and not isinstance(infra_model_instance, InfraModel):
+            raise ExecutionException("infra_model_instance isn't an instance of InfraModel")
         self.infra_mi = infra_model_instance
         
         self.task_queue = Queue.Queue()

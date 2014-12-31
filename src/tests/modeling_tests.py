@@ -24,7 +24,7 @@ Created on 7 Jun 2014
 '''
 from actuator import (MultiComponent, 
                           MultiComponentGroup, ComponentGroup, ctxt)
-from actuator.infra import InfraSpec
+from actuator.infra import InfraModel
 from actuator.provisioners.example_components import Server
 from actuator.modeling import CallContext
 
@@ -62,7 +62,7 @@ def test04():
     assert [ki.key] + path == ["0", "grid", "infra", "model"]
     
 def test05():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
     for i in range(3):
@@ -70,7 +70,7 @@ def test05():
     assert set(inst.grid) == set(["0", "1", "2"])
 
 def test06():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
     for i in range(3):
@@ -79,7 +79,7 @@ def test06():
     assert inst.grid.get("10", default=nada) == nada
     
 def test07():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
     assert not inst.grid
@@ -96,7 +96,7 @@ class FakeReference(object):
         
 
 def test08():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -111,7 +111,7 @@ def test08():
     assert len(result) == 20
     
 def test09():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -126,7 +126,7 @@ def test09():
     assert len(result) == 10
 
 def test10():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -141,7 +141,7 @@ def test10():
     assert len(result) == 20
 
 def test11():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -156,7 +156,7 @@ def test11():
     assert len(result) == 30
 
 def test12():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -175,7 +175,7 @@ def test12():
     assert len(result) == 25
 
 def test13():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -194,7 +194,7 @@ def test13():
     assert len(result) == 10
 
 def test14():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        cell=ComponentGroup("cell",
@@ -217,7 +217,7 @@ def test14():
     assert len(result) == 10
 
 def test15():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -233,7 +233,7 @@ def test15():
     assert len(result) == 21
 
 def test16():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -256,7 +256,7 @@ def test16():
     assert len(result) == 20
 
 def test17():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
@@ -267,7 +267,7 @@ def test17():
         assert "cluster" in e.message.lower()
         
 def test18():
-    class Infra(InfraSpec):
+    class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))

@@ -148,7 +148,7 @@ class AbstractModelingEntity(object):
         container = None
         while my_ref and my_ref._parent:
             value = my_ref._parent.value()
-            if isinstance(value, (MultiComponent, SpecBase, ComponentGroup)):
+            if isinstance(value, (MultiComponent, ModelBase, ComponentGroup)):
                 container = my_ref._parent
                 break
             #this next line appears to be unreachable
@@ -661,14 +661,14 @@ class _Nexus(object):
         of associations to be created, following the inheritance chain for the
         class and mapping each base class to the instance, as we can't be sure
         which class will be used to try to locate the instance, the specific one
-        or a more general one. Mapping terminates when SpecBase is encountered
+        or a more general one. Mapping terminates when ModelBase is encountered
         in the mro.
         """
         self.mapper[model_class] = instance
         for base in model_class.__mro__:
-            if base in [SpecBase, _NexusMember]:
+            if base in [ModelBase, _NexusMember]:
                 break
-            if issubclass(base, (SpecBase, _NexusMember)):
+            if issubclass(base, (ModelBase, _NexusMember)):
                 self.mapper[base] = instance
         
     def find_instance(self, model_class):
@@ -678,7 +678,7 @@ class _Nexus(object):
         self.mapper.update(other_nexus.mapper)
 
 
-class SpecBaseMeta(type):
+class ModelBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
     def __new__(cls, name, bases, attr_dict):
@@ -687,14 +687,14 @@ class SpecBaseMeta(type):
             if isinstance(v, AbstractModelingEntity):
                 components[n] = v
         attr_dict[cls._COMPONENTS] = components
-        newbie = super(SpecBaseMeta, cls).__new__(cls, name, bases, attr_dict)
+        newbie = super(ModelBaseMeta, cls).__new__(cls, name, bases, attr_dict)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
     
     def __getattribute__(cls, attrname):  #  @NoSelf
-        ga = super(SpecBaseMeta, cls).__getattribute__
+        ga = super(ModelBaseMeta, cls).__getattribute__
         value = (cls.model_ref_class(attrname, obj=cls, parent=None)
-                 if attrname in ga(SpecBaseMeta._COMPONENTS) and cls.model_ref_class
+                 if attrname in ga(ModelBaseMeta._COMPONENTS) and cls.model_ref_class
                  else ga(attrname))
         return value
     
@@ -710,8 +710,8 @@ class _NexusMember(object):
         self.nexus = new_nexus
 
 
-class SpecBase(_NexusMember, _ComputeModelComponents):
-    __metaclass__ = SpecBaseMeta
+class ModelBase(_NexusMember, _ComputeModelComponents):
+    __metaclass__ = ModelBaseMeta
     
     def get_inst_ref(self, model_ref):
         ref = self
@@ -723,9 +723,9 @@ class SpecBase(_NexusMember, _ComputeModelComponents):
         return ref if ref != self else None
 
     def __getattribute__(self, attrname):
-        ga = super(SpecBase, self).__getattribute__
+        ga = super(ModelBase, self).__getattribute__
         value = (self.ref_class(attrname, obj=self, parent=None)
-                 if attrname in ga(SpecBaseMeta._COMPONENTS)
+                 if attrname in ga(ModelBaseMeta._COMPONENTS)
                  else ga(attrname))
         return value
     

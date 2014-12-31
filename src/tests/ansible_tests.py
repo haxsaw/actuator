@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from actuator.config import with_dependencies, MultiTask, ConfigClassTask
-from actuator.namespace import NSMultiComponent
+from actuator.namespace import MultiRole
 
 '''
 Created on Oct 21, 2014
@@ -30,9 +30,9 @@ import socket
 import os
 import os.path
 import stat
-from actuator import (NamespaceSpec, Var, Component, ConfigSpec, PingTask,
+from actuator import (NamespaceModel, Var, Role, ConfigSpec, PingTask,
                       with_variables, ExecutionException, CommandTask,
-                      ScriptTask, CopyFileTask, InfraSpec, StaticServer,
+                      ScriptTask, CopyFileTask, InfraModel, StaticServer,
                       ProcessCopyFileTask, ctxt)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 from actuator.utils import find_file
@@ -58,9 +58,9 @@ def find_ip():
 
 
 def test001():
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()))
-        ping_target = Component("ping-target", host_ref=find_ip())
+        ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigSpec):
@@ -75,9 +75,9 @@ def test001():
         assert False, e.message
       
 def test002():
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()))
-        ping_target = Component("ping-target", host_ref="!{PING_TARGET}")
+        ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -92,9 +92,9 @@ def test002():
         assert False, e.message
     
 def test003():
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", "not.an.ip.addy"))
-        ping_target = Component("ping-target", host_ref="!{PING_TARGET}")
+        ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -111,9 +111,9 @@ def test003():
         assert len(ea.get_aborted_tasks()) == 1
         
 def test004():
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
+        cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -128,9 +128,9 @@ def test004():
         assert False, e.message
 
 def test005():
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
+        cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -148,9 +148,9 @@ def test005():
 def test006():
     """test006 should raise an exception during perform_config() because
     /bin/wibble doesn't exist"""
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()))
-        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
+        cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -168,10 +168,10 @@ def test006():
         assert len(ea.get_aborted_tasks()) == 1
 
 def test007():
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
-        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
+        cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigSpec):
@@ -190,10 +190,10 @@ def test008():
     #NOTE: this will only work with nose if run from the actuator/src directory
     #the test expects to find a directory named "tests" under the current
     #directory
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
-        cmd_target = Component("cmd-target", host_ref="!{CMD_TARGET}")
+        cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
            
     class SimpleConfig(ConfigSpec):
@@ -212,10 +212,10 @@ def test009():
     #NOTE: this will only work with nose if run from the actuator/src directory
     #the test expects to find a directory named "tests" under the current
     #directory
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp"),
                        Var("PKG", "actuator"))
-        copy_target = Component("copy_target", host_ref=find_ip())
+        copy_target = Role("copy_target", host_ref=find_ip())
     ns = SimpleNamespace()
     
     class SimpleConfig(ConfigSpec):
@@ -243,14 +243,14 @@ def test009():
         assert False, e.message
     
 def test010():
-    class SimpleInfra(InfraSpec):
+    class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
     infra = SimpleInfra("simple")
         
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
-        cmd_target = Component("cmd-target", host_ref=SimpleInfra.testbox)
+        cmd_target = Role("cmd-target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
     ns.compute_provisioning_for_environ(infra)
           
@@ -291,18 +291,18 @@ def test011():
     test_file = "test011.txt"
     test_file_path = find_file(test_file)
     
-    class SimpleInfra(InfraSpec):
+    class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
     infra = SimpleInfra("simple")
     
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp/!{FILE}"),
                        Var("FILE", test_file),
                        Var("var1", "summat"),
                        Var("var2", "or"),
                        Var("var3", "the"),
                        Var("var4", "other"))
-        target = Component("target", host_ref=SimpleInfra.testbox)
+        target = Role("target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
         
     class SimpleConfig(ConfigSpec):
@@ -338,18 +338,18 @@ def test012():
     test_file = "test012.txt"
     test_file_path = find_file(test_file)
     
-    class SimpleInfra(InfraSpec):
+    class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
     infra = SimpleInfra("simple")
     
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp/!{FILE}"),
                        Var("FILE", test_file),
                        Var("var1", "summat"),
                        Var("var2", "or"),
 #                        Var("var3", "the"),  #This one is to be missing
                        Var("var4", "other"))
-        target = Component("target", host_ref=SimpleInfra.testbox)
+        target = Role("target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
         
     class SimpleConfig(ConfigSpec):
@@ -384,18 +384,18 @@ def test013():
     test_file = "test013.txt"
     test_file_path = find_file(test_file)
     
-    class SimpleInfra(InfraSpec):
+    class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
     infra = SimpleInfra("simple")
     
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp/!{FILE}"),
                        Var("FILE", test_file),
                        Var("var1", "summat"),
                        Var("var2", "or"),
                        Var("var3", "the"),
                        Var("var4", "other"))
-        target = Component("target", host_ref=SimpleInfra.testbox)
+        target = Role("target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
         
     class SimpleConfig(ConfigSpec):
@@ -432,15 +432,15 @@ def test014():
     test_file = "test014-BigTextFile.txt"
     test_file_path = find_file(test_file)
     
-    class SimpleInfra(InfraSpec):
+    class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
     infra = SimpleInfra("simple")
     
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PREFIX", ctxt.name),
                        Var("DEST", "/tmp/!{PREFIX}-!{FILE}"),
                        Var("FILE", test_file))
-        target = NSMultiComponent(Component("target", host_ref=SimpleInfra.testbox))
+        target = MultiRole(Role("target", host_ref=SimpleInfra.testbox))
     ns = SimpleNamespace()
     
     class SingleCopy(ConfigSpec):
@@ -473,10 +473,10 @@ def test014():
 
 def test015():
     "test015: try pinging as another user"
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"))
-        ping_target = Component("ping-target", host_ref=find_ip())
+        ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigSpec):
@@ -499,10 +499,10 @@ def test015():
       
 def test016():
     "test016: try writing a file into another user's directory"
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"))
-        copy_target = Component("ping-target", host_ref=find_ip())
+        copy_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigSpec):
@@ -524,11 +524,11 @@ def test016():
       
 def test017():
     "test017: ping as another user, use password instead of key: requires sshpass, but frequently fails anyway with a Broken Pipe for some reason"
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"),
                        Var("RPASS", "dryw1bbles"))
-        ping_target = Component("ping-target", host_ref=find_ip())
+        ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigSpec):
@@ -551,11 +551,11 @@ def test017():
       
 def test018():
     "test018: ping as two different users"
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER1", "lxle1"))
-        ping1_target = Component("ping1-target", host_ref=find_ip())
-        ping2_target = Component("ping2-target", host_ref=find_ip())
+        ping1_target = Role("ping1-target", host_ref=find_ip())
+        ping2_target = Role("ping2-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigSpec):
@@ -580,16 +580,16 @@ def test018():
 def test019():
     "test019: clear and copy files"
     the_ip = find_ip()
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", the_ip),
                        Var("RUSER1", "lxle1"),
                        Var("RUSER2", "tom"),
                        Var("TARGET", "019target.txt"),
                        Var("DIRPATH", "/home/!{RUSER}/tmp"),
                        Var("FILEPATH", "!{DIRPATH}/!{TARGET}"))
-        copy1_target = Component("copy1_target", host_ref=the_ip,
+        copy1_target = Role("copy1_target", host_ref=the_ip,
                                  variables=[Var("RUSER", "!{RUSER1}")])
-        copy2_target = Component("copy2_target", host_ref=the_ip,
+        copy2_target = Role("copy2_target", host_ref=the_ip,
                                  variables=[Var("RUSER", "!{RUSER2}")])
     ns = SimpleNamespace()
      
@@ -631,9 +631,9 @@ def test020():
     "test020: write some data to a user's tmp dir based on config-level user"
     from datetime import datetime
     target = "/home/lxle1/tmp/020test.txt"
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("TARGET_FILE", target))
-        copy_target = Component("copy-target", host_ref=find_ip())
+        copy_target = Role("copy-target", host_ref=find_ip())
     ns = SimpleNamespace()
     
     now_str = datetime.now().ctime()
@@ -665,11 +665,11 @@ def test021():
     from datetime import datetime
     target_dir = "/home/lxle1/tmp/test021"
     num_files = 5
-    class SimpleNamespace(NamespaceSpec):
+    class SimpleNamespace(NamespaceModel):
         with_variables(Var("TARGET_DIR", target_dir),
                        Var("COMPNUM", ctxt.name),
                        Var("FILE_NAME", "!{TARGET_DIR}/!{COMPNUM}-target.txt"))
-        targets = NSMultiComponent(Component("pseudo-component", host_ref=find_ip()))
+        targets = MultiRole(Role("pseudo-component", host_ref=find_ip()))
         
     ns = SimpleNamespace()
     for i in range(num_files):
