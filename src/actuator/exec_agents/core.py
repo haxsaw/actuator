@@ -29,7 +29,7 @@ import sys
 import traceback
 import random
 
-from actuator import ConfigSpec, NamespaceModel, InfraModel, ActuatorException
+from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
 
 
 class ExecutionException(ActuatorException): pass
@@ -52,8 +52,8 @@ class ExecutionAgent(object):
                  num_threads=5, do_log=False, no_delay=False):
         #@TODO: need to add a test for the type of the exec_model_instance 
         self.exec_mi = exec_model_instance
-        if config_model_instance is not None and not isinstance(config_model_instance, ConfigSpec):
-            raise ExecutionException("config_model_instance argument isn't an instance of ConfigSpec")
+        if config_model_instance is not None and not isinstance(config_model_instance, ConfigModel):
+            raise ExecutionException("config_model_instance argument isn't an instance of ConfigModel")
         self.config_mi = config_model_instance
         
         if namespace_model_instance is not None and not isinstance(namespace_model_instance, NamespaceModel):

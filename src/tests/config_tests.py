@@ -36,10 +36,10 @@ search_path = ["p1", "p2", "p3"]
 
 def setup():
     global MyConfig
-    class MyTestConfig(ConfigSpec):
+    class MyTestConfig(ConfigModel):
         with_searchpath(*search_path)
         t1 = NullTask("nt")
-        t2 = Template("temp")
+        t2 = NullTask("temp")
         with_dependencies(t1 | t2)
         
     MyConfig = MyTestConfig
@@ -67,7 +67,7 @@ def test03():
     
 def test04():
     try:
-        class T4Config(ConfigSpec):
+        class T4Config(ConfigModel):
             t1 = NullTask("nt")
             with_dependencies(t1 | "other")
         raise Exception("Failed to catch dependency creation with non-task")
@@ -93,7 +93,7 @@ def test07():
     
 def test08():
     try:
-        class TC8(ConfigSpec):
+        class TC8(ConfigModel):
             t1 = NullTask("nt")
             t2 = NullTask("nt")
             t3 = NullTask("nt")
@@ -105,7 +105,7 @@ def test08():
         assert True
         
 def test09():
-    class TC9(ConfigSpec):
+    class TC9(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -114,7 +114,7 @@ def test09():
         
 def test10():
     try:
-        class TC10(ConfigSpec):
+        class TC10(ConfigModel):
             t1 = NullTask("t1", path="t1")
             t2 = NullTask("t2", path="t2")
             t3 = NullTask("t3", path="t3")
@@ -125,7 +125,7 @@ def test10():
         
 def test10a():
     try:
-        class TC10a(ConfigSpec):
+        class TC10a(ConfigModel):
             t1 = NullTask("t1", path="t1")
             t2 = NullTask("t2", path="t2")
             t3 = NullTask("t3", path="t3")
@@ -136,7 +136,7 @@ def test10a():
         
 def test11():
     try:
-        class TC11(ConfigSpec):
+        class TC11(ConfigModel):
             t1 = NullTask("t1", path="t1")
             t2 = NullTask("t2", path="t2")
             t3 = NullTask("t3", path="t3")
@@ -150,7 +150,7 @@ def test11():
         assert True
         
 def test12():
-    class TC12(ConfigSpec):
+    class TC12(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -158,7 +158,7 @@ def test12():
     assert make_dep_tuple_set(TC12) == set([("t1", "t3"), ("t2", "t3")])
 
 def test13():
-    class TC13(ConfigSpec):
+    class TC13(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -167,7 +167,7 @@ def test13():
     assert make_dep_tuple_set(TC13) == set([("t2", "t3"), ("t1", "t4"), ("t3", "t4")])
 
 def test14():
-    class TC14(ConfigSpec):
+    class TC14(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -177,7 +177,7 @@ def test14():
                                             ("t1", "t3"), ("t2", "t4")])
 
 def test15():
-    class TC15(ConfigSpec):
+    class TC15(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -186,7 +186,7 @@ def test15():
     assert make_dep_tuple_set(TC15) == set([("t1", "t2"), ("t3", "t4")])
 
 def test16():
-    class TC16(ConfigSpec):
+    class TC16(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -194,7 +194,7 @@ def test16():
     assert make_dep_tuple_set(TC16) == set([("t1", "t3"), ("t1", "t2")])
 
 def test17():
-    class TC17(ConfigSpec):
+    class TC17(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -214,7 +214,7 @@ def test17():
                                             ("t9", "t0")])
 
 def test18():
-    class TC18(ConfigSpec):
+    class TC18(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -222,7 +222,7 @@ def test18():
     assert make_dep_tuple_set(TC18) == set()
 
 def test19():
-    class TC19(ConfigSpec):
+    class TC19(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -231,7 +231,7 @@ def test19():
     assert make_dep_tuple_set(TC19) == set([("t1", "t2"), ("t2", "t3")])
 
 def test20():
-    class TC20(ConfigSpec):
+    class TC20(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -251,7 +251,7 @@ def test20():
                                             ("t9", "t0")])
 
 def test21():
-    class TC21(ConfigSpec):
+    class TC21(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -261,13 +261,13 @@ def test21():
     assert make_dep_tuple_set(TC21) == set([("t1", "t2"), ("t2", "t3")])
     
 def test22():
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
         with_dependencies(t1 | t3, t2 | t3)
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -276,12 +276,12 @@ def test22():
     assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
 
 def test23():
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         with_dependencies(TaskGroup(t1, t1 | t2))
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         with_dependencies(t1 | t2)
@@ -289,13 +289,13 @@ def test23():
     assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
 
 def test24():
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
         with_dependencies(TaskGroup(t1, t2, t3), t1 | t3)
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -304,13 +304,13 @@ def test24():
     assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
 
 def test25():
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
         with_dependencies(t1 | t2 | t3, t1 | TaskGroup(t2, t3))
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -320,7 +320,7 @@ def test25():
 
 def test26():
     TG = TaskGroup
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -330,7 +330,7 @@ def test26():
                           t2 | t4,
                           t3 | t5)
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -393,7 +393,7 @@ def test27():
         ping_target = Role("ping_target", host_ref=BogusServerRef())
     ns = PingNamespace()
         
-    class PingConfig(ConfigSpec):
+    class PingConfig(ConfigModel):
         ping_task = ReportingTask("ping", target=PingNamespace.ping_target, report=cap)
         
     cfg = PingConfig()
@@ -408,7 +408,7 @@ def test28():
         ping_target = Role("ping_target", host_ref=BogusServerRef())
     ns = PingNamespace()
         
-    class PingConfig(ConfigSpec):
+    class PingConfig(ConfigModel):
         t3 = ReportingTask("t3", target=PingNamespace.ping_target, report=cap, repeat_count=1)
         t2 = ReportingTask("t2", target=PingNamespace.ping_target, report=cap, repeat_count=1)
         t1 = ReportingTask("t1", target=PingNamespace.ping_target, report=cap, repeat_count=1)
@@ -428,7 +428,7 @@ def test29():
         ping_target = Role("ping_target", host_ref=BogusServerRef())
     ns = PingNamespace()
         
-    class PingConfig(ConfigSpec):
+    class PingConfig(ConfigModel):
         t3 = ReportingTask("t3", target=PingNamespace.ping_target, report=cap)
         t2 = ReportingTask("t2", target=PingNamespace.ping_target, report=cap)
         t1 = ReportingTask("t1", target=PingNamespace.ping_target, report=cap)
@@ -457,7 +457,7 @@ def test30():
         pong_targets = MultiRole(Role("pong-target", host_ref=BogusServerRef()))
     ns = ElasticNamespace()
      
-    class ElasticConfig(ConfigSpec):
+    class ElasticConfig(ConfigModel):
         ping = ReportingTask("ping", target=ElasticNamespace.ping_targets, report=cap)
         pong = ReportingTask("pong", target=ElasticNamespace.pong_targets, report=cap)
         with_dependencies(ping | pong)
@@ -492,7 +492,7 @@ def test31():
         comp = Role("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
-    class SimpleCfg(ConfigSpec):
+    class SimpleCfg(ConfigModel):
         comp_task = VarCapture("varcap", SimpleNS.comp)
         
     ns = SimpleNS()
@@ -524,7 +524,7 @@ def test32():
         comp = Role("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
                                                                     Var("THREE", "drei"))
         
-    class SimpleCfg(ConfigSpec):
+    class SimpleCfg(ConfigModel):
         comp_task = VarCapture("varcap", SimpleNS.comp)
         
     ns = SimpleNS()
@@ -538,13 +538,13 @@ def test32():
             cfg.comp_task.vars["TWO"] == "2")
     
 def test33():
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
         with_dependencies(t1 | t2 | t3, t1 | t2 & t3)
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -553,13 +553,13 @@ def test33():
     assert make_dep_tuple_set(First) == make_dep_tuple_set(Second)
 
 def test34():
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
         with_dependencies(t1 | t2 | t3, t1 | (t2 & t3))
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -572,7 +572,7 @@ def test35():
     #TasgGroup (TG). It's a pretty literal translation,
     #although algebraically one set of parends isn't needed.
     TG = TaskGroup
-    class First(ConfigSpec):
+    class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -582,7 +582,7 @@ def test35():
                           t2 | t4,
                           t3 | t5)
         
-    class Second(ConfigSpec):
+    class Second(ConfigModel):
         t1 = NullTask("t1", path="t1")
         t2 = NullTask("t2", path="t2")
         t3 = NullTask("t3", path="t3")
@@ -598,7 +598,7 @@ def test36():
         grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
     
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         grid_prep = MultiTask("grid_prep", NullTask("gp", path="gp"), NS.grid)
     cfg = Cfg()
     
@@ -614,7 +614,7 @@ def test37():
         grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
     
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         grid_prep = MultiTask("grid_prep", NullTask("gp", path="gp"), NS.grid)
     cfg = Cfg()
     
@@ -630,7 +630,7 @@ def test38():
         grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
     
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         grid_prep = MultiTask("grid_prep", NullTask("gp", path="gp"), NS.grid)
     cfg = Cfg()
     
@@ -648,7 +648,7 @@ def test39():
         grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
          
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
                               NS.grid)
     cfg = Cfg()
@@ -669,7 +669,7 @@ def test40():
         static = Role("static", host_ref="127.0.0.1")
     ns = NS()
          
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
                               NS.grid)
         before = ReportingTask("before", target=NS.static, report=cap)
@@ -699,7 +699,7 @@ def test41():
         grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
     ns = NS()
          
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
                               NS.q.grid)
     cfg = Cfg()
@@ -720,7 +720,7 @@ def test42():
         grid2 = MultiRole(Role("grid2", host_ref="127.0.0.1"))
     ns = NS()
          
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
                               NS.q.union(NS.q.grid1, NS.q.grid2))
     cfg = Cfg()
@@ -748,7 +748,7 @@ def test43():
         task_performer = Role("tp", host_ref="127.0.0.1")
     ns = NS()
         
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         with_config_options(default_task_component=NS.task_performer)
         a_task = ReportingTask("atask", report=cap)
     cfg = Cfg()
@@ -771,7 +771,7 @@ def test44():
     ns = NS()
     ns.set_infra_model(infra)
           
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         with_config_options(default_task_component=NS.task_performer)
         a_task = ReportingTask("atask", report=cap)
     cfg = Cfg()
@@ -796,7 +796,7 @@ def test44a():
     ns.set_infra_model(infra)
     ns.task_performer.fix_arguments()
           
-    class Cfg(ConfigSpec):
+    class Cfg(ConfigModel):
         a_task = ReportingTask("atask", report=cap, target=NS.task_performer)
     cfg = Cfg()
     cfg.set_namespace(ns)
@@ -820,10 +820,10 @@ def test45():
     ns.task_performer.fix_arguments()
     
     cap = Capture()
-    class InnerCfg(ConfigSpec):
+    class InnerCfg(ConfigModel):
         task = ReportingTask("inner_task", report=cap)
         
-    class OuterCfg(ConfigSpec):
+    class OuterCfg(ConfigModel):
         wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
         
     cfg = OuterCfg()
@@ -858,13 +858,13 @@ def test46():
     ns.set_infra_model(infra)
     
     cap = Capture()
-    class InnerCfg(ConfigSpec):
+    class InnerCfg(ConfigModel):
         t1 = ReportingTask("inner_task1", report=cap)
         t2 = ReportingTask("inner_task2", report=cap)
         t3 = ReportingTask("inner_task3", report=cap)
         with_dependencies(t1 | t2 | t3)
         
-    class OuterCfg(ConfigSpec):
+    class OuterCfg(ConfigModel):
         wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
         
     cfg = OuterCfg()
@@ -914,13 +914,13 @@ def test47():
         _ = ns.task_component[i]
     
     cap = Capture()
-    class InnerCfg(ConfigSpec):
+    class InnerCfg(ConfigModel):
         t1 = ReportingTask("inner_task1", report=cap)
         t2 = ReportingTask("inner_task2", report=cap)
         t3 = ReportingTask("inner_task3", report=cap)
         with_dependencies(t1 | t2 | t3)
         
-    class OuterCfg(ConfigSpec):
+    class OuterCfg(ConfigModel):
         wrapped_task = MultiTask("setupSuite",
                                  ConfigClassTask("wrapper", InnerCfg),
                                  NS.q.task_component.all())
@@ -959,13 +959,13 @@ def test48():
     ns.set_infra_model(infra)
     
     cap = Capture()
-    class InnerCfg(ConfigSpec):
+    class InnerCfg(ConfigModel):
         t1 = ReportingTask("inner_task1", report=cap)
         t2 = ReportingTask("inner_task2", report=cap)
         t3 = ReportingTask("inner_task3", report=cap)
         with_dependencies(t1 | t2 | t3)
         
-    class OuterCfg(ConfigSpec):
+    class OuterCfg(ConfigModel):
         wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
         final = ReportingTask("final", target=NS.default, report=cap)
         with_dependencies(wrapped_task | final)
@@ -1008,14 +1008,14 @@ def test49():
     ns.set_infra_model(infra)
     
     cap = Capture()
-    class InnerCfg(ConfigSpec):
+    class InnerCfg(ConfigModel):
         t1 = ReportingTask("inner_task1", report=cap)
         t2 = ReportingTask("inner_task2", report=cap)
         t3 = ReportingTask("inner_task3", report=cap)
         
         with_dependencies(t1 | t2 | t3)
         
-    class OuterCfg(ConfigSpec):
+    class OuterCfg(ConfigModel):
         wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
         initial = ReportingTask("initial", target=NS.default, report=cap)
         final = ReportingTask("final", target=NS.default, report=cap)
@@ -1072,13 +1072,13 @@ def test50():
         _ = ns.task_component[i]
     
     cap = Capture()
-    class InnerCfg(ConfigSpec):
+    class InnerCfg(ConfigModel):
         t1 = ReportingTask("inner_task1", report=cap)
         t2 = ReportingTask("inner_task2", report=cap)
         t3 = ReportingTask("inner_task3", report=cap)
         with_dependencies(t1 | t2 | t3)
         
-    class OuterCfg(ConfigSpec):
+    class OuterCfg(ConfigModel):
         wrapped_task = MultiTask("setupSuite",
                                  ConfigClassTask("wrapper", InnerCfg),
                                  NS.q.task_component.all())

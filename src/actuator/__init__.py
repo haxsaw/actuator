@@ -45,8 +45,8 @@ from infra import (InfraModel, InfraException, with_infra_resources, StaticServe
 from namespace import (Var, NamespaceModel, with_variables, NamespaceException, Role,
                        with_components, MultiRole, RoleGroup,
                        MultiRoleGroup)
-from config import (ConfigSpec, with_searchpath, with_dependencies, MakeDir, Template,
-                    CopyAssets, ConfigJob, ConfigException, TaskGroup, NullTask,
+from config import (ConfigModel, with_searchpath, with_dependencies,
+                    ConfigException, TaskGroup, NullTask,
                     MultiTask, ConfigClassTask)
 from provisioners.core import ProvisionerException
 from exec_agents.core import ExecutionAgent, ExecutionException

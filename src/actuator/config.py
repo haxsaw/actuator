@@ -274,13 +274,13 @@ class RendezvousTask(_ConfigTask, StructuralTask):
         return
     
 
-class ConfigSpecMeta(ModelBaseMeta):
+class ConfigModelMeta(ModelBaseMeta):
     def __new__(cls, name, bases, attr_dict):
         all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, _ConfigTask)}
         attr_dict[_node_dict] = all_tasks
         if _config_options not in attr_dict:
             attr_dict[_config_options] = {}
-        newbie = super(ConfigSpecMeta, cls).__new__(cls, name, bases, attr_dict)
+        newbie = super(ConfigModelMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
         for v, k in getattr(newbie, _node_dict).items():
             setattr(newbie, k, v)
@@ -296,14 +296,14 @@ class ConfigSpecMeta(ModelBaseMeta):
         return newbie
     
 
-class ConfigSpec(ModelBase):
-    __metaclass__ = ConfigSpecMeta
+class ConfigModel(ModelBase):
+    __metaclass__ = ConfigModelMeta
     ref_class = ModelInstanceReference
     
     def __init__(self, namespace_model_instance=None, nexus=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
                  delegate=None):
-        super(ConfigSpec, self).__init__(nexus=nexus)
+        super(ConfigModel, self).__init__(nexus=nexus)
         self.namespace_model_instance = namespace_model_instance
         self.remote_user = remote_user
         self.remote_pass = remote_pass
@@ -391,7 +391,7 @@ class ConfigSpec(ModelBase):
             raise ConfigException("No default task component defined on the config model")
 
         if self.namespace_model_instance is None:
-            raise ConfigException("ConfigSpec instance can't get a default task host from a Namespace model reference without an instance of that model")
+            raise ConfigException("ConfigModel instance can't get a default task host from a Namespace model reference without an instance of that model")
         
         comp_ref = self.namespace_model_instance.get_inst_ref(self.default_task_component)
         comp_ref.fix_arguments()
@@ -478,8 +478,8 @@ class TaskGroup(Orable, _Cloneable, _Unpackable):
     
 class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
     def __init__(self, name, cfg_class, init_args=None, **kwargs):
-        if not issubclass(cfg_class, ConfigSpec):
-            raise ConfigException("The cfg_class parameter isn't a subclass of ConfigSpec")
+        if not issubclass(cfg_class, ConfigModel):
+            raise ConfigException("The cfg_class parameter isn't a subclass of ConfigModel")
         super(ConfigClassTask, self).__init__(name, **kwargs)
         self.cfg_class = cfg_class
         self.init_args = None
@@ -673,27 +673,3 @@ class NullTask(_ConfigTask):
         super(NullTask, self).__init__(name, **kwargs)
         self.path = path
         
-        
-class MakeDir(_ConfigTask):
-    def __init__(self, name, path="", **kwargs):
-        super(MakeDir, self).__init__(name, **kwargs)
-        self.path = path
-
-
-class Template(_ConfigTask):
-    def __init__(self, name, path="", **kwargs):
-        super(Template, self).__init__(name, **kwargs)
-        self.path = path
-
-
-class CopyAssets(_ConfigTask):
-    def __init__(self, name, path="", **kwargs):
-        super(CopyAssets, self).__init__(name, **kwargs)
-        self.path = path
-
-
-class ConfigJob(_ConfigTask):
-    def __init__(self, name, path="", **kwargs):
-        super(ConfigJob, self).__init__(name, **kwargs)
-        self.path = path
-

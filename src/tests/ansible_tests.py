@@ -25,12 +25,13 @@ from actuator.namespace import MultiRole
 Created on Oct 21, 2014
 '''
 
+import getpass
 import sys
 import socket
 import os
 import os.path
 import stat
-from actuator import (NamespaceModel, Var, Role, ConfigSpec, PingTask,
+from actuator import (NamespaceModel, Var, Role, ConfigModel, PingTask,
                       with_variables, ExecutionException, CommandTask,
                       ScriptTask, CopyFileTask, InfraModel, StaticServer,
                       ProcessCopyFileTask, ctxt)
@@ -42,6 +43,9 @@ def setup():
     #make sure the private key is read-only for the owner
     pkeyfile = find_file("lxle1-dev-key")
     os.chmod(pkeyfile, stat.S_IRUSR|stat.S_IWUSR)
+    
+    
+user_home = os.path.expanduser("~")
 
 
 def find_ip():
@@ -63,7 +67,7 @@ def test001():
         ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = PingTask("ping", task_component=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
@@ -80,7 +84,7 @@ def test002():
         ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = PingTask("ping", task_component=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
@@ -97,7 +101,7 @@ def test003():
         ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = PingTask("ping", task_component=SimpleNamespace.ping_target,
                         repeat_count=1)
     cfg = SimpleConfig()
@@ -112,12 +116,13 @@ def test003():
         
 def test004():
     class SimpleNamespace(NamespaceModel):
-        with_variables(Var("CMD_TARGET", find_ip()))
+        with_variables(Var("CMD_TARGET", find_ip()),
+                       Var("HOME", user_home))
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
-    class SimpleConfig(ConfigSpec):
-        ping = CommandTask("cmd", "/bin/ls /home/tom", task_component=SimpleNamespace.cmd_target)
+    class SimpleConfig(ConfigModel):
+        ping = CommandTask("cmd", "/bin/ls !{HOME}", task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
@@ -133,8 +138,8 @@ def test005():
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
-    class SimpleConfig(ConfigSpec):
-        ping = CommandTask("cmd", "/bin/ls", chdir="/home/tom",
+    class SimpleConfig(ConfigModel):
+        ping = CommandTask("cmd", "/bin/ls", chdir=user_home,
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
@@ -153,8 +158,8 @@ def test006():
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
-    class SimpleConfig(ConfigSpec):
-        ping = CommandTask("cmd", "/bin/wibble", chdir="/home/tom",
+    class SimpleConfig(ConfigModel):
+        ping = CommandTask("cmd", "/bin/wibble", chdir=user_home,
                            task_component=SimpleNamespace.cmd_target,
                            repeat_count=1)
     cfg = SimpleConfig()
@@ -174,7 +179,7 @@ def test007():
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
           
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
@@ -196,7 +201,7 @@ def test008():
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace()
            
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = ScriptTask("script", os.path.join(os.getcwd(), "tests", "test008.sh"),
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
@@ -218,7 +223,7 @@ def test009():
         copy_target = Role("copy_target", host_ref=find_ip())
     ns = SimpleNamespace()
     
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         cleanup = CommandTask("clean", "/bin/rm -rf !{PKG}", chdir="!{DEST}",
                               task_component=SimpleNamespace.copy_target,
                               repeat_count=1)
@@ -254,7 +259,7 @@ def test010():
     ns = SimpleNamespace()
     ns.compute_provisioning_for_environ(infra)
           
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_component=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
@@ -305,7 +310,7 @@ def test011():
         target = Role("target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
         
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
                             task_component=SimpleNamespace.target)
         process = ProcessCopyFileTask("pcf", "!{DEST}",
@@ -352,7 +357,7 @@ def test012():
         target = Role("target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
         
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
                             task_component=SimpleNamespace.target)
         process = ProcessCopyFileTask("pcf", "!{DEST}",
@@ -398,7 +403,7 @@ def test013():
         target = Role("target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
         
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
                             task_component=SimpleNamespace.target)
         process = ProcessCopyFileTask("pcf", "!{DEST}",
@@ -443,13 +448,13 @@ def test014():
         target = MultiRole(Role("target", host_ref=SimpleInfra.testbox))
     ns = SimpleNamespace()
     
-    class SingleCopy(ConfigSpec):
+    class SingleCopy(ConfigModel):
         reset = CommandTask("014_reset", "/bin/rm -rf !{DEST}", removes="!{DEST}")
         copy = CopyFileTask("014_cpf", "!{DEST}",
                             src=test_file_path)
         with_dependencies(reset | copy)
         
-    class MultiCopy(ConfigSpec):
+    class MultiCopy(ConfigModel):
         task_suite = MultiTask("all-copies", ConfigClassTask("one-copy", SingleCopy),
                                SimpleNamespace.q.target.all())
         
@@ -479,7 +484,7 @@ def test015():
         ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = PingTask("ping", task_component=SimpleNamespace.ping_target,
                         remote_user="!{RUSER}",
                         private_key_file=find_file("lxle1-dev-key"))
@@ -501,12 +506,13 @@ def test016():
     "test016: try writing a file into another user's directory"
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
-                       Var("RUSER", "lxle1"))
+                       Var("RUSER", "lxle1"),
+                       Var("HOME", user_home))
         copy_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
-    class SimpleConfig(ConfigSpec):
-        copy = CopyFileTask("cpf", "/home/tom/tmp/failure.txt",
+    class SimpleConfig(ConfigModel):
+        copy = CopyFileTask("cpf", "!{HOME}/tmp/failure.txt",
                             task_component=SimpleNamespace.copy_target,
                             remote_user="!{RUSER}",
                             private_key_file=find_file("lxle1-dev-key"),
@@ -531,7 +537,7 @@ def test017():
         ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping = PingTask("ping", task_component=SimpleNamespace.ping_target,
                         remote_user="!{RUSER}",
                         remote_pass="!{RPASS}")
@@ -558,7 +564,7 @@ def test018():
         ping2_target = Role("ping2-target", host_ref=find_ip())
     ns = SimpleNamespace()
        
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         ping1 = PingTask("ping", task_component=SimpleNamespace.ping1_target,
                         remote_user="!{RUSER1}",
                         private_key_file=find_file("lxle1-dev-key"))
@@ -583,7 +589,7 @@ def test019():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", the_ip),
                        Var("RUSER1", "lxle1"),
-                       Var("RUSER2", "tom"),
+                       Var("RUSER2", getpass.getuser()),
                        Var("TARGET", "019target.txt"),
                        Var("DIRPATH", "/home/!{RUSER}/tmp"),
                        Var("FILEPATH", "!{DIRPATH}/!{TARGET}"))
@@ -593,7 +599,7 @@ def test019():
                                  variables=[Var("RUSER", "!{RUSER2}")])
     ns = SimpleNamespace()
      
-    class CopyConfig(ConfigSpec):
+    class CopyConfig(ConfigModel):
         make = CommandTask("make", "/bin/mkdir -p !{DIRPATH}",
                            creates="!{DIRPATH}")
         remove = CommandTask("remove", "/bin/rm -f !{FILEPATH}")
@@ -601,7 +607,7 @@ def test019():
                             content="This should be in !{RUSER}'s tmp\n")
         with_dependencies(make | remove | copy)
          
-    class CopyAllConfig(ConfigSpec):
+    class CopyAllConfig(ConfigModel):
         u1_copy = ConfigClassTask("u1-copy", CopyConfig,
                                   task_component=SimpleNamespace.copy1_target,
                                   remote_user="!{RUSER}",
@@ -637,7 +643,7 @@ def test020():
     ns = SimpleNamespace()
     
     now_str = datetime.now().ctime()
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         copy = CopyFileTask("cpf", "!{TARGET_FILE}",
                             task_component=SimpleNamespace.copy_target,
                             content="This content created at: {}\n".format(now_str),
@@ -676,7 +682,7 @@ def test021():
         _ = ns.targets[i]
     
     now_str = datetime.now().ctime()
-    class SimpleConfig(ConfigSpec):
+    class SimpleConfig(ConfigModel):
         clear = CommandTask("clear-previous", "/bin/rm -rf !{TARGET_DIR}",
                             task_component=SimpleNamespace.targets[0])
         make = CommandTask("make-output-dir", "/bin/mkdir -p !{TARGET_DIR}",
