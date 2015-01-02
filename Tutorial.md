@@ -599,6 +599,11 @@ At the most global level, the NODE_NAME Var is defined with a value that contain
 It's also worth noting in the two different methods used to set Vars on namespace model roles or containers. In the first method, Vars can be set using the keyword argument "variables"; the value must be an iterable (list) of Var objects to set on the role. In the second method, Vars are added to a role container with the add_variable() method, which takes an arbitrary number of Var objects when called, separated by ','. The add_variable() method has a return value of the component the method was invoked on, and hence the value of VarExample.grid is still the MultiRole instance.
 
 ### Variable setting and overrides
+Vars don't have to be defined when the namespace model class is defined; they can specified as having an empty value (*None* in Python), and that value can be provided later.
+
+There are two ways to supply a missing Var value:
+- The add_variables() method can be used to supply a Var to a role, role container, or model instance after the model has been defined. This is a "destructive" call in that if another Var with the same name (same first parameter value) already exists on the object, it will be replaced with the Var object in the add_variables() call.
+- The add_override() method is similar to add_variables() in that it allows a new Var to be supplied after a model instance has been created, but unlike add_variables(), it saves the Var in an "override" area which is searched first when a variable name is required, leaving the original Var in tact. The override can be subsequently cleared out and any original Var values will then be visible.
 
 ## <a name="configmodels">Configuration models</a>
 
@@ -607,43 +612,43 @@ The configuration model is what instructs Actuator to do to the new provisioned 
 1. A declaration of the tasks that need to be performed
 2. A declaration of the dependencies between the tasks that will dictate the order of performance
 
-Together, this provides Actuator the information it needs to perform all configuration tasks on the proper system components in the proper order.
+Together, this provides Actuator the information it needs to perform all configuration tasks on the proper system roles in the proper order.
 
 ### <a name="taskdec">Declaring tasks</a>
 
-Tasks must be declared relative to a Namespace and its Components; it is the components that inform the config model where the tasks are to altimately be run. In the following examples, we'll use the this simple namespace that sets up a target component where some files are to be copied, as well as a couple of Vars that dictate where the files will go.
+Tasks must be declared relative to a Namespace and its Roles; it is the roles that inform the config model where the tasks are to ultimately be run. In the following examples, we'll use the this simple namespace that sets up a target role where some files are to be copied, as well as a couple of Vars that dictate where the files will go.
 
 ```python
 class SimpleNamespace(NamespaceModel):
   with_variables(Var("DEST", "/tmp"),
                  Var("PKG", "actuator"),
                  Var("CMD_TARGET", "127.0.0.1"))
-  copy_target = Component("copy_target", host_ref="!{CMD_TARGET}")
+  copy_target = Role("copy_target", host_ref="!{CMD_TARGET}")
 ns = SimpleNamespace()
 ```
 
 We've established several Vars at the model level, one which includes a hard-coded IP to use for commands, in this case 'localhost', and a single component that will be the target of the files we want to copy. *NOTE*: Actuator uses [Ansible](https://pypi.python.org/pypi/ansible/1.7.2) under the covers for managing the execution of commands over ssh, and hence for this example to work it must be run on a *nix box that has appropriate ssh keys set up to allow for passwordless login.
 
-Declaring tasks is a matter of creating one or more instances of various task classes which are Actuator analogs for Ansible modules. In this example, we'll declare two tasks: one which will remove any past files copied to the target (only really needed for non-dynamic hosts), and another that will copy the files to the target, in this case the Actuator package itself.
+Declaring tasks is a matter of creating one or more instances of various task classes which in many cases are Actuator analogs for Ansible modules. In this example, we'll declare two tasks: one which will remove any past files copied to the target (only really needed for non-dynamic hosts), and another that will copy the files to the target, in this case the Actuator package itself.
 
 ```python
 import os, os.path
 import actuator
-from actuator import ConfigSpec, CopyFileTask, CommandTask
+from actuator import ConfigModel, CopyFileTask, CommandTask
 
 #find the path to actuator; if it is under our cwd, the it won't be at an absolute path
 actuator_path = actuator.__file__
 if not os.path.isabs(actuator_path):
   actuator_path = os.path.join(os.getcwd(), "!{PKG}")
   
-class SimpleConfig(ConfigSpec):
+class SimpleConfig(ConfigModel):
   cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
-                        task_component=SimipleNamespace.copy_target)
+                        task_role=SimipleNamespace.copy_target)
   copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
-                      task_component=SimpleNamespace.copy_target)
+                      task_role=SimpleNamespace.copy_target)
 ```
 
-This config model is set up to run the cleanup and copy tasks on whatever host is identified by the value of the _task_component_ keyword argument. Note the use of replacement parameters in the various argument strings to the tasks; these will be evaluated against the available Vars visible to the namespace component identified by task_component.
+This config model is set up to run the cleanup and copy tasks on whatever host is identified by the value of the _task_role_ keyword argument. Note the use of replacement parameters in the various argument strings to the tasks; these will be evaluated against the available Vars visible to the namespace role identified by task_role.
 
 Once a a config model has been created, it can be given to an execution agent for processing against a specific namespace:
 
@@ -655,34 +660,34 @@ ea = AnsibleExecutionAgent(config_model_instance=cfg,
 ea.perform_config()
 ```
 
-If all ssh keys have been set up properly, a copy of the Actuator package will be in /tmp after the config is performed.
+If all ssh keys have been set up properly, Actuator will be able to execute these tasks on the host of the role named with SimpleNamespace.copy_target. However, this isn't enough to get proper results, which will be discussed next.
 
 ### <a name="taskdeps">Declaring dependencies</a>
 
-This is a fully functional config model, but there's a good chance it will give wrong or inconsistent results. The reason is that Actuator hasn't been told anything about the order of performing the config tasks. Hence, Actuator will perform these tasks in parallel, and the end result will simply depend on the relative scheduling timings of the ssh session set up for each task.
+This is a fully functional config model, but there's a good chance it will give wrong or inconsistent results. The reason is that Actuator hasn't been told anything about the order of performing the config tasks. Hence, Actuator will perform these tasks in parallel, and the end result will simply depend on the relative scheduling timings of the ssh sessions set up for each task.
 
-What we want to do is add dependency information to the model so that Actuator knows the proper order to perform the tasks. To do this, we use the with_dependencies() function and the '|' and '&' symbols to describe the dependencies of tasks. Adding this to the above config model, we would get the following:
+What we want to do is add dependency information to the model so that Actuator knows the proper order to perform the tasks. To do this, we use the with_dependencies() function and the '|' and '&' symbols to describe the dependencies between tasks. Adding this to the above config model, we would get the following:
 
 ```python
 import os, os.path
 import actuator
-from actuator import ConfigSpec, CopyFileTask, CommandTask
+from actuator import ConfigModel, CopyFileTask, CommandTask
 
 #find the path to actuator; if it is under our cwd, the it won't be at an absolute path
 actuator_path = actuator.__file__
 if not os.path.isabs(actuator_path):
   actuator_path = os.path.join(os.getcwd(), "!{PKG}")
   
-class SimpleConfig(ConfigSpec):
+class SimpleConfig(ConfigModel):
   cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
-                        task_component=SimipleNamespace.copy_target)
+                        task_role=SimipleNamespace.copy_target)
   copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
-                      task_component=SimpleNamespace.copy_target)
+                      task_role=SimpleNamespace.copy_target)
   #NOTE: this call must be within the config model, not after it!
   with_dependencies( cleanup | copy )
 ```
 
-Actuator uses some of the notation from [Celery](http://www.celeryproject.org/) to describe task dependencies. The pipe symbol '|' means perform the task on the left before the task on the right. This provides Actuator sufficient information to determine which task(s) to start with and what follows each as they complete.
+Actuator uses some of the notation from [Celery](http://www.celeryproject.org/) to describe task dependencies. The pipe symbol '|' means perform the task on the left before the task on the right. This provides Actuator sufficient information to determine which task(s) to start with and what follows each as they complete. This will now provide repeatable results.
 
 ### <a name="depexp">Dependency expressions</a>
 
@@ -702,7 +707,7 @@ with_dependencies( t3 | t4 | t5 )
 
 The with_dependencies() function can take any number of dependency expressions and be invoked any number of times. It will collect all dependency expressions from all the arguments and each invocation and assemble a dependency graph that instructs it how to perform the config model's tasks. All tasks that don't appear an any dependency expression are performed immedicately.
 
-The above example illustrates how to arrange task in series, but what about tasks that can be performed in parallel? To indicate the eligibility of tasks to be performed in parallel, use the '&' operator in task dependency expressions. Using the same five tasks from above, the following would instruct Actuator to perform the identified tasks in parallel:
+The above example illustrates how to arrange tasks in series, but what about tasks that can be performed in parallel? To indicate the eligibility of tasks to be performed in parallel, use the '&' operator in task dependency expressions. Using the same five tasks from above, the following would instruct Actuator to perform the identified tasks in parallel:
 
 ```python
 #Perform t1 first, then t2 and t3 together, and then t4 and t5 serially
@@ -733,16 +738,16 @@ As we can see, dependency expressions can be arbitrarily nested, and the express
 
 ### <a name="taskscaling">Auto-scaling tasks</a>
 
-For situations where there are multiple identical hosts that all requre the same configuration tasks, Actuator provides a means to identify the task to perform on each host and scale the number of tasks actually performed depending on how many hosts are in an instance of the model. The *MultiTask* wrapper allows you to wrap another task and associate the wrapped task with a reference that names a group of hosts on which to perform the task.
+For situations where there are multiple identical hosts that all requre the same configuration tasks, Actuator provides a means to identify the task to perform on each host and scale the number of tasks actually performed depending on how many hosts are in an instance of the model. The *MultiTask* container allows you to wrap another task and associate the wrapped task with a reference that names a group of hosts on which to perform the task.
 
 To illustrate how this works, we'll introduce a new Namespace class that has a variable aspect to it:
 
 ```python
 class GridNamespace(NamespaceModel):
-  grid = NSMultiComponent(Component("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
+  grid = MultiRole(Role("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
   
   
-class GridConfig(ConfigSpec):
+class GridConfig(ConfigModel):
   reset = MultiTask("reset", CommandTask("remove", "/bin/rm -rf /some/path/*"),
                     GridNamespace.q.grid.all())
   copy = MultiTask("copy", CopyFileTask("copy-tarball', '/some/path/software.tgz',
@@ -751,9 +756,9 @@ class GridConfig(ConfigSpec):
   with_dependencies(reset | copy)
 ```
 
-In the above example, the Namespace model has a component 'grid' that can grow to define an aribitrary number of components. For each grid node, we want to clear out a directory and then transfer a tarball to be unpacked in that same directory. To do this flexibly, we wrap the task we want to run on a group of components in a MultiTask, providing a name for the MultiTask, a template task to apply to all the components, and then a list of components to apply the task to, in this case GridNamespacce.q.grid.all().
+In the above example, the Namespace model has a role container 'grid' that can grow to define an aribitrary number of roles. For each grid node, we want to clear out a directory and then transfer a tarball to be unpacked in that same directory. To do this flexibly, we wrap the task we want to run on a group of components in a MultiTask, providing a name for the MultiTask, a template task to apply to all the components, and then a list of components to apply the task to, in this case GridNamespacce.q.grid.all().
 
-The 'q' attribute of GridNamespace is supplied by model base class. It signals the start of a _reference selection expression_, which is a logical expression that yields a list of references to elements of a model. In this case, the expression will make the template task apply to every component that is generated in the namespace. Reference selection expressions will be gone into in more deal below.
+The 'q' attribute of GridNamespace is supplied by all Actuator model base classes. It signals the start of a _reference selection expression_, which is a logical expression that yields a list of references to elements of a model. In this case, the expression will make the template task apply to every grid role that is generated in the namespace. Reference selection expressions will be gone into in more deal below.
 
 For the purposes of setting up dependencies, MultTasks can be treated like any other task; that is, they can appear in dependency expressions. The dependency system will ensure that all instances of the template task complete before the MultiTask itself completes.
 
@@ -761,24 +766,24 @@ For the purposes of setting up dependencies, MultTasks can be treated like any o
 
 MultiTasks make it easy to create configuration models that automatically scale relative to an instance of a namespace. However, MultiTasks may be limiting in some circumstances:
 
-- Since the MultiTask can't finish until all of its template instances finish, overall progress may be slowed due to a single slow-completing template task.
+- Since the MultiTask can't finish until all of its template instances finish, overall progress may be slowed due to a single slow-completing task instance.
 - Expressing complex dependencies in terms of MultiTask tasks can be subject to slow progress, again due to the completion requirement for each template instance inside each MultiTask.
 
 What we would like is to be able to express a set of tasks and their dependencies, and then have the set of tasks be applied to a single host. If we could then wrap up such a representation in a MultiTask, we can have different components proceed through their complex set of config tasks at varying rates, allowing better ovverall progress even if one component is processing tasks slowly.
 
-Fortunately, we already have a mechanism for modeling this situation: the config model itself! What is needed is to be able to treat a config model as if it were a task. To do that, we use the *ConfigClassTask* wrapper; this wrapper allows a config model to be used as if it was task, providing the means to define a set of tasks to be performed on a single component, all with their own dependencies.
+Fortunately, we already have a mechanism for modeling this situation: the config model itself! What is needed is to be able to treat a config model as if it were a task. To do that, we use the *ConfigClassTask* wrapper; this wrapper allows a config model to be used as if it was task, providing the means to define a set of tasks to be performed on a single role, all with their own dependencies.
 
 To illustrate this, we'll re-write the above example with a ConfigClassTask to wrap up the operations that are all to be carried out on a single component:
 
 ```python
 #this is the same namespace model as above
 class GridNamespace(NamespaceModel):
-  grid = NSMultiComponent(Component("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
+  grid = MultiRole(Role("grid-node", host_ref=SomeInfra.grid[ctxt.name]))
 
 
-#this config model is new; it defines all the tasks and dependencies for a single component
-#Notice that there is no mention of a 'component' within this model
-class NodeConfig(ConfigSpec):
+#this config model is new; it defines all the tasks and dependencies for a single role
+#Notice that there is no mention of a 'task_role' within this model
+class NodeConfig(ConfigModel):
   reset = CommandTask("remove", "/bin/rm -rf /some/path/*")
   copy = CopyFileTask("copy-tarball', '/some/path/software.tgz',
                       src='/some/local/path/software.tgz')
@@ -786,19 +791,19 @@ class NodeConfig(ConfigSpec):
   
 
 #this model now uses the NodeConfig model in a MultiTask to define all the tasks that need
-#to be carried out on each component
-class GridConfig(ConfigSpec):
+#to be carried out on each role
+class GridConfig(ConfigModel):
   setup_nodes = MultiTask("setup-nodes", ConfigClassTask("setup-suite", NodeConfig),
                           GridNamespace.q.grid.all())
 ```
 
 In this example, the ConfigClassTask wrapper makes the NodeConfig model appear to be a plain task, and allows the MultiTask wrapper to create as many instances of NodeConfig as needed according to the the number of items that are returned by the reference selection expression, GridNamespace.q.grid.all().
 
-The big operational difference here is that each "reset | copy" pipeline operates in parallel on each component named by GridNamespace.q.grid.all(). In the MultiTask example, all _resets_ had to complete before the first _copy_ could start on *any* component, but with ConfigClassTask, if one node finishes its _reset_ before another, that node's _copy_ task can start right away. This means that slow nodes don't slow down all work within the MultiTask. The MultiTask still won't complete until all of the ConfigClassTask instances complete, but overall progress will be less "lumpy" than if each MultiTask had to wait until the slowest task completed.
+The big operational difference here is that each "reset | copy" pipeline operates in parallel on each component named by GridNamespace.q.grid.all(). In the MultiTask example, all _resets_ had to complete before the first _copy_ could start on *any* role, but with ConfigClassTask, if one node finishes its _reset_ before another, that node's _copy_ task can start right away. This means that slow nodes don't slow down all work within the MultiTask. The MultiTask still won't complete until all of the ConfigClassTask instances complete, but overall progress will be less "lumpy" than if each MultiTask had to wait until the slowest task completed.
 
-Notice that nowhere in the NodeConfig model is a _task_component_ identified. This is characteristic of models that are to be wrapped with ConfigClassTask-- the task_component will be externally supplied, and hence no reference is required within the model that is to be wrapped. Here, the MultiTask supplies the task_component value from the GridNamespace.q.grid.all() expression.
+Notice that nowhere in the NodeConfig model is a _task_role_ identified. This is characteristic of models that are to be wrapped with ConfigClassTask-- the task_role will be externally supplied, and hence no reference is required within the model that is to be wrapped. Here, the MultiTask supplies the task_role value from the GridNamespace.q.grid.all() expression.
 
-ConfigClassTask can be used independently of the MultiTask wrapper; it is a first-class task that can be expressed within a model and can enter into dependency expressions. When used this way, a task_component must be supplied to the ConfigClassTask, and this can be done in the normal way with the task_component keyword argument.
+ConfigClassTask can be used independently of the MultiTask wrapper; it is a first-class task that can be expressed within a model and can enter into dependency expressions. When used this way, a task_role must be supplied to the ConfigClassTask, and this can be done in the normal way with the task_role keyword argument.
 
 ### <a name="refselect">Reference selection expressions</a>
 
@@ -806,15 +811,15 @@ In the above sections on the MultiTask and ConfigClassTask, the notion of refere
 
 As mentioned above, a reference selection expression is initiated by accessing the 'q' attribute on a model class. After the 'q', attributes of the model and its objects can be performed just as if you were doing so in the model class itself. However, instead of generating a single model reference, such accesses further define an expression that will yield a list of references into the model.
 
-Each attribute access in a reference selection expression will yield either a single-valued attribute (such as a Component in a NamespaceModel), or a collection of values as represented by wrappers such as NSMultiComponent or NSMultiComponentGroup. In this latter case, it is possible to restrict the set of references selected through the use of test methods which will filter out unwanted references in the collection. In either case, such references may be followed by further attribute accesses into the model, and attributes will be accessed only on the items selected to this point.
+Each attribute access in a reference selection expression will yield either a single-valued attribute (such as a Role in a NamespaceModel), or a collection of values as represented by wrappers such as MultiRole or MultiRoleGroup. In this latter case, it is possible to restrict the set of references selected through the use of test methods which will filter out unwanted references in the collection. In either case, such references may be followed by further attribute accesses into the model, and attributes will be accessed only on the items selected to this point.
 
 A contrived example will illustrate this; consider the following nested namespace model:
 
 ```python
 class Contrived(NamespaceModel):
-  top = NSMultiComponent(NSMultiComponentGroup("site",
-                                               leader=Component('leader'),
-                                               grid=NSMultiComponent(Component('grid-node'))))
+  top = MultiRole(MultiRoleGroup("site",
+                                  leader=Role('leader'),
+                                  grid=MultiRole(Role('grid-node'))))
 ```
 
 Further, suppose we created an instance of this model and populated it by generating the references shown:
@@ -826,30 +831,30 @@ for city in ["NY", "LN", "TK", "SG", "HK", "SF"]:
     _ = con.top[city].grid[i]
 ```
 
-We can then construct the following expressions to select lists of component references from this instance:
+We can then construct the following expressions to select lists of role references from this model instance:
 
 ```python
-#list of leader Components regardless of the instance of top
+#list of leader Roles regardless of the instance of top
 Contrived.q.top.all().leader
 
-#1-element list of leader Component for the top['NY'] instance
+#1-element list of leader Role for the top['NY'] instance
 Contrived.q.top.key("NY").leader
 
-#list of all grid Components under top['NY']
+#list of all grid Roles under top['NY']
 Contrived.q.top.key("NY").grid.all()
 
-#list of all grid Components under top["NY"], top["LN"] and top["TK"]
+#list of all grid Roles under top["NY"], top["LN"] and top["TK"]
 Contrived.q.top.keyin(["NY", "LN", "TK"]).grid.all()
 
-#list of all leader Components who's top key starts with 'S'
+#list of all leader Roles who's top key starts with 'S'
 Contrived.q.top.match("S.*").leader
 
-#list of all even numbered grid Components for top["HK"]
+#list of all even numbered grid Roles for top["HK"]
 def even_test(key):
   return int(key) % 2 == 0
 Contrived.q.top.key("HK").grid.pred(even_test)
 
-#list of the leader and all grid Components for top["NY"]
+#list of the leader and all grid Roles for top["NY"]
 Contrived.q.union(Contrived.q.top.key("NY").leader,
                   Contrived.q.top.key("NY").grid.all())
                   
