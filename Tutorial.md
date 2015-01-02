@@ -11,8 +11,8 @@ Actuator allows you to use Python to declaratively describe system infra, config
   4. [Execution Model](#ov_execmodel)
 3. [Infra models](#inframodels)
   1. [A simple Openstack example](#simple_openstack_example)
-  2. [Multiple Components](#multi_resources)
-  3. [Component Groups](#resource_groups)
+  2. [Multiple Resources](#multi_resources)
+  3. [Resource Groups](#resource_groups)
   4. [Model References and Context Expressions](#modrefs_ctxtexprs)
 4. [Namespace models](#nsmodels)
   1. [An example](#simplensexample)
@@ -52,7 +52,7 @@ Actuator splits the modeling space into four parts:
 
 ###<a name="ov_inframodel">Infra Model</a>
 
-The *infra model*, established with a subclass of **InfraModel**, defines all the infrastructure resources of a system and their inter-relationships. Infra models can have fixed components that are always provisioned with each instance of the model class, as well as variable components that allow multiple copies of components to be easily created on an instance-by-instance basis. The infra model also has facilities to define groups of components that can be created as a whole, and an arbitrary number of copies of these groups can be created for each instance. References into the infra model can be held by other models, and these references can be subsequently evaluated against an instance of the infra model to extract data from that particular instance. For example, a namespace model may need the IP address from a particular server in an infra model, and so the namespace model may hold a reference into the infra model for the IP address attribute that yields the actual IP address of a provisioned server when an instance of that infra model is provisioned.
+The *infra model*, established with a subclass of **InfraModel**, defines all the infrastructure resources of a system and their inter-relationships. Infra models can have fixed resources that are always provisioned with each instance of the model class, as well as variable-sized resource containers that allow multiple copies of resources to be easily created on an instance-by-instance basis. The infra model also has facilities to define groups of resources that can be created as a whole, and an arbitrary number of copies of these groups can be created for each instance. References into the infra model can be held by other models, and these references can be subsequently evaluated against an instance of the infra model to extract data from that particular instance. For example, a namespace model may need the IP address from a particular server in an infra model, and so the namespace model may hold a reference into the infra model for the IP address attribute that yields the actual IP address of a provisioned server when an instance of that infra model is provisioned.
 
 ###<a name="ov_namespacemodel">Namespace Model</a>
 
@@ -64,7 +64,7 @@ The *configuration model*, established with a subclass of **ConfigModel**, defin
 
 ###<a name="ov_execmodel">Execution Model</a>
 
-The *execution model*, established with a subclass of **ExecutionModel**, defines the actual processes to run for each system component named in the namespace model. Like with the configuration model, dependencies between the executables can be expressed so that a particular startup order can be enforced.
+The *execution model*, established with a subclass of **ExecutionModel**, defines the actual processes to run for each system role named in the namespace model. Like with the configuration model, dependencies between the executables can be expressed so that a particular startup order can be enforced.
 
 Each model can be built and used independently, but it is the inter-relationships between the models that give Actuator its representational power.
 
@@ -77,7 +77,7 @@ As may have been guessed, the key model in Actuator is the namespace model, as i
 Although the namespace model is the one that is most central in Actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynamically provisionable infra resources and describes how they relate to each other. The model can define groups of resources and resources that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
 
 ### <a name="simple_openstack_example">A simple Openstack example</a>
-The best place to start is to develop a model that can be used to provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra's resources in a declarative fashion. This example will use components built using the [Openstack](http://www.openstack.org/) binding to Actuator.
+The best place to start is to develop a model that can be used to provision the infrastructure for a system. An infrastructure model is defined by creating a class that describes the infra's resources in a declarative fashion. This example will use resources built using the [Openstack](http://www.openstack.org/) binding to Actuator.
 
 ```python
 from actuator import InfraModel, ctxt
@@ -97,7 +97,7 @@ class SingleOpenstackServer(InfraModel):
   rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
 ```
 
-The order of the components in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note the use of 'ctxt.model.*' for some of the arguments; these constructions are called _context expressions_ as they result in instances of the ContextExpr class, which are used to defer the evaluation of a model reference until an instance of the model (the "context") is available to evaluate the expression against. 
+The order of the resources in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note the use of 'ctxt.model.*' for some of the arguments; these constructions are called _context expressions_ as they result in instances of the ContextExpr class, which are used to defer the evaluation of a model reference until an instance of the model (the "context") is available to evaluate the expression against. 
 
 Instances of the class (and hence the model) are then created, and the instance is given to a provisioner which inspects the model instance and performs the necessary provsioning actions in the proper order.
 
@@ -108,7 +108,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_infra_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_infra_components():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_infra_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_infra_resources():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -131,7 +131,7 @@ class SingleOpenstackServer(InfraModel):
 With with_infra_resources(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
 
 ### <a name="multi_resources">Multiple resources</a>
-If you require a set of identical components to be created in a model, the MultiResource wrapper provides a way to declare a resource as a template and then to get as many copies of that template created as required:
+If you require a set of identical resources to be created in a model, the MultiResource wrapper provides a way to declare a resource as a template and then to get as many copies of that template created as required:
 
 <a name="multiservers">&nbsp;</a>
 ```python
@@ -160,7 +160,7 @@ class MultipleServers(InfraModel):
                                   nics=[ctxt.model.net]))
 ```
 
-The *workers* MultiResource works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template component is created:
+The *workers* MultiResource works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template resource is created:
 
 ```python
 >>> inst2 = MultipleServers("two")
@@ -190,7 +190,7 @@ worker_4
 
 ### <a name="resource_groups">Resource Groups</a>
 
-If you require a group of different resources to be provisioned as a unit, the ResourceGroup() wrapper provides a way to define a template of multiple resources that will be provisioned as a whole. The following example shows how the boilerplate gateway components could be expressed using a ResourceGroup().
+If you require a group of different resources to be provisioned as a unit, the ResourceGroup() wrapper provides a way to define a template of multiple resources that will be provisioned as a whole. The following example shows how the boilerplate gateway resources could be expressed using a ResourceGroup().
 
 ```python
 gateway_component = ResourceGroup("gateway", net=Network("actuator_ex1_net"),
@@ -212,7 +212,7 @@ class SingleOpenstackServer(InfraModel):
 
 The keyword args used in creating the ResourceGroup become the attributes of the instances of the group.
 
-If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. The following model only uses Servers in the template, but any component (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
+If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. The following model only uses Servers in the template, but any resource (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
 
 <a name="multigroups">&nbsp;</a>
 ```python
@@ -223,7 +223,7 @@ from actuator.provisioners.openstack.components import (Server, Network, Subnet,
 
 class MultipleGroups(InfraSpec):
   #
-  #First, declare the common networking components
+  #First, declare the common networking resources
   #
   with_infra_resources(**gateway_components)
   #
@@ -281,7 +281,7 @@ The second method is through the use of _context expressions_. A context express
 
 #### Model References
 
-Once a model class has been defined, you can create expressions that refer to attributes of components in the class:
+Once a model class has been defined, you can create expressions that refer to attributes of resources in the class:
 
 ```python
 >>> SingleOpenstackServer.server
@@ -304,7 +304,7 @@ Likewise, you can create references to attributes on instances of the model clas
 >>>
 ```
 
-All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a component or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual component or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a  model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a resource or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual resource or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a  model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
@@ -321,7 +321,7 @@ Model references provide a number of capabilities:
 - They serve as bookmarks into models
 - They behave something like a [future](https://en.wikipedia.org/wiki/Futures_and_promises) in that they provide a reference to a value that hasn't been determined yet
 - They provide a way to make logical connections between models in order to share information
-- They serve as a way to logically identify components that should be provisioned
+- They serve as a way to logically identify resources that should be provisioned
 
 For example, suppose a model elsewhere needs to know the first IP address on the first interface of the server from the SingleOpenstackServer model. That IP address won't be known until the server is provisioned, but a reference to this piece of information can be created by the following expression:
 
@@ -424,11 +424,11 @@ class SOSNamespace(NamespaceModel):
   compute_server = Role("compute_server", host_ref=SingleOpenstackServer.server)
 ```
 
-First, some global Vars (variables) are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by creating a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all components.
+First, some global Vars (variables) are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by creating a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all roles.
 
-Next comes the app_server role, which is declared with a call to Role. Besides a name, Role is supplied a host_ref in the form of Server model reference from the SingleOpenstackserver model. This tells the namespace that this component's configuration tasks and executables will be run on whatever host is provisioned for this part of the model. The app_server component is also supplied a private Var object that captures the host IP where the server will run. While the app_server binds to an IP on the subnet, the FloatingIP associated with this subnet IP will enable the server to be reached from the outside world.
+Next comes the app_server role, which is declared with a call to Role. Besides a name, Role is supplied a host_ref in the form of Server model reference from the SingleOpenstackserver model. This tells the namespace that this role's configuration tasks and executables will be run on whatever host is provisioned for this part of the model. The app_server role is also supplied a private Var object that captures the host IP where the server will run. While the app_server binds to an IP on the subnet, the FloatingIP associated with this subnet IP will enable the server to be reached from the outside world.
 
-Finally, we declare the compute_server Role. Similar to the app_server Role, the compute_server Role identifies the Server where it will run by setting the host_ref keyword to a infra model reference for the Server to use. In this example, both Components will be run on the same server.
+Finally, we declare the compute_server Role. Similar to the app_server Role, the compute_server Role identifies the Server where it will run by setting the host_ref keyword to a infra model reference for the Server to use. In this example, both Roles will be run on the same server.
 
 When an instance of the namespace is created, useful questions can be posed to the instance:
 * We can ask for a list of roles
@@ -441,18 +441,18 @@ These operations look something like this:
 >>> sos = SingleOpenstackServer("sos")
 >>> ns = SOSNamespace()
 >>> for r in ns.get_roles.values():
-...     print "Component: %s, Vars:" % r.name
+...     print "Role: %s, Vars:" % r.name
 ...     for v in r.get_visible_vars().values():
 ...             value = v.get_value(c)
 ...
 ...             print "%s=%s" % (v.name, value if Value is not None else "<UNRESOLVED>")
 ...
-Component: compute_server, Vars:
+Role: compute_server, Vars:
 COMP_SERVER_HOST=<UNRESOLVED>
 COMP_SERVER_PORT=8081
 APP_SERVER_PORT=8080
 EXTERNAL_APP_SERVER_IP=<UNRESOLVED>
-Component: app_server, Vars:
+Role: app_server, Vars:
 APP_SERVER_HOST=<UNRESOLVED>
 COMP_SERVER_HOST=<UNRESOLVED>
 COMP_SERVER_PORT=8081
@@ -471,15 +471,15 @@ t 0x026E5F50>, <actuator.provisioners.openstack.components.RouterInterface objec
 ```
 
 ### <a name="dynamicns">Dynamic Namespaces</a>
-The namespace shown above is static in nature. Although some of the values for Var objects are supplied dynamically, the namespace itself has a static number of components and structure.
+The namespace shown above is static in nature. Although some of the values for Var objects are supplied dynamically, the namespace itself has a static number of roles and structure.
 
-Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. By coupling such a namespace with an infra model that uses MultiResource or MultiResourceGroup elements, appropriately sized infra can be identified and provisioned depending on the nature of the dynamic namespace.
+Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of roles. By coupling such a namespace with an infra model that uses MultiResource or MultiResourceGroup elements, appropriately sized infra can be identified and provisioned depending on the nature of the dynamic namespace.
 
 The best way to understand this is with an example. We'll devise a trivial computational grid: besides the normal gateway elements, the infrastructure will contain a "foreman" to coordinate the computational activities of a variable number of "workers", each on a seperate server.
 
 The [MultipleServers](#multiservers) infra model from above fits this pattern, so we'll define a dynamic namespace model that grows roles that refer back to this infra model in order to acquire the appropriate infrastructure to meet the namespace's needs.
 
-We'll use two different techniques for creating a suitable dynamic namespace. In the first, we'll create a class factory function that defines a new namespace class with the appropriate number of worker Components. In the second, we'll use some additional features of Actuator to express the same capabilities in a more concise declarative way.
+We'll use two different techniques for creating a suitable dynamic namespace. In the first, we'll create a class factory function that defines a new namespace class with the appropriate number of worker Roles. In the second, we'll use some additional features of Actuator to express the same capabilities in a more concise declarative way.
 
 First, the class factory approach:
 
@@ -494,21 +494,21 @@ def grid_namespace_factory(num_workers=10):
      
     foreman = Role("foreman", host_ref=MultipleServers.foreman)
     
-    component_dict = {}
+    role_dict = {}
     namer = lambda x: "worker_{}".format(x)
     for i in range(num_workers):
-      component_dict[namer(i)] = Component(namer(i), host_ref=MultipleServers.workers[i])
+      role_dict[namer(i)] = Component(namer(i), host_ref=MultipleServers.workers[i])
       
-    with_roles(**component_dict)
+    with_roles(**role_dict)
     
-    del component_dict, namer
+    del role_dict, namer
     
   return GridNamespace()
 ```
 
 Making a dynamic namespace class in Python is trivial; by simply putting the class statement inside a function, each call to the function will generate a new class. By supplying parameters to the function, the content of the class can be altered.
 
-In this example, after setting some global Vars in the namespace with the with_variables() function, we next create the "foreman" role, and use the host_ref keyword argument to associate it with a server in the infra model. Next, we set up a dictionary whose keys will eventually become other attributes on the namespace class, and whose values will become the associated Components for those attributes. In a for loop, we then simply create new instances of Component, associating each with a different worker in the MultipleServers infra model (host_ref=MultipleServers.workers[i]). We then use the function *with_roles()* to take the content of the dict and attach all the created components to the namespace class. The class finishes by deleting the unneeded dict and lambda function. The factory function completes by returning an instance of the class that was just defined.
+In this example, after setting some global Vars in the namespace with the with_variables() function, we next create the "foreman" role, and use the host_ref keyword argument to associate it with a server in the infra model. Next, we set up a dictionary whose keys will eventually become other attributes on the namespace class, and whose values will become the associated Roles for those attributes. In a for loop, we then simply create new instances of Role, associating each with a different worker in the MultipleServers infra model (host_ref=MultipleServers.workers[i]). We then use the function *with_roles()* to take the content of the dict and attach all the created roles to the namespace class. The class finishes by deleting the unneeded dict and lambda function. The factory function completes by returning an instance of the class that was just defined.
 
 Now we can use the factory function to create grids of different sizes simply by varying the input value to the factory function:
 
@@ -519,7 +519,7 @@ Now we can use the factory function to create grids of different sizes simply by
 >>> len(provs)
 27
 >>> ns.worker_8
-<actuator.namespace.Component object at 0x02670D10>
+<actuator.namespace.Role object at 0x02670D10>
 >>>
 >>> ns2 = grid_namespace_factory(200)
 >>> ms_inst2 = MultipleServers("ms2")
@@ -548,7 +548,7 @@ class GridNamespace(NamespaceModel):
   grid = MultiRole(Role("node", host_ref=ctxt.model.infra.workers[ctxt.name]))
 ```
 
-This approach doesn't use a factory; instead, it uses MultiRole to define a "template" Role object to create instances from each new key supplied to the "grid" attribute of the namespace model. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new components on an infra model, uses new keys to create new Roles on the namespace instance. These new role instances will in turn create new worker instances on a MultiServers model instance:
+This approach doesn't use a factory; instead, it uses MultiRole to define a "template" Role object to create instances from each new key supplied to the "grid" attribute of the namespace model. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new resources on an infra model, uses new keys to create new Roles on the namespace instance. These new role instances will in turn create new worker instances on a MultiServers model instance:
 
 ```python
 >>> ns = GridNamespace()
@@ -594,9 +594,9 @@ Grid-5
 >>>
 ```
 
-At the most global level, the NODE_NAME Var is defined with a value that contains two replacement parameter patterns. The first, BASE_NAME, is a Var defined on the grid MultiRole object, and has a value of 'Grid'. The second, NODE_ID, is defined on the Role managed by MultiRole, and has a value of _ctxt.name_. This context expression represents the name used to reach this role *when the expression is evaluated*. Context expressions aren't evaluated until they are used, and hence the value of this expression will depend on what node in the grid it is evaluated for. In this case, it is evaluateed for ns.grid[5], and hence ctxt.name will have a value of '5'. For each grid component created, the value of ctxt.name will match the key used in ns.grid[key].
+At the most global level, the NODE_NAME Var is defined with a value that contains two replacement parameter patterns. The first, BASE_NAME, is a Var defined on the grid MultiRole object, and has a value of 'Grid'. The second, NODE_ID, is defined on the Role managed by MultiRole, and has a value of _ctxt.name_. This context expression represents the name used to reach this role *when the expression is evaluated*. Context expressions aren't evaluated until they are used, and hence the value of this expression will depend on what node in the grid it is evaluated for. In this case, it is evaluateed for ns.grid[5], and hence ctxt.name will have a value of '5'. For each grid role created, the value of ctxt.name will match the key used in ns.grid[key].
 
-It's also worth noting in the two different methods used to set Vars on namespace model roles or containers. In the first method, Vars can be set using the keyword argument "variables"; the value must be an iterable (list) of Var objects to set on the role. In the second method, Vars are added to a role container with the add_variable() method, which takes an arbitrary number of Var objects when called, separated by ','. The add_variable() method has a return value of the component the method was invoked on, and hence the value of VarExample.grid is still the MultiRole instance.
+It's also worth noting in the two different methods used to set Vars on namespace model roles or containers. In the first method, Vars can be set using the keyword argument "variables"; the value must be an iterable (list) of Var objects to set on the role. In the second method, Vars are added to a role container with the add_variable() method, which takes an arbitrary number of Var objects when called, separated by ','. The add_variable() method has a return value of the role the method was invoked on, and hence the value of VarExample.grid is still the MultiRole instance.
 
 ### Variable setting and overrides
 Vars don't have to be defined when the namespace model class is defined; they can specified as having an empty value (*None* in Python), and that value can be provided later.
@@ -627,7 +627,7 @@ class SimpleNamespace(NamespaceModel):
 ns = SimpleNamespace()
 ```
 
-We've established several Vars at the model level, one which includes a hard-coded IP to use for commands, in this case 'localhost', and a single component that will be the target of the files we want to copy. *NOTE*: Actuator uses [Ansible](https://pypi.python.org/pypi/ansible/1.7.2) under the covers for managing the execution of commands over ssh, and hence for this example to work it must be run on a *nix box that has appropriate ssh keys set up to allow for passwordless login.
+We've established several Vars at the model level, one which includes a hard-coded IP to use for commands, in this case 'localhost', and a single role that will be the target of the files we want to copy. *NOTE*: Actuator uses [Ansible](https://pypi.python.org/pypi/ansible/1.7.2) under the covers for managing the execution of commands over ssh, and hence for this example to work it must be run on a *nix box that has appropriate ssh keys set up to allow for passwordless login.
 
 Declaring tasks is a matter of creating one or more instances of various task classes which in many cases are Actuator analogs for Ansible modules. In this example, we'll declare two tasks: one which will remove any past files copied to the target (only really needed for non-dynamic hosts), and another that will copy the files to the target, in this case the Actuator package itself.
 
@@ -756,7 +756,7 @@ class GridConfig(ConfigModel):
   with_dependencies(reset | copy)
 ```
 
-In the above example, the Namespace model has a role container 'grid' that can grow to define an aribitrary number of roles. For each grid node, we want to clear out a directory and then transfer a tarball to be unpacked in that same directory. To do this flexibly, we wrap the task we want to run on a group of components in a MultiTask, providing a name for the MultiTask, a template task to apply to all the components, and then a list of components to apply the task to, in this case GridNamespacce.q.grid.all().
+In the above example, the Namespace model has a role container 'grid' that can grow to define an aribitrary number of roles. For each grid node, we want to clear out a directory and then transfer a tarball to be unpacked in that same directory. To do this flexibly, we wrap the task we want to run on a group of roles in a MultiTask, providing a name for the MultiTask, a template task to apply to all the roles, and then a list of roles to apply the task to, in this case GridNamespacce.q.grid.all().
 
 The 'q' attribute of GridNamespace is supplied by all Actuator model base classes. It signals the start of a _reference selection expression_, which is a logical expression that yields a list of references to elements of a model. In this case, the expression will make the template task apply to every grid role that is generated in the namespace. Reference selection expressions will be gone into in more deal below.
 
@@ -769,11 +769,11 @@ MultiTasks make it easy to create configuration models that automatically scale 
 - Since the MultiTask can't finish until all of its template instances finish, overall progress may be slowed due to a single slow-completing task instance.
 - Expressing complex dependencies in terms of MultiTask tasks can be subject to slow progress, again due to the completion requirement for each template instance inside each MultiTask.
 
-What we would like is to be able to express a set of tasks and their dependencies, and then have the set of tasks be applied to a single host. If we could then wrap up such a representation in a MultiTask, we can have different components proceed through their complex set of config tasks at varying rates, allowing better ovverall progress even if one component is processing tasks slowly.
+What we would like is to be able to express a set of tasks and their dependencies, and then have the set of tasks be applied to a single host. If we could then wrap up such a representation in a MultiTask, we can have different roles proceed through their complex set of config tasks at varying rates, allowing better overall progress even if one role is processing tasks slowly.
 
 Fortunately, we already have a mechanism for modeling this situation: the config model itself! What is needed is to be able to treat a config model as if it were a task. To do that, we use the *ConfigClassTask* wrapper; this wrapper allows a config model to be used as if it was task, providing the means to define a set of tasks to be performed on a single role, all with their own dependencies.
 
-To illustrate this, we'll re-write the above example with a ConfigClassTask to wrap up the operations that are all to be carried out on a single component:
+To illustrate this, we'll re-write the above example with a ConfigClassTask to wrap up the operations that are all to be carried out on a single role:
 
 ```python
 #this is the same namespace model as above
@@ -799,7 +799,7 @@ class GridConfig(ConfigModel):
 
 In this example, the ConfigClassTask wrapper makes the NodeConfig model appear to be a plain task, and allows the MultiTask wrapper to create as many instances of NodeConfig as needed according to the the number of items that are returned by the reference selection expression, GridNamespace.q.grid.all().
 
-The big operational difference here is that each "reset | copy" pipeline operates in parallel on each component named by GridNamespace.q.grid.all(). In the MultiTask example, all _resets_ had to complete before the first _copy_ could start on *any* role, but with ConfigClassTask, if one node finishes its _reset_ before another, that node's _copy_ task can start right away. This means that slow nodes don't slow down all work within the MultiTask. The MultiTask still won't complete until all of the ConfigClassTask instances complete, but overall progress will be less "lumpy" than if each MultiTask had to wait until the slowest task completed.
+The big operational difference here is that each "reset | copy" pipeline operates in parallel on each role named by GridNamespace.q.grid.all(). In the MultiTask example, all _resets_ had to complete before the first _copy_ could start on *any* role, but with ConfigClassTask, if one node finishes its _reset_ before another, that node's _copy_ task can start right away. This means that slow nodes don't slow down all work within the MultiTask. The MultiTask still won't complete until all of the ConfigClassTask instances complete, but overall progress will be less "lumpy" than if each MultiTask had to wait until the slowest task completed.
 
 Notice that nowhere in the NodeConfig model is a _task_role_ identified. This is characteristic of models that are to be wrapped with ConfigClassTask-- the task_role will be externally supplied, and hence no reference is required within the model that is to be wrapped. Here, the MultiTask supplies the task_role value from the GridNamespace.q.grid.all() expression.
 
@@ -807,7 +807,7 @@ ConfigClassTask can be used independently of the MultiTask wrapper; it is a firs
 
 ### <a name="refselect">Reference selection expressions</a>
 
-In the above sections on the MultiTask and ConfigClassTask, the notion of referencce selection expressions was introduced. This section will go into these expressions in more detail an explain how they can be used to select references. Although their primary use is to select namespace model component references, these expressions can be used with any model to select a set of references for a variety of purposes.
+In the above sections on the MultiTask and ConfigClassTask, the notion of referencce selection expressions was introduced. This section will go into these expressions in more detail an explain how they can be used to select references. Although their primary use is to select namespace model role references, these expressions can be used with any model to select a set of references for a variety of purposes.
 
 As mentioned above, a reference selection expression is initiated by accessing the 'q' attribute on a model class. After the 'q', attributes of the model and its objects can be performed just as if you were doing so in the model class itself. However, instead of generating a single model reference, such accesses further define an expression that will yield a list of references into the model.
 
