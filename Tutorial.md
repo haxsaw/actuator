@@ -81,7 +81,7 @@ The best place to start is to develop a model that can be used to provision the 
 
 ```python
 from actuator import InfraModel, ctxt
-from actuator.provisioners.openstack.components import (Server, Network, Subnet,
+from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
@@ -136,7 +136,7 @@ If you require a set of identical resources to be created in a model, the MultiR
 <a name="multiservers">&nbsp;</a>
 ```python
 from actuator import InfraSpec, MultiResource, ctxt, with_infra_resources
-from actuator.provisioners.openstack.components import (Server, Network, Subnet,
+from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
@@ -217,7 +217,7 @@ If you require a group of different resources to be provisioned together repeate
 <a name="multigroups">&nbsp;</a>
 ```python
 from actuator import InfraModel, MultiResource, MultiResourceGroup, ctxt
-from actuator.provisioners.openstack.components import (Server, Network, Subnet,
+from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
@@ -460,12 +460,12 @@ APP_SERVER_PORT=8080
 EXTERNAL_APP_SERVER_IP=<UNRESOLVED>
 >>> provisionables = ns.compute_provisioning_for_environ(sos)
 >>> provisionables
-set([<actuator.provisioners.openstack.components.Router object at 0x026EC070>,<actuator.p
-rovisioners.openstack.components.Subnet object at 0x026E5E90>, <actuator.provisioners.ope
-nstack.components.Network object at 0x026EC0D0>, <actuator.provisioners.openstack.compone
-nts.FloatingIP object at 0x026E5EF0>, <actuator.provisioners.openstack.components.RouterG
-ateway object at 0x026EC130>, <actuator.provisioners.openstack.components.Server object a
-t 0x026E5F50>, <actuator.provisioners.openstack.components.RouterInterface object at 0x02
+set([<actuator.provisioners.openstack.resources.Router object at 0x026EC070>,<actuator.p
+rovisioners.openstack.resources.Subnet object at 0x026E5E90>, <actuator.provisioners.ope
+nstack.resources.Network object at 0x026EC0D0>, <actuator.provisioners.openstack.resourc
+es.FloatingIP object at 0x026E5EF0>, <actuator.provisioners.openstack.resources.RouterG
+ateway object at 0x026EC130>, <actuator.provisioners.openstack.resources.Server object a
+t 0x026E5F50>, <actuator.provisioners.openstack.resources.RouterInterface object at 0x02
 6E5FF0>])
 >>> 
 ```
