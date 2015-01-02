@@ -29,7 +29,7 @@ import uuid
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 NovaClient = ocf.get_nova_client_class()
 NeutronClient = ocf.get_neutron_client_class()
-from actuator.provisioners.openstack.components import _ComponentSorter, SecGroupRule
+from actuator.provisioners.openstack.resources import _ComponentSorter, SecGroupRule
 
 from actuator.infra import InfraModel
 from actuator.provisioners.core import BaseProvisioner, ProvisionerException, BaseProvisioningRecord

@@ -23,7 +23,7 @@
 Created on 7 Jun 2014
 '''
 from actuator import (Var, NamespaceModel, with_variables, NamespaceException,
-                          Role, with_components, MultiResource, 
+                          Role, with_roles, MultiResource, 
                           MultiResourceGroup, ctxt, ActuatorException)
 from actuator.namespace import RoleGroup, MultiRole, MultiRoleGroup
 from actuator.infra import InfraModel
@@ -212,7 +212,7 @@ def test021():
         queries = {}
         for i in range(5):
             queries["query_%d" % i] = Role("query_%d" % i)
-        with_components(**queries)
+        with_roles(**queries)
         del queries
         
     assert NS21.query_1
@@ -243,7 +243,7 @@ def test023():
         queries = {}
         for i in range(5):
             queries["query_%d" % i] = Role("query_%d" % i, host_ref=Infra23.query[i])
-        with_components(**queries)
+        with_roles(**queries)
         del i, queries
         
     assert NS23.query_0
@@ -264,7 +264,7 @@ def test24():
         queries = {}
         for i in range(5):
             queries["query_%d" % i] = Role("query_%d" % i, host_ref=Infra24.query[i])
-        with_components(**queries)
+        with_roles(**queries)
         del i, queries
 
     infra = Infra24("infra24")
@@ -289,7 +289,7 @@ def test25():
         queries = {}
         for i in range(5):
             queries["query_%d" % i] = Role("query_%d" % i, host_ref=Infra25.query[i])
-        with_components(**queries)
+        with_roles(**queries)
         del i, queries
 
     infra = Infra25("infra25")
@@ -357,7 +357,7 @@ def test28():
                                    host_ref=Infra28.regional_server[nf(i)])
                          .add_variable(Var("ID", str(i)))
                    for i in range(5)}
-        with_components(**servers)
+        with_roles(**servers)
         del servers
         
     ns = NS28()
@@ -379,7 +379,7 @@ def test29():
                                    host_ref=Infra29.regional_server[nf(i)])
                          .add_variable(Var("ID", str(i)))
                    for i in range(5)}
-        with_components(**servers)
+        with_roles(**servers)
         del servers
         
     ns = NS29()

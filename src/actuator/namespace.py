@@ -215,10 +215,10 @@ with_variables = ClassModifier(with_variables)
 
 
 _common_comps = "__components"
-def with_components(cls, *args, **kwargs):
+def with_roles(cls, *args, **kwargs):
     for k, v in kwargs.items():
         setattr(cls, k, v)
-with_components = ClassModifier(with_components)
+with_roles = ClassModifier(with_roles)
 
 
 # class ComponentMeta(type):
@@ -398,7 +398,7 @@ class NamespaceModel(VariableContainer, ModelBase):
         return inst
     
     def _comp_source(self):
-        return self.get_components()
+        return self.get_roles()
     
     def _get_model_refs(self):
         modelrefs = super(NamespaceModel, self)._get_model_refs()
@@ -406,7 +406,7 @@ class NamespaceModel(VariableContainer, ModelBase):
             modelrefs |= c._get_model_refs()
         return modelrefs
     
-    def get_components(self):
+    def get_roles(self):
         return dict(self._components)
     
     def get_infra_model(self):

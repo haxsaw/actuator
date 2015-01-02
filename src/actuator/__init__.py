@@ -43,7 +43,7 @@ from modeling import MultiComponent, MultiComponentGroup, ComponentGroup, ctxt, 
 from infra import (InfraModel, InfraException, with_infra_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup)
 from namespace import (Var, NamespaceModel, with_variables, NamespaceException, Role,
-                       with_components, MultiRole, RoleGroup,
+                       with_roles, MultiRole, RoleGroup,
                        MultiRoleGroup)
 from config import (ConfigModel, with_searchpath, with_dependencies,
                     ConfigException, TaskGroup, NullTask,

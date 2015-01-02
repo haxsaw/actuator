@@ -21,11 +21,14 @@
 
 '''
 Created on 7 Sep 2014
+
+This isn't guaranteed to work; it's a file of musings about how Actuator might
+work. The actual operation and names may be somewhat different
 '''
 from actuator import *
 from actuator.provisioners.example_components import Server, Queue
 
-class System(InfraSpec):
+class System(InfraModel):
     compute_req_handler = Server("req_handler")
     workq = Queue("workq")
     grid = MultiComponent(Server("grid-Node"))
