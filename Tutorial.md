@@ -440,9 +440,9 @@ These operations look something like this:
 ```python
 >>> sos = SingleOpenstackServer("sos")
 >>> ns = SOSNamespace()
->>> for c in ns.get_components.values():
-...     print "Component: %s, Vars:" % c.name
-...     for v in c.get_visible_vars().values():
+>>> for r in ns.get_roles.values():
+...     print "Component: %s, Vars:" % r.name
+...     for v in r.get_visible_vars().values():
 ...             value = v.get_value(c)
 ...
 ...             print "%s=%s" % (v.name, value if Value is not None else "<UNRESOLVED>")
@@ -473,13 +473,13 @@ t 0x026E5F50>, <actuator.provisioners.openstack.components.RouterInterface objec
 ### <a name="dynamicns">Dynamic Namespaces</a>
 The namespace shown above is static in nature. Although some of the values for Var objects are supplied dynamically, the namespace itself has a static number of components and structure.
 
-Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. By coupling such a namespace with an infra model that uses MultiComponent or MultiComponentGroup elements, appropriately sized infra can be identified and provisioned depending on the nature of the dynamic namespace.
+Actuator allows for more dynamic namespaces to be constructed, in particular in support of arbitrary numbers of components. By coupling such a namespace with an infra model that uses MultiResource or MultiResourceGroup elements, appropriately sized infra can be identified and provisioned depending on the nature of the dynamic namespace.
 
 The best way to understand this is with an example. We'll devise a trivial computational grid: besides the normal gateway elements, the infrastructure will contain a "foreman" to coordinate the computational activities of a variable number of "workers", each on a seperate server.
 
-The [MultipleServers](#multiservers) infra model from above fits this pattern, so we'll define a dynamic namespace model that grows components that refer back to this infra model in order to acquire the appropriate infrastructure to meet the namespace's needs.
+The [MultipleServers](#multiservers) infra model from above fits this pattern, so we'll define a dynamic namespace model that grows roles that refer back to this infra model in order to acquire the appropriate infrastructure to meet the namespace's needs.
 
-We'll use two different techniques for creating a suitable dynamic namespace. In the first, we'll create a class factory function that defines a new namespace class with the appropriate number of worker Components. In the second, we'll use some additional features of Actuator to express the same capabilities in a more concise way.
+We'll use two different techniques for creating a suitable dynamic namespace. In the first, we'll create a class factory function that defines a new namespace class with the appropriate number of worker Components. In the second, we'll use some additional features of Actuator to express the same capabilities in a more concise declarative way.
 
 First, the class factory approach:
 
@@ -492,14 +492,14 @@ def grid_namespace_factory(num_workers=10):
                    Var("FOREMAN_EXTERNAL_PORT", "3000"),
                    Var("FOREMAN_WORKER_PORT", "3001"))
      
-    foreman = Component("foreman", host_ref=MultipleServers.foreman)
+    foreman = Role("foreman", host_ref=MultipleServers.foreman)
     
     component_dict = {}
     namer = lambda x: "worker_{}".format(x)
     for i in range(num_workers):
       component_dict[namer(i)] = Component(namer(i), host_ref=MultipleServers.workers[i])
       
-    with_components(**component_dict)
+    with_roles(**component_dict)
     
     del component_dict, namer
     
@@ -508,7 +508,7 @@ def grid_namespace_factory(num_workers=10):
 
 Making a dynamic namespace class in Python is trivial; by simply putting the class statement inside a function, each call to the function will generate a new class. By supplying parameters to the function, the content of the class can be altered.
 
-In this example, after setting some global Vars in the namespace with the with_variables() function, we next create the "foreman" component, and use host_ref to associate it with a server in the infra model. Next, we set up a dictionary whose keys will eventually become other attributes on the class, and whose values will become the associated Components for those attributes. In a for loop, we then simply create new instances of Component, associating each with a different worker in the MultipleServers infra model (host_ref=MultipleServers.workers[i]). We then use the function *with_components()* to take the content of the dict and attach all the created components to the namespace class. The class finishes by deleting the unneeded dict and lambda function. The factory function completes by returning an instance of the class that was just defined.
+In this example, after setting some global Vars in the namespace with the with_variables() function, we next create the "foreman" role, and use the host_ref keyword argument to associate it with a server in the infra model. Next, we set up a dictionary whose keys will eventually become other attributes on the namespace class, and whose values will become the associated Components for those attributes. In a for loop, we then simply create new instances of Component, associating each with a different worker in the MultipleServers infra model (host_ref=MultipleServers.workers[i]). We then use the function *with_roles()* to take the content of the dict and attach all the created components to the namespace class. The class finishes by deleting the unneeded dict and lambda function. The factory function completes by returning an instance of the class that was just defined.
 
 Now we can use the factory function to create grids of different sizes simply by varying the input value to the factory function:
 
@@ -529,9 +529,9 @@ Now we can use the factory function to create grids of different sizes simply by
 >>>
 ```
 
-Now the second approach, which utilizes some other capabilities of Actuator. Namespaces have their own analogs to the infra model's ComponentGroup, MultiComponent, and MultiComponentGroup classes: they are NSComponentGroup, NSMultiComponent, and NSMultiComponentGroup. These are similar to their infrastructure counterparts with the exceptions that
+Now for the second approach, which utilizes some other capabilities of Actuator. Namespaces have their own analogs to the infra model's ResourceGroup, MultiResource, and MultiResourceGroup classes: they are RoleGroup, MultiRole, and MultiRoleGroup. These are similar to their infrastructure counterparts with the exceptions that
 
-1. They can contain only Components or the various NS* Component containers mentinoed above;
+1. They can contain only Roles or the various Role containers mentinoed above;
 2. They can have variables (Var objects) attached to them.
 
 Using this approach, the solution looks like the following:
@@ -543,12 +543,12 @@ class GridNamespace(NamespaceModel):
                  Var("FOREMAN_EXTERNAL_PORT", "3000"),
                  Var("FOREMAN_WORKER_PORT", "3001"))
                   
-  foreman = Component("foreman", host_ref=MultipleServers.foreman)
+  foreman = Role("foreman", host_ref=MultipleServers.foreman)
   
-  grid = NSMultiComponent(Component("node", host_ref=ctxt.model.infra.workers[ctxt.name]))
+  grid = MultiRole(Role("node", host_ref=ctxt.model.infra.workers[ctxt.name]))
 ```
 
-This approach doesn't use a factory; instead, it uses NSMultiComponent to define a "template" Component object to create instances from each new key supplied to the "grid" attribute of the namespace. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new components on an infra model, uses new keys to create new Components on the namespace instance. These new component instances will in turn create new worker instances on a MultiServers model instance:
+This approach doesn't use a factory; instead, it uses MultiRole to define a "template" Role object to create instances from each new key supplied to the "grid" attribute of the namespace model. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new components on an infra model, uses new keys to create new Roles on the namespace instance. These new role instances will in turn create new worker instances on a MultiServers model instance:
 
 ```python
 >>> ns = GridNamespace()
@@ -570,23 +570,23 @@ This approach doesn't use a factory; instead, it uses NSMultiComponent to define
 207
 ```
 
-Using this approach, we can treat the namespace model like the infra model, meaning that we can provide a logical definition of components and drive the creation of physical components simply by referencing them. These references flow through to the infra model, likewise causing dynamic infra components to be created.
+Using this approach, we can treat the namespace model like the infra model, meaning that we can provide a logical definition of roles and drive the creation of physical roles simply by referencing them. These references flow through to the infra model, likewise causing dynamic infra resources to be created.
 
 ### <a name="varobjs">Var objects</a>
-Namespaces and their components serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables for tasks and executables, or parameter maps for processing templatized text files such as scripts or properties files.
+Namespaces and their Roles serve as containers for *Var* objects. These objects provide a means to establish names that can be used symbolically for a variety of purposes, such as environment variables for tasks and executables, or parameter maps for processing templatized text files such as scripts or properties files.
 
 Vars associate a 'name' (the first parameter) with a value (the second parameter). The value parameter of a Var can be one of several kinds of objects: it may be a plain string, a string with a replacement paremeter in it, a reference to an infra model element that results in a string, or context expression that results in a string.
 
 We've seen examples of both plain strings and model references as values, and now will look at how replacement parameters and context expressions work. A replacement parameter takes the form of _!{string}_; whenever this pattern is found, the inner string is extracted and looked up as the name for another Var. The lookup repeats; if the value found contains '!{string}', the lookup is repeated until no more replacement parameters are found. This allows complex replacement patterns to be defined.
 
-Additionally, the hierarchy of components, containers (NSMultiComponent, NSComponentGroup, and NSMultiComponentGroup) and the model class is taken into account when searching for a variable. If the variable can't be found defined on the current component, the enclosing variable container is searched, progressively moving to the model class itself. If the variable can't be found on the model class, then the variable is undefined, and an exception may be raised (depending on how the search was initiated). This allows for complex replacement patterns to be defined which have different parts of the pattern filled in at different levels of the namespace.
+Additionally, the hierarchy of roles, containers (MultiRole, RoleGroup, and MultiRoleGroup) and the model class is taken into account when searching for a variable. If the variable can't be found defined on the current role, the enclosing variable container is searched, progressively moving to the model class itself. If the variable can't be found on the model class, then the variable is undefined, and an exception may be raised (depending on how the search was initiated). This allows for complex replacement patterns to be defined which have different parts of the pattern filled in at different levels of the namespace.
 
 The following example will make this more concrete. Here we will create a Namespace model that defines a variable "NODE_NAME" that is composed of a base name plus an id specific to the node. While NODE_NAME will be defined at a global level in the model, the two other variables the comprise NODE_NAME, BASE_NAME and NODE_ID, will be defined on different model objects.
 
 ```python
 >>> class VarExample(NamespaceModel):
 ...   with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
-...   grid = (NSMultiComponent(Component("worker", variables=[Var("NODE_ID", ctxt.name)]))
+...   grid = (MultiRole(Role("worker", variables=[Var("NODE_ID", ctxt.name)]))
 ...            .add_variable(Var("BASE_NAME", "Grid")))
 >>> ns = VarExample()
 >>> ns.grid[5].var_value("NODE_NAME")
@@ -594,9 +594,9 @@ Grid-5
 >>>
 ```
 
-At the most global level, the NODE_NAME Var is defined with a value that contains two replacement parameter patterns. The first, BASE_NAME, is a Var defined on the grid NSMultiComponent object, and has a value of 'Grid'. The second, NODE_ID, is defined on the Component managed by NSMultiComponent, and has a value of _ctxt.name_. This context expression represents the name used to reach this component *when the expression is evaluated*. Context expressions aren't evaluated until they are used, and hence the value of this expression will depend on what node in the grid it is evaluated for. In this case, it is evaluateed for ns.grid[5], and hence ctxt.name will have a value of '5'. For each grid component created, the value of ctxt.name will match the key used in ns.grid[key].
+At the most global level, the NODE_NAME Var is defined with a value that contains two replacement parameter patterns. The first, BASE_NAME, is a Var defined on the grid MultiRole object, and has a value of 'Grid'. The second, NODE_ID, is defined on the Role managed by MultiRole, and has a value of _ctxt.name_. This context expression represents the name used to reach this role *when the expression is evaluated*. Context expressions aren't evaluated until they are used, and hence the value of this expression will depend on what node in the grid it is evaluated for. In this case, it is evaluateed for ns.grid[5], and hence ctxt.name will have a value of '5'. For each grid component created, the value of ctxt.name will match the key used in ns.grid[key].
 
-It's also worth noting in the two different methods used to set Vars on namespace model components. In the first method, Vars can be set using the keyword argument "variables"; the value must be an iterable (list) of Var objects to set on the component. In the second method, Vars are added to a component with the add_variable() method, which takes an arbitrary number of Var objects when called, separated by ','. The add_variable() method has a return value of the component the method was invoked on, and hence the value of VarExample.grid is still an NSMultiComponent.
+It's also worth noting in the two different methods used to set Vars on namespace model roles or containers. In the first method, Vars can be set using the keyword argument "variables"; the value must be an iterable (list) of Var objects to set on the role. In the second method, Vars are added to a role container with the add_variable() method, which takes an arbitrary number of Var objects when called, separated by ','. The add_variable() method has a return value of the component the method was invoked on, and hence the value of VarExample.grid is still the MultiRole instance.
 
 ### Variable setting and overrides
 
