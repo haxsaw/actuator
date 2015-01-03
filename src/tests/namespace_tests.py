@@ -28,7 +28,7 @@ from actuator import (Var, NamespaceModel, with_variables, NamespaceException,
 from actuator.namespace import RoleGroup, MultiRole, MultiRoleGroup
 from actuator.infra import InfraModel
 from actuator.modeling import AbstractModelReference
-from actuator.provisioners.example_components import Server
+from actuator.provisioners.example_resources import Server
 
 
 MyNS = None
@@ -192,7 +192,7 @@ def test019():
         app_server = Role("app_server")
     
     inst = NS19()
-    assert inst._components["app_server"] == inst.app_server.value()
+    assert inst._roles["app_server"] == inst.app_server.value()
     
 def test020():
     class NS20(NamespaceModel):
@@ -270,7 +270,7 @@ def test24():
     infra = Infra24("infra24")
     env = NS24()
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.components()) == 6
+    assert len(infra.resources()) == 6
 
 def test25():
     class Infra25(InfraModel):
@@ -295,7 +295,7 @@ def test25():
     infra = Infra25("infra25")
     env = NS25()
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.components()) == 7
+    assert len(infra.resources()) == 7
 
 def test26():
     class Infra26(InfraModel):
@@ -317,7 +317,7 @@ def test26():
     env = NS26()
     env.add_override(Var("QUERY_HOST", "staticHostName"))
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.components()) == 1, "override didn't wipe out ref to a new query server"
+    assert len(infra.resources()) == 1, "override didn't wipe out ref to a new query server"
 
 def test27():
     class Infra27(InfraModel):
@@ -451,7 +451,7 @@ def test33():
         with_variables(Var("TEST", "NOPE"))
         
     ns = NS33()
-    ns.add_components(server1=Role("server1").add_variable(Var("TEST", "YEP")))
+    ns.add_roles(server1=Role("server1").add_variable(Var("TEST", "YEP")))
     assert ns.server1.future("TEST").value() == "YEP"
 
 def test34():
@@ -460,7 +460,7 @@ def test34():
         
     ns = NS34()
     server1 = Role("server1").add_variable(Var("TEST", "YEP"))
-    ns.add_components(server1=server1)
+    ns.add_roles(server1=server1)
     server1.add_variable(Var("TEST", "--REALLY NOPE--"))
     assert ns.server1.future("TEST").value() == "YEP"
 
@@ -470,7 +470,7 @@ def test35():
         
     ns = NS35()
     server1 = Role("server1").add_variable(Var("TEST", "YEP"))
-    ns.add_components(server1=server1)
+    ns.add_roles(server1=server1)
     ns.server1.add_variable(Var("TEST", "YEP YEP"))
     assert ns.server1.future("TEST").value() == "YEP YEP"
 
@@ -480,7 +480,7 @@ def test36():
         
     ns = NS36()
     server1 = Role("server1").add_variable(Var("TEST", "YEP"))
-    ns.add_components(server1=server1, server2=Role("server2"))
+    ns.add_roles(server1=server1, server2=Role("server2"))
     ns.server1.add_override(Var("TEST", "YEP YEP YEP"))
     assert ns.server1.future("TEST").value() == "YEP YEP YEP"
     
@@ -603,7 +603,7 @@ def test52():
     for i in range(5):
         _ = ns.grid[i]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 5 and len(infra.components()) == 11
+    assert len(infra.grid) == 5 and len(infra.resources()) == 11
      
 def test53():
     class Infra(InfraModel):
@@ -625,7 +625,7 @@ def test53():
         for j in range(i):
             _ = grid.workers[j]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.components()) == 8
+    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.resources()) == 8
      
 def test54():
     class Infra(InfraModel):
@@ -639,7 +639,7 @@ def test54():
     for i in [2,4]:
         _ = ns.grid[i]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 1 and len(infra.components()) == 1
+    assert len(infra.grid) == 1 and len(infra.resources()) == 1
 
 def test56():
     class Infra(InfraModel):

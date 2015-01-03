@@ -355,14 +355,14 @@ class Capture(object):
     
 class ReportingTask(_ConfigTask, StructuralTask):
     def __init__(self, name, target=None, report=lambda n, o: (n, o), **kwargs):
-        super(ReportingTask, self).__init__(name, task_component=target, **kwargs)
+        super(ReportingTask, self).__init__(name, task_role=target, **kwargs)
         self.target = target
         self.report = report
         
     def get_init_args(self):
         args, kwargs = super(ReportingTask, self).get_init_args()
         try:
-            kwargs.pop("task_component")
+            kwargs.pop("task_role")
         except Exception, _:
             pass
         kwargs["target"] = self.target
@@ -370,7 +370,7 @@ class ReportingTask(_ConfigTask, StructuralTask):
         return args, kwargs
         
     def perform(self):
-        comp = self.get_task_component()
+        comp = self.get_task_role()
         if not isinstance(comp, basestring):
             if isinstance(comp.name, basestring):
                 comp = comp.name
@@ -475,13 +475,13 @@ def test30():
             
 def test31():
     class VarCapture(_ConfigTask):
-        def __init__(self, name, task_component, **kwargs):
-            super(VarCapture, self).__init__(name, task_component=task_component, **kwargs)
+        def __init__(self, name, task_role, **kwargs):
+            super(VarCapture, self).__init__(name, task_role=task_role, **kwargs)
             self.vars = {}
             
         def perform(self):
             vv = self._model_instance.namespace_model_instance.comp.get_visible_vars()
-            self.vars.update({v.name:v.get_value(self.get_task_component())
+            self.vars.update({v.name:v.get_value(self.get_task_role())
                               for v in vv.values()})
         
     class SimpleNS(NamespaceModel):
@@ -507,13 +507,13 @@ def test31():
     
 def test32():
     class VarCapture(_ConfigTask):
-        def __init__(self, name, task_component, **kwargs):
-            super(VarCapture, self).__init__(name, task_component=task_component, **kwargs)
+        def __init__(self, name, task_role, **kwargs):
+            super(VarCapture, self).__init__(name, task_role=task_role, **kwargs)
             self.vars = {}
             
         def perform(self):
             vv = self._model_instance.namespace_model_instance.get_visible_vars()
-            self.vars.update({v.name:v.get_value(self.get_task_component())
+            self.vars.update({v.name:v.get_value(self.get_task_role())
                               for v in vv.values()})
         
     class SimpleNS(NamespaceModel):
@@ -737,10 +737,10 @@ def test42():
     
 def test43():
     """
-    test43: set a default task performance host using the 'default_task_component'
-    kwarg of with_config_options(), and then create a task with no task_component.
+    test43: set a default task performance host using the 'default_task_role'
+    kwarg of with_config_options(), and then create a task with no task_role.
     create an instance of the config, and see that get_task_host() on the
-    config's task returns the component's ip address
+    config's task returns the role's ip address
     """
     cap = Capture()
     
@@ -749,7 +749,7 @@ def test43():
     ns = NS()
         
     class Cfg(ConfigModel):
-        with_config_options(default_task_component=NS.task_performer)
+        with_config_options(default_task_role=NS.task_performer)
         a_task = ReportingTask("atask", report=cap)
     cfg = Cfg()
     cfg.set_namespace(ns)
@@ -772,7 +772,7 @@ def test44():
     ns.set_infra_model(infra)
           
     class Cfg(ConfigModel):
-        with_config_options(default_task_component=NS.task_performer)
+        with_config_options(default_task_role=NS.task_performer)
         a_task = ReportingTask("atask", report=cap)
     cfg = Cfg()
     cfg.set_namespace(ns)
@@ -781,7 +781,7 @@ def test44():
     
 def test44a():
     """
-    test44a: like test44, setting the component on the task instead of getting
+    test44a: like test44, setting the role on the task instead of getting
     it via the default for the config model
     """
     cap = Capture()
@@ -824,7 +824,7 @@ def test45():
         task = ReportingTask("inner_task", report=cap)
         
     class OuterCfg(ConfigModel):
-        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_role=NS.task_performer)
         
     cfg = OuterCfg()
     cfg.set_namespace(ns)
@@ -865,7 +865,7 @@ def test46():
         with_dependencies(t1 | t2 | t3)
         
     class OuterCfg(ConfigModel):
-        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_role=NS.task_performer)
         
     cfg = OuterCfg()
     cfg.set_namespace(ns)
@@ -906,12 +906,12 @@ def test47():
     infra = Infra("helper")
     
     class NS(NamespaceModel):
-        task_component = MultiRole(Role("tp",
+        task_role = MultiRole(Role("tp",
                                                     host_ref=ctxt.model.infra.setup_server[ctxt.name]))
     ns = NS()
     ns.set_infra_model(infra)
     for i in range(3):
-        _ = ns.task_component[i]
+        _ = ns.task_role[i]
     
     cap = Capture()
     class InnerCfg(ConfigModel):
@@ -923,7 +923,7 @@ def test47():
     class OuterCfg(ConfigModel):
         wrapped_task = MultiTask("setupSuite",
                                  ConfigClassTask("wrapper", InnerCfg),
-                                 NS.q.task_component.all())
+                                 NS.q.task_role.all())
         
     cfg = OuterCfg()
     cfg.set_namespace(ns)
@@ -966,7 +966,7 @@ def test48():
         with_dependencies(t1 | t2 | t3)
         
     class OuterCfg(ConfigModel):
-        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_role=NS.task_performer)
         final = ReportingTask("final", target=NS.default, report=cap)
         with_dependencies(wrapped_task | final)
         
@@ -1016,7 +1016,7 @@ def test49():
         with_dependencies(t1 | t2 | t3)
         
     class OuterCfg(ConfigModel):
-        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_component=NS.task_performer)
+        wrapped_task = ConfigClassTask("wrapper", InnerCfg, task_role=NS.task_performer)
         initial = ReportingTask("initial", target=NS.default, report=cap)
         final = ReportingTask("final", target=NS.default, report=cap)
         
@@ -1063,13 +1063,13 @@ def test50():
     infra = Infra("helper")
     
     class NS(NamespaceModel):
-        task_component = MultiRole(Role("tp",
+        task_role = MultiRole(Role("tp",
                                                     host_ref=ctxt.model.infra.setup_server[ctxt.name]))
         default = Role("default", "127.0.1.1")
     ns = NS()
     ns.set_infra_model(infra)
     for i in range(3):
-        _ = ns.task_component[i]
+        _ = ns.task_role[i]
     
     cap = Capture()
     class InnerCfg(ConfigModel):
@@ -1081,7 +1081,7 @@ def test50():
     class OuterCfg(ConfigModel):
         wrapped_task = MultiTask("setupSuite",
                                  ConfigClassTask("wrapper", InnerCfg),
-                                 NS.q.task_component.all())
+                                 NS.q.task_role.all())
         initial = ReportingTask("initial", target=NS.default, report=cap)
         final = ReportingTask("final", target=NS.default, report=cap)
         

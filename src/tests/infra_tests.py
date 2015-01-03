@@ -25,9 +25,9 @@ Created on 4 Jun 2014
 from actuator import (InfraModel, MultiResourceGroup, ComponentGroup, ctxt)
 from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,
                                AbstractModelingEntity, MultiComponent)
-from actuator.infra import (with_infra_resources, InfraException, ResourceGroup,
+from actuator.infra import (with_resources, InfraException, ResourceGroup,
                             MultiResource, MultiResourceGroup)
-from actuator.provisioners.example_components import Server, Database
+from actuator.provisioners.example_resources import Server, Database
 
 MyInfra = None
 
@@ -54,14 +54,14 @@ def test01():
     assert type({}) == type(MyInfra.__components), "the __components attr is missing or the wrong type"
     
 def test02():
-    assert type(MyInfra.server) != Server, "the type of a component attribute isn't a ref"
+    assert type(MyInfra.server) != Server, "the type of a resource attribute isn't a ref"
     
 def test03():
     assert MyInfra.server is MyInfra.server, "references aren't being reused"
 
 def test04():
     assert type(MyInfra.server.name) is ModelReference, \
-            "data member on a component isn't being wrapped with a reference"
+            "data member on a resource isn't being wrapped with a reference"
     
 def test05():
     assert MyInfra.other == "some data", "plain class attrs aren't being passed thru"
@@ -75,18 +75,18 @@ def test06():
     
 def test07():
     assert MyInfra.server.name is MyInfra.server.name, \
-            "reference reuse not occurring on component attribute"
+            "reference reuse not occurring on resource attribute"
     
 def test08():
     assert MyInfra.server.mem, "failed to create ref for kw-created attr"
     
 def test09():
     assert type(MyInfra.server.provisionedName) == ModelReference, \
-            "data member on a component isn't being wrapped with a reference"
+            "data member on a resource isn't being wrapped with a reference"
 
 def test10():
     assert MyInfra.server.value().__class__ is Server, \
-            "value underlying a component ref is the wrong class"
+            "value underlying a resource ref is the wrong class"
     
 def test11():
     assert MyInfra.server.provisionedName.value() is None, \
@@ -371,7 +371,7 @@ def test78():
     s = set([ref.get_containing_component()
              for ref in modrefs
              if ref.get_containing_component() is not None])
-    assert len( s ) == 1, "There was more than one component"
+    assert len( s ) == 1, "There was more than one resource"
     
 def test79():
     assert MyInfra.grid[1].get_containing_component() == MyInfra.grid[1].name.get_containing_component()
@@ -391,68 +391,68 @@ def test81():
     
 def test82():
     inst = MyInfra("test82")
-    assert len(inst.components()) == 2
+    assert len(inst.resources()) == 2
     
 def test83():
     class ProvTest(InfraModel):
         grid = MultiResource(Server("prov1", mem="8GB"))
     inst = ProvTest("prov1")
     _ = inst.grid[1]
-    assert len(inst.components()) == 1
+    assert len(inst.resources()) == 1
     
 def test84():
     inst = MyInfra("test84")
     _ = inst.grid[1]
-    assert len(inst.components()) == 3
+    assert len(inst.resources()) == 3
     
 def test85():
     inst = MyInfra("test85")
     for i in range(5):
         _ = inst.grid[i]
-    assert len(inst.components()) == 7
+    assert len(inst.resources()) == 7
     
 def test86():
     inst = MyInfra("test86")
     _ = inst.workers[1]
-    assert len(inst.components()) == 5
+    assert len(inst.resources()) == 5
     
 def test87():
     inst = MyInfra("test87")
     _ = inst.workers[1].handler
-    assert len(inst.components()) == 5
+    assert len(inst.resources()) == 5
     
 def test88():
     inst = MyInfra("test88")
     for i in range(2):
         _ = inst.workers[i]
-    assert len(inst.components()) == 8
+    assert len(inst.resources()) == 8
     
 def test89():
     inst = MyInfra("test89")
     _ = inst.composite[1]
-    assert len(inst.components()) == 2
+    assert len(inst.resources()) == 2
     
 def test90():
     inst = MyInfra("test90")
     _ = inst.composite[1].grid[1]
-    assert len(inst.components()) == 3
+    assert len(inst.resources()) == 3
 
 def test91():
     inst = MyInfra("test91")
     _ = inst.composite[1].workers
-    assert len(inst.components()) == 2
+    assert len(inst.resources()) == 2
     
 def test92():
     inst = MyInfra("test92")
     _ = inst.composite[1].workers[1]
-    assert len(inst.components()) == 5
+    assert len(inst.resources()) == 5
     
 def test93():
     inst = MyInfra("test93")
     _ = inst.composite[1].workers[1]
     for i in range(2):
         _ = inst.composite[i+2].grid[1]
-    assert len(inst.components()) == 7
+    assert len(inst.resources()) == 7
     
 def test94():
     inst = MyInfra("test94")
@@ -696,7 +696,7 @@ def test127():
         
     inst = CGTest9("ctg9")
     inst.refs_for_components()
-    _ = inst.components()
+    _ = inst.resources()
     inst.top.fix_arguments()
     inst.group.fix_arguments()
     assert inst.top.mem.value() == "8GB"
@@ -710,7 +710,7 @@ def test128():
         group = group_thing
         
     inst = CGTest10("cgt10")
-    inst.components()
+    inst.resources()
     inst.refs_for_components()
     inst.group.fix_arguments()
     assert inst.group.slave.path.value() == ("reqhandler", "container", "comp")
@@ -755,16 +755,16 @@ def test133():
         server = Server("dummy2", mem="16GB")
     
     inst = Test133("t133")
-    _ = inst.components()
+    _ = inst.resources()
     inst.reqhandler.fix_arguments()
     assert inst.reqhandler.mem.value() == "16GB"
 
 def test134():
-    components = {"server":Server("dummy", mem="16GB"),
+    resources = {"server":Server("dummy", mem="16GB"),
                   "db":Database("db", wibble=9)}
 
     class Test134(InfraModel):
-        with_infra_resources(**components)
+        with_resources(**resources)
 
     inst = Test134("t134")
     assert inst.server.mem.value() == "16GB" and inst.db.wibble.value() == 9
@@ -773,14 +773,14 @@ def test135():
     group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
                                  slaves=MultiResource(Server("grid", mem=ctxt.comp.container.container.reqhandler.mem)))
-    components = {"group":group_thing}
+    resources = {"group":group_thing}
     class Test135(InfraModel):
-        with_infra_resources(**components)
+        with_resources(**resources)
 
     inst = Test135("t135")
     _ = inst.group.slaves[1]
     _ = inst.group.slaves[2]
-    inst.components()
+    inst.resources()
     inst.refs_for_components()
     inst.group.fix_arguments()
     assert inst.group.slaves[2].mem.value() == "8GB"
@@ -907,7 +907,7 @@ def test147():
     try:
         class Test(InfraModel):
             app_server = Server("app_server", mem="8GB")
-            with_infra_resources(grid="not a component")
+            with_resources(grid="not a resource")
         assert False, "The class def should have raised an exception"
     except InfraException, e:
         assert "grid is not derived" in e.message
@@ -948,7 +948,7 @@ def test151():
         s3 = s
         
     inst = Test("test")
-    assert len(inst.components()) == 3
+    assert len(inst.resources()) == 3
     
     
 def do_all():

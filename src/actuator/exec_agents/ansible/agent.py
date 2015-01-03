@@ -191,7 +191,7 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
             content = complex_args["content"]
 
         cv = _ComputableValue(content)
-        result = cv.expand(task.get_task_component(), raise_on_unexpanded=True)
+        result = cv.expand(task.get_task_role(), raise_on_unexpanded=True)
         
         complex_args["content"] = result
         try: del complex_args["src"]
@@ -208,7 +208,7 @@ class AnsibleExecutionAgent(ExecutionAgent):
             cmapper = get_mapper(_agent_domain)
             processor = cmapper[task.__class__]()
 #             task.fix_arguments()
-            task.get_task_component().fix_arguments()
+            task.get_task_role().fix_arguments()
             task_host = task.get_task_host()
             if task_host is not None:
                 msg = "Task {} being run on {}".format(task.name, task_host)

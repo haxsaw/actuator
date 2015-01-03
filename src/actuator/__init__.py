@@ -40,7 +40,7 @@ if not os.environ.get("ACTUATOR_ALLOW_SSH_ARGS"):
 
 
 from modeling import MultiComponent, MultiComponentGroup, ComponentGroup, ctxt, ActuatorException
-from infra import (InfraModel, InfraException, with_infra_resources, StaticServer,
+from infra import (InfraModel, InfraException, with_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup)
 from namespace import (Var, NamespaceModel, with_variables, NamespaceException, Role,
                        with_roles, MultiRole, RoleGroup,

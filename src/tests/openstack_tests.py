@@ -217,7 +217,7 @@ def test014():
         for j in range(5):
             _ = spec.collective[i].workers[j]
     rec = provisioner.provision_infra_spec(spec)
-    assert len(spec.components()) == 22
+    assert len(spec.resources()) == 22
     
 def test015():
     provisioner = get_provisioner()
@@ -364,7 +364,7 @@ def test027():
 
 def test028():
     prov = get_provisioner()
-    seccomp = ResourceGroup("security_component_group",
+    seccomp = ResourceGroup("security_resource_group",
                              secgroup=SecGroup("wibbleGroup", description="stuff"),
                              ping=SecGroupRule("pingRule",
                                                ctxt.comp.container.secgroup,
@@ -382,7 +382,7 @@ def test028():
 
 def test029():
     prov = get_provisioner()
-    seccomp = ResourceGroup("security_component_group",
+    seccomp = ResourceGroup("security_resource_group",
                              secgroup=SecGroup("wibbleGroup", description="stuff"),
                              ping=SecGroupRule("pingRule",
                                                ctxt.comp.container.secgroup,

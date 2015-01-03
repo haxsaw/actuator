@@ -25,7 +25,7 @@ Created on 7 Jun 2014
 from actuator import (MultiComponent, 
                           MultiComponentGroup, ComponentGroup, ctxt)
 from actuator.infra import InfraModel
-from actuator.provisioners.example_components import Server
+from actuator.provisioners.example_resources import Server
 from actuator.modeling import CallContext
 
 

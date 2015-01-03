@@ -214,20 +214,12 @@ def with_variables(cls, *args, **kwargs):
 with_variables = ClassModifier(with_variables)
 
 
-_common_comps = "__components"
+_common_roles = "__roles"
 def with_roles(cls, *args, **kwargs):
     for k, v in kwargs.items():
         setattr(cls, k, v)
 with_roles = ClassModifier(with_roles)
 
-
-# class ComponentMeta(type):
-#     cls_registry = {}
-#     def __new__(cls, name, bases, attr_dict):
-#         new_cls = super(ComponentMeta, cls).__new__(cls, name, bases, attr_dict)
-#         cls.cls_registry[name] = new_cls
-#         return new_cls
-    
 
 class ModelInstanceFinderMixin(object):
     #relies on the protocol for both ModelComponent and VariableContainer
@@ -311,7 +303,7 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
     
     def _get_model_refs(self):
         modelrefs = super(RoleGroup, self)._get_model_refs()
-        for c in self.components():
+        for c in self.resources():
             modelrefs |= c._get_model_refs()
         return modelrefs
     
@@ -374,19 +366,19 @@ class NamespaceModel(VariableContainer, ModelBase):
 
     def __init__(self):
         super(NamespaceModel, self).__init__()
-        components = set()
+        resources = set()
         clone_map = {}
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, (Role, ComponentGroup, MultiComponent, MultiComponentGroup)):
-                components.add((k, v))
-        for k, c in components:
+                resources.add((k, v))
+        for k, c in resources:
             clone = c.clone()
             clone._set_model_instance(self)
             clone._set_parent(self)
             clone_map[c] = (k, clone)
-        self._components = {}
+        self._roles = {}
         for _, (key, clone) in clone_map.items():
-            self._components[key] = clone
+            self._roles[key] = clone
             setattr(self, key, clone)
         
         if _common_vars in self.__class__.__dict__:
@@ -402,12 +394,12 @@ class NamespaceModel(VariableContainer, ModelBase):
     
     def _get_model_refs(self):
         modelrefs = super(NamespaceModel, self)._get_model_refs()
-        for c in self._components.values():
+        for c in self._roles.values():
             modelrefs |= c._get_model_refs()
         return modelrefs
     
     def get_roles(self):
-        return dict(self._components)
+        return dict(self._roles)
     
     def get_infra_model(self):
         return self.infra
@@ -424,17 +416,17 @@ class NamespaceModel(VariableContainer, ModelBase):
             exclude_refs = set()
         exclude_refs = set([infra_instance.get_inst_ref(ref) for ref in exclude_refs])
         self.refs_for_components()
-        for v in self._components.values():
+        for v in self._roles.values():
             v.fix_arguments()
         self.infra.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
-        return set([p for p in self.infra.components()
+        return set([p for p in self.infra.resources()
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
         
-    def add_components(self, **kwargs):
+    def add_roles(self, **kwargs):
         for k, v in kwargs.items():
             if not isinstance(v, Role):
-                raise NamespaceException("%s is not a kind of component" % str(v))
+                raise NamespaceException("%s is not a kind of role or role container" % str(v))
             clone = v.clone()
-            self._components[k] = clone
+            self._roles[k] = clone
             self.__dict__[k] = clone
         return self
