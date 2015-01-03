@@ -207,13 +207,13 @@ class ModelComponent(AbstractModelingEntity):
     
         
 class _ComputeModelComponents(object):
-    def components(self):
+    def resources(self):
         all_components = set()
         for v in self._comp_source().values():
             if isinstance(v, ModelComponent):
                 all_components.add(v)
             elif isinstance(v, _ComputeModelComponents):
-                all_components |= v.components()
+                all_components |= v.resources()
         return all_components
     
     def refs_for_components(self, my_ref=None):
@@ -645,7 +645,7 @@ class RefSelectUnion(object):
 class _Nexus(object):
     """
     A nexus is where, for a given instance of a system, models and their
-    instances can be recorded and then looked up by other components. In
+    instances can be recorded and then looked up by other resources. In
     particular, model instances can be looked up by either the class of the
     instance, or by a base class of the instance. This way, one model instance can
     find another instance by way of the instance class or base class. This can
@@ -682,11 +682,11 @@ class ModelBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
     def __new__(cls, name, bases, attr_dict):
-        components = {}
+        resources = {}
         for n, v in attr_dict.items():
             if isinstance(v, AbstractModelingEntity):
-                components[n] = v
-        attr_dict[cls._COMPONENTS] = components
+                resources[n] = v
+        attr_dict[cls._COMPONENTS] = resources
         newbie = super(ModelBaseMeta, cls).__new__(cls, name, bases, attr_dict)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie

@@ -29,7 +29,7 @@ import uuid
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 NovaClient = ocf.get_nova_client_class()
 NeutronClient = ocf.get_neutron_client_class()
-from actuator.provisioners.openstack.resources import _ComponentSorter, SecGroupRule
+from actuator.provisioners.openstack.resources import _ResourceSorter, SecGroupRule
 
 from actuator.infra import InfraModel
 from actuator.provisioners.core import BaseProvisioner, ProvisionerException, BaseProvisioningRecord
@@ -146,7 +146,7 @@ class OpenstackProvisioner(BaseProvisioner):
                                     self.auth_url)
         self.nuclient = NeutronClient(username=self.username, password=self.password,
                                         auth_url=self.auth_url, tenant_name=self.tenant_name)
-        self.workflow_sorter = _ComponentSorter()
+        self.workflow_sorter = _ResourceSorter()
         self.osmaps = _OSMaps(self)
 
     def _deprovision(self, record):
@@ -286,7 +286,7 @@ class OpenstackProvisioner(BaseProvisioner):
     def _provision(self, infraspec_instance):
         assert isinstance(infraspec_instance, InfraModel)
         record = OpenstackProvisioningRecord(uuid.uuid4())
-        self.workflow_sorter.sort_provisionables(infraspec_instance.components())
+        self.workflow_sorter.sort_provisionables(infraspec_instance.resources())
         infraspec_instance.refs_for_components()
         #@FIXME the above computation of refs_for_components() leaves some items
         #unable to work properly, notably finding containers.

@@ -31,16 +31,16 @@ from actuator.provisioners.core import ProvisionerException
 from __builtin__ import int
 
 
-class _OpenstackProvisionableInfraComponent(Provisionable):
+class _OpenstackProvisionableInfraResource(Provisionable):
     def __init__(self, *args, **kwargs):
-        super(_OpenstackProvisionableInfraComponent, self).__init__(*args, **kwargs)
+        super(_OpenstackProvisionableInfraResource, self).__init__(*args, **kwargs)
         self.osid = None
         
     def set_osid(self, id):
         self.osid = id
         
     def _get_arg_value(self, arg, klass, attrname, argname):
-        value = super(_OpenstackProvisionableInfraComponent, self)._get_arg_value(arg)
+        value = super(_OpenstackProvisionableInfraResource, self)._get_arg_value(arg)
         if value is not None:
             if isinstance(value, klass):
                 if hasattr(value, attrname):
@@ -68,7 +68,7 @@ class NetworkInterface(object):
         self.addr7 = None
 
 
-class Server(_OpenstackProvisionableInfraComponent, IPAddressable):
+class Server(_OpenstackProvisionableInfraResource, IPAddressable):
     def __init__(self, logicalName, imageName, flavorName, meta=None, files=None,
                  reservation_id=None, min_count=None, max_count=None, security_groups=None,
                  userdata=None, key_name=None, availability_zone=None, block_device_mapping=None,
@@ -189,7 +189,7 @@ class Server(_OpenstackProvisionableInfraComponent, IPAddressable):
         return self.iface0.addr0
         
         
-class Network(_OpenstackProvisionableInfraComponent):
+class Network(_OpenstackProvisionableInfraResource):
     def __init__(self, logicalName, admin_state_up=True):
         super(Network, self).__init__(logicalName)
         self.admin_state_up = None
@@ -204,7 +204,7 @@ class Network(_OpenstackProvisionableInfraComponent):
                 {"admin_state_up":self._admin_state_up})
         
         
-class SecGroup(_OpenstackProvisionableInfraComponent):
+class SecGroup(_OpenstackProvisionableInfraResource):
     def __init__(self, logicalName, description=None):
         super(SecGroup, self).__init__(logicalName)
         self._description = description
@@ -219,7 +219,7 @@ class SecGroup(_OpenstackProvisionableInfraComponent):
                                                "", "description")
         
 
-class SecGroupRule(_OpenstackProvisionableInfraComponent):
+class SecGroupRule(_OpenstackProvisionableInfraResource):
     def __init__(self, logicalName, secgroup, ip_protocol=None, from_port=None,
                  to_port=None, cidr=None):
         super(SecGroupRule, self).__init__(logicalName)
@@ -249,7 +249,7 @@ class SecGroupRule(_OpenstackProvisionableInfraComponent):
         self.cidr = self._get_arg_value(self._cidr, basestring, "", "cidr")
         
         
-class Subnet(_OpenstackProvisionableInfraComponent):
+class Subnet(_OpenstackProvisionableInfraResource):
     _ipversion_map = {ipaddress.IPv4Network:4, ipaddress.IPv6Network:6}
     def __init__(self, logicalName, network, cidr, dns_nameservers=None, ip_version=4):
         """
@@ -288,7 +288,7 @@ class Subnet(_OpenstackProvisionableInfraComponent):
                                                                 'ip_version':self._ip_version})
     
     
-class FloatingIP(_OpenstackProvisionableInfraComponent, IPAddressable):
+class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
     def __init__(self, logicalName, server, associated_ip, pool=None):
         """
         Creates a floating IP and attaches it to a server
@@ -326,7 +326,7 @@ class FloatingIP(_OpenstackProvisionableInfraComponent, IPAddressable):
         return ((self.name, self._server, self._associated_ip), {"pool":self._pool})
     
     
-class Router(_OpenstackProvisionableInfraComponent):
+class Router(_OpenstackProvisionableInfraResource):
     def __init__(self, logicalName, admin_state_up=True):
         """
         @param admin_state_up: optional; True or False depending on whether or not the state of
@@ -343,7 +343,7 @@ class Router(_OpenstackProvisionableInfraComponent):
         return (self.name,), {"admin_state_up":self._admin_state_up}
     
     
-class RouterGateway(_OpenstackProvisionableInfraComponent):
+class RouterGateway(_OpenstackProvisionableInfraResource):
     def __init__(self, logicalName, router, external_network_name):
         """
         @param name: string; a logical name that will be used for the gateway
@@ -373,7 +373,7 @@ class RouterGateway(_OpenstackProvisionableInfraComponent):
         return ((self.name, self._router, self._external_network_name), {})
     
     
-class RouterInterface(_OpenstackProvisionableInfraComponent):
+class RouterInterface(_OpenstackProvisionableInfraResource):
     def __init__(self, logicalName, router, subnet):
         """
         @param name: string; a logical name for the interface
@@ -415,7 +415,7 @@ def _checktype(aType):
     return check_add_type
                 
     
-class _ComponentSorter(object):
+class _ResourceSorter(object):
     def __init__(self):
         self.networks = set()
         self.subnets = set()
@@ -451,7 +451,7 @@ class _ComponentSorter(object):
         
     def sort_provisionables(self, provisionable_iter):
         for prov in provisionable_iter:
-            if not isinstance(prov, _OpenstackProvisionableInfraComponent):
+            if not isinstance(prov, _OpenstackProvisionableInfraResource):
                 continue
             self.sorter_map[prov.__class__](prov)
             

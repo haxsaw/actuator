@@ -54,24 +54,24 @@ _recognized_options = set(["long_names"])
 
 
 @ClassModifier
-def with_infra_resources(cls, *args, **kwargs):
+def with_resources(cls, *args, **kwargs):
     """
-    This function attaches additional _components onto a class object.
+    This function attaches additional resources onto a class object.
 
     :param cls: a new class object
     :param args: no positional args are recognized
-    :param kwargs: dict of names and associated _components to provision; must
+    :param kwargs: dict of names and associated resources to provision; must
         all be derived from AbstractModelingEntity
     :return: None
     """
-    components = getattr(cls, InfraModelMeta._COMPONENTS)
-    if components is None:
-        raise InfraException("FATAL ERROR: no component collection on the class object")
+    resources = getattr(cls, InfraModelMeta._COMPONENTS)
+    if resources is None:
+        raise InfraException("FATAL ERROR: no resources collection on the class object")
     for k, v in kwargs.items():
         if not isinstance(v, AbstractModelingEntity):
             raise InfraException("Argument %s is not derived from AbstractModelingEntity" % k)
         setattr(cls, k, v)
-        components[k] = v
+        resources[k] = v
     return
 
 
@@ -103,12 +103,12 @@ class InfraModelMeta(ModelBaseMeta):
     def __new__(cls, name, bases, attr_dict):
         new_class = super(InfraModelMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(new_class)
-        new_class._class_refs_for_components()
+        new_class._class_refs_for_resources()
         #
         #@FIXME: The validation here has been suspended as there are some deeper
         #design problems that have to be sorted out to fix it
-#         for component in _components.values():
-#             component._validate_args(new_class)
+#         for resource in resources.values():
+#             resource._validate_args(new_class)
         return new_class
             
 
@@ -127,14 +127,14 @@ class InfraModel(ModelBase):
         self.provisioning_computed = False
         
     def validate_args(self):
-        for component in self.__class__.__dict__[InfraModelMeta._COMPONENTS].values():
-            component._validate_args(self)
+        for resource in self.__class__.__dict__[InfraModelMeta._COMPONENTS].values():
+            resource._validate_args(self)
         
     def provisioning_been_computed(self):
         return self.provisioning_computed
     
-    def components(self):
-        comps = super(InfraModel, self).components()
+    def resources(self):
+        _resources = super(InfraModel, self).resources()
         #We need some place where we have a reasonable expectations
         #that all logical refs have been eval'd against the model instance
         #and hence we can tell every Provisionable that's out there so we
@@ -145,9 +145,9 @@ class InfraModel(ModelBase):
         #to call _set_model_instance(). This is a pretty cheap and harmless
         #sideeffect, and one that isn't so bad that fixing it by introducing some
         #sort of stateful API elements
-        for comp in comps:
-            comp._set_model_instance(self)
-        return comps
+        for resource in _resources:
+            resource._set_model_instance(self)
+        return _resources
     
     def compute_provisioning_from_refs(self, modelrefs, exclude_refs=None):
         """
@@ -172,7 +172,7 @@ class InfraModel(ModelBase):
                 _ = self.get_inst_ref(mr)
             
     @classmethod
-    def _class_refs_for_components(cls, my_ref=None):
+    def _class_refs_for_resources(cls, my_ref=None):
         all_refs = set()
         for k, v in cls.__dict__[InfraModelMeta._COMPONENTS].items():
             if isinstance(v, Provisionable):

@@ -58,8 +58,8 @@ def with_dependencies(cls, *args, **kwargs):
     deps.extend(list(args))
     
 _config_options = "__config_options__"
-_default_task_component = "default_task_component"
-_legal_options = set([_default_task_component])
+_default_task_role = "default_task_role"
+_legal_options = set([_default_task_role])
 @ClassModifier
 def with_config_options(cls, *args, **kwargs):
     opts = cls.__dict__.get(_config_options)
@@ -125,12 +125,12 @@ class Orable(object):
     
     
 class _ConfigTask(Orable, ModelComponent):
-    def __init__(self, name, task_component=None, run_from=None, repeat_til_success=True,
+    def __init__(self, name, task_role=None, run_from=None, repeat_til_success=True,
                  repeat_count=1, repeat_interval=15, remote_user=None,
                  remote_pass=None, private_key_file=None, delegate=None):
         super(_ConfigTask, self).__init__(name)
-        self.task_component = None
-        self._task_component = task_component
+        self.task_role = None
+        self._task_role = task_role
         self.run_from = None
         self._run_from = run_from
         self.repeat_til_success = None
@@ -149,14 +149,14 @@ class _ConfigTask(Orable, ModelComponent):
         
     def task_variables(self):
         the_vars = {}
-        task_component = self.get_task_component()
-        if task_component is not None:
-            the_vars = {k:v.get_value(task_component)
-                        for k, v in task_component.get_visible_vars().items()}
+        task_role = self.get_task_role()
+        if task_role is not None:
+            the_vars = {k:v.get_value(task_role)
+                        for k, v in task_role.get_visible_vars().items()}
         return the_vars
         
-    def set_task_component(self, task_component):
-        self._task_component = task_component
+    def set_task_role(self, task_role):
+        self._task_role = task_role
         
     def _embedded_exittask_attrnames(self):
         return []
@@ -189,7 +189,7 @@ class _ConfigTask(Orable, ModelComponent):
         return private_key_file
         
     def get_task_host(self):
-        comp = self.get_task_component()
+        comp = self.get_task_role()
         host = (comp.host_ref
                 if isinstance(comp.host_ref, basestring)
                 else comp.host_ref.value())
@@ -198,21 +198,21 @@ class _ConfigTask(Orable, ModelComponent):
             host = host.ip()
         return host
     
-    def get_task_component(self):
+    def get_task_role(self):
         self.fix_arguments()
-        if self.task_component is not None:
-            comp = self.task_component
+        if self.task_role is not None:
+            comp = self.task_role
         elif self._model_instance:
-            #fetch the default task component for the entire model
+            #fetch the default task role for the entire model
             #this can raise an exception if there isn't a
-            #default task component defined for the model
-            comp = self._model_instance.get_task_component()
+            #default task role defined for the model
+            comp = self._model_instance.get_task_role()
         else:
-            raise ConfigException("Can't find a task component for task {}".format(self.name))
+            raise ConfigException("Can't find a task role for task {}".format(self.name))
         return comp
         
     def get_init_args(self):
-        return ((self.name,), {"task_component":self._task_component,
+        return ((self.name,), {"task_role":self._task_role,
                               "run_from":self._run_from,
                               "repeat_til_success":self._repeat_til_success,
                               "repeat_count":self._repeat_count,
@@ -228,7 +228,7 @@ class _ConfigTask(Orable, ModelComponent):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
             try:
-                var_context = self.get_task_component()
+                var_context = self.get_task_role()
             except ConfigException, _:
                 mi = self.get_model_instance()
                 if mi is None:
@@ -237,13 +237,13 @@ class _ConfigTask(Orable, ModelComponent):
                 if var_context is None:
                     raise ConfigException("Can't find a namespace to use as a var context")
             val = cv.expand(var_context)
-#             val = cv.expand(self.get_task_component())
+#             val = cv.expand(self.get_task_role())
         elif isinstance(val, ModelReference) and self._model_instance:
             val = self._model_instance.get_namespace().get_inst_ref(val)
         return val
             
     def _fix_arguments(self):
-        self.task_component = self._get_arg_value(self._task_component)
+        self.task_role = self._get_arg_value(self._task_role)
         self.run_from = self._get_arg_value(self._run_from)
         self.repeat_til_success = self._get_arg_value(self._repeat_til_success)
         self.repeat_count = self._get_arg_value(self._repeat_count)
@@ -326,11 +326,11 @@ class ConfigModel(ModelBase):
         self.dependencies = [d.clone(clone_dict)
                              for d in self.get_class_dependencies()]
         #default option values
-        self.default_task_component = None
+        self.default_task_role = None
         opts = object.__getattribute__(self, _config_options)
         for k, v in opts.items():
-            if k == _default_task_component:
-                self.default_task_component = v
+            if k == _default_task_role:
+                self.default_task_role = v
                 
     def _set_delegate(self, delegate):
         self.delegate = delegate
@@ -359,11 +359,11 @@ class ConfigModel(ModelBase):
                                   else None))
         return private_key_file
         
-    def set_task_component(self, task_component):
-        if not isinstance(task_component, AbstractModelReference):
-            raise ConfigException("A default task component was supplied that isn't some kind of model reference: %s" %
-                                  str(task_component))
-        self.default_task_component = task_component
+    def set_task_role(self, task_role):
+        if not isinstance(task_role, AbstractModelReference):
+            raise ConfigException("A default task role was supplied that isn't some kind of model reference: %s" %
+                                  str(task_role))
+        self.default_task_role = task_role
                 
     def get_graph(self, with_fix=False):
         nodes = self.get_tasks()
@@ -377,7 +377,7 @@ class ConfigModel(ModelBase):
         return graph
         
     def get_task_host(self):
-        comp = self.get_task_component()
+        comp = self.get_task_role()
         host = (comp.host_ref
                 if isinstance(comp.host_ref, basestring)
                 else comp.host_ref.value())
@@ -386,14 +386,14 @@ class ConfigModel(ModelBase):
             host = host.ip()
         return host        
     
-    def get_task_component(self):
-        if self.default_task_component is None:
-            raise ConfigException("No default task component defined on the config model")
+    def get_task_role(self):
+        if self.default_task_role is None:
+            raise ConfigException("No default task role defined on the config model")
 
         if self.namespace_model_instance is None:
             raise ConfigException("ConfigModel instance can't get a default task host from a Namespace model reference without an instance of that model")
         
-        comp_ref = self.namespace_model_instance.get_inst_ref(self.default_task_component)
+        comp_ref = self.namespace_model_instance.get_inst_ref(self.default_task_role)
         comp_ref.fix_arguments()
         return comp_ref.value()
   
@@ -527,7 +527,7 @@ class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
         self.instance = self.cfg_class(*init_args,
                                        namespace_model_instance=model.get_namespace(),
                                        nexus=model.nexus)
-        self.instance.set_task_component(self.get_task_component())
+        self.instance.set_task_role(self.get_task_role())
         self.instance._set_delegate(self)
         graph = self.get_graph(with_fix=True)
         entry_nodes = [n for n in graph.nodes() if graph.in_degree(n) == 0]
@@ -551,12 +551,12 @@ class ConfigClassTask(_ConfigTask, _Unpackable, StructuralTask):
 
 
 class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
-    def __init__(self, name, template, task_component_list, **kwargs):
+    def __init__(self, name, template, task_role_list, **kwargs):
         super(MultiTask, self).__init__(name, **kwargs)
         self.template = None
         self._template = template
-        self.task_component_list = None
-        self._task_component_list = task_component_list
+        self.task_role_list = None
+        self._task_role_list = task_role_list
         self.dependencies = []
         self.instances = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
@@ -576,30 +576,30 @@ class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
     
     def get_init_args(self):
         args, kwargs = super(MultiTask, self).get_init_args()
-        args = args + (self._template, self._task_component_list)
+        args = args + (self._template, self._task_role_list)
         return args, kwargs
     
     def _fix_arguments(self):
         super(MultiTask, self)._fix_arguments()
         self.rendezvous.fix_arguments()
         self.template = self._get_arg_value(self._template)
-        self.task_component_list = self._get_arg_value(self._task_component_list)
-        if isinstance(self.task_component_list, AbstractModelReference):
+        self.task_role_list = self._get_arg_value(self._task_role_list)
+        if isinstance(self.task_role_list, AbstractModelReference):
             try:
-                keys = self.task_component_list.keys()
-                comp_refs = [self.task_component_list[k] for k in keys]
+                keys = self.task_role_list.keys()
+                comp_refs = [self.task_role_list[k] for k in keys]
             except TypeError, _:
-                raise ConfigException("The value for task_component_list provided to the MultiTask "
-                                      "component named {} does not support 'keys()', "
-                                      "and so can't be used to acquire a list of components "
+                raise ConfigException("The value for task_role_list provided to the MultiTask "
+                                      "role named {} does not support 'keys()', "
+                                      "and so can't be used to acquire a list of roles "
                                       "that the task should be run against".format(self.name))
-        elif isinstance(self.task_component_list, Iterable):
-            comp_refs = self.task_component_list
+        elif isinstance(self.task_role_list, Iterable):
+            comp_refs = self.task_role_list
         for ref in comp_refs:
             clone = self.template.clone()
             clone._set_delegate(self)
             clone.name = "{}-{}".format(clone.name, ref.name.value())
-            clone._task_component = ref
+            clone._task_role = ref
             clone._set_model_instance(self._model_instance)
             clone.fix_arguments()
             self.instances.append(clone)
