@@ -25,14 +25,14 @@ Created on 7 Sep 2014
 import time
 import uuid
 
-
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 NovaClient = ocf.get_nova_client_class()
 NeutronClient = ocf.get_neutron_client_class()
 from actuator.provisioners.openstack.resources import _ResourceSorter, SecGroupRule
 
 from actuator.infra import InfraModel
-from actuator.provisioners.core import BaseProvisioner, ProvisionerException, BaseProvisioningRecord
+from actuator.provisioners.core import (BaseProvisioner, ProvisionerException,
+                                        BaseProvisioningRecord)
 
 
 class OpenstackProvisioningRecord(BaseProvisioningRecord):
@@ -190,7 +190,8 @@ class OpenstackProvisioner(BaseProvisioner):
     def _provision_networks(self, record):
         for network in self.workflow_sorter.networks:
             network.fix_arguments()
-            msg = {u'network': {u'name':network.name, u'admin_state_up':network.admin_state_up}}
+            msg = {u'network': {u'name':network.name,
+                                u'admin_state_up':network.admin_state_up}}
             response = self.nuclient.create_network(body=msg)
             network.set_osid(response['network']['id'])
             record.add_network_id(network._id, network.osid)

@@ -258,7 +258,7 @@ class Subnet(_OpenstackProvisionableInfraResource):
             that returns either a similar string or a Network object this subnet applies to
         @param cidr: string or callable; either a cidr-4 or cidr-6 string identifying the subnet
         @param dns_nameservers: list of strings of IP addresses of DNS nameservers; may be a string
-            a callable the produces a list of strings, or list of mixed strings and callables the
+            a callable the produces a list of strings, or list of mixed strings and callables that
             produce strings
         """
         super(Subnet, self).__init__(logicalName)
@@ -348,7 +348,7 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         """
         @param name: string; a logical name that will be used for the gateway
         @param router: a string with Openstack id of a router, or a callable that yields
-                either a similar string or a ref to a Router objectg
+                either a similar string or a ref to a Router object
         @param external_network_name: string; the name of the external network to 
                 connect the router to
         """
@@ -469,7 +469,6 @@ class _ResourceSorter(object):
     
     @_checktype(Subnet)
     def add_subnet(self, subnet):
-#         self.add_network(subnet.network)
         self.subnets.add(subnet)
         
     @_checktype(FloatingIP)
