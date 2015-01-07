@@ -48,8 +48,7 @@ class CreateAndList(Create):
     
     
 class FakeOSServer(object):
-    pass
-
+    addresses = {"eth0":[{"addr":"127.0.0.1"}]}
 
 class ServerCreate(Create):
     def add_floating_ip(self, *args, **kwargs):

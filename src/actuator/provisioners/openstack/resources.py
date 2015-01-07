@@ -21,9 +21,8 @@
 
 '''
 Created on 7 Sep 2014
-
-@author: tom
 '''
+import collections
 import ipaddress
 
 from actuator.infra import Provisionable, IPAddressable
@@ -39,8 +38,8 @@ class _OpenstackProvisionableInfraResource(Provisionable):
     def set_osid(self, id):
         self.osid = id
         
-    def _get_arg_value(self, arg, klass, attrname, argname):
-        value = super(_OpenstackProvisionableInfraResource, self)._get_arg_value(arg)
+    def _get_arg_msg_value(self, arg, klass, attrname, argname):
+        value = arg
         if value is not None:
             if isinstance(value, klass):
                 if hasattr(value, attrname):
@@ -49,6 +48,8 @@ class _OpenstackProvisionableInfraResource(Provisionable):
                 raise ProvisionerException("Arg %s didn't result in a string or a %s ref" %
                                            (argname, klass.__name__))
         return value
+                
+            
 
 
 class NetworkInterface(object):
@@ -73,7 +74,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
                  reservation_id=None, min_count=None, max_count=None, security_groups=None,
                  userdata=None, key_name=None, availability_zone=None, block_device_mapping=None,
                  block_device_mapping_v2=None, nics=None, scheduler_hints=None,
-                 config_drive=None, disk_config=None, floating_ip=None, **kwargs):
+                 config_drive=None, disk_config=None, **kwargs):
         """
         secgroups: string, comma separated list of security group names
         """
@@ -112,8 +113,10 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.config_drive = None
         self._disk_config = disk_config
         self.disk_config = None
-        self._floating_ip=floating_ip
-        self.floating_ip=None
+        #@FIXME: disabling floating ip argument in order to avoid accidental
+        #cycles in the dependency graph.
+#         self._floating_ip=floating_ip
+#         self.floating_ip=None
         #things determined by from provisioning
 #         self.server_id = None
         self.addresses = None
@@ -124,49 +127,66 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.iface3 = NetworkInterface()
         
     def _fix_arguments(self, provisioner=None):
-        self.imageName = self._get_arg_value(self._imageName, basestring, "", "imageName")
-        self.flavorName = self._get_arg_value(self._flavorName, basestring, "", "flavorName")
-        self.meta = self._get_arg_value(self._meta if self._meta is not None else {},
-                                        dict, "", "meta")
-        self.files = self._get_arg_value(self._files if self._files is not None else [],
-                                         list, "", "files")
-        self.reservation_id = self._get_arg_value(self._reservation_id if self._reservation_id is not None else "",
-                                                  basestring, "", "reservation_id")
-        self.min_count = self._get_arg_value(self._min_count if self._min_count is not None else -1,
-                                             int, "", "min_count")
-        self.max_count = self._get_arg_value(self._max_count if self._max_count is not None else -1,
-                                             int, "", "max_count")
+        self.imageName = self._get_arg_value(self._imageName)
+        self.flavorName = self._get_arg_value(self._flavorName)
+        self.meta = self._get_arg_value(self._meta
+                                        if self._meta is not None
+                                        else {})
+        self.files = self._get_arg_value(self._files
+                                         if self._files is not None
+                                         else [])
+        self.reservation_id = self._get_arg_value(self._reservation_id
+                                                  if self._reservation_id is not None
+                                                  else "")
+        self.min_count = self._get_arg_value(self._min_count
+                                             if self._min_count is not None
+                                             else -1,)
+        self.max_count = self._get_arg_value(self._max_count
+                                             if self._max_count is not None
+                                             else -1)
         if self._security_groups is None:
             self.security_groups = []
-        elif callable(self._security_groups):
-            self.security_groups = self._get_arg_value(self._security_groups, list, "", "security_groups")
         else:
-            self.security_groups = [self._get_arg_value(sg, SecGroup, "osid", "security_groups item %d" % i)
-                                    for i, sg in enumerate(self._security_groups)]
-        self.userdata = self._get_arg_value(self._userdata if self._userdata is not None else {},
-                                            dict, "", "userdata")
-        self.key_name = self._get_arg_value(self._key_name if self._key_name is not None else "",
-                                            basestring, "", "key_name")
-        self.availability_zone = self._get_arg_value(self._availability_zone if self._availability_zone is not None else "",
-                                                     basestring, "", "availability_zone")
-        self.block_device_mapping = self._get_arg_value(self._block_device_mapping if self._block_device_mapping is not None else "",
-                                                        basestring, "","block_device_mapping")
-        self.block_device_mapping_v2 = self._get_arg_value(self._block_device_mapping_v2 if self._block_device_mapping_v2 is not None else "",
-                                                           basestring, "", "block_device_mapping_v2")
+            secgrps = self._get_arg_value(self._security_groups)
+            if not isinstance(secgrps, collections.Iterable):
+                ProvisionerException("Processing the security_groups argument didn't yield a list")
+            self.security_groups = [self._get_arg_value(sg)
+                                    for sg in secgrps]
+            
+        self.userdata = self._get_arg_value(self._userdata
+                                            if self._userdata is not None
+                                            else {})
+        self.key_name = self._get_arg_value(self._key_name
+                                            if self._key_name is not None
+                                            else "")
+        self.availability_zone = self._get_arg_value(self._availability_zone
+                                                     if self._availability_zone is not None
+                                                     else "")
+        self.block_device_mapping = self._get_arg_value(self._block_device_mapping
+                                                        if self._block_device_mapping is not None
+                                                        else "")
+        self.block_device_mapping_v2 = self._get_arg_value(self._block_device_mapping_v2
+                                                           if self._block_device_mapping_v2 is not None
+                                                           else "")
+        
         if self._nics is None:
             self.nics = []
-        elif callable(self._nics):
-            self.nics = self._get_arg_value(self._nics, list, "", "nics")
         else:
-            self.nics = [self._get_arg_value(nic, Network, "osid", "nics item %d" % i)
-                         for i, nic in enumerate(self._nics)]
-        self.scheduler_hints = self._get_arg_value(self._scheduler_hints if self._scheduler_hints is not None else "",
-                                                   basestring, "", "scheduler_hints")
-        self.config_drive = self._get_arg_value(self._config_drive if self._config_drive is not None else "",
-                                                basestring, "", "config_drive")
-        self.disk_config = self._get_arg_value(self._disk_config if self._disk_config is not None else "",
-                                               basestring, "", "disk_config")
-        self.floating_ip = self._get_arg_value(self._floating_ip, FloatingIP, "osid", "floating_ip")
+            nics = self._get_arg_value(self._nics)
+            if not isinstance(nics, collections.Iterable):
+                ProvisionerException("Processing the nics argument didn't yield a list")
+            self.nics = [self._get_arg_value(nic)
+                         for nic in nics]
+                        
+        self.scheduler_hints = self._get_arg_value(self._scheduler_hints
+                                                   if self._scheduler_hints is not None
+                                                   else "")
+        self.config_drive = self._get_arg_value(self._config_drive
+                                                if self._config_drive is not None
+                                                else "")
+        self.disk_config = self._get_arg_value(self._disk_config
+                                               if self._disk_config is not None
+                                               else "")
             
     def set_addresses(self, addresses):
         self.addresses = addresses
@@ -182,8 +202,23 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
                   "block_device_mapping_v2":self._block_device_mapping_v2,
                   "nics":self._nics,
                   "scheduler_hints":self._scheduler_hints,
-                  "config_drive":self._config_drive, "disk_config":self._disk_config,
-                  "floating_ip":self._floating_ip} )
+                  "config_drive":self._config_drive, "disk_config":self._disk_config,})
+#                   "floating_ip":self._floating_ip} )
+        
+    def get_fixed_args(self):
+        return ( (self.name, self.imageName, self.flavorName),
+                 {"meta":self.meta, "files":self.files, "reservation_id":self.reservation_id,
+                  "min_count":self.min_count, "max_count":self.max_count,
+                  "security_groups":self.security_groups,
+                  "userdata":self.userdata,
+                  "key_name":self.key_name, "availability_zone":self.availability_zone,
+                  "block_device_mapping":self.block_device_mapping,
+                  "block_device_mapping_v2":self.block_device_mapping_v2,
+                  "nics":self.nics,
+                  "scheduler_hints":self.scheduler_hints,
+                  "config_drive":self.config_drive, "disk_config":self.disk_config,})
+#                   "floating_ip":self.floating_ip} )
+
         
     def ip(self):
         return self.iface0.addr0
@@ -196,7 +231,7 @@ class Network(_OpenstackProvisionableInfraResource):
         self._admin_state_up = admin_state_up
         
     def _fix_arguments(self, provisioner=None):
-        self.admin_state_up = self._admin_state_up
+        self.admin_state_up = self._get_arg_value(self._admin_state_up)
         
         
     def get_init_args(self):
@@ -215,8 +250,7 @@ class SecGroup(_OpenstackProvisionableInfraResource):
                 {"description":self._description})
     
     def _fix_arguments(self, provisioner=None):
-        self.description = self._get_arg_value(self._description, basestring,
-                                               "", "description")
+        self.description = self._get_arg_value(self._description)
         
 
 class SecGroupRule(_OpenstackProvisionableInfraResource):
@@ -242,11 +276,11 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
                  "cidr":self._cidr})
     
     def _fix_arguments(self, provisioner=None):
-        self.secgroup = self._get_arg_value(self._secgroup, SecGroup, "osid", "secgroup")
-        self.ip_protocol = self._get_arg_value(self._ip_protocol, basestring, "", "ip_protocol")
-        self.from_port = self._get_arg_value(self._from_port, int, "", "from_port")
-        self.to_port = self._get_arg_value(self._to_port, int, "", "to_port")
-        self.cidr = self._get_arg_value(self._cidr, basestring, "", "cidr")
+        self.secgroup = self._get_arg_value(self._secgroup)
+        self.ip_protocol = self._get_arg_value(self._ip_protocol)
+        self.from_port = self._get_arg_value(self._from_port)
+        self.to_port = self._get_arg_value(self._to_port)
+        self.cidr = self._get_arg_value(self._cidr)
         
         
 class Subnet(_OpenstackProvisionableInfraResource):
@@ -257,9 +291,8 @@ class Subnet(_OpenstackProvisionableInfraResource):
         @param network: Network; a string containing the Openstack id of a network, or a callable
             that returns either a similar string or a Network object this subnet applies to
         @param cidr: string or callable; either a cidr-4 or cidr-6 string identifying the subnet
-        @param dns_nameservers: list of strings of IP addresses of DNS nameservers; may be a string
-            a callable the produces a list of strings, or list of mixed strings and callables that
-            produce strings
+        @param dns_nameservers: list of strings of IP addresses of DNS nameservers, or may be
+            a callable the produces a list of strings
         """
         super(Subnet, self).__init__(logicalName)
         self._network = network
@@ -272,16 +305,18 @@ class Subnet(_OpenstackProvisionableInfraResource):
         self.dns_nameservers = None
         
     def _fix_arguments(self, provisioner=None):
-        self.network = self._get_arg_value(self._network, Network, "osid", "network")
-        self.cidr = unicode(self._get_arg_value(self._cidr, basestring, "", "cidr"))
-        self.ip_version = self._ip_version
+        self.network = self._get_arg_value(self._network)
+        self.cidr = unicode(self._get_arg_value(self._cidr))
+        self.ip_version = self._get_arg_value(self._ip_version)
         if self._dns_nameservers is None:
             self.dns_nameservers = []
-        elif callable(self._dns_nameservers):
-            self.dns_nameservers = self._get_arg_value(self._dns_nameservers, list, "", "dns_nameservers")
         else:
-            self.dns_nameservers = [unicode(self._get_arg_value(dns, basestring, "", "item %d of dns_nameservers" % i))
-                                    for i, dns in enumerate(self._dns_nameservers)]
+            self.dns_nameservers = self._get_arg_value(self._dns_nameservers)
+            if not (isinstance(self.dns_nameservers, collections.Iterable) and
+                    reduce(lambda acc, item: acc and isinstance(item, basestring),
+                           self.dns_nameservers, True)):
+                raise ProvisionerException("The dns_nameservers arg is either not a "
+                                           "list or else contains non-string objects")
         
     def get_init_args(self):
         return ((self.name, self._network, self._cidr), {'dns_nameservers':self._dns_nameservers,
@@ -312,10 +347,10 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         return self.ip
         
     def _fix_arguments(self, provisioner=None):
-        self.server = self._get_arg_value(self._server, Server, "osid", "server")
-        self.associated_ip = self._get_arg_value(self._associated_ip, basestring, "", "associated_ip")
+        self.server = self._get_arg_value(self._server)
+        self.associated_ip = self._get_arg_value(self._associated_ip)
         if self._pool is not None:
-            self.pool = self._get_arg_value(self._pool, basestring, "", "pool")
+            self.pool = self._get_arg_value(self._pool)
         else:
             self.pool = self._pool
         
@@ -337,7 +372,7 @@ class Router(_OpenstackProvisionableInfraResource):
         self.admin_state_up = None
         
     def _fix_arguments(self, provisioner=None):
-        self.admin_state_up = self._admin_state_up
+        self.admin_state_up = self._get_arg_value(self._admin_state_up)
         
     def get_init_args(self):
         return (self.name,), {"admin_state_up":self._admin_state_up}
@@ -359,9 +394,8 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         self.external_network_name = None
         
     def _fix_arguments(self, provisioner=None):
-        self.router = self._get_arg_value(self._router, Router, "osid", "router")
-        self.external_network_name = self._get_arg_value(self._external_network_name, basestring,
-                                                         "", "external_network_name")
+        self.router = self._get_arg_value(self._router)
+        self.external_network_name = self._get_arg_value(self._external_network_name)
         
     def get_router(self):
         return self.router
@@ -390,8 +424,8 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         self.subnet = None
         
     def fix_arguments(self, provisioner=None):
-        self.router = self._get_arg_value(self._router, Router, "osid", "router")
-        self.subnet = self._get_arg_value(self._subnet, Subnet, "osid", "subnet")
+        self.router = self._get_arg_value(self._router)
+        self.subnet = self._get_arg_value(self._subnet)
         
     def get_router(self):
         return self.router

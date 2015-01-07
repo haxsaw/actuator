@@ -47,6 +47,7 @@ class ConfigRecord(object):
 
 
 class ExecutionAgent(object):
+    exception_class = ExecutionException
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
                  num_threads=5, do_log=False, no_delay=False):
@@ -176,6 +177,6 @@ class ExecutionAgent(object):
             while not self.stop:
                 time.sleep(0.2)
             if self.aborted_tasks:
-                raise ExecutionException("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
+                raise self.exception_class("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")

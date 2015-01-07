@@ -78,6 +78,10 @@ class CallContext(object):
         
         
 class AbstractModelingEntity(object):
+    #this method flags to the clone() method if attrs are to be  cloned;
+    #derived classed can set this to false if they don't want to clone
+    #model attrs
+    clone_attrs = True
     def __init__(self, name, *args, **kwargs):
         model = kwargs.get("model_instance")
         if "model_instance" in kwargs:
@@ -193,9 +197,9 @@ class AbstractModelingEntity(object):
     def clone(self, clone_into_class=None):
         "this doesn't work with circular object refs yet"
         args, kwargs = self.get_init_args()
-        new_args = [(arg.clone() if isinstance(arg, AbstractModelingEntity) else arg)
+        new_args = [(arg.clone() if self.clone_attrs and isinstance(arg, AbstractModelingEntity) else arg)
                     for arg in args]
-        new_kwargs = {k:(v.clone() if isinstance(v, AbstractModelingEntity) else v)
+        new_kwargs = {k:(v.clone() if self.clone_attrs and isinstance(v, AbstractModelingEntity) else v)
                       for k, v in kwargs.items()}
         clone_class = self.get_class() if clone_into_class is None else clone_into_class
         clone = clone_class(*new_args, **new_kwargs)
