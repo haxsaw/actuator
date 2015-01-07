@@ -37,7 +37,6 @@ from actuator.provisioners.openstack.support import (_OSMaps,
                                                      OpenstackProvisioningRecord)
 from actuator.config import _ConfigTask, ConfigModel, with_dependencies
 from actuator.exec_agents.core import ExecutionAgent
-from actuator.modeling import AbstractModelReference
 from actuator.utils import capture_mapping, get_mapper
 
 _rt_domain = "resource_task_domain"
@@ -76,9 +75,6 @@ class _ProvisioningTask(_ConfigTask):
         
     def depends_on_list(self):
         return []
-    
-#     def _fix_arguments(self):
-#         return
     
     def provision(self, run_context):
         return
@@ -119,7 +115,6 @@ class ProvisionSubnetTask(_ProvisioningTask):
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
 
 
-
 @capture_mapping(_rt_domain, SecGroup)
 class ProvisionSecGroupTask(_ProvisioningTask):
     "depends on nothing"
@@ -128,7 +123,6 @@ class ProvisionSecGroupTask(_ProvisioningTask):
                                                                description=self.rsrc.description)
         self.rsrc.set_osid(response.id)
         run_context.record.add_secgroup_id(self.rsrc._id, self.rsrc.osid)
-
 
 
 @capture_mapping(_rt_domain, SecGroupRule)
@@ -208,12 +202,9 @@ class ProvisionServerTask(_ProvisioningTask):
         self.rsrc.set_osid(srvr.id)
         run_context.record.add_server_id(self.rsrc._id, self.rsrc.osid)
         
-#         server = run_context.nvclient.servers.get(self.rsrc.server)
         while not srvr.addresses:
             time.sleep(0.25)
-#             server.get()
             srvr.get()
-#         self._process_server_addresses(self.rsrc.server, server.addresses)
         self._process_server_addresses(srvr.addresses)
 
                 
@@ -267,12 +258,6 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
         return [self.rsrc.server] if isinstance(self.rsrc.server, Server) else []
         
     def provision(self, run_context):
-#         server = run_context.nvclient.servers.get(self.rsrc.server)
-#         while not server.addresses:
-#             time.sleep(0.25)
-#             server.get()
-#         self._process_server_addresses(self.rsrc.server, server.addresses)
-
         fip = run_context.nvclient.floating_ips.create(self.rsrc.pool)
         self.rsrc.set_addresses(fip.ip)
         self.rsrc.set_osid(fip.id)
@@ -370,3 +355,4 @@ class OpenstackProvisioner(BaseProvisioner):
     def _provision(self, inframodel_instance):
         self.agent = ResourceTaskSequencerAgent(inframodel_instance, self.os_creds)
         self.agent.perform_config()
+        return self.agent.record

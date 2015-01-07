@@ -37,7 +37,6 @@ ocf.set_nova_client_class(ost_support.MockNovaClient)
 
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
                       MultiResource, ctxt, Var, ResourceGroup)
-# from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Router, FloatingIP,
@@ -107,6 +106,7 @@ def test006():
     assert spec.server.osid.value() and spec.server.addresses.value()
     
 def test007():
+    "this test is currently disabled"
     try:
         class Test7(InfraModel):
             net = Network("wibbleNet")
@@ -145,7 +145,6 @@ def test009():
         assert False, "failed to raise an exception on a bogus image name"
     except ProvisionerException, e:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
-#         assert "image" in e.message.lower()
         assert "image" in evalues
 
 def test010():
@@ -157,7 +156,8 @@ def test010():
         provisioner.provision_infra_spec(spec)
         assert False, "failed to raise an exception on a bogus flavor name"
     except ProvisionerException, e:
-        assert "flavor" in e.message.lower()
+        evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
+        assert "flavor" in evalues
         
 def test011():
     provisioner = get_provisioner()
@@ -252,7 +252,8 @@ def test016():
         provisioner.provision_infra_spec(spec)
         assert False, "We should have gotten an error about the network arg"
     except ProvisionerException, e:
-        assert "network" in e.message
+        evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
+        assert "network" in evalues
         
 def test017():
     provisioner = get_provisioner()
@@ -427,10 +428,9 @@ def test030():
     assert ns.future("SERVER_IP").value()
 
 def do_all():
-    test006()
-#     for k, v in globals().items():
-#         if k.startswith("test") and callable(v):
-#             v()
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
             
 if __name__ == "__main__":
     do_all()
