@@ -228,9 +228,10 @@ class ProvisionRouterGatewayTask(_ProvisioningTask):
         
     def provision(self, run_context):
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
+        run_context.maps.refresh_networks()
         ext_net = run_context.maps.network_map.get(self.rsrc.external_network_name)
         msg = {u'network_id':ext_net.id}
-        _ = self.nuclient.add_gateway_router(router_id, msg)
+        _ = run_context.nuclient.add_gateway_router(router_id, msg)
 
 
 @capture_mapping(_rt_domain, RouterInterface)
@@ -246,7 +247,7 @@ class ProvisionRouterInterfaceTask(_ProvisioningTask):
     def provision(self, run_context):
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         subnet = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
-        response = self.nuclient.add_interface_router(router_id,
+        response = run_context.nuclient.add_interface_router(router_id,
                                                       {u'subnet_id':subnet,
                                                        u'name':self.rsrc.name})
         run_context.record.add_router_iface_id(self.rsrc._id, response[u'id'])
@@ -287,7 +288,8 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
         nmi = ShutupNamespace()
         super(ResourceTaskSequencerAgent, self).__init__(config_model_instance=self.infra_config_model,
                                                          namespace_model_instance=nmi,
-                                                         no_delay=True)
+                                                         no_delay=True,
+                                                         num_threads=1)
         self.run_contexts = {}  #keys are threads, values are RunContext objects
         self.record = OpenstackProvisioningRecord(uuid.uuid4())
         self.os_creds = os_creds
