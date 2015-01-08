@@ -26,6 +26,7 @@ import time
 import threading
 import uuid
 import string
+import logging
 
 from actuator.namespace import NamespaceModel
 from actuator.provisioners.openstack import openstack_class_factory as ocf
@@ -37,7 +38,8 @@ from actuator.provisioners.openstack.support import (_OSMaps,
                                                      OpenstackProvisioningRecord)
 from actuator.config import _ConfigTask, ConfigModel, with_dependencies
 from actuator.exec_agents.core import ExecutionAgent
-from actuator.utils import capture_mapping, get_mapper
+from actuator.utils import (capture_mapping, get_mapper, root_logger, LOG_INFO,
+                            LOG_WARN)
 
 _rt_domain = "resource_task_domain"
 
@@ -287,13 +289,15 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
     no_punc = string.maketrans(string.punctuation, "_"*len(string.punctuation))
     exception_class = ProvisionerException
     def __init__(self, infra_model, os_creds, num_threads=5):
+        self.logger = root_logger.getChild("os_prov_agent")
         self.infra_config_model = self.compute_model(infra_model)
         class ShutupNamespace(NamespaceModel): pass
         nmi = ShutupNamespace()
         super(ResourceTaskSequencerAgent, self).__init__(config_model_instance=self.infra_config_model,
                                                          namespace_model_instance=nmi,
                                                          no_delay=True,
-                                                         num_threads=num_threads)
+                                                         num_threads=num_threads,
+                                                         log_level=self.logger.getEffectiveLevel())
         self.run_contexts = {}  #keys are threads, values are RunContext objects
         self.record = OpenstackProvisioningRecord(uuid.uuid4())
         self.os_creds = os_creds
@@ -309,13 +313,19 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
         return context
     
     def _perform_task(self, task, logfile=None):
-        task.provision(self.get_context())
+        self.logger.info("Starting provisioning task %s on %s, id %s" %
+                         (task.__class__.__name__, task.name, str(task._id)))
+        try:
+            task.provision(self.get_context())
+        finally:
+            self.logger.info("Completed provisioning task id %s" % str(task._id))
         
     def get_graph(self, with_fix=False):
         return self.infra_config_model.get_graph(with_fix=with_fix)
     
     def compute_model(self, infra_mi):
         all_resources = set(infra_mi.resources())
+        self.logger.info("%d resources to provision" % len(all_resources))
         dependencies = []
         rsrc_task_map = {}
             
@@ -342,6 +352,8 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
                 dtask = rsrc_task_map[d]
                 dependencies.append(dtask | task)
                 
+        self.logger.info("%d resource dependencies" % len(dependencies))
+                
         #now we can make a config class with these tasks and dependencies
         class ProvConfig(ConfigModel):
             for rsrc in rsrc_task_map.values():
@@ -354,14 +366,20 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
                 
 
 class OpenstackProvisioner(BaseProvisioner):
-    def __init__(self, username, password, tenant_name, auth_url, num_threads=1):
+    LOG_SUFFIX = "os_provisioner"
+    def __init__(self, username, password, tenant_name, auth_url, num_threads=5,
+                 log_level=LOG_INFO):
         self.os_creds = OpenstackCredentials(username, password, tenant_name, auth_url)
         self.agent = None
         self.num_threads = num_threads
+        root_logger.setLevel(log_level)
+        self.logger = root_logger.getChild(self.LOG_SUFFIX)
         
     def _provision(self, inframodel_instance):
+        self.logger.info("Starting to provision...")
         self.agent = ResourceTaskSequencerAgent(inframodel_instance,
                                                 self.os_creds,
                                                 num_threads=self.num_threads)
         self.agent.perform_config()
+        self.logger.info("...provisioning complete.")
         return self.agent.record

@@ -30,6 +30,7 @@ import traceback
 import random
 
 from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
+from actuator.utils import LOG_INFO, root_logger
 
 
 class ExecutionException(ActuatorException): pass
@@ -48,9 +49,10 @@ class ConfigRecord(object):
 
 class ExecutionAgent(object):
     exception_class = ExecutionException
+    exec_agent = "exec_agent"
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
-                 num_threads=5, do_log=False, no_delay=False):
+                 num_threads=5, do_log=False, no_delay=False, log_level=LOG_INFO):
         #@TODO: need to add a test for the type of the exec_model_instance 
         self.exec_mi = exec_model_instance
         if config_model_instance is not None and not isinstance(config_model_instance, ConfigModel):
@@ -94,8 +96,13 @@ class ExecutionAgent(object):
     def perform_task(self, graph, task):
         #start with a small random wait to try to avoid too many things going to the
         #same machine at the same time
+        logger = root_logger.getChild(self.exec_agent)
+        logger.info("processing %s task named %s, id %s" %
+                    (task.__class__.__name__, task.name, str(task._id)))
         if not self.no_delay:
+            logger.info("task id %s start commencement delay" % str(task._id))
             time.sleep(random.uniform(0.2, 2.5))
+            logger.info("task id %s end commencement delay" % str(task._id))
         try_count = 0
         success = False
         while try_count < task.repeat_count and not success:
@@ -105,21 +112,28 @@ class ExecutionAgent(object):
             else:
                 logfile=None
             try:
+                logger.info("starting task %s id %s" % (task.name, str(task._id)))
                 self._perform_task(task, logfile=logfile)
+                logger.info("task %s succeeded" % (str(task._id)))
                 success = True
             except Exception, _:
+                logger.warning("Task %s id %s failed" % (task.name, str(task._id)))
                 msg = ">>>Task Exception for {}!".format(task.name)
                 if logfile:
                     logfile.write("{}\n".format(msg))
                 etype, value, tb = sys.exc_info()
                 if try_count < task.repeat_count:
                     retry_wait = try_count * task.repeat_interval
+                    logger.warning("Retrying %s id %s again in %d secs" %
+                                   (task.name, str(task._id), retry_wait))
                     msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
                     if logfile:
                         logfile.write("{}\n".format(msg))
                         traceback.print_exception(etype, value, tb, file=logfile)
                     time.sleep(retry_wait)
                 else:
+                    logger.error("Max tries exceeded; task %s id %s aborting" %
+                                 (task.name, str(task._id)))
                     self.record_aborted_task(task, etype, value, tb)
                 del etype, value, tb
                 sys.exc_clear()
@@ -132,6 +146,8 @@ class ExecutionAgent(object):
                     for successor in graph.successors_iter(task):
                         graph.node[successor]["ins_traversed"] += 1
                         if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
+                            logger.debug("Queueing up %s id %s for performance" %
+                                         (successor.name, str(successor._id)))
                             self.task_queue.put((graph, successor))
                 self.node_lock.release()
             if logfile:
@@ -158,6 +174,8 @@ class ExecutionAgent(object):
                 pass
         
     def perform_config(self, completion_record=None):
+        logger = root_logger.getChild(self.exec_agent)
+        logger.info("Agent starting task processing")
         if self.namespace_mi and self.config_mi:
             self.config_mi.update_nexus(self.namespace_mi.nexus)
             graph = self.config_mi.get_graph(with_fix=True)
@@ -167,12 +185,17 @@ class ExecutionAgent(object):
                 n.fix_arguments()
             self.stop = False
             #start the workers
+            logger.info("Starting workers...")
             for _ in range(self.num_threads):
                 worker = threading.Thread(target=self.process_tasks)
                 worker.start()
+            logger.info("...workers started")
             #queue the initial tasks
             for task in (t for t in graph.nodes() if graph.in_degree(t) == 0):
+                logger.debug("Queueing up %s id %s for performance" %
+                             (task.name, str(task._id)))
                 self.task_queue.put((graph, task))
+            logger.info("Initial tasks queued; waiting for completion")
             #now wait to be signaled it finished
             while not self.stop:
                 time.sleep(0.2)
@@ -180,3 +203,4 @@ class ExecutionAgent(object):
                 raise self.exception_class("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
+        logger.info("Agent task processing complete")

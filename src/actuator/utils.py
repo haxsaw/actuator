@@ -23,6 +23,19 @@ Created on 7 Sep 2014
 '''
 import sys
 import os, os.path
+import logging
+
+
+base_logger_name = "actuator"
+logging.basicConfig(format="%(levelname)s::%(asctime)s::%(name)s:: %(message)s")
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+LOG_DEBUG = logging.DEBUG
+LOG_INFO = logging.INFO
+LOG_WARN = logging.WARN
+LOG_ERROR = logging.ERROR
+LOG_CRIT = logging.CRITICAL
+
 
 class ClassMapper(dict):
     def __getitem__(self, item):
