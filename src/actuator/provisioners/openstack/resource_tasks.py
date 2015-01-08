@@ -77,6 +77,9 @@ class _ProvisioningTask(_ConfigTask):
         return []
     
     def provision(self, run_context):
+        self._provision(run_context)
+    
+    def _provision(self, run_context):
         return
     
     def get_init_args(self):
@@ -85,7 +88,7 @@ class _ProvisioningTask(_ConfigTask):
 
 @capture_mapping(_rt_domain, Network)
 class ProvisionNetworkTask(_ProvisioningTask):
-    def provision(self, run_context):
+    def _provision(self, run_context):
         msg = {u'network': {u'name':self.rsrc.name,
                             u'admin_state_up':self.rsrc.admin_state_up}}
         response = run_context.nuclient.create_network(body=msg)
@@ -100,7 +103,7 @@ class ProvisionSubnetTask(_ProvisioningTask):
                 if isinstance(self.rsrc.network, Network)
                 else [])
         
-    def provision(self, run_context):
+    def _provision(self, run_context):
         msg = {'subnets': [{'cidr':self.rsrc.cidr,
                             'ip_version':self.rsrc.ip_version,
 #                             'network_id':self.rsrc.network,
@@ -118,7 +121,7 @@ class ProvisionSubnetTask(_ProvisioningTask):
 @capture_mapping(_rt_domain, SecGroup)
 class ProvisionSecGroupTask(_ProvisioningTask):
     "depends on nothing"
-    def provision(self, run_context):
+    def _provision(self, run_context):
         response = run_context.nvclient.security_groups.create(name=self.rsrc.name,
                                                                description=self.rsrc.description)
         self.rsrc.set_osid(response.id)
@@ -132,7 +135,7 @@ class ProvisionSecGroupRuleTask(_ProvisioningTask):
                 if isinstance(self.rsrc.secgroup, SecGroup)
                 else [])
         
-    def provision(self, run_context):
+    def _provision(self, run_context):
         response = run_context.nvclient.security_group_rules.create(self.rsrc._get_arg_msg_value(self.rsrc.secgroup,
                                                                                                  SecGroup,
                                                                                                  "osid", "secgroup"),
@@ -161,7 +164,7 @@ class ProvisionServerTask(_ProvisioningTask):
             for j, iface_addr in enumerate(v):
                 setattr(iface, "addr%d" % j, iface_addr['addr'])
 
-    def provision(self, run_context):
+    def _provision(self, run_context):
         run_context.maps.refresh_images()
         run_context.maps.refresh_flavors()
         run_context.maps.refresh_networks()
@@ -211,7 +214,7 @@ class ProvisionServerTask(_ProvisioningTask):
 @capture_mapping(_rt_domain, Router)
 class ProvisionRouterTask(_ProvisioningTask):
     "depends on nothing"
-    def provision(self, run_context):
+    def _provision(self, run_context):
         msg = {u'router': {u'admin_state_up':self.rsrc.admin_state_up,
                            u'name':self.rsrc.name}}
         reply = run_context.nuclient.create_router(body=msg)
@@ -226,7 +229,7 @@ class ProvisionRouterGatewayTask(_ProvisioningTask):
                 if isinstance(self.rsrc.router, Router)
                 else [])
         
-    def provision(self, run_context):
+    def _provision(self, run_context):
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         run_context.maps.refresh_networks()
         ext_net = run_context.maps.network_map.get(self.rsrc.external_network_name)
@@ -244,7 +247,7 @@ class ProvisionRouterInterfaceTask(_ProvisioningTask):
             deps.append(self.rsrc.subnet)
         return deps
         
-    def provision(self, run_context):
+    def _provision(self, run_context):
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         subnet = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
         response = run_context.nuclient.add_interface_router(router_id,
@@ -258,7 +261,8 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
     def depends_on_list(self):
         return [self.rsrc.server] if isinstance(self.rsrc.server, Server) else []
         
-    def provision(self, run_context):
+    def _provision(self, run_context):
+        self.rsrc.refix_arguments()
         fip = run_context.nvclient.floating_ips.create(self.rsrc.pool)
         self.rsrc.set_addresses(fip.ip)
         self.rsrc.set_osid(fip.id)
@@ -282,14 +286,14 @@ class OpenstackCredentials(object):
 class ResourceTaskSequencerAgent(ExecutionAgent):
     no_punc = string.maketrans(string.punctuation, "_"*len(string.punctuation))
     exception_class = ProvisionerException
-    def __init__(self, infra_model, os_creds):
+    def __init__(self, infra_model, os_creds, num_threads=5):
         self.infra_config_model = self.compute_model(infra_model)
         class ShutupNamespace(NamespaceModel): pass
         nmi = ShutupNamespace()
         super(ResourceTaskSequencerAgent, self).__init__(config_model_instance=self.infra_config_model,
                                                          namespace_model_instance=nmi,
                                                          no_delay=True,
-                                                         num_threads=1)
+                                                         num_threads=num_threads)
         self.run_contexts = {}  #keys are threads, values are RunContext objects
         self.record = OpenstackProvisioningRecord(uuid.uuid4())
         self.os_creds = os_creds
@@ -350,11 +354,14 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
                 
 
 class OpenstackProvisioner(BaseProvisioner):
-    def __init__(self, username, password, tenant_name, auth_url):
+    def __init__(self, username, password, tenant_name, auth_url, num_threads=1):
         self.os_creds = OpenstackCredentials(username, password, tenant_name, auth_url)
         self.agent = None
+        self.num_threads = num_threads
         
     def _provision(self, inframodel_instance):
-        self.agent = ResourceTaskSequencerAgent(inframodel_instance, self.os_creds)
+        self.agent = ResourceTaskSequencerAgent(inframodel_instance,
+                                                self.os_creds,
+                                                num_threads=self.num_threads)
         self.agent.perform_config()
         return self.agent.record

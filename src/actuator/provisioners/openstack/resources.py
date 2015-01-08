@@ -129,21 +129,21 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
     def _fix_arguments(self, provisioner=None):
         self.imageName = self._get_arg_value(self._imageName)
         self.flavorName = self._get_arg_value(self._flavorName)
-        self.meta = self._get_arg_value(self._meta
-                                        if self._meta is not None
-                                        else {})
-        self.files = self._get_arg_value(self._files
-                                         if self._files is not None
-                                         else [])
-        self.reservation_id = self._get_arg_value(self._reservation_id
-                                                  if self._reservation_id is not None
-                                                  else "")
-        self.min_count = self._get_arg_value(self._min_count
-                                             if self._min_count is not None
-                                             else -1,)
-        self.max_count = self._get_arg_value(self._max_count
-                                             if self._max_count is not None
-                                             else -1)
+        self.meta = (self._get_arg_value(self._meta)
+                     if self._meta is not None
+                     else None)
+        self.files = (self._get_arg_value(self._files)
+                      if self._files is not None
+                      else None)
+        self.reservation_id = (self._get_arg_value(self._reservation_id)
+                               if self._reservation_id is not None
+                               else None)
+        self.min_count = (self._get_arg_value(self._min_count)
+                          if self._min_count is not None
+                          else None)
+        self.max_count = (self._get_arg_value(self._max_count)
+                          if self._max_count is not None
+                          else None)
         if self._security_groups is None:
             self.security_groups = []
         else:
@@ -153,21 +153,21 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
             self.security_groups = [self._get_arg_value(sg)
                                     for sg in secgrps]
             
-        self.userdata = self._get_arg_value(self._userdata
-                                            if self._userdata is not None
-                                            else {})
-        self.key_name = self._get_arg_value(self._key_name
-                                            if self._key_name is not None
-                                            else "")
-        self.availability_zone = self._get_arg_value(self._availability_zone
-                                                     if self._availability_zone is not None
-                                                     else "")
-        self.block_device_mapping = self._get_arg_value(self._block_device_mapping
-                                                        if self._block_device_mapping is not None
-                                                        else "")
-        self.block_device_mapping_v2 = self._get_arg_value(self._block_device_mapping_v2
-                                                           if self._block_device_mapping_v2 is not None
-                                                           else "")
+        self.userdata = (self._get_arg_value(self._userdata)
+                         if self._userdata is not None
+                         else None)
+        self.key_name = (self._get_arg_value(self._key_name)
+                         if self._key_name is not None
+                         else None)
+        self.availability_zone = (self._get_arg_value(self._availability_zone)
+                                  if self._availability_zone is not None
+                                  else None)
+        self.block_device_mapping = (self._get_arg_value(self._block_device_mapping)
+                                     if self._block_device_mapping is not None
+                                     else None)
+        self.block_device_mapping_v2 = (self._get_arg_value(self._block_device_mapping_v2)
+                                        if self._block_device_mapping_v2 is not None
+                                        else None)
         
         if self._nics is None:
             self.nics = []
@@ -178,15 +178,15 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
             self.nics = [self._get_arg_value(nic)
                          for nic in nics]
                         
-        self.scheduler_hints = self._get_arg_value(self._scheduler_hints
-                                                   if self._scheduler_hints is not None
-                                                   else "")
-        self.config_drive = self._get_arg_value(self._config_drive
-                                                if self._config_drive is not None
-                                                else "")
-        self.disk_config = self._get_arg_value(self._disk_config
-                                               if self._disk_config is not None
-                                               else "")
+        self.scheduler_hints = (self._get_arg_value(self._scheduler_hints)
+                                if self._scheduler_hints is not None
+                                else None)
+        self.config_drive = (self._get_arg_value(self._config_drive)
+                             if self._config_drive is not None
+                             else None)
+        self.disk_config = (self._get_arg_value(self._disk_config)
+                            if self._disk_config is not None
+                            else None)
             
     def set_addresses(self, addresses):
         self.addresses = addresses

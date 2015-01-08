@@ -131,6 +131,10 @@ class AbstractModelingEntity(object):
         if not self.fixed:
             self.fixed = True
             self._fix_arguments()
+            
+    def refix_arguments(self):
+        self.fixed = False
+        self.fix_arguments()
     
     def _fix_arguments(self):
         """
