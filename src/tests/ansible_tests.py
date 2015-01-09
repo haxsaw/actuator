@@ -533,7 +533,7 @@ def test017():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"),
-                       Var("RPASS", "dryw1bbles"))
+                       Var("RPASS", file("/home/lxle1/Documents/pass", "r").read().strip()))
         ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace()
        

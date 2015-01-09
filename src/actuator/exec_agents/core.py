@@ -70,6 +70,7 @@ class ExecutionAgent(object):
             raise ExecutionException("infra_model_instance isn't an instance of InfraModel")
         self.infra_mi = infra_model_instance
         
+        root_logger.setLevel(log_level)
         self.task_queue = Queue.Queue()
         self.node_lock = threading.Lock()
         self.stop = False
@@ -199,8 +200,8 @@ class ExecutionAgent(object):
             #now wait to be signaled it finished
             while not self.stop:
                 time.sleep(0.2)
+            logger.info("Agent task processing complete")
             if self.aborted_tasks:
                 raise self.exception_class("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
-        logger.info("Agent task processing complete")

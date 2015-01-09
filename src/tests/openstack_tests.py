@@ -42,12 +42,12 @@ from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Router, FloatingIP,
                                                         Subnet, SecGroup,
                                                         SecGroupRule)
-from actuator.utils import LOG_WARN
+from actuator.utils import LOG_WARN, LOG_INFO
 
 
 def get_provisioner():
     return OpenstackProvisioner("it", "just", "doesn't", "matter",
-                                log_level=LOG_WARN)
+                                log_level=LOG_INFO)
 
 
 def test001():

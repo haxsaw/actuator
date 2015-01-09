@@ -313,12 +313,13 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
         return context
     
     def _perform_task(self, task, logfile=None):
-        self.logger.info("Starting provisioning task %s on %s, id %s" %
+        self.logger.info("Starting provisioning task %s named %s, id %s" %
                          (task.__class__.__name__, task.name, str(task._id)))
         try:
             task.provision(self.get_context())
         finally:
-            self.logger.info("Completed provisioning task id %s" % str(task._id))
+            self.logger.info("Completed provisioning task %s named %s, id %s" %
+                             (task.__class__.__name__, task.name, str(task._id)))
         
     def get_graph(self, with_fix=False):
         return self.infra_config_model.get_graph(with_fix=with_fix)
