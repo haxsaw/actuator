@@ -54,10 +54,10 @@ def test001():
     provisioner = get_provisioner()
     class Test1(InfraModel):
         net = Network("test1Net")
-    spec = Test1("test1")
-    assert spec.net.osid.value() is None
-    provisioner.provision_infra_spec(spec)
-    assert spec.net.osid.value()
+    model = Test1("test1")
+    assert model.net.osid.value() is None
+    provisioner.provision_infra_model(model)
+    assert model.net.osid.value()
     
 def test002():
     provisioner = get_provisioner()
@@ -65,47 +65,47 @@ def test002():
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
         fip = FloatingIP("fip1", ctxt.model.server,
                          ctxt.model.server.iface0.addr0, pool="external")
-    spec = Test2("test2")
-    assert spec.fip.ip.value() is None and spec.fip.osid.value() is None
-    provisioner.provision_infra_spec(spec)
-    assert spec.fip.ip.value() and spec.fip.osid.value()
+    model = Test2("test2")
+    assert model.fip.ip.value() is None and model.fip.osid.value() is None
+    provisioner.provision_infra_model(model)
+    assert model.fip.ip.value() and model.fip.osid.value()
     
 def test003():
     provisioner = get_provisioner()
     class Test3(InfraModel):
         net = Network("wibbleNet")
         subnet = Subnet("wibbleSub", ctxt.model.net, u"192.168.23.0/24")
-    spec = Test3("test3")
-    assert spec.subnet.osid.value() is None
-    provisioner.provision_infra_spec(spec)
-    assert spec.subnet.osid.value()
+    model = Test3("test3")
+    assert model.subnet.osid.value() is None
+    provisioner.provision_infra_model(model)
+    assert model.subnet.osid.value()
 
 def test004():
     provisioner = get_provisioner()
     class Test4(InfraModel):
         net = Network("wibbleNet")
         subnet = Subnet("wibbleSub", ctxt.model.net, u"192.168.23.0/24")
-    spec = Test4("test4")
-    assert spec.net.osid.value() is None
-    provisioner.provision_infra_spec(spec)
-    assert (spec.net.osid.value() == spec.subnet.network.osid.value() and
-            spec.net.osid.value() is not None)
+    model = Test4("test4")
+    assert model.net.osid.value() is None
+    provisioner.provision_infra_model(model)
+    assert (model.net.osid.value() == model.subnet.network.osid.value() and
+            model.net.osid.value() is not None)
 
 def test005():
     provisioner = get_provisioner()
     class Test5(InfraModel):
         router = Router("wibbleRouter")
-    spec = Test5("test5")
-    provisioner.provision_infra_spec(spec)
-    assert spec.router.osid.value()
+    model = Test5("test5")
+    provisioner.provision_infra_model(model)
+    assert model.router.osid.value()
     
 def test006():
     provisioner = get_provisioner()
     class Test6(InfraModel):
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
-    spec = Test6("test6")
-    provisioner.provision_infra_spec(spec)
-    assert spec.server.osid.value() and spec.server.addresses.value()
+    model = Test6("test6")
+    provisioner.provision_infra_model(model)
+    assert model.server.osid.value() and model.server.addresses.value()
     
 def test007():
     "this test is currently disabled"
@@ -131,8 +131,8 @@ def test008():
         router = Router("wibbleRouter")
         srvr1 = Server("simple1", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
         srvr2 = Server("simple2", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
-    spec = Test8("test8")
-    provisioner.provision_infra_spec(spec)
+    model = Test8("test8")
+    provisioner.provision_infra_model(model)
 #     provisioner.workflow_sorter.reset()
 #     assert len(provisioner.workflow_sorter.servers) == 0
     assert True
@@ -141,9 +141,9 @@ def test009():
     provisioner = get_provisioner()
     class Test9(InfraModel):
         server = Server("simple", u'bogus image', "m1.small", key_name="perseverance_dev_key")
-    spec = Test9("test9")
+    model = Test9("test9")
     try:
-        provisioner.provision_infra_spec(spec)
+        provisioner.provision_infra_model(model)
         assert False, "failed to raise an exception on a bogus image name"
     except ProvisionerException, e:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
@@ -153,9 +153,9 @@ def test010():
     provisioner = get_provisioner()
     class Test10(InfraModel):
         server = Server("simple", u'Ubuntu 13.10', "m1.wibble", key_name="perseverance_dev_key")
-    spec = Test10("test10")
+    model = Test10("test10")
     try:
-        provisioner.provision_infra_spec(spec)
+        provisioner.provision_infra_model(model)
         assert False, "failed to raise an exception on a bogus flavor name"
     except ProvisionerException, e:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
@@ -169,8 +169,8 @@ def test011():
                         key_name="perseverance_dev_key")
         fip = FloatingIP("fip", ctxt.model.server,
                          ctxt.model.server.iface0.addr0, pool="external")
-    spec = Test11("t11")
-    rec = provisioner.provision_infra_spec(spec)
+    model = Test11("t11")
+    rec = provisioner.provision_infra_model(model)
     assert rec
     
 def test012():
@@ -185,9 +185,9 @@ def test012():
                                                             ctxt.comp.container.server,
                                                             ctxt.comp.container.server.iface0.addr0,
                                                             pool="external"))
-    spec = Test12("t12")
-    _ = [spec.routable_group[i] for i in ["a", "b"]]
-    rec = provisioner.provision_infra_spec(spec)
+    model = Test12("t12")
+    _ = [model.routable_group[i] for i in ["a", "b"]]
+    rec = provisioner.provision_infra_model(model)
     assert rec
 
 def test013():
@@ -202,9 +202,9 @@ def test013():
                          nics=[ctxt.model.net.name], key_name="perseverance_dev_key")
         fip = FloatingIP("fip", ctxt.model.gateway,
                          ctxt.model.gateway.iface0.addr0, pool="external")
-    spec = Test13("test13")
-    _ = [spec.grid[i] for i in ["LN", "NY", "TK"]]
-    rec = provisioner.provision_infra_spec(spec)
+    model = Test13("test13")
+    _ = [model.grid[i] for i in ["LN", "NY", "TK"]]
+    rec = provisioner.provision_infra_model(model)
     assert rec
     
 def test014():
@@ -223,12 +223,12 @@ def test014():
                          nics=[ctxt.model.net.name], key_name="perseverance_dev_key")
         fip = FloatingIP("fip", ctxt.model.gateway,
                          ctxt.model.gateway.iface0.addr0, pool="external")
-    spec = Test14("t14")
+    model = Test14("t14")
     for i in range(3):
         for j in range(5):
-            _ = spec.collective[i].workers[j]
-    rec = provisioner.provision_infra_spec(spec)
-    assert len(spec.resources()) == 22
+            _ = model.collective[i].workers[j]
+    rec = provisioner.provision_infra_model(model)
+    assert len(model.resources()) == 22
     
 def test015():
     provisioner = get_provisioner()
@@ -238,9 +238,9 @@ def test015():
                                 subnet=Subnet("WibbleSub", ctxt.comp.container.net, u'192.168.23.0/24'),
                                 workers=MultiResource(Server("worker", u'Ubuntu 13.10', "m1.small",
                                                               nics=[ctxt.comp.container.container.net.name])))
-    spec = Test15("t15")
-    _ = spec.g[1].workers[1]
-    rec = provisioner.provision_infra_spec(spec)
+    model = Test15("t15")
+    _ = model.g[1].workers[1]
+    rec = provisioner.provision_infra_model(model)
     assert rec
     
 def test016():
@@ -249,9 +249,9 @@ def test016():
         net = Network("wibble")
         subnet = Subnet("WibbleSub", lambda _: [], u"192.168.23.0/24",
                         dns_nameservers=[u'8.8.8.8'])
-    spec = Test16("t16")
+    model = Test16("t16")
     try:
-        provisioner.provision_infra_spec(spec)
+        provisioner.provision_infra_model(model)
         assert False, "We should have gotten an error about the network arg"
     except ProvisionerException, e:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
@@ -272,9 +272,9 @@ def test017():
                                                                 nics=[ctxt.comp.container.cluster_net.name]),
                                        cluster=MultiResource(Server("cluster_node", "Ubuntu 13.10", "m1.small",
                                                                      nics=[ctxt.comp.container.container.cluster_net.name])))
-    spec = Test17("t17")
-    _ = spec.clusters["ny"].cluster[1]
-    rec = provisioner.provision_infra_spec(spec)
+    model = Test17("t17")
+    _ = model.clusters["ny"].cluster[1]
+    rec = provisioner.provision_infra_model(model)
     assert rec
     
 #@FIXME test018-test021 suspended as validation on the class object currently
@@ -343,7 +343,7 @@ def test024():
     class SGTest(InfraModel):
         secgroup = SecGroup("wibbleGroup", description="A group for testing")
     inst = SGTest("t1")
-    rec = prov.provision_infra_spec(inst)
+    rec = prov.provision_infra_model(inst)
     assert rec
     
 def test025():
@@ -355,7 +355,7 @@ def test025():
         fip = FloatingIP("fip1", ctxt.model.server,
                          ctxt.model.server.iface0.addr0, pool="external")
     inst = SGTest("t25")
-    rec = prov.provision_infra_spec(inst)
+    rec = prov.provision_infra_model(inst)
     assert rec
     
 def test026():
@@ -371,7 +371,7 @@ def test027():
                             ip_protocol="icmp",
                             from_port=-1, to_port=-1)
     inst = SGRTest("ping")
-    rec = prov.provision_infra_spec(inst)
+    rec = prov.provision_infra_model(inst)
     assert rec
 
 def test028():
@@ -389,7 +389,7 @@ def test028():
     class SGRTest(InfraModel):
         external_access = seccomp
     inst = SGRTest("seccomp")
-    rec = prov.provision_infra_spec(inst)
+    rec = prov.provision_infra_model(inst)
     assert rec
 
 def test029():
@@ -411,7 +411,7 @@ def test029():
         fip = FloatingIP("fip1", ctxt.model.server,
                          ctxt.model.server.iface0.addr0, pool="external")
     inst = SGRTest("seccomp with server")
-    rec = prov.provision_infra_spec(inst)
+    rec = prov.provision_infra_model(inst)
     assert rec
     
 def test030():
@@ -426,7 +426,7 @@ def test030():
         with_variables(Var("SERVER_IP", IPTest.server_fip.ip))
     ns = IPNamespace()
     ns.compute_provisioning_for_environ(inst)
-    prov.provision_infra_spec(inst)
+    prov.provision_infra_model(inst)
     assert ns.future("SERVER_IP").value()
 
 def do_all():

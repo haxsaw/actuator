@@ -32,13 +32,13 @@ class ProvisionerException(Exception):
 
 
 class BaseProvisioner(object):
-    def provision_infra_spec(self, infraspec_instance):
-        if not isinstance(infraspec_instance, InfraModel):
+    def provision_infra_model(self, inframodel_instance):
+        if not isinstance(inframodel_instance, InfraModel):
             raise ProvisionerException("Provisioner asked to provision something not an InfraModel")
-        _ = infraspec_instance.refs_for_components()
-        return self._provision(infraspec_instance)
+        _ = inframodel_instance.refs_for_components()
+        return self._provision(inframodel_instance)
     
-    def _provision(self, infraspec_instance):
+    def _provision(self, inframodel_instance):
         raise TypeError("Derived class must implement _provision()")
     
     def deprovision_infra_from_record(self, record):

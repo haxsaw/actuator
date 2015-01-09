@@ -76,7 +76,7 @@ def with_config_options(cls, *args, **kwargs):
 _node_dict = "_node_dict"
 #
 #@FIXME at the moment, this capability doesn't make sense in the larger scheme of
-#config specs; this is because although you could theoretically add a bunch of
+#config models; this is because although you could theoretically add a bunch of
 #tasks from some task library, you won't have access to the objects to enter
 #them into dependency expressions in any easy way. Even if you added the expressions
 #in the same library module and just added them with "with_dependencies", you
