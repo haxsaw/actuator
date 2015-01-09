@@ -37,18 +37,92 @@ import os
 #value for the ACTUATOR_ALLOW_SSH_ARGS env var.
 if not os.environ.get("ACTUATOR_ALLOW_SSH_ARGS"):
     os.environ['ANSIBLE_SSH_ARGS'] = ""
+import traceback
 
 
-from modeling import MultiComponent, MultiComponentGroup, ComponentGroup, ctxt, ActuatorException
+from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
+                      ctxt, ActuatorException)
 from infra import (InfraModel, InfraException, with_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup)
-from namespace import (Var, NamespaceModel, with_variables, NamespaceException, Role,
-                       with_roles, MultiRole, RoleGroup,
-                       MultiRoleGroup)
+from namespace import (Var, NamespaceModel, with_variables, NamespaceException,
+                       Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup)
 from config import (ConfigModel, with_searchpath, with_dependencies,
-                    ConfigException, TaskGroup, NullTask,
-                    MultiTask, ConfigClassTask)
-from provisioners.core import ProvisionerException
+                    ConfigException, TaskGroup, NullTask, MultiTask,
+                    ConfigClassTask)
+from provisioners.core import ProvisionerException, BaseProvisioner
 from exec_agents.core import ExecutionAgent, ExecutionException
+from exec_agents.ansible.agent import AnsibleExecutionAgent
 from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                           CopyFileTask, ProcessCopyFileTask)
+from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, root_logger)
+
+
+class ActuatorOrchestration(object):
+    def __init__(self, infra_model_inst=None, provisioner=None,
+                 namespace_model_inst=None, config_model_inst=None,
+                 log_level=LOG_INFO, no_delay=False, num_threads=5):
+        if not (infra_model_inst is None or isinstance(infra_model_inst, InfraModel)):
+            raise ExecutionException("infra_model_inst is no an instance of InfraModel")
+        self.infra_model_inst = infra_model_inst
+        
+        if not (provisioner is None or isinstance(provisioner, BaseProvisioner)):
+            raise ExecutionException("provisioner is not an instance of BaseProvisioner")        
+        self.provisioner = provisioner
+        
+        if not (namespace_model_inst is None or isinstance(namespace_model_inst, NamespaceModel)):
+            raise ExecutionException("namespace_model_inst is not an instance of NamespaceModel")
+        self.namespace_model_inst = namespace_model_inst
+        
+        if not (config_model_inst is None or isinstance(config_model_inst, ConfigModel)):
+            raise ExecutionException("config_model_inst is not an instance of ConfigModel")
+        self.config_model_inst = config_model_inst
+        
+        self.log_level = log_level
+        root_logger.setLevel(log_level)
+        self.logger = root_logger.getChild("orchestrator")
+        
+        if self.config_model_inst is not None:
+            self.config_ea = AnsibleExecutionAgent(config_model_instance=self.config_model_inst,
+                                                   namespace_model_instance=self.namespace_model_inst,
+                                                   num_threads=num_threads,
+                                                   no_delay=no_delay,
+                                                   log_level=log_level)
+                                               
+    def initiate_system(self, **kwargs):
+        self.logger.info("Orchestration starting")
+        if self.infra_model_inst is not None:
+            try:
+                self.logger.info("Starting provisioning phase")
+                if self.namespace_model_inst:
+                    self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
+                _ = self.infra_model_inst.refs_for_components()
+                self.provisioner.provision_infra_spec(self.infra_model_inst)
+                self.logger.info("Provisioning phase complete")
+            except ProvisionerException, e:
+                self.logger.critical(">>> Provisioner failed "
+                                     "with '%s'; failed resources shown below" % e.message)
+                for t, et, ev, tb in self.provisioner.get_aborted_tasks():
+                    self.logger.critical("Task %s named %s id %s" %
+                                         (t.__class__.__name__, t.name, str(t._id)),
+                                         exc_info=(et, ev, tb))
+                self.logger.critical("Aborting orchestration")
+                return
+                
+        
+        if self.config_model_inst is not None:
+            try:
+                self.logger.info("Starting config phase")
+                self.config_ea.perform_config()
+                self.logger.info("Config phase complete")
+            except ExecutionException, e:
+                self.logger.critical(">>> Config exec agent failed with '%s'; "
+                                     "failed tasks shown below" % e.message)
+                for t, et, ev, tb in self.provisioner.get_aborted_tasks():
+                    self.logger.critical("Task %s named %s id %s" %
+                                         (t.__class__.__name__, t.name, str(t._id)),
+                                         exc_info=(et, ev, tb))
+                self.logger.critical("Aborting orchestration")
+                return
+            
+        self.logger.info("Orchestration complete")
+                

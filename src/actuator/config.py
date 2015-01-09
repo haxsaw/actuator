@@ -59,7 +59,9 @@ def with_dependencies(cls, *args, **kwargs):
     
 _config_options = "__config_options__"
 _default_task_role = "default_task_role"
-_legal_options = set([_default_task_role])
+_remote_user = "remote_user"
+_private_key_file = "private_key_file"
+_legal_options = set([_default_task_role, _remote_user, _private_key_file])
 @ClassModifier
 def with_config_options(cls, *args, **kwargs):
     opts = cls.__dict__.get(_config_options)
@@ -302,12 +304,13 @@ class ConfigModel(ModelBase):
     
     def __init__(self, namespace_model_instance=None, nexus=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
-                 delegate=None):
+                 delegate=None, default_task_role=None):
         super(ConfigModel, self).__init__(nexus=nexus)
         self.namespace_model_instance = namespace_model_instance
         self.remote_user = remote_user
         self.remote_pass = remote_pass
         self.private_key_file = private_key_file
+        self.default_task_role = default_task_role
         self.delegate = delegate
         clone_dict = {}
         #NOTE! _node_dict is an inverted dictionary (the string keys are
@@ -326,11 +329,14 @@ class ConfigModel(ModelBase):
         self.dependencies = [d.clone(clone_dict)
                              for d in self.get_class_dependencies()]
         #default option values
-        self.default_task_role = None
         opts = object.__getattribute__(self, _config_options)
         for k, v in opts.items():
             if k == _default_task_role:
                 self.default_task_role = v
+            elif k == _remote_user:
+                self.remote_user = v
+            elif k == _private_key_file:
+                self.private_key_file = v
                 
     def _set_delegate(self, delegate):
         self.delegate = delegate

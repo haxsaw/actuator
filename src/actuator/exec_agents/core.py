@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from IPython.lib.deepreload import add_submodule
 
 '''
 Created on Oct 20, 2014
@@ -97,13 +98,14 @@ class ExecutionAgent(object):
     def perform_task(self, graph, task):
         #start with a small random wait to try to avoid too many things going to the
         #same machine at the same time
+        add_suffix = lambda t, sfx: ("task %s named %s id %s->%s" %
+                                     (t.__class__.__name__, t.name, t._id, sfx))
         logger = root_logger.getChild(self.exec_agent)
-        logger.info("processing %s task named %s, id %s" %
-                    (task.__class__.__name__, task.name, str(task._id)))
+        logger.info(add_suffix(task, "processing started"))
         if not self.no_delay:
-            logger.info("task id %s start commencement delay" % str(task._id))
+            logger.info(add_suffix(task, "start commencement delay"))
             time.sleep(random.uniform(0.2, 2.5))
-            logger.info("task id %s end commencement delay" % str(task._id))
+            logger.info(add_suffix(task, "end commencement delay"))
         try_count = 0
         success = False
         while try_count < task.repeat_count and not success:
@@ -113,28 +115,26 @@ class ExecutionAgent(object):
             else:
                 logfile=None
             try:
-                logger.info("starting task %s id %s" % (task.name, str(task._id)))
+                logger.info(add_suffix(task, "start performing task"))
                 self._perform_task(task, logfile=logfile)
-                logger.info("task %s succeeded" % (str(task._id)))
+                logger.info(add_suffix(task, "task succeeded"))
                 success = True
             except Exception, _:
-                logger.warning("Task %s id %s failed" % (task.name, str(task._id)))
+                logger.warning(add_suffix(task, "task failed!"))
                 msg = ">>>Task Exception for {}!".format(task.name)
                 if logfile:
                     logfile.write("{}\n".format(msg))
                 etype, value, tb = sys.exc_info()
                 if try_count < task.repeat_count:
                     retry_wait = try_count * task.repeat_interval
-                    logger.warning("Retrying %s id %s again in %d secs" %
-                                   (task.name, str(task._id), retry_wait))
+                    logger.warning(add_suffix(task, "retrying after %d secs" % retry_wait))
                     msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
                     if logfile:
                         logfile.write("{}\n".format(msg))
                         traceback.print_exception(etype, value, tb, file=logfile)
                     time.sleep(retry_wait)
                 else:
-                    logger.error("Max tries exceeded; task %s id %s aborting" %
-                                 (task.name, str(task._id)))
+                    logger.error(add_suffix(task, "max tries exceeded; task aborting"))
                     self.record_aborted_task(task, etype, value, tb)
                 del etype, value, tb
                 sys.exc_clear()
@@ -147,8 +147,7 @@ class ExecutionAgent(object):
                     for successor in graph.successors_iter(task):
                         graph.node[successor]["ins_traversed"] += 1
                         if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
-                            logger.debug("Queueing up %s id %s for performance" %
-                                         (successor.name, str(successor._id)))
+                            logger.debug(add_suffix(successor, "queueing up for performance"))
                             self.task_queue.put((graph, successor))
                 self.node_lock.release()
             if logfile:
@@ -193,8 +192,8 @@ class ExecutionAgent(object):
             logger.info("...workers started")
             #queue the initial tasks
             for task in (t for t in graph.nodes() if graph.in_degree(t) == 0):
-                logger.debug("Queueing up %s id %s for performance" %
-                             (task.name, str(task._id)))
+                logger.debug("Queueing up %s named %s id %s for performance" %
+                             (task.__class__.__name__, task.name, str(task._id)))
                 self.task_queue.put((graph, task))
             logger.info("Initial tasks queued; waiting for completion")
             #now wait to be signaled it finished
