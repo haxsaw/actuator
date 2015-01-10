@@ -109,9 +109,10 @@ class _ComputableValue(_ModelRefSetAcquireable):
     
 
 class Var(_ModelRefSetAcquireable):
-    def __init__(self, name, value):
+    def __init__(self, name, value, in_env=True):
         self.name = name
         self.value = _ComputableValue(value)
+        self.in_env = in_env
         
     def _get_model_refs(self):
         return self.value._get_model_refs()

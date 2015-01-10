@@ -49,7 +49,7 @@ class TaskProcessor(object):
     
     def make_args(self, task, hlist):
         kwargs = {"host_list":hlist,
-                  "environment":task.task_variables()
+                  "environment":task.task_variables(for_env=True)
                   }
         remote_user = task.get_remote_user()
         if remote_user is not None:

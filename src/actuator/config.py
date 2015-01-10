@@ -149,12 +149,13 @@ class _ConfigTask(Orable, ModelComponent):
         self._private_key_file = private_key_file
         self.delegate = delegate
         
-    def task_variables(self):
+    def task_variables(self, for_env=False):
         the_vars = {}
         task_role = self.get_task_role()
         if task_role is not None:
             the_vars = {k:v.get_value(task_role)
-                        for k, v in task_role.get_visible_vars().items()}
+                        for k, v in task_role.get_visible_vars().items()
+                        if not for_env or (for_env and v.in_env)}
         return the_vars
         
     def set_task_role(self, task_role):

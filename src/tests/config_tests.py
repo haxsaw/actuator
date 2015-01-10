@@ -1105,6 +1105,22 @@ def test50():
     assert (len(cap.performed) == 11 and
             cap.pos("default", "final") == len(cap.performed) -1 and
             cap.pos("default", "initial") == 0)
+    
+def test51():
+    class SkipemNS(NamespaceModel):
+        with_variables(Var("ONE", "1"),
+                       Var("TWO", "2"),
+                       Var("THREE", "!{ONE}+!{TWO}", in_env=False))
+        r = Role("me", host_ref="127.0.0.1")
+    ns = SkipemNS()
+    
+    class SkipConfig(ConfigModel):
+        t = NullTask("env-test", task_role=SkipemNS.r)
+        
+    cfg = SkipConfig()
+    cfg.set_namespace(ns)
+    
+    assert "THREE" in cfg.t.task_variables() and "THREE" not in cfg.t.task_variables(for_env=True)
 
 
 def do_all():
