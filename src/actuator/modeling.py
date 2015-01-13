@@ -64,6 +64,8 @@ class ContextExpr(object):
                 ref = ref[p.value(ctx)]
             else:
                 ref = getattr(ref, p)
+                if callable(ref):
+                    ref = ref(ctx)
         return ref
     
         
@@ -131,6 +133,7 @@ class AbstractModelingEntity(object):
         if not self.fixed:
             self.fixed = True
             self._fix_arguments()
+        return self
             
     def refix_arguments(self):
         self.fixed = False

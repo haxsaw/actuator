@@ -24,9 +24,11 @@ Created on 7 Jun 2014
 '''
 from actuator import (MultiComponent, 
                           MultiComponentGroup, ComponentGroup, ctxt)
-from actuator.infra import InfraModel
+from actuator.infra import InfraModel, StaticServer, MultiResource
 from actuator.provisioners.example_resources import Server
 from actuator.modeling import CallContext
+from actuator.namespace import Var, NamespaceModel, with_variables, Role,\
+    MultiRole
 
 
 def setup():
@@ -273,11 +275,61 @@ def test18():
                                        workers=MultiComponent(Server("worker", mem="8GB")))
     infra = Infra("infra")
     assert infra.nexus
+    
+def test19():
+    class InfraIPTest(InfraModel):
+        s = StaticServer("sommat", "127.0.0.1")
+        
+    infra = InfraIPTest("test")
+    infra.s.fix_arguments()
+    
+    class IPTest(NamespaceModel):
+        with_variables(Var("ADDY", ctxt.model.infra.s.ip))
+        r = Role("bogus")
+        
+    ns = IPTest()
+    ns.set_infra_model(infra)
+    
+    v, o = ns.find_variable("ADDY")
+    assert v.get_value(ns.r) == "127.0.0.1"
+    
+def host_list(ref_exp, sep_char=" "):
+    def host_list_inner(ctx):
+        hlist = list(ref_exp(ctx))
+        #this next line is needed as the framework isn't doing the
+        #arg fixing for us
+        _ = [h.host_ref.fix_arguments() for h in hlist]
+        ip_list = [h.host_ref.ip() for h in hlist]
+        return sep_char.join(ip_list)
+    return host_list_inner
 
+def test20():
+    class IPFactory(object):
+        def __init__(self):
+            self.host = 0
+        def __call__(self, ctx=None):
+            self.host += 1
+            return "192.168.1.%d" % self.host
+    ipfactory = IPFactory()
+    
+    class Infra20(InfraModel):
+        slaves = MultiResource(StaticServer("slave", ipfactory))
+    infra = Infra20("i20")
+        
+    class Namespace20(NamespaceModel):
+        with_variables(Var("EXPR", host_list(ctxt.model.q.s)))
+        s = MultiRole(Role("dude", host_ref=Infra20.slaves[ctxt.name]))
+    ns = Namespace20()
+    for i in range(5):
+        ns.s[i].fix_arguments()
+    
+    v, o = ns.s[0].find_variable("EXPR")
+    assert len(v.get_value(ns.s[0]).split(" ")) == 5
     
 
 def do_all():
     setup()
+    test19()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

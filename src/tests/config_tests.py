@@ -1121,7 +1121,7 @@ def test51():
     cfg.set_namespace(ns)
     
     assert "THREE" in cfg.t.task_variables() and "THREE" not in cfg.t.task_variables(for_env=True)
-
+    
 
 def do_all():
     setup()

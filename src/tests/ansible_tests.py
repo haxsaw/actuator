@@ -34,7 +34,8 @@ import stat
 from actuator import (NamespaceModel, Var, Role, ConfigModel, PingTask,
                       with_variables, ExecutionException, CommandTask,
                       ScriptTask, CopyFileTask, InfraModel, StaticServer,
-                      ProcessCopyFileTask, ctxt)
+                      ProcessCopyFileTask, ctxt, with_config_options,
+                      NullTask, TaskGroup)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 from actuator.utils import find_file
 
@@ -211,6 +212,11 @@ def test008():
     try:
         ea.perform_config()
     except ExecutionException, e:
+        import traceback
+        for task, etype, value, tb in ea.get_aborted_tasks():
+            print ">>>Task {} failed with the following:".format(task.name)
+            traceback.print_exception(etype, value, tb)
+            print
         assert False, e.message
         
 def test009():
@@ -709,6 +715,35 @@ def test021():
             print
         assert False, e.message
       
+def test022():
+    class NS022(NamespaceModel):
+        def_role = Role("def_role", host_ref="127.0.0.1")
+        r = Role("r", host_ref="8.8.8.8")
+    ns = NS022()
+    
+    class C022(ConfigModel):
+        with_config_options(default_run_from=NS022.def_role)
+        t = NullTask("null", task_role=NS022.r)
+    cfg = C022()
+    
+    cfg.set_namespace(ns)
+    ea = AnsibleExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    assert ea._get_run_host(cfg.t) == "127.0.0.1"
+
+def test023():
+    class NS023(NamespaceModel):
+        def_role = Role("def_role", host_ref="127.0.0.1")
+        r = Role("r", host_ref="8.8.8.8")
+    ns = NS023()
+    
+    class C023(ConfigModel):
+        t = NullTask("null", task_role=NS023.r, run_from=NS023.def_role)
+    cfg = C023()
+    
+    cfg.set_namespace(ns)
+    ea = AnsibleExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    assert ea._get_run_host(cfg.t) == "127.0.0.1"
+
 
 def do_all():
     setup()

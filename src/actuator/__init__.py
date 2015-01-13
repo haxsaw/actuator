@@ -48,7 +48,7 @@ from namespace import (Var, NamespaceModel, with_variables, NamespaceException,
                        Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup)
 from config import (ConfigModel, with_searchpath, with_dependencies,
                     ConfigException, TaskGroup, NullTask, MultiTask,
-                    ConfigClassTask)
+                    ConfigClassTask, with_config_options)
 from provisioners.core import ProvisionerException, BaseProvisioner
 from exec_agents.core import ExecutionAgent, ExecutionException
 from exec_agents.ansible.agent import AnsibleExecutionAgent

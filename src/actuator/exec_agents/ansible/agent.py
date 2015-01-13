@@ -200,6 +200,38 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
     
 
 class AnsibleExecutionAgent(ExecutionAgent):
+    def _get_run_host(self, task):
+        #NOTE about task_role and run_from:
+        # the task role provides the focal point for tasks to be performed
+        # in a system, but it is NOT necessarily the place where the task
+        # runs. by default the task_role identifies where to run the task,
+        # but the task supports an optional arg, run_from, that determines
+        # where to actually execute the task. In this latter case, the
+        # task_role anchors the task to a role in the namespace, hence
+        # defining where to get its Var values, but looks elsewhere for
+        # a place to run the task. Any Vars attached to the run_from role
+        # aren't used.
+        run_role = task.get_run_from()
+        if run_role is not None:
+            run_role.fix_arguments()
+            run_host = task.get_run_host()
+            if run_host is None:
+                raise ExecutionException("A run_from role was supplied that doesn't "
+                                         "result in a host for task {}; run_from is {}"
+                                         .format(task.name, run_role.name))
+        else:
+            run_role = task.get_task_role()
+            if run_role is not None:
+                run_role.fix_arguments()
+                run_host = task.get_task_host()
+                if run_host is None:
+                    raise ExecutionException("A host can't be determined from a task_role; "
+                                             "task:{}, task_role={}"
+                                             .format(task.name, run_role.name))
+            else:
+                raise ExecutionException("Can't determine a place to run task {}".format(task.name))
+        return run_host
+        
     def _perform_task(self, task, logfile=None):
         task.fix_arguments()
         if isinstance(task, StructuralTask):
@@ -207,9 +239,9 @@ class AnsibleExecutionAgent(ExecutionAgent):
         else:
             cmapper = get_mapper(_agent_domain)
             processor = cmapper[task.__class__]()
-#             task.fix_arguments()
-            task.get_task_role().fix_arguments()
-            task_host = task.get_task_host()
+#             task.get_task_role().fix_arguments()
+#             task_host = task.get_task_host()
+            task_host = self._get_run_host(task)
             if task_host is not None:
                 msg = "Task {} being run on {}".format(task.name, task_host)
                 if logfile:

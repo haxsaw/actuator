@@ -219,8 +219,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
                   "config_drive":self.config_drive, "disk_config":self.disk_config,})
 #                   "floating_ip":self.floating_ip} )
 
-        
-    def ip(self):
+    def ip(self, context=None):
         return self.iface0.addr0
         
         
@@ -343,7 +342,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         self.pool = None
         self.ip = None
         
-    def ip(self):
+    def ip(self, context=None):
         return self.ip
         
     def _fix_arguments(self, provisioner=None):
@@ -423,9 +422,12 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         self._subnet = subnet
         self.subnet = None
         
-    def fix_arguments(self, provisioner=None):
+#     def fix_arguments(self, provisioner=None):
+    def _fix_arguments(self, provisioner=None):
+        super(RouterInterface, self)._fix_arguments()
         self.router = self._get_arg_value(self._router)
         self.subnet = self._get_arg_value(self._subnet)
+        return self
         
     def get_router(self):
         return self.router

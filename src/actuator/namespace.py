@@ -51,10 +51,8 @@ class _ComputableValue(_ModelRefSetAcquireable):
     def __init__(self, value):
         if isinstance(value, basestring):
             self.value = str(value)
-        elif hasattr(value, "value"):
+        elif hasattr(value, "value") or value is None or callable(value):
             self.value = value
-        elif value is None:
-            self.value = None
         else:
             raise NamespaceException("Unrecognized value type: %s" % str(type(value)))
         
@@ -78,7 +76,7 @@ class _ComputableValue(_ModelRefSetAcquireable):
             infra = context.find_infra_model()
             val = infra.get_inst_ref(self.value).value() if infra is not None else None
             return val
-        elif isinstance(self.value, ContextExpr):
+        elif callable(self.value):
             value = context._get_arg_value(self.value)
         elif self.value is None:
             return None

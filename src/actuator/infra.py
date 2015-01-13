@@ -190,7 +190,7 @@ class InfraModel(ModelBase):
     
     
 class IPAddressable(object):
-    def ip(self):
+    def ip(self, context=None):
         raise TypeError("Not implemented")
     
     
@@ -206,5 +206,5 @@ class StaticServer(IPAddressable, Provisionable):
     def get_init_args(self):
         return ((self.name, self._hostname_or_ip), {})
     
-    def ip(self):
+    def ip(self, context=None):
         return self.hostname_or_ip
