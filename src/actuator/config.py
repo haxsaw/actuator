@@ -204,7 +204,7 @@ class _ConfigTask(Orable, ModelComponent):
                 else comp.host_ref.value())
         if isinstance(host, IPAddressable):
             host.fix_arguments()
-            host = host.ip()
+            host = host.get_ip()
         return host
     
     def get_task_role(self):
@@ -237,7 +237,7 @@ class _ConfigTask(Orable, ModelComponent):
                 else comp.host_ref.value())
         if isinstance(host, IPAddressable):
             host.fix_arguments()
-            host = host.ip()
+            host = host.get_ip()
         return host            
         
     def get_init_args(self):
@@ -419,7 +419,7 @@ class ConfigModel(ModelBase):
                 else comp.host_ref.value())
         if isinstance(host, IPAddressable):
             host.fix_arguments()
-            host = host.ip()
+            host = host.get_ip()
         return host        
     
     def get_task_role(self):
@@ -450,7 +450,7 @@ class ConfigModel(ModelBase):
                 else comp.host_ref.value())
         if isinstance(host, IPAddressable):
             host.fix_arguments()
-            host = host.ip()
+            host = host.get_ip()
         return host
   
     def set_namespace(self, namespace):

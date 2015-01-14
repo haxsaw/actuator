@@ -113,7 +113,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.config_drive = None
         self._disk_config = disk_config
         self.disk_config = None
-        #@FIXME: disabling floating ip argument in order to avoid accidental
+        #@FIXME: disabling floating get_ip argument in order to avoid accidental
         #cycles in the dependency graph.
 #         self._floating_ip=floating_ip
 #         self.floating_ip=None
@@ -219,7 +219,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
                   "config_drive":self.config_drive, "disk_config":self.disk_config,})
 #                   "floating_ip":self.floating_ip} )
 
-    def ip(self, context=None):
+    def get_ip(self, context=None):
         return self.iface0.addr0
         
         
@@ -328,8 +328,8 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         Creates a floating IP and attaches it to a server
         @param server: string with a Openstack server id, or a callable that returns either an
                 Openstack server id string or a Server ref object
-        @param associated_ip: string containing an IP on the server to associate with the floating ip,
-                or a callable that returns the ip on a server (server.ifaceN.addrN)
+        @param associated_ip: string containing an IP on the server to associate with the floating get_ip,
+                or a callable that returns the get_ip on a server (server.ifaceN.addrN)
         @param pool: optional; string name of the pool to allocate the IP from, or a callable that returns
                 
         """
@@ -342,7 +342,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         self.pool = None
         self.ip = None
         
-    def ip(self, context=None):
+    def get_ip(self, context=None):
         return self.ip
         
     def _fix_arguments(self, provisioner=None):
@@ -424,7 +424,6 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         
 #     def fix_arguments(self, provisioner=None):
     def _fix_arguments(self, provisioner=None):
-        super(RouterInterface, self)._fix_arguments()
         self.router = self._get_arg_value(self._router)
         self.subnet = self._get_arg_value(self._subnet)
         return self

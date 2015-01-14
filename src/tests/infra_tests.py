@@ -935,8 +935,8 @@ def test150():
         pass
     s = NoAdminIP()
     try:
-        _ = s.ip()
-        raise False, "Should not have been able to call ip()"
+        _ = s.get_ip()
+        raise False, "Should not have been able to call get_ip()"
     except TypeError, e:
         assert "Not implemented" in e.message
         

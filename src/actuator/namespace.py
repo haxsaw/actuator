@@ -51,7 +51,7 @@ class _ComputableValue(_ModelRefSetAcquireable):
     def __init__(self, value):
         if isinstance(value, basestring):
             self.value = str(value)
-        elif hasattr(value, "value") or value is None or callable(value):
+        elif isinstance(value, AbstractModelReference) or value is None or callable(value):
             self.value = value
         else:
             raise NamespaceException("Unrecognized value type: %s" % str(type(value)))
@@ -63,7 +63,7 @@ class _ComputableValue(_ModelRefSetAcquireable):
         return s
 
     def value_is_external(self):
-        return hasattr(self.value, "value")
+        return isinstance(self.value, AbstractModelReference)
         
     def expand(self, context, allow_unexpanded=False, raise_on_unexpanded=False):
         history = set([])

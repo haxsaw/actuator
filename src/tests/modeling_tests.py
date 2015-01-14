@@ -284,7 +284,7 @@ def test19():
     infra.s.fix_arguments()
     
     class IPTest(NamespaceModel):
-        with_variables(Var("ADDY", ctxt.model.infra.s.ip))
+        with_variables(Var("ADDY", ctxt.model.infra.s.get_ip))
         r = Role("bogus")
         
     ns = IPTest()
@@ -293,13 +293,13 @@ def test19():
     v, o = ns.find_variable("ADDY")
     assert v.get_value(ns.r) == "127.0.0.1"
     
-def host_list(ref_exp, sep_char=" "):
+def host_list(ctx_exp, sep_char=" "):
     def host_list_inner(ctx):
-        hlist = list(ref_exp(ctx))
+        hlist = list(ctx_exp(ctx))
         #this next line is needed as the framework isn't doing the
         #arg fixing for us
         _ = [h.host_ref.fix_arguments() for h in hlist]
-        ip_list = [h.host_ref.ip() for h in hlist]
+        ip_list = [h.host_ref.get_ip() for h in hlist]
         return sep_char.join(ip_list)
     return host_list_inner
 

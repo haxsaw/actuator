@@ -51,15 +51,15 @@ user_home = os.path.expanduser("~")
 
 def find_ip():
     hostname = socket.gethostname()
-    ip = socket.gethostbyname(hostname)
-    if ip == "127.0.0.1":
+    get_ip = socket.gethostbyname(hostname)
+    if get_ip == "127.0.0.1":
         #try to find a better one; try a Linux convention
         hostname = "{}.local".format(hostname)
         try:
-            ip = socket.gethostbyname(hostname)
+            get_ip = socket.gethostbyname(hostname)
         except Exception, _:
             pass
-    return ip
+    return get_ip
 
 
 def test001():
@@ -98,7 +98,7 @@ def test002():
     
 def test003():
     class SimpleNamespace(NamespaceModel):
-        with_variables(Var("PING_TARGET", "not.an.ip.addy"))
+        with_variables(Var("PING_TARGET", "not.an.get_ip.addy"))
         ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           

@@ -123,7 +123,7 @@ class MockNovaClient(object):
     def fip_create_result(self, *args, **kwargs):
         class FIPResult(object):
             def __init__(self):
-                self.ip = fake.ipv4()
+                self.get_ip = fake.ipv4()
                 self.id = fake.md5()
             
         return FIPResult()

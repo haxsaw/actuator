@@ -380,10 +380,10 @@ class ReportingTask(_ConfigTask, StructuralTask):
 
 
 class BogusServerRef(IPAddressable):
-    def ip(self):
+    def get_ip(self):
         return "8.8.8.8"
     
-    admin_ip = property(ip)
+    admin_ip = property(get_ip)
         
 
 def test27():
@@ -740,7 +740,7 @@ def test43():
     test43: set a default task performance host using the 'default_task_role'
     kwarg of with_config_options(), and then create a task with no task_role.
     create an instance of the config, and see that get_task_host() on the
-    config's task returns the role's ip address
+    config's task returns the role's get_ip address
     """
     cap = Capture()
     

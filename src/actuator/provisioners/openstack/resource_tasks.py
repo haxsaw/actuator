@@ -266,7 +266,7 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
     def _provision(self, run_context):
         self.rsrc.refix_arguments()
         fip = run_context.nvclient.floating_ips.create(self.rsrc.pool)
-        self.rsrc.set_addresses(fip.ip)
+        self.rsrc.set_addresses(fip.get_ip)
         self.rsrc.set_osid(fip.id)
         run_context.record.add_floating_ip_id(self.rsrc._id, self.rsrc.osid)
         associated_ip = self.rsrc.associated_ip

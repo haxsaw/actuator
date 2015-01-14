@@ -36,7 +36,7 @@ import os
 #can allow regular processing on ANSIBLE_SSH_ARGS by supplying a non-empty
 #value for the ACTUATOR_ALLOW_SSH_ARGS env var.
 if not os.environ.get("ACTUATOR_ALLOW_SSH_ARGS"):
-    os.environ['ANSIBLE_SSH_ARGS'] = ""
+    os.environ['ANSIBLE_SSH_ARGS'] = "-oStrictHostKeyChecking=no"
 import traceback
 
 
@@ -101,10 +101,13 @@ class ActuatorOrchestration(object):
             except ProvisionerException, e:
                 self.logger.critical(">>> Provisioner failed "
                                      "with '%s'; failed resources shown below" % e.message)
-                for t, et, ev, tb in self.provisioner.get_aborted_tasks():
-                    self.logger.critical("Task %s named %s id %s" %
-                                         (t.__class__.__name__, t.name, str(t._id)),
-                                         exc_info=(et, ev, tb))
+                if self.provisioner.agent is not None:
+                    for t, et, ev, tb in self.provisioner.agent.get_aborted_tasks():
+                        self.logger.critical("Task %s named %s id %s" %
+                                             (t.__class__.__name__, t.name, str(t._id)),
+                                             exc_info=(et, ev, tb))
+                else:
+                    self.logger.critical("No further information")
                 self.logger.critical("Aborting orchestration")
                 return
                 
@@ -117,7 +120,8 @@ class ActuatorOrchestration(object):
             except ExecutionException, e:
                 self.logger.critical(">>> Config exec agent failed with '%s'; "
                                      "failed tasks shown below" % e.message)
-                for t, et, ev, tb in self.provisioner.get_aborted_tasks():
+#                 for t, et, ev, tb in self.provisioner.get_aborted_tasks():
+                for t, et, ev, tb in self.config_ea.get_aborted_tasks():
                     self.logger.critical("Task %s named %s id %s" %
                                          (t.__class__.__name__, t.name, str(t._id)),
                                          exc_info=(et, ev, tb))

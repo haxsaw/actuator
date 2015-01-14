@@ -24,7 +24,8 @@ Created on 7 Jun 2014
 '''
 from actuator import (Var, NamespaceModel, with_variables, NamespaceException,
                           Role, with_roles, MultiResource, 
-                          MultiResourceGroup, ctxt, ActuatorException)
+                          MultiResourceGroup, ctxt, ActuatorException,
+                          StaticServer)
 from actuator.namespace import RoleGroup, MultiRole, MultiRoleGroup
 from actuator.infra import InfraModel
 from actuator.modeling import AbstractModelReference
@@ -703,7 +704,7 @@ def test64():
     class NS(NamespaceModel):
         with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
         grid = (MultiRole(Role("worker",
-                                          variables=[Var("NODE_ID", ctxt.name)]))
+                               variables=[Var("NODE_ID", ctxt.name)]))
                 .add_variable(Var("BASE_NAME", "Grid")))
     ns = NS()
     value = ns.grid[5].var_value("NODE_NAME")
@@ -721,6 +722,22 @@ def test65():
         grid = (MultiRole(Role("worker"))
                 .add_variable(Var("BASE_NAME", "Grid")))
     ns = NS()
+    value = ns.grid[5].var_value("NODE_NAME")
+    assert value and value == "Grid-5"
+
+def test66():
+    class Infra(InfraModel):
+        grid_i = MultiResource(StaticServer("node", "127.0.0.1"))
+        
+    class NS(NamespaceModel):
+        with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
+        grid = (MultiRole(Role("worker",
+                               variables=[Var("NODE_ID", ctxt.name)]))
+                .add_variable(Var("BASE_NAME", "Grid")))
+    infra = Infra("66")
+    ns = NS()
+    ns.compute_provisioning_for_environ(infra)
+    _ = infra.refs_for_components()
     value = ns.grid[5].var_value("NODE_NAME")
     assert value and value == "Grid-5"
 

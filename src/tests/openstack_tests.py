@@ -66,9 +66,9 @@ def test002():
         fip = FloatingIP("fip1", ctxt.model.server,
                          ctxt.model.server.iface0.addr0, pool="external")
     model = Test2("test2")
-    assert model.fip.ip.value() is None and model.fip.osid.value() is None
+    assert model.fip.get_ip() is None and model.fip.osid.value() is None
     provisioner.provision_infra_model(model)
-    assert model.fip.ip.value() and model.fip.osid.value()
+    assert model.fip.get_ip() and model.fip.osid.value()
     
 def test003():
     provisioner = get_provisioner()
