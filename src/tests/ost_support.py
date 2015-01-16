@@ -78,7 +78,8 @@ class MockNovaClient(object):
             self.id = fake.md5()
             self.name = name
     
-    _image_list = [ImageResult(n) for n in (u'CentOS 6.5 x86_64', u'Ubuntu 13.10', u'Fedora 20 x86_64')]
+    _image_list = [ImageResult(n) for n in (u'CentOS 6.5 x86_64', u'Ubuntu 13.10',
+                                            u'Fedora 20 x86_64')]
     
     def image_create_result(self, *args, **kwargs):
         return random.choice(self._image_list)
@@ -123,7 +124,7 @@ class MockNovaClient(object):
     def fip_create_result(self, *args, **kwargs):
         class FIPResult(object):
             def __init__(self):
-                self.get_ip = fake.ipv4()
+                self.ip = fake.ipv4()
                 self.id = fake.md5()
             
         return FIPResult()
@@ -155,7 +156,8 @@ class MockNeutronClient(object):
         self.tenant_name = tenant_name
         
     def create_network(self, body=None):
-        result = {"network": {"id":fake.md5()}}
+#         result = {"network": {"id":fake.md5()}}
+        result = {"network": {"id":MockNovaClient._networks_list[0].id}}
         return result
         
     def create_subnet(self, body=None):
@@ -169,5 +171,11 @@ class MockNeutronClient(object):
     def list_routers(self, *args, **kwargs):
         """{d['name']:d['id'] for d in response["routers"]}"""
         return {'routers':[{'name':'wibbleRouter', 'id':fake.md5()}]}
+    
+    def add_gateway_router(self, *args, **kwargs):
+        return {}
+    
+    def add_interface_router(self, *args, **kwargs):
+        return {u'id':uuid.uuid4()}
     
     

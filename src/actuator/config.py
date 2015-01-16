@@ -423,11 +423,11 @@ class ConfigModel(ModelBase):
         return host        
     
     def get_task_role(self):
-        if self.default_task_role is None:
+        if self.default_task_role is None and self.delegate is None:
             raise ConfigException("No default task role defined on the config model")
 
         if self.namespace_model_instance is None:
-            raise ConfigException("ConfigModel instance can't get a default task host from a Namespace model reference without an instance of that model")
+            raise ConfigException("ConfigModel instance can't get a default task role from a Namespace model reference without an instance of that model")
         
         comp_ref = self.namespace_model_instance.get_inst_ref(self.default_task_role)
         comp_ref.fix_arguments()
@@ -616,7 +616,7 @@ class MultiTask(_ConfigTask, _Unpackable, StructuralTask):
         self.dependencies = []
         self.instances = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
-                
+        
     def _set_model_instance(self, mi):
         super(MultiTask, self)._set_model_instance(mi)
         self.rendezvous._set_model_instance(mi)
@@ -728,4 +728,7 @@ class NullTask(_ConfigTask):
     def __init__(self, name, path="", **kwargs):
         super(NullTask, self).__init__(name, **kwargs)
         self.path = path
+        
+    def perform(self):
+        return
         

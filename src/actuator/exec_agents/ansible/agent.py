@@ -31,7 +31,7 @@ import getpass
 # import json_runner
 
 from actuator.exec_agents.core import ExecutionAgent, ExecutionException
-from actuator.config import StructuralTask
+from actuator.config import StructuralTask, NullTask
 from actuator.config_tasks import *
 from actuator.utils import capture_mapping, get_mapper
 from actuator.namespace import _ComputableValue
@@ -234,7 +234,7 @@ class AnsibleExecutionAgent(ExecutionAgent):
         
     def _perform_task(self, task, logfile=None):
         task.fix_arguments()
-        if isinstance(task, StructuralTask):
+        if isinstance(task, (NullTask, StructuralTask)):
             task.perform()
         else:
             cmapper = get_mapper(_agent_domain)

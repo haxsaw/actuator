@@ -385,6 +385,7 @@ class AbstractModelReference(object):
         if inst is None:
             inst = super(AbstractModelReference, cls).__new__(cls, name, obj, parent)
             AbstractModelReference._inst_cache[(cls, name, obj, parent)] = inst
+            
         if obj is not None:
             if isinstance(name, KeyAsAttr):
                 target = obj

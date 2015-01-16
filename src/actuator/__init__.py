@@ -36,7 +36,7 @@ import os
 #can allow regular processing on ANSIBLE_SSH_ARGS by supplying a non-empty
 #value for the ACTUATOR_ALLOW_SSH_ARGS env var.
 if not os.environ.get("ACTUATOR_ALLOW_SSH_ARGS"):
-    os.environ['ANSIBLE_SSH_ARGS'] = "-oStrictHostKeyChecking=no"
+    os.environ['ANSIBLE_SSH_ARGS'] = "-oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"
 import traceback
 
 

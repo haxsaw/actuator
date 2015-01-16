@@ -67,7 +67,16 @@ def test002():
                          ctxt.model.server.iface0.addr0, pool="external")
     model = Test2("test2")
     assert model.fip.get_ip() is None and model.fip.osid.value() is None
-    provisioner.provision_infra_model(model)
+    try:
+        provisioner.provision_infra_model(model)
+    except Exception, e:
+        print "provision failed; here are the exceptions"
+        import traceback
+        for t, et, ev, tb in provisioner.agent.get_aborted_tasks():
+            print "Task %s" % t.name
+            traceback.print_exception(et, ev, tb)
+            print
+        assert False, "Test provisioning failed"
     assert model.fip.get_ip() and model.fip.osid.value()
     
 def test003():

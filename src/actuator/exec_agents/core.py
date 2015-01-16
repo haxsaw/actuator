@@ -101,11 +101,20 @@ class ExecutionAgent(object):
         add_suffix = lambda t, sfx: ("task %s named %s id %s->%s" %
                                      (t.__class__.__name__, t.name, t._id, sfx))
         logger = root_logger.getChild(self.exec_agent)
-        logger.info(add_suffix(task, "processing started"))
+        try:
+            role_name = task.get_task_role().value().name
+            role_id = task.get_task_role().value()._id
+        except Exception, _:
+            role_name = "NO_ROLE"
+            role_id = ""
+        logger.info(add_suffix(task, "processing started for role %s(%s)"
+                               % (role_name, role_id)))
         if not self.no_delay:
-            logger.info(add_suffix(task, "start commencement delay"))
+            logger.info(add_suffix(task, "start commencement delay for role %s(%s)"
+                                   % (role_name, role_id)))
             time.sleep(random.uniform(0.2, 2.5))
-            logger.info(add_suffix(task, "end commencement delay"))
+            logger.info(add_suffix(task, "end commencement delay for role %s(%s)"
+                                   % (role_name, role_id)))
         try_count = 0
         success = False
         while try_count < task.repeat_count and not success:
@@ -115,12 +124,15 @@ class ExecutionAgent(object):
             else:
                 logfile=None
             try:
-                logger.info(add_suffix(task, "start performing task"))
+                logger.info(add_suffix(task, "start performing task for role %s(%s)"
+                                       % (role_name, role_id)))
                 self._perform_task(task, logfile=logfile)
-                logger.info(add_suffix(task, "task succeeded"))
+                logger.info(add_suffix(task, "task succeeded for role %s(%s)"
+                                       % (role_name, role_id)))
                 success = True
             except Exception, _:
-                logger.warning(add_suffix(task, "task failed!"))
+                logger.warning(add_suffix(task, "task failed for role %s(%s)"
+                                          % (role_name, role_id)))
                 msg = ">>>Task Exception for {}!".format(task.name)
                 if logfile:
                     logfile.write("{}\n".format(msg))

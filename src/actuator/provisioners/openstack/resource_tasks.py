@@ -266,7 +266,7 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
     def _provision(self, run_context):
         self.rsrc.refix_arguments()
         fip = run_context.nvclient.floating_ips.create(self.rsrc.pool)
-        self.rsrc.set_addresses(fip.get_ip)
+        self.rsrc.set_addresses(fip.ip)
         self.rsrc.set_osid(fip.id)
         run_context.record.add_floating_ip_id(self.rsrc._id, self.rsrc.osid)
         associated_ip = self.rsrc.associated_ip
@@ -342,8 +342,7 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
             rsrc_task_map[rsrc] = task
         
         #next, find all the dependencies between resources, and hence tasks
-        for rsrc in all_resources:
-            task = rsrc_task_map[rsrc]
+        for rsrc, task in rsrc_task_map.items():
             for d in task.depends_on_list():
                 if d not in rsrc_task_map:
                     raise ProvisionerException("Resource {} says it depends on {}, "
@@ -357,10 +356,12 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
                 
         #now we can make a config class with these tasks and dependencies
         class ProvConfig(ConfigModel):
-            for rsrc in rsrc_task_map.values():
-                exec "%s_%d = rsrc" % (string.translate(rsrc.name, self.no_punc),
-                                       id(rsrc))
-            del rsrc
+            _rsrc_cache = {}
+            for rsrc, task in rsrc_task_map.items():
+                exec "%s_%d = task" % (string.translate(task.name, self.no_punc),
+                                       id(task))
+                _rsrc_cache[rsrc._id] = rsrc
+            del task, rsrc
             with_dependencies(*dependencies)
             
         return ProvConfig()
