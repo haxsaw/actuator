@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from IPython.lib.deepreload import add_submodule
+from actuator.modeling import AbstractModelReference
 
 '''
 Created on Oct 20, 2014
@@ -102,8 +103,10 @@ class ExecutionAgent(object):
                                      (t.__class__.__name__, t.name, t._id, sfx))
         logger = root_logger.getChild(self.exec_agent)
         try:
-            role_name = task.get_task_role().value().name
-            role_id = task.get_task_role().value()._id
+            role_name = task.get_task_role().name
+            if isinstance(role_name, AbstractModelReference):
+                role_name = role_name.value()
+            role_id = task.get_task_role()._id
         except Exception, _:
             role_name = "NO_ROLE"
             role_id = ""

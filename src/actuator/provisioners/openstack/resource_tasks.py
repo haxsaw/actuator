@@ -68,12 +68,20 @@ class RunContext(object):
 
 class _ProvisioningTask(_ConfigTask):
     clone_attrs = False
+    _rsrc_by_id = {}
     def __init__(self, rsrc, repeat_count=1):
         super(_ProvisioningTask, self).__init__("{}_provisioning_{}_task"
                                                 .format(rsrc.name,
                                                         rsrc.__class__.__name__),
                                                 repeat_count=1)
-        self.rsrc = rsrc
+        self._rsrc_by_id[rsrc._id] = rsrc
+        self.rsrc_id = rsrc._id
+#         self.rsrc = rsrc
+
+    def _get_rsrc(self):
+        return self._rsrc_by_id[self.rsrc_id]
+    
+    rsrc = property(_get_rsrc)
         
     def depends_on_list(self):
         return []
@@ -356,12 +364,10 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
                 
         #now we can make a config class with these tasks and dependencies
         class ProvConfig(ConfigModel):
-            _rsrc_cache = {}
-            for rsrc, task in rsrc_task_map.items():
+            for task in rsrc_task_map.values():
                 exec "%s_%d = task" % (string.translate(task.name, self.no_punc),
                                        id(task))
-                _rsrc_cache[rsrc._id] = rsrc
-            del task, rsrc
+            del task
             with_dependencies(*dependencies)
             
         return ProvConfig()

@@ -94,6 +94,7 @@ class ActuatorOrchestration(object):
             try:
                 self.logger.info("Starting provisioning phase")
                 if self.namespace_model_inst:
+                    self.namespace_model_inst.set_infra_model(self.infra_model_inst)
                     self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
                 _ = self.infra_model_inst.refs_for_components()
                 self.provisioner.provision_infra_model(self.infra_model_inst)

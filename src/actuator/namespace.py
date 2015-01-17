@@ -253,6 +253,8 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             #check if we have a variable to resolve
             cv = _ComputableValue(val)
             val = cv.expand(self)
+        elif isinstance(val, ModelReference) and self.find_infra_model():
+            val = self.find_infra_model().get_inst_ref(val).value()
         return val
             
     def _fix_arguments(self):
