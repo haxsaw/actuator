@@ -38,6 +38,7 @@ import os
 if not os.environ.get("ACTUATOR_ALLOW_SSH_ARGS"):
     os.environ['ANSIBLE_SSH_ARGS'] = "-oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"
 import traceback
+import time
 
 
 from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
@@ -60,7 +61,8 @@ from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, root_logg
 class ActuatorOrchestration(object):
     def __init__(self, infra_model_inst=None, provisioner=None,
                  namespace_model_inst=None, config_model_inst=None,
-                 log_level=LOG_INFO, no_delay=False, num_threads=5):
+                 log_level=LOG_INFO, no_delay=False, num_threads=5,
+                 post_prov_pause=60):
         if not (infra_model_inst is None or isinstance(infra_model_inst, InfraModel)):
             raise ExecutionException("infra_model_inst is no an instance of InfraModel")
         self.infra_model_inst = infra_model_inst
@@ -80,6 +82,7 @@ class ActuatorOrchestration(object):
         self.log_level = log_level
         root_logger.setLevel(log_level)
         self.logger = root_logger.getChild("orchestrator")
+        self.post_prov_pause = post_prov_pause
         
         if self.config_model_inst is not None:
             self.config_ea = AnsibleExecutionAgent(config_model_instance=self.config_model_inst,
@@ -111,7 +114,14 @@ class ActuatorOrchestration(object):
                     self.logger.critical("No further information")
                 self.logger.critical("Aborting orchestration")
                 return
-                
+            
+        pause = self.post_prov_pause
+        if pause:
+            self.logger.info("Pausing %d secs before starting config" % pause)
+            while pause:
+                time.sleep(5)
+                pause = max(pause-5, 0)
+                self.logger.info("%d secs until config begins" % pause)
         
         if self.config_model_inst is not None:
             try:
@@ -121,11 +131,12 @@ class ActuatorOrchestration(object):
             except ExecutionException, e:
                 self.logger.critical(">>> Config exec agent failed with '%s'; "
                                      "failed tasks shown below" % e.message)
-#                 for t, et, ev, tb in self.provisioner.get_aborted_tasks():
                 for t, et, ev, tb in self.config_ea.get_aborted_tasks():
                     self.logger.critical("Task %s named %s id %s" %
                                          (t.__class__.__name__, t.name, str(t._id)),
                                          exc_info=(et, ev, tb))
+                    self.logger.critical("Response: %s" % ev.response)
+                    self.logger.critical("")
                 self.logger.critical("Aborting orchestration")
                 return
             

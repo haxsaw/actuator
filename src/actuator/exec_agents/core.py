@@ -35,7 +35,10 @@ from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
 from actuator.utils import LOG_INFO, root_logger
 
 
-class ExecutionException(ActuatorException): pass
+class ExecutionException(ActuatorException):
+    def __init__(self, message=None, response="None available"):
+        super(ExecutionException, self).__init__(message)
+        self.response = response
 
 
 class ConfigRecord(object):
@@ -113,11 +116,7 @@ class ExecutionAgent(object):
         logger.info(add_suffix(task, "processing started for role %s(%s)"
                                % (role_name, role_id)))
         if not self.no_delay:
-            logger.info(add_suffix(task, "start commencement delay for role %s(%s)"
-                                   % (role_name, role_id)))
             time.sleep(random.uniform(0.2, 2.5))
-            logger.info(add_suffix(task, "end commencement delay for role %s(%s)"
-                                   % (role_name, role_id)))
         try_count = 0
         success = False
         while try_count < task.repeat_count and not success:
@@ -133,25 +132,25 @@ class ExecutionAgent(object):
                 logger.info(add_suffix(task, "task succeeded for role %s(%s)"
                                        % (role_name, role_id)))
                 success = True
-            except Exception, _:
+            except Exception, e:
                 logger.warning(add_suffix(task, "task failed for role %s(%s)"
                                           % (role_name, role_id)))
                 msg = ">>>Task Exception for {}!".format(task.name)
                 if logfile:
                     logfile.write("{}\n".format(msg))
-                etype, value, tb = sys.exc_info()
+                tb = sys.exc_info()[2]
                 if try_count < task.repeat_count:
                     retry_wait = try_count * task.repeat_interval
                     logger.warning(add_suffix(task, "retrying after %d secs" % retry_wait))
                     msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
                     if logfile:
                         logfile.write("{}\n".format(msg))
-                        traceback.print_exception(etype, value, tb, file=logfile)
+                        traceback.print_exception(type(e), e, tb, file=logfile)
                     time.sleep(retry_wait)
                 else:
                     logger.error(add_suffix(task, "max tries exceeded; task aborting"))
-                    self.record_aborted_task(task, etype, value, tb)
-                del etype, value, tb
+                    self.record_aborted_task(task, type(e), e, tb)
+                del tb
                 sys.exc_clear()
             else:
                 self.node_lock.acquire()

@@ -26,6 +26,7 @@ Created on Oct 21, 2014
 import os.path
 import json
 import getpass
+import pprint
 # import sys
 # import subprocess32
 # import json_runner
@@ -79,7 +80,9 @@ class TaskProcessor(object):
                                              cmd_msg=cmd_msg))
             if logfile:
                 logfile.write("{}\n".format(emessage))
-            raise ExecutionException(emessage)
+            raise ExecutionException(emessage, response=pprint.pformat(result,
+                                                                       indent=1,
+                                                                       width=1))
         else:
             if "msg" in result["contacted"][host]:
                 emessage = ("{module} {task} failed on {host} with the following emessage: {msg}"
@@ -91,7 +94,9 @@ class TaskProcessor(object):
                                         host=host))
                 if logfile:
                     logfile.write("{}\n".format(emessage))
-                raise ExecutionException(emessage)
+                raise ExecutionException(emessage, response=pprint.pformat(result,
+                                                                           indent=1,
+                                                                           width=1))
             elif "rc" in result["contacted"][host] and result["contacted"][host]["rc"] != 0:
                 emessage = ("{module} {task} failed on {host} with the following return code: {rc}"
                                 .format(module=self.module_name(),
@@ -100,7 +105,9 @@ class TaskProcessor(object):
                                         rc=result["contacted"][host]["rc"]))
                 if logfile:
                     logfile.write("{}\n".format(emessage))
-                raise ExecutionException(emessage)
+                raise ExecutionException(emessage, response=pprint.pformat(result,
+                                                                           indent=1,
+                                                                           width=1))
 
 
 @capture_mapping(_agent_domain, PingTask)
