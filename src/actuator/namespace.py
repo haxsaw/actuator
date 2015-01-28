@@ -27,7 +27,7 @@ from actuator.utils import ClassModifier, process_modifiers, capture_mapping, ge
 from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase,
                                ModelReference, ModelInstanceReference, ModelBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
-                               ContextExpr)
+                               CallContext)
 
 
 class NamespaceException(Exception): pass
@@ -132,6 +132,26 @@ class VarFuture(object):
         
     def value(self, allow_unexpanded=False):
         return self.var.get_value(self.context, allow_unexpanded=allow_unexpanded)
+    
+# SAVE THIS FOR NEXT TIME    
+#     
+# class VarReference(object):
+#     def __init__(self, var_name=None):
+#         self.var_name = var_name
+#           
+#     def __getattr__(self, attrname):
+#         return VarReference(self.var_cont, var_name=attrname)
+#       
+#     def __call__(self, context=None):
+#         if context.comp:
+#             val = context.comp.var_value(self.var_name)
+#         elif context.model:
+#             val = context.model.var_value(self.var_name)
+#         else:
+#             raise NamespaceException("Could not determine an object"
+#                                      " to query for the value of %s" %
+#                                      self.var_name)
+#         return val
         
 
 class VariableContainer(_ModelRefSetAcquireable):

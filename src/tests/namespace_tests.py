@@ -740,6 +740,13 @@ def test66():
     _ = infra.refs_for_components()
     value = ns.grid[5].var_value("NODE_NAME")
     assert value and value == "Grid-5"
+    
+# def test67():
+#     class NS(NamespaceModel):
+#         with_variables(Var("ONE", "1"),
+#                        Var("TWO", "2"))
+#     ns = NS()
+#     assert ns.v.ONE() == "1"
 
 
 def do_all():

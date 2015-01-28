@@ -32,10 +32,13 @@ from actuator.utils import ClassMapper
 class ActuatorException(Exception): pass
 
 
-class KeyAsAttr(str): pass
+class KeyAsAttr(str):
+    #internal
+    pass
 
 
 class KeyItem(object):
+    #internal
     def __init__(self, key):
         self.key = key if callable(key) else KeyAsAttr(key)
         
@@ -48,6 +51,16 @@ class KeyItem(object):
 
 
 class ContextExpr(object):
+    """
+    Creates deferred references to object attrs
+    
+    You should never make one of these yourself; simply access attributes on
+    the global 'ctxt' object and new instances are created for you. This object
+    captures the path to a particular attribute in an object, and can eval
+    that path later against a materialized object when it is available. Use
+    ctxt to generate references into your various models. This supports both
+    attribute access and key access on any Multi* objects
+    """
     def __init__(self, *path):
         self._path = path
         
@@ -73,18 +86,57 @@ ctxt = ContextExpr()
 
 
 class CallContext(object):
+    """
+    Captures the context in which a callable argument is evaluated.
+    
+    You don't make instances of these; Actuator handles it for you. An instance
+    is passed into any callable that has been supplied as an argument in creating
+    any AbstractModelingEntity object (resources, roles, etc). The attributes of
+    the class have the following meaning:
+    
+    @ivar comp: the component that the callable is an argument for. This may be
+        None if this is an argument attached to the model itself
+    @ivar model: the instance of the model that the component is a part of
+    @ivar name: the name used to access the component from its parent. If comp
+        if the value of an attribute on another object, then 'name' will be the
+        attribute's name. If comp was accessed using a key, for example:
+        'thing[1]', the name will be the key used, here '1'. If comp is None
+        then this will likewise be None.
+    """
     def __init__(self, model_inst, component):
         self.model = model_inst
         self.comp = component
-        self.name = component._name
+        self.name = component._name if component else None
         
         
 class AbstractModelingEntity(object):
-    #this method flags to the clone() method if attrs are to be  cloned;
+    """
+    Base class for all modeling entities
+    """
+    #this attribute flags to the clone() method if attrs are to be  cloned;
     #derived classed can set this to false if they don't want to clone
     #model attrs
     clone_attrs = True
     def __init__(self, name, *args, **kwargs):
+        """
+        Create a new modeling entity
+        
+        Set up the basic data for all modeling entities. The attribut
+        @param name: Internal name for the entity. This is not guaranteed to
+            unique or unmolested; container components may modify this name to
+            suit its purposes, although they are to guarantee that the user supplied
+            name will be present in any mangled version.
+        
+        @ivar name: publically available name attr for this entity
+        @ivar _id: public; internally generated unique id for this instance,
+            a L{uuid.uuid4}
+        @ivar fixed: public, read only. Indicates if the value of this entity
+            has had its final computation (all refs resolved, callable args
+            all called). Once fixed, callables won't be called again
+        @keyword model_instance: used internally; provides the model this
+            entity is a part of. Users don't have to specify this value, and
+            generally can't anyway
+        """
         model = kwargs.get("model_instance")
         if "model_instance" in kwargs:
             kwargs.pop("model_instance")
@@ -96,11 +148,13 @@ class AbstractModelingEntity(object):
         
     def _validate_args(self, referenceable):
         """
-        This method takes either an InfraSpec derived class, or an instance of such a class, and
+        CURRENTLY UNUSED: certain problems with finding references keep this private method out of use
+        
+        This method takes either an ModelBase derived class, or an instance of such a class, and
         determines if all arguments that are instances of ContextExpr can be successfully "called"
         with the provided "referenceable" (an object that creates some kind of model reference
         when attributes are attempted to be accessed on it). Silent return indicates that all
-        args are valid, otherwise an InfraException is raised that describes what object
+        args are valid, otherwise an ActuatorException is raised that describes what object
         is a problem.
         
         Derived classes may wish to override this if they do any special arguments handling, or
@@ -130,17 +184,35 @@ class AbstractModelingEntity(object):
 
         
     def fix_arguments(self):
+        """
+        Called internally when it time to fix arguments on the entity
+        
+        This method sets up the protocol for all derived entities to fix all
+        arguments; this means turning model refs to model instance refs, and
+        calling any callables to get the actual argument value. The user doesn't
+        have to call this in normal operation, but may want to try it when
+        testing out any callable arguments.
+        """
         if not self.fixed:
             self.fixed = True
             self._fix_arguments()
         return self
             
     def refix_arguments(self):
+        """
+        Allows arguments to be fixed again.
+        
+        This method addresses a pathological set of circumstances that hopefully
+        will be eliminated in a future release. No reason for a user to call
+        this.
+        """
         self.fixed = False
         self.fix_arguments()
     
     def _fix_arguments(self):
         """
+        Derived classes override this to fix any arguments to themselves.
+        
         This method is meant to trigger any activities that need to be carried out in
         order to process arguments into a form that can be used for processing. Generally,
         this means calling _get_arg_value() on appropriate arguments to invoke any callables
@@ -149,12 +221,27 @@ class AbstractModelingEntity(object):
         raise TypeError("Derived class %s must implement fix_arguments()" % self.__class__.__name__)
     
     def get_model_instance(self):
+        """
+        Returns the model instance this entity is a part of (if any)
+        """
         return self._model_instance
          
     def _set_model_instance(self, inst):
+        #private
         self._model_instance = inst
         
     def _container(self):
+        """
+        This returns the entity that contains self
+        
+        This method returns a model reference to the object that contains
+        this object. For instance, if this object is an attribute on a model
+        class, this method will return a reference to the model class. OTOH, if
+        this object is an instance inside of some L{ComponentGroup} object, then
+        this method will return the L{ComponentGroup}. Can be applied to the
+        return value to get the container's container, etc.
+         
+        """
         my_ref = AbstractModelReference.find_ref_for_obj(self)
         container = None
         while my_ref and my_ref._parent:
@@ -166,9 +253,10 @@ class AbstractModelingEntity(object):
             my_ref = my_ref._parent
         return container
     
-    container = property(_container)
+    container = property(_container, doc=_container.__doc__)
         
     def _get_arg_value(self, arg):
+        #internal
         if callable(arg):
             try:
                 if isinstance(arg, (SelectElement, RefSelectUnion)):
@@ -189,20 +277,38 @@ class AbstractModelingEntity(object):
         
     def get_init_args(self):
         """
+        Returns the arguments that were used to create this object
+        
         This method must return a 2-tuple; the first element is a tuple of
-        positional arguments for a new instance of the same class, and the
-        second is a dict that are the kwargs for a new instance
+        positional arguments for this instance, and the second is a dict that
+        contains the kwargs for this instance. Typically used when a copy of
+        this object is to be made
         """
-        return ((), {"model":self._model_instance})
+        return ((self.name,), {"model":self._model_instance})
 
     def get_class(self):
         """
+        Returns the class of the object (or another class if desired)
+        
         Override if you want to get a different class besides your own
         """
         return self.__class__
         
     def clone(self, clone_into_class=None):
-        "this doesn't work with circular object refs yet"
+        """
+        Make a copy of this object
+        
+        Creates a pre-fixed copy of this object; the fixed values aren't copied,
+        just the values passed to __init__(). Hence, this method is useful in
+        making a copy of the current state of this object, but instead is for
+        creating a copy that is created the same way as 'self' was.
+        
+        @param clone_into_class: Optional, defaults to None. Allows the caller
+            to determine what class should be instantiated for the clone. Normally
+            the class returned by L{AbstractModelingEntity.get_class} is
+            used.
+        @return: an un-fixed copy of self.
+        """
         args, kwargs = self.get_init_args()
         new_args = [(arg.clone() if self.clone_attrs and isinstance(arg, AbstractModelingEntity) else arg)
                     for arg in args]
@@ -214,6 +320,9 @@ class AbstractModelingEntity(object):
     
     
 class ModelComponent(AbstractModelingEntity):
+    """
+    Base class that is for any entity that will be a component of a model
+    """
     pass
     
         
