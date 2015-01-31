@@ -33,8 +33,8 @@ class ProvisionableWithFixer(Provisionable):
 
 
 class Server(ProvisionableWithFixer):
-    def __init__(self, logicalName, **kwargs):
-        super(Server, self).__init__(logicalName)
+    def __init__(self, name, **kwargs):
+        super(Server, self).__init__(name)
         self.provisionedName = None
         object.__getattribute__(self, "__dict__").update(kwargs)
         self.kwargs = kwargs
@@ -44,8 +44,8 @@ class Server(ProvisionableWithFixer):
     
     
 class Database(ProvisionableWithFixer):
-    def __init__(self, logicalName, **kwargs):
-        super(Database, self).__init__(logicalName)
+    def __init__(self, name, **kwargs):
+        super(Database, self).__init__(name)
         self.provisionedName = None
         self.port = None
         self.adminUser = None
@@ -58,8 +58,8 @@ class Database(ProvisionableWithFixer):
     
     
 class Queue(ProvisionableWithFixer):
-    def __init__(self, logicalName, **kwargs):
-        super(Queue, self).__init__(logicalName)
+    def __init__(self, name, **kwargs):
+        super(Queue, self).__init__(name)
         self.provisionedName = None
         self.qmanager = None
         self.host = None

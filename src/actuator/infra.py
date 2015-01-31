@@ -60,30 +60,39 @@ def with_resources(cls, *args, **kwargs):
 
     :param cls: a new class object
     :param args: no positional args are recognized
-    :param kwargs: dict of names and associated resources to provision; must
+    :param kwargs: dict of names and associated components to provision; must
         all be derived from AbstractModelingEntity
     :return: None
     """
-    resources = getattr(cls, InfraModelMeta._COMPONENTS)
-    if resources is None:
-        raise InfraException("FATAL ERROR: no resources collection on the class object")
+    components = getattr(cls, InfraModelMeta._COMPONENTS)
+    if components is None:
+        raise InfraException("FATAL ERROR: no components collection on the class object")
     for k, v in kwargs.items():
         if not isinstance(v, AbstractModelingEntity):
             raise InfraException("Argument %s is not derived from AbstractModelingEntity" % k)
         setattr(cls, k, v)
-        resources[k] = v
+        components[k] = v
     return
 
 
 class ResourceGroup(ComponentGroup):
+    """
+    A specialization of the L{ComponentGroup} class
+    """
     pass
 
 
 class MultiResource(MultiComponent):
+    """
+    A specialization of the L{MultiComponent} class
+    """
     pass
 
 
 class MultiResourceGroup(MultiComponentGroup):
+    """
+    A specialization of the L{MultiComponentGroup} class
+    """
     def __new__(self, name, **kwargs):
         group = ResourceGroup(name, **kwargs)
         return MultiResource(group)
@@ -91,8 +100,8 @@ class MultiResourceGroup(MultiComponentGroup):
 
 class Provisionable(ModelComponent):
     """
-    This class serves as a marker class for any AbstractModelingEntity derived class as something
-    that can actually be provisioned.
+    This class serves as a marker class for any L{ModelComponent} derived
+    class as something that can actually be provisioned.
     """
     pass
         
@@ -107,16 +116,25 @@ class InfraModelMeta(ModelBaseMeta):
         #
         #@FIXME: The validation here has been suspended as there are some deeper
         #design problems that have to be sorted out to fix it
-#         for resource in resources.values():
+#         for resource in components.values():
 #             resource._validate_args(new_class)
         return new_class
             
 
 class InfraModel(ModelBase):
+    """
+    This is the base class to use for any infrastructure model. Derive a class
+    from this class to make your own infra models.
+    """
     __metaclass__ = InfraModelMeta
     ref_class = ModelInstanceReference
     
     def __init__(self, name):
+        """
+        Creates a new instance of an infra model.
+        
+        @param name: a logical name for the infra instance
+        """
         super(InfraModel, self).__init__()
         self.name = name
         ga = super(InfraModel, self).__getattribute__
@@ -127,14 +145,23 @@ class InfraModel(ModelBase):
         self.provisioning_computed = False
         
     def validate_args(self):
+        """
+        Currently unused
+        """
         for resource in self.__class__.__dict__[InfraModelMeta._COMPONENTS].values():
             resource._validate_args(self)
         
     def provisioning_been_computed(self):
+        """
+        Returns if provisioning has been run on this model instance.
+        """
         return self.provisioning_computed
     
-    def resources(self):
-        _resources = super(InfraModel, self).resources()
+    def components(self):
+        """
+        Returns a set with the unique resources to provision on this instance.
+        """
+        _resources = super(InfraModel, self).components()
         #We need some place where we have a reasonable expectations
         #that all logical refs have been eval'd against the model instance
         #and hence we can tell every Provisionable that's out there so we
@@ -149,6 +176,8 @@ class InfraModel(ModelBase):
             resource._set_model_instance(self)
         return _resources
     
+    resources = components
+    
     def compute_provisioning_from_refs(self, modelrefs, exclude_refs=None):
         """
         Take a collection of model reference objects and compute the Provisionables needed
@@ -157,7 +186,7 @@ class InfraModel(ModelBase):
         
         @param modelrefs: an iterable of InfraModelReference instances for the model this
             SystemSpec instance is for
-        @param exclude_refs: an iterable of InfraModelReference instances whioh should not
+        @keyword exclude_refs: an iterable of InfraModelReference instances whioh should not
             be considered when computing Provisionables (this will be skipped)
         """
         if self.provisioning_computed:
@@ -190,12 +219,41 @@ class InfraModel(ModelBase):
     
     
 class IPAddressable(object):
+    """
+    This is a protocol for any object that can acquire and be addressed with
+    and IP adddress. Other classes derive from this to allow them to be used
+    as references for other components.
+    """
     def get_ip(self, context=None):
+        """
+        Return the IP address for self as a string. Derived classes are
+        responsible for implementing this.
+        
+        @keyword context: Ignored; this param exists to allow this method to be
+            used where callable params are allowed so that a L{CallContext} object
+            can be passed in.
+        """
         raise TypeError("Not implemented")
     
     
 class StaticServer(IPAddressable, Provisionable):
+    """
+    Represents an already existing server to be used in an infrastructure.
+    
+    A StaticServer provides a way knit non-dynamic (virtual or cloud) resources
+    into an infra model. This resource won't be provisioned, as it already has,
+    but it can be used wherever a reference to a server & L{IPAddressable} are
+    required in other models.
+    """
     def __init__(self, name, hostname_or_ip):
+        """
+        Create a new StaticServer instance.
+        
+        @param name: A logical name for the server
+        @param hostname_or_ip: a resolveable name for the server, either an
+            IP address or a host name (FQDN where required). Actuator assumes
+            that the name will be resolveable if a hostname is provided.
+        """
         super(StaticServer, self).__init__(name)
         self.hostname_or_ip = None
         self._hostname_or_ip = hostname_or_ip
@@ -204,7 +262,14 @@ class StaticServer(IPAddressable, Provisionable):
         self.hostname_or_ip = self._get_arg_value(self._hostname_or_ip)
         
     def get_init_args(self):
+        __doc__ = Provisionable.get_init_args.__doc__
         return ((self.name, self._hostname_or_ip), {})
     
     def get_ip(self, context=None):
+        """
+        Returns the hostname or IP that was provided in the constructor.
+        
+        @keyword context: Ignored; present so this method can be passed as a
+            callable value for ann argument.
+        """
         return self.hostname_or_ip

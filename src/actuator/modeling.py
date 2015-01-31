@@ -87,11 +87,12 @@ ctxt = ContextExpr()
 
 class CallContext(object):
     """
-    Captures the context in which a callable argument is evaluated.
+    Captures the context in which a callable argument is evaluated, and is passed
+    into the callable when it is invoked.
     
     You don't make instances of these; Actuator handles it for you. An instance
     is passed into any callable that has been supplied as an argument in creating
-    any AbstractModelingEntity object (resources, roles, etc). The attributes of
+    any AbstractModelingEntity object (components, roles, etc). The attributes of
     the class have the following meaning:
     
     @ivar comp: the component that the callable is an argument for. This may be
@@ -327,16 +328,40 @@ class ModelComponent(AbstractModelingEntity):
     
         
 class _ComputeModelComponents(object):
-    def resources(self):
+    """
+    Mixin class; do not instantiate directly
+    """
+    def components(self):
+        """
+        Returns a set of component entities (instances of ModelComponent) in self
+        
+        This method returns a set of all components within self; this
+        includes any nested components that may be inside self if it is a
+        container of some sort. NOTE: these are not references to components
+        but the actual components themselves.
+        """
         all_components = set()
         for v in self._comp_source().values():
             if isinstance(v, ModelComponent):
                 all_components.add(v)
             elif isinstance(v, _ComputeModelComponents):
-                all_components |= v.resources()
+                all_components |= v.components()
         return all_components
     
     def refs_for_components(self, my_ref=None):
+        """
+        Returns a set of model references for all ModelComponents within self.
+        
+        The method computes model references for all the components it contains
+        or just has references to. It does this my performing attribute lookup
+        on the name of all components 'self' thinks it has, relative to the
+        the reference to 'self' itself. This will ensure that all references
+        to relevant model components will be generated properly.
+        
+        @keyword my_ref: The reference to self; defaults to None, as this 
+            usually starts with the model instance, and there's no reference
+            to that object.
+        """
         all_refs = set()
         for k, v in self._comp_source().items():
             if isinstance(v, ModelComponent):
@@ -356,13 +381,31 @@ class _ComputeModelComponents(object):
         return all_refs
     
     def _comp_source(self):
-        "returns a dict of _components in an instance"
+        #private; returns a dict of components; derived class must override
         raise TypeError("Derived class must implement _comp_source")
     
 
 class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
-    def __init__(self, logicalName, **kwargs):
-        super(ComponentGroup, self).__init__(logicalName)
+    """
+    A container that groups together other components
+    
+    This class allows for the creation of a new object with attributes
+    determined by the kwargs supplied to it. This allows a group of components
+    to be defined into a single reuseable unit.   
+    """
+    def __init__(self, name, **kwargs):
+        """
+        Create a new ComponentGroup
+        
+        @param name: string; the logical name to give the component
+        @keyword {any keyword argument}: There are no fixed keyword arguments for
+            this class; all keyword arg keys will be turned into attributes on
+            the instance of this object. The value of each keyword arg must be
+            a derived class of L{AbstractModelingEntity}.
+        @raise TypeError: Raised if a keyword argument isn't an instance of
+            L{AbstractModelingEntity}
+        """
+        super(ComponentGroup, self).__init__(name)
         for k, v in kwargs.items():
             if isinstance(v, AbstractModelingEntity):
                 setattr(self, k, v.clone())
@@ -374,6 +417,7 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         return {k:getattr(self, k) for k in self._kwargs}
     
     def get_init_args(self):
+        __doc__ = AbstractModelingEntity.get_init_args.__doc__
         return ((self.name,), self._comp_source())
     
     def _fix_arguments(self):
@@ -386,9 +430,30 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
     
 
 class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
-    def __init__(self, templateComponent):
+    """
+    A container that can create duplicates of a provided template component
+    
+    This component behaves like a dict, except that whenever a new key is used
+    to look up an item, instead of a KeyError, a new copy of a template
+    component is created for  that key. The key also becomes part of the name
+    of the new component. 
+    """
+    def __init__(self, template_component):
+        """
+        Create a new MultiComponent instance
+        
+        @param template_component: Any kind of AbstractModelingEntity, including
+            another MultiComponent or other container. The template will be
+            cloned immediately so that it is isolated from any other uses
+            elsewhere.
+        @raise TypeError: raised if the template_component isn't some kind of
+            AbstractModelingEntity
+        """
+        if not isinstance(template_component, AbstractModelingEntity):
+            raise TypeError("The template component %s isn't an "
+                            "instance of AbstractModelingEntity" % str(template_component))
         super(MultiComponent, self).__init__("")
-        self.templateComponent = templateComponent.clone()
+        self.template_component = template_component.clone()
         self._instances = {}
         
     def _fix_arguments(self):
@@ -397,21 +462,26 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
             
 #     def refs_for_components(self, my_ref=None):
 #         result = {}
-#         if isinstance(self.templateComponent, ComponentGroup):
+#         if isinstance(self.template_component, ComponentGroup):
 #             ref = my_ref.__class__("container", obj=self, parent=my_ref)
-#             result = self.templateComponent.refs_for_components(my_ref=ref)
+#             result = self.template_component.refs_for_components(my_ref=ref)
 #         return result
         
     def get_prototype(self):
-        return self.templateComponent
+        """
+        Returns the object to make a copy of for a new key
+        """
+        return self.template_component
         
     def get_init_args(self):
-        args = (self.templateComponent,)
+        __doc__ = AbstractModelingEntity.get_init_args.__doc__
+        args = (self.template_component,)
         return (args, {})
         
     def _validate_args(self, referenceable):
         super(MultiComponent, self)._validate_args(referenceable)
         proto = self.get_prototype()
+        
         proto._validate_args(referenceable)
         
     def __len__(self):
@@ -427,27 +497,56 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return self.has_key(key)
         
     def iterkeys(self):
+        """
+        Returns an iterator for the keys for all instances
+        """
         return self._instances.iterkeys()
     
     def itervalues(self):
+        """
+        Returns an iterator for all the instances.
+        """
         return (self.get(k) for k in self.iterkeys())
     
     def iteritems(self):
+        """
+        Returns an iterator of all the (key, instance) pairs
+        """
         return ((k, self.get(k)) for k in self.iterkeys())
     
     def keys(self):
+        """
+        Returns an iterable of all keys used to generate instances of the template
+        """
         return self._instances.keys()
     
     def values(self):
+        """
+        Returns an iterable of references to all template instances generated for supplied keys
+        """
         return [self.get(k) for k in self.keys()]
     
     def items(self):
+        """
+        Returns an iterable so (key, ref) tuples for all keyed template instances
+        """
         return [(k, self.get(k)) for k in self.keys()]
     
     def has_key(self, key):
+        """
+        Returns True if an instance has been created for the supplied key, False otherwise
+        
+        @param key: an immutable key value
+        """
         return self._instances.has_key(KeyAsAttr(key))
     
     def get(self, key, default=None):
+        """
+        Returns a reference to the instance for key, otherwise returns default
+        
+        @param key: immutable key value; coerced to a string
+        @keyword default: defaults to None; value to return if key is not in the container
+        """
         ref = AbstractModelReference.find_ref_for_obj(self)
         result = ref[key] if key in self else default
         return result
@@ -456,6 +555,13 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return dict(self._instances)
     
     def get_instance(self, key):
+        """
+        Returns an instance mapped to 'key'. If 'key' has been seen before, then
+        return the instance previously created for the key. Ohterwise, create
+        a new instance and map it to the supplied key.
+        
+        @param key: immutable key value; coerced to string
+        """
         inst = self._instances.get(key)
         if not inst:
             prototype = self.get_prototype()
@@ -469,27 +575,91 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return inst
     
     def instances(self):
+        """
+        Returns a dict, key:component, for all instances created thus far.
+        
+        Does not return references, but the actual instances themselves
+        """
         return dict(self._instances)
     
 
 class MultiComponentGroup(MultiComponent):
+    """
+    A mixture of ComponentGroup and MultiComponent.
+    
+    Allows a group of components to be provisioned as a unit, and creates new
+    instances of the grouping whenever a new key is supplied to name another
+    instance of the group (in the way that ComponentGroup works). This is really
+    just a shortcut for making a ComponentGroup and then passing that component
+    to MultiComponent.
+    """
     def __new__(self, name, **kwargs):
+        """
+        Create a new instance of a MultiComponentGroup object.
+        
+        Semantically, this is just a ComponentGroup in a MultiComponent. The
+        kwargs will be come the attributes of instances created by indexing
+        the returned object (obj[key]).
+        
+        @param name: the logical name to give the grouping
+        @keyword {all arguments}: This will become the attributes of each
+            instance of the group that is created with a new key.
+        """
         group = ComponentGroup(name, **kwargs)
         return MultiComponent(group)
         
 
 class AbstractModelReference(object):
+    """
+    Base for all model reference classes.
+    
+    Model references are logical constructs that point to a specific object
+    or attribute of a model class or model class instance. For a given class or
+    class instance, only a single reference is ever generated to refer to a
+    particular object or attribute contained by the class or instance.
+    
+    References provide a way to capture where in a model you wish to acquire
+    some data when it becomes available, but the actual acquisition can be
+    deferred until the data is needed. This allows a decoupling of the knowledge
+    of where a data item is coming from; you simply work with a reference that
+    you ask the 'value()' of when it is time to use the value.
+    
+    You never need to create these; they are generated automatically by Actuator
+    when you access attributes on models or model instances.    
+    """
     _inst_cache = {}
     _inv_cache = {}
     _as_is = frozenset(["__getattribute__", "__class__", "value", "_name", "_obj",
                         "_parent", "get_path", "_get_item_ref_obj",
                         "get_containing_component", "get_containing_component_ref"])
     def __init__(self, name, obj=None, parent=None):
+        """
+        Initialize a new reference object.
+        
+        @param name: string; the name of the attribute to fetch from the parent
+        @keyword obj: optional; an object on which the attribute 'name' is defined
+            Hence, an instance of a reference is the data needed to successfully
+            execute "getattr(obj, name)"
+            Not specified in certain internal cases
+        @keyword parent: The parent reference object to this object. In other
+            words, the reference to 'obj'. This allows the reference to compute
+            the full path to the item it refers to
+        """
         self._name = name
         self._obj = obj
         self._parent = parent
         
     def __new__(cls, name, obj=None, parent=None):
+        """
+        Take the data supplied and either return a new reference object, or
+        else return a previously created instance (if an instance for these
+        parameters has been generated previously)
+        
+        @param name: name of the attribute on the object that the ref is for
+        @keyword obj: object on which 'name' is defined.
+        @keyword parent: parent reference to this reference; in other words, the
+            reference to 'obj'
+        """
         inst = AbstractModelReference._inst_cache.get( (cls, name, obj, parent) )
         if inst is None:
             inst = super(AbstractModelReference, cls).__new__(cls, name, obj, parent)
@@ -510,9 +680,44 @@ class AbstractModelReference(object):
     
     @classmethod
     def find_ref_for_obj(cls, obj):
+        """
+        Inverse lookup; for an object, look for the reference to it. The reference
+        has to have been generated previously.
+        
+        NOTE: this may not always give you the result you wish. It's possible
+        that the same object has had more than one reference navigate to it,
+        in which case you could get an unexpected reference to the object
+        you provide. It isn't clear that this is a bit deal, since at the end
+        of the day the underlying object is the same, but paths to the object
+        may be confused.
+        """
         return AbstractModelReference._inv_cache.get(obj)
     
     def get_containing_component(self):
+        """
+        For a refernce's value, return the L{ModelComponent} that contains the
+        reference.
+        
+        This allows discovery of the L{ModelComponent} that contains a reference
+        to a more basic data item, such as a string. For instance, you may need
+        to know the actual component that a reference to string attribute of
+        that component is part of in order to properly compute dependencies. This
+        method returns that reference. For example, suppose you have:
+        
+        class Thing(ModelComponent):
+            def __init__(self, name):
+                self.field = 1
+                
+        t = Thing()
+        ref = t.field
+        
+        To later find the L{ModelComponent} that ref is from, you can say:
+        
+        mc = ref.get_containing_component()
+        
+        If the reference is to a L{ModelComponent} itself, this method returns
+        the L{ModelComponent} itself.
+        """
         ga = super(AbstractModelReference, self).__getattribute__
         val = self.value()
         if not isinstance(val, ModelComponent):
@@ -527,10 +732,20 @@ class AbstractModelReference(object):
         return val
     
     def get_containing_component_ref(self):
+        """
+        Like L{get_containing_component}, but returns the reference for the
+        discovered L{ModelComponent}
+        """
         comp = self.get_containing_component()
         return AbstractModelReference.find_ref_for_obj(comp)
     
     def get_path(self):
+        """
+        Returns a list of strings that are all attribute accesses needed to
+        reach this reference. If an index is in the path, that is returned as
+        part of the returned path list where the index is a special string type,
+        KeyAsAttr.
+        """
         parent = self._parent
         return (parent.get_path() if parent is not None else []) + [self._name]
     
@@ -570,6 +785,17 @@ class AbstractModelReference(object):
         return value
     
     def value(self):
+        """
+        Returns the value that underlies the reference. This may or may not
+        return something then None, depending on the reference and where the
+        underlying object is in its lifecycle. References on models may never
+        yield a value, while references on model instances will yield a value
+        if the underlying value has been set.
+        
+        There are no "blocking" semantics here; the method returns the value
+        that currently exists, and if the value changes later, retrieving the
+        value() of this reference again will yield the new value.
+        """
         ga = super(AbstractModelReference, self).__getattribute__
         name = ga("_name")
         obj = ga("_obj")
@@ -579,11 +805,25 @@ class AbstractModelReference(object):
     
     
 class ModelReference(AbstractModelReference):
+    """
+    Instances of this class are generated whenever accesses are made to the
+    attributes of a model class. See the doc for L{AbstractModelReference) for
+    the rest of the interface for this class.
+    
+    NOTE: these references are generated when accessing attributes on a model
+    class; you never create them yourself. They are not generated for methods;
+    methods are passed through as ususal.
+    """
     def _get_item_ref_obj(self, theobj, key):
         return theobj.get_prototype()
     
 
 class ModelInstanceReference(AbstractModelReference):
+    """
+    Instances of this class are created when accessing attributes on a model
+    class instance. See the doc for L{AbstractModelReference} for the rest of
+    the interface for this class.
+    """
     def _get_item_ref_obj(self, theobj, key):
         return theobj.get_instance(key)
     
@@ -617,12 +857,14 @@ class ModelInstanceReference(AbstractModelReference):
     
     
 class RefSelTest(object):
+    #internal
     def __init__(self, test_op, test_arg=None):
         self.test_op = test_op
         self.test_arg = test_arg
         
         
 class SelectElement(object):
+    #internal
     builder = None
     def __init__(self, name, ref, parent=None):
         self.name = name
@@ -663,7 +905,7 @@ class SelectElement(object):
             next_ref = getattr(self.ref, attrname)
         except AttributeError, _:
             if isinstance(self.ref.value(), MultiComponent):
-                next_ref = getattr(self.ref.templateComponent, attrname)
+                next_ref = getattr(self.ref.template_component, attrname)
             else:
                 raise
         return self.__class__(attrname, next_ref, parent=self)
@@ -679,6 +921,7 @@ class SelectElement(object):
 
 
 class RefSelectBuilder(object):
+    #internal
     ALL = "all"
     KEY = "key"
     KEYIN = "keyin"
@@ -765,8 +1008,10 @@ class RefSelectUnion(object):
     
 class _Nexus(object):
     """
+    Internal to Actuator
+    
     A nexus is where, for a given instance of a system, models and their
-    instances can be recorded and then looked up by other resources. In
+    instances can be recorded and then looked up by other components. In
     particular, model instances can be looked up by either the class of the
     instance, or by a base class of the instance. This way, one model instance can
     find another instance by way of the instance class or base class. This can
@@ -832,9 +1077,22 @@ class _NexusMember(object):
 
 
 class ModelBase(_NexusMember, _ComputeModelComponents):
+    """
+    This is the common base class for all models
+    """
     __metaclass__ = ModelBaseMeta
     
     def get_inst_ref(self, model_ref):
+        """
+        Take a model ref object and get an associated model instance ref for
+        this model instance.
+        
+        Evaluates a model_ref against this instance and returns an instance ref
+        that refers to the same logical spot in the model instance. The ref must
+        be for this model, otherwise an error will result.
+        
+        @param model_ref: 
+        """
         ref = self
         for p in model_ref.get_path():
             if isinstance(p, KeyAsAttr):

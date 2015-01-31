@@ -333,12 +333,12 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
         return self.infra_config_model.get_graph(with_fix=with_fix)
     
     def compute_model(self, infra_mi):
-        all_resources = set(infra_mi.resources())
-        self.logger.info("%d resources to provision" % len(all_resources))
+        all_resources = set(infra_mi.components())
+        self.logger.info("%d components to provision" % len(all_resources))
         dependencies = []
         rsrc_task_map = {}
             
-        #first, generate tasks for all the resources
+        #first, generate tasks for all the components
         class_mapper = get_mapper(_rt_domain)
         for rsrc in all_resources:
             rsrc.fix_arguments()
@@ -349,13 +349,13 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
             task = task_class(rsrc, repeat_count=1)
             rsrc_task_map[rsrc] = task
         
-        #next, find all the dependencies between resources, and hence tasks
+        #next, find all the dependencies between components, and hence tasks
         for rsrc, task in rsrc_task_map.items():
             for d in task.depends_on_list():
                 if d not in rsrc_task_map:
                     raise ProvisionerException("Resource {} says it depends on {}, "
                                                "but the latter isn't in the "
-                                               "list of all resources"
+                                               "list of all components"
                                                .format(rsrc.name, d.name))
                 dtask = rsrc_task_map[d]
                 dependencies.append(dtask | task)

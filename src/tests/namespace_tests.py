@@ -271,7 +271,7 @@ def test24():
     infra = Infra24("infra24")
     env = NS24()
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.resources()) == 6
+    assert len(infra.components()) == 6
 
 def test25():
     class Infra25(InfraModel):
@@ -296,7 +296,7 @@ def test25():
     infra = Infra25("infra25")
     env = NS25()
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.resources()) == 7
+    assert len(infra.components()) == 7
 
 def test26():
     class Infra26(InfraModel):
@@ -318,7 +318,7 @@ def test26():
     env = NS26()
     env.add_override(Var("QUERY_HOST", "staticHostName"))
     env.compute_provisioning_for_environ(infra)
-    assert len(infra.resources()) == 1, "override didn't wipe out ref to a new query server"
+    assert len(infra.components()) == 1, "override didn't wipe out ref to a new query server"
 
 def test27():
     class Infra27(InfraModel):
@@ -604,7 +604,7 @@ def test52():
     for i in range(5):
         _ = ns.grid[i]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 5 and len(infra.resources()) == 11
+    assert len(infra.grid) == 5 and len(infra.components()) == 11
      
 def test53():
     class Infra(InfraModel):
@@ -626,7 +626,7 @@ def test53():
         for j in range(i):
             _ = grid.workers[j]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.resources()) == 8
+    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.components()) == 8
      
 def test54():
     class Infra(InfraModel):
@@ -640,7 +640,7 @@ def test54():
     for i in [2,4]:
         _ = ns.grid[i]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 1 and len(infra.resources()) == 1
+    assert len(infra.grid) == 1 and len(infra.components()) == 1
 
 def test56():
     class Infra(InfraModel):

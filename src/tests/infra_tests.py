@@ -391,68 +391,68 @@ def test81():
     
 def test82():
     inst = MyInfra("test82")
-    assert len(inst.resources()) == 2
+    assert len(inst.components()) == 2
     
 def test83():
     class ProvTest(InfraModel):
         grid = MultiResource(Server("prov1", mem="8GB"))
     inst = ProvTest("prov1")
     _ = inst.grid[1]
-    assert len(inst.resources()) == 1
+    assert len(inst.components()) == 1
     
 def test84():
     inst = MyInfra("test84")
     _ = inst.grid[1]
-    assert len(inst.resources()) == 3
+    assert len(inst.components()) == 3
     
 def test85():
     inst = MyInfra("test85")
     for i in range(5):
         _ = inst.grid[i]
-    assert len(inst.resources()) == 7
+    assert len(inst.components()) == 7
     
 def test86():
     inst = MyInfra("test86")
     _ = inst.workers[1]
-    assert len(inst.resources()) == 5
+    assert len(inst.components()) == 5
     
 def test87():
     inst = MyInfra("test87")
     _ = inst.workers[1].handler
-    assert len(inst.resources()) == 5
+    assert len(inst.components()) == 5
     
 def test88():
     inst = MyInfra("test88")
     for i in range(2):
         _ = inst.workers[i]
-    assert len(inst.resources()) == 8
+    assert len(inst.components()) == 8
     
 def test89():
     inst = MyInfra("test89")
     _ = inst.composite[1]
-    assert len(inst.resources()) == 2
+    assert len(inst.components()) == 2
     
 def test90():
     inst = MyInfra("test90")
     _ = inst.composite[1].grid[1]
-    assert len(inst.resources()) == 3
+    assert len(inst.components()) == 3
 
 def test91():
     inst = MyInfra("test91")
     _ = inst.composite[1].workers
-    assert len(inst.resources()) == 2
+    assert len(inst.components()) == 2
     
 def test92():
     inst = MyInfra("test92")
     _ = inst.composite[1].workers[1]
-    assert len(inst.resources()) == 5
+    assert len(inst.components()) == 5
     
 def test93():
     inst = MyInfra("test93")
     _ = inst.composite[1].workers[1]
     for i in range(2):
         _ = inst.composite[i+2].grid[1]
-    assert len(inst.resources()) == 7
+    assert len(inst.components()) == 7
     
 def test94():
     inst = MyInfra("test94")
@@ -696,7 +696,7 @@ def test127():
         
     inst = CGTest9("ctg9")
     inst.refs_for_components()
-    _ = inst.resources()
+    _ = inst.components()
     inst.top.fix_arguments()
     inst.group.fix_arguments()
     assert inst.top.mem.value() == "8GB"
@@ -710,7 +710,7 @@ def test128():
         group = group_thing
         
     inst = CGTest10("cgt10")
-    inst.resources()
+    inst.components()
     inst.refs_for_components()
     inst.group.fix_arguments()
     assert inst.group.slave.path.value() == ("reqhandler", "container", "comp")
@@ -755,16 +755,16 @@ def test133():
         server = Server("dummy2", mem="16GB")
     
     inst = Test133("t133")
-    _ = inst.resources()
+    _ = inst.components()
     inst.reqhandler.fix_arguments()
     assert inst.reqhandler.mem.value() == "16GB"
 
 def test134():
-    resources = {"server":Server("dummy", mem="16GB"),
+    components = {"server":Server("dummy", mem="16GB"),
                   "db":Database("db", wibble=9)}
 
     class Test134(InfraModel):
-        with_resources(**resources)
+        with_resources(**components)
 
     inst = Test134("t134")
     assert inst.server.mem.value() == "16GB" and inst.db.wibble.value() == 9
@@ -773,14 +773,14 @@ def test135():
     group_thing = ResourceGroup("group",
                                  reqhandler=Server("reqhandler", mem="8GB"),
                                  slaves=MultiResource(Server("grid", mem=ctxt.comp.container.container.reqhandler.mem)))
-    resources = {"group":group_thing}
+    components = {"group":group_thing}
     class Test135(InfraModel):
-        with_resources(**resources)
+        with_resources(**components)
 
     inst = Test135("t135")
     _ = inst.group.slaves[1]
     _ = inst.group.slaves[2]
-    inst.resources()
+    inst.components()
     inst.refs_for_components()
     inst.group.fix_arguments()
     assert inst.group.slaves[2].mem.value() == "8GB"
@@ -948,7 +948,7 @@ def test151():
         s3 = s
         
     inst = Test("test")
-    assert len(inst.resources()) == 3
+    assert len(inst.components()) == 3
     
     
 def do_all():

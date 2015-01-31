@@ -37,11 +37,14 @@ _namespace_mapper_domain = object()
 
 
 class _ModelRefSetAcquireable(object):
+    #internal
     def _get_model_refs(self):
         return set()
 
 
 class _ComputableValue(_ModelRefSetAcquireable):
+    #Internal
+    #
     #Mako-compatible replacement
     _prefix = r'\!{'
     _suffix = r'}'
@@ -49,6 +52,12 @@ class _ComputableValue(_ModelRefSetAcquireable):
     _prefix_len = 2
     _suffix_len = 1
     def __init__(self, value):
+        """
+        Create a new _ComputableValue instance
+        
+        @param value: Can be a plain string, a string with one or more replace-
+            ment patterns in it, a AbstractModelReference, or a callable
+        """
         if isinstance(value, basestring):
             self.value = str(value)
         elif isinstance(value, AbstractModelReference) or value is None or callable(value):
@@ -63,9 +72,34 @@ class _ComputableValue(_ModelRefSetAcquireable):
         return s
 
     def value_is_external(self):
+        """
+        Predicate to indicate that the value for this item is to be acquired
+        from a ModelComponent from elsewhere
+        """
         return isinstance(self.value, AbstractModelReference)
         
     def expand(self, context, allow_unexpanded=False, raise_on_unexpanded=False):
+        """
+        Begins the computation of the value of the object supplied in the
+        constructor. Returns the computed value, or may raise an exception if
+        the value can't be computed
+        
+        @param context: A kind of L{VariableContainer} to anchor searches for
+            other variables when replacement strings are discovered.
+        @keyword allow_unexpanded: Optional, defaults to False. Indicates whether
+            to return strings with un-expanded replacement patterns in them.
+            With the default, the return value is None, which indicates that a
+            value either hasn't been set or can't be fully determined. If True,
+            then the string value will be processed as far as possible and will
+            be returned in that state, possibly still with replacement patterns
+            in the value.
+        @keyword raise_on_unexpanded: Optional, defaults to False: Indicates what
+            the method should do if a replacement pattern replaced (expanded)
+            when it is encountered in the string whose value is being computed.
+            The default, False, will just stop processing and return a value as
+            dictated by the setting of allow_unexpanded. If True, then an exception
+            is raised with a message about what can't be found in the string.
+        """
         history = set([])
         return self._expand(context, history, allow_unexpanded=allow_unexpanded,
                             raise_on_unexpanded=raise_on_unexpanded)
@@ -92,7 +126,8 @@ class _ComputableValue(_ModelRefSetAcquireable):
             var, _ = context.find_variable(name)
             if var is None:
                 if raise_on_unexpanded:
-                    raise NamespaceException("Unable to determine value for '{}'".format(name))
+                    raise NamespaceException("Unable to determine value for '{}' in {}"
+                                             .format(name, self.value))
                 elif not allow_unexpanded:
                     value = None
                 break
@@ -107,7 +142,33 @@ class _ComputableValue(_ModelRefSetAcquireable):
     
 
 class Var(_ModelRefSetAcquireable):
+    """
+    A container for a name-value pair in which the value is a L{_ComputableValue},
+    and hence whose value can be a plain string, a string with replacement
+    patterns, a callable that returns a string, or an AbstractModelReference. 
+    """
     def __init__(self, name, value, in_env=True):
+        """
+        Define a new Var name-value pair.
+        
+        @param param: string; the 'name' in the pair. Cannot contain replacement
+            patterns; if it does, they won't be processed
+        @param value: Can be:
+            1. A plain string
+            2. A string with a replacement pattern ( !{name} )
+            3. A callable that returns one of the above strings. The callable
+                must take a single argument, a L{CallContext} instance that
+                describes context where the callable is being invoked
+            4. A AbstractModelReference that returns a string (that won't be
+                processed further)
+        @param in_env: Optional; default True. Indicates whether the Var should
+            be included in any tasks for namespace L{Role} or not. By default,
+            all Vars visible to a Role become part of any tasks for that Role.
+            If you don't want the Var to be part of the environment (perhaps
+            the Var has a sensitive value), then set in_env=False. Such Vars are
+            only used in processing files and strings associated with tasks, and
+            will not be sent along as part of the task's environment.
+        """
         self.name = name
         self.value = _ComputableValue(value)
         self.in_env = in_env
@@ -116,21 +177,74 @@ class Var(_ModelRefSetAcquireable):
         return self.value._get_model_refs()
 
     def get_value(self, context, allow_unexpanded=False):
+        """
+        Get the value of Var evaluated from the perspective of a L{VariableContainer}
+        
+        Computes the value of the Var, invoking any callables and/or performing
+        any expansions due to replacement patterns in the value string.
+        
+        @param context: A kind of L{VariableContainer} from which to anchor
+            searches for other Vars when replacement patterns are found;
+            replacements are always from the perspective of the context and the
+            variable values it "sees".
+        @keyword allow_unexpanded: Optional, default False. Determines what gets
+            returned if an replacement pattern is discovered in a value and no
+            replacement can be found. The default, False, means to return None,
+            which indicates that a value can't be determined. If allow_unexpanded
+            is True, then return as much as can be expanded and leave any
+            unexpandable replacements patterns in the result. Usually a pair of
+            calls modifying this value are used: first with the default to
+            detect situations where the value can be computed, and then with
+            allow_unexpanded==True to reveal how much expansion could be
+            performed.
+        """
         return self.value.expand(context, allow_unexpanded)
     
     def value_is_external(self):
+        """
+        Predicate that returns True if the value for the Var comes from an
+        external source.
+        """
         return self.value.value_is_external()
     
     def get_raw_value(self):
+        """
+        Return the un-interpreted value for the Var; this may be a string,
+        reference, or callable.
+        """
         return self.value
     
     
 class VarFuture(object):
+    """
+    A wrapper that allows a Var to be treated like reference into a model. Supports
+    a value() method that allows deferring the computation of the variable until
+    the value is needed. These are created by the future() method of
+    L{VariableContainer}
+    """
     def __init__(self, var, context):
+        """
+        Create a new VarFuture
+        
+        @param var: A Var object
+        @param context: A kind of VariableContainer from which the Var's value
+            can be computed.
+        """
         self.var = var
         self.context = context
         
     def value(self, allow_unexpanded=False):
+        """
+        Compute the value of the Var from the perspective of the context.
+        
+        @keyword allow_unexpanded: Optional, default False. Indicates what to
+            return if the Var can't be fully expanded (all replacement patterns
+            can not be resolved). The default, False, means that if all patterns
+            can't be replaced then return None as the result, which is only
+            possible for unset values or for patterns that can't be replaced.
+            If allow_unexpanded is True, return the result with as much as could
+            be replaced.
+        """
         return self.var.get_value(self.context, allow_unexpanded=allow_unexpanded)
     
 # SAVE THIS FOR NEXT TIME    
@@ -155,7 +269,32 @@ class VarFuture(object):
         
 
 class VariableContainer(_ModelRefSetAcquireable):
+    """
+    A base mixin class for other classes that allows the class to be a
+    container for Var objects.
+    
+    VariableContainers are arranged in a hierarchy, so that variables that
+    can't be found in one container may be searched for in a parent. Searches
+    for variables always start at the most "local" container.
+    """
     def __init__(self, parent=None, variables=None, overrides=None):
+        """
+        Create a new VariableContainer
+        
+        @keyword parent: Optional; a kind of VariableContainer. This will be treated
+            as the new container's parent, and any searches for variables in
+            this container that can't be satisfied will continue with the parent
+            if there is one. The default is no parent.
+        @keyword variables: Optional; a sequence of Var objects that are used to
+            initially populate the container with variables.
+        @keyword overrides: Optional; a sequence of Var objects. Overrides
+            provide a non-destructive way to supplying an alternate value for
+            a variable. Normally, supplying a new Var with the same name as
+            an existing Var overwrites the old Var, but overrides are managed
+            independently and simply mask any variable Vars with the same name.
+            Overrides can be cleared out later, allowing the original variable
+            to be visible once again.
+        """
         super(VariableContainer, self).__init__()
         self.variables = {}
         self.overrides = {}
@@ -177,6 +316,15 @@ class VariableContainer(_ModelRefSetAcquireable):
         return modelrefs
     
     def add_variable(self, *args):
+        """
+        Adds one or more Vars to the container. Returns self so other calls
+        can be chained from this one.
+        
+        @param *args: One or more Var objects. This method can take an 
+            arbitrary number of Var objects in the invocation and put them
+            into its variable storage. If something not Var is passed in an
+            exception is raised.
+        """
         for v in args:
             if not isinstance(v, Var):
                 raise NamespaceException("'%s' is not a Var" % str(v))
@@ -184,6 +332,17 @@ class VariableContainer(_ModelRefSetAcquireable):
         return self
             
     def add_override(self, *args):
+        """
+        Adds one or more Vars to the overrides collection in the container.
+        Overrides are searched first for a particular Var, so their value
+        takes precedence. Returns self so other calls can be chained from this
+        one.
+        
+        @param *args: One or more Var objects. This method can take an arbitrary
+        number of Var objects when invoked and put them into the overrides
+        collection. If something not a Var is passed ii an exception is
+        raised.
+        """
         for v in args:
             if not isinstance(v, Var):
                 raise TypeError("'%s' is not a Var" % str(v))
@@ -191,6 +350,21 @@ class VariableContainer(_ModelRefSetAcquireable):
         return self
             
     def find_variable(self, name):
+        """
+        Locates the named Var and the VariableContainer where it is defined.
+        
+        This method is concerned with finding a named Var and the container
+        that manages it, as opposed to actually determining the Var's value.
+        Self's overrides are first searched from the Var, and then self's
+        variables, and if it can't be found in either of those places, self's
+        parent is searched (if it has one).
+        
+        When the Var is found, the method returns a 2-tuple: the Var, and the
+        VariableContainer that manages the Var (or None, None if no Var with
+        the supplied name can be found).
+        
+        @param name: String; name of the Var to locate.
+        """
         value = self.overrides.get(name)
         provider = self
         if value is None:
@@ -199,24 +373,68 @@ class VariableContainer(_ModelRefSetAcquireable):
             value, provider = self.parent_container.find_variable(name) if self.parent_container else (None, None)
         return value, provider
     
-    def var_value(self, name):
-        v, _ = self.find_variable(name)
+    def var_value(self, name, allow_unexpanded=False):
+        """
+        Locate the named Var and return it's value relative to the current
+        VariableContainer.
+        
+        Using the search rules from L{find_variable}, locate the Var with the
+        supplied name, and then return the computed value for the Var from
+        the perspective of the current VariableContainer
+        
+        @param name: string; the name of the Var to locate
+        @keyword allow_unexpanded: Optional; default False. Determines what
+            happens if a Var's value can't have all replacement patterns
+            expanded. The default, False, causes None to be returned if all
+            patterns can't be expanded. If True, then as much expansion as
+            possible is performed and the result in returned, possibly still
+            with replacement patterns in the returned value.
+        """
+        v, _ = self.find_variable(name, allow_unexpanded=allow_unexpanded)
         return v.get_value(self)
     
     def future(self, name):
+        """
+        Get a a L{VarFuture} object for the named Var.
+        
+        Searches for a Var named 'name' as per the search rules for L{find_variable},
+        and if found return a L{VarFuture} object for the Var and the current
+        VariableContainer, else None.
+        
+        @param name: String; name of the Var to find.
+        """
         v, p = self.find_variable(name)
         return VarFuture(v, self) if (v and p) else None
     
     def find_infra_model(self):
+        """
+        Locate the infra model for this VariableContainer.
+        
+        Infra models are needed to perform certain Var processing; this
+        method searches through the container hierarchy for the model to
+        use. Returns the found infra model or None
+        """
         model = self.get_infra_model()
         if model is None and self.parent_container:
             model = self.parent_container.find_infra_model()
         return model
             
     def get_infra_model(self):
+        """
+        Get the infra model on this container.
+        
+        Default implementation has no model so it returns None.
+        """
         return None
-    
+
     def get_visible_vars(self):
+        """
+        Return all the Vars visible to this container
+        
+        Computes the set of Vars visible to this container, taking into account
+        parent containers and overrides, and the returns a dict containing
+        the Vars that would be used from the perspective of this container.
+        """
         d = self.parent_container.get_visible_vars() if self.parent_container else {}
         d.update(self.variables)
         d.update(self.overrides)
@@ -225,6 +443,12 @@ class VariableContainer(_ModelRefSetAcquireable):
 
 _common_vars = "__common_vars__"
 def with_variables(cls, *args, **kwargs):
+    """
+    Used at the class level of a Namespace class model to set global Vars
+    on the model. May be call repeatedly to set additional Vars.
+    
+    @param *args: One or more Var objects.
+    """
     vars_list = cls.__dict__.get(_common_vars)
     if vars_list is None:
         vars_list = []
@@ -235,6 +459,12 @@ with_variables = ClassModifier(with_variables)
 
 _common_roles = "__roles"
 def with_roles(cls, *args, **kwargs):
+    """
+    Used at the class level of a Namespace class model to add Roles to the
+    model. Role, RoleGroup, MultiRole, and MultiRoleGroup may be added to
+    the model with this call. Can be called multiple times to add addtional
+    Roles.
+    """
     for k, v in kwargs.items():
         setattr(cls, k, v)
 with_roles = ClassModifier(with_roles)
@@ -243,6 +473,9 @@ with_roles = ClassModifier(with_roles)
 class ModelInstanceFinderMixin(object):
     #relies on the protocol for both ModelComponent and VariableContainer
     def get_model_instance(self):
+        """
+        Locate the Namespace model instance that self is a part of.
+        """
         result = None
         if self._model_instance:
             result = self._model_instance
@@ -255,7 +488,35 @@ class ModelInstanceFinderMixin(object):
     
     
 class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
+    """
+    Defines a role for some component of a system, optionally establishing 
+    Vars and its place in the namespace hierarchy.
+    
+    A Role is logical construct names a particular functional component of a
+    system, for instance the "db role" or the "web app" role. Roles are tied
+    to specific parts of the infra model that names where they should run and
+    indicates what tasks should be carried out on their behalf and where.
+    
+    Roles are kinds of L{VariableContainer}s, and hence can hold L{Var}s
+    as both variables and overrides. They are also L{ModelComponent}s,
+    and hence respect the interface defined by that class.
+    """
     def __init__(self, name, host_ref=None, variables=None, model=None):
+        """
+        Create a new Role, optionally defining an infra reference to a host
+        and a start-up set of Vars.
+        
+        @param name: String; logical name of the Role
+        @keyword host_ref: Optional; provides a way to identify an IPAddressable
+            for this Role; this will indicate where Config tasks and software
+            will execute for this role. This may be a string with a host name or
+            IP address, a model referencean to an IPAddressable, a context
+            expression for an IPAddressable, or a callable that returns one
+            of the above.
+        @keyword variables: Optional; a sequence of Var objects that will be 
+            defined on this Role
+        @keyword model: Used internally only
+        """
         super(Role, self).__init__(name, model_instance=model)
         self.host_ref = None
         self._host_ref = host_ref
@@ -263,6 +524,14 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             self.add_variable(*variables)
             
     def clone(self, clone_into_class=None):
+        """
+        Create a copy of the initial state of this Role
+        
+        Creates a copy of the Role as if the original arguments to __init__()
+        were used (in fact, they are).
+        
+        @keyword clone_into_class: internal
+        """
         clone = super(Role, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         return clone
@@ -292,6 +561,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         self.host_ref = host_ref
             
     def get_init_args(self):
+        __doc__ = ModelComponent.__doc__
         _, kwargs = super(Role, self).get_init_args()
         kwargs.update({"host_ref":self._host_ref,
                        "variables":self.variables.values(),})
@@ -303,9 +573,14 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             modelrefs.add(self.host_ref)
         return modelrefs
                 
-    
+
 @capture_mapping(_namespace_mapper_domain, ComponentGroup)
 class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
+    """
+    Defines a group of Roles that are used together; is a kind of L{ComponentGroup}.
+    
+    Thi
+    """
     def _set_model_instance(self, mi):
         super(RoleGroup, self)._set_model_instance(mi)
         for c in [v for k, v in self.__dict__.items() if k in self._kwargs]:
@@ -324,7 +599,7 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
     
     def _get_model_refs(self):
         modelrefs = super(RoleGroup, self)._get_model_refs()
-        for c in self.resources():
+        for c in self.components():
             modelrefs |= c._get_model_refs()
         return modelrefs
     
@@ -387,12 +662,12 @@ class NamespaceModel(VariableContainer, ModelBase):
 
     def __init__(self):
         super(NamespaceModel, self).__init__()
-        resources = set()
+        components = set()
         clone_map = {}
         for k, v in self.__class__.__dict__.items():
             if isinstance(v, (Role, ComponentGroup, MultiComponent, MultiComponentGroup)):
-                resources.add((k, v))
-        for k, c in resources:
+                components.add((k, v))
+        for k, c in components:
             clone = c.clone()
             clone._set_model_instance(self)
             clone._set_parent(self)
@@ -440,7 +715,7 @@ class NamespaceModel(VariableContainer, ModelBase):
         for v in self._roles.values():
             v.fix_arguments()
         self.infra.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
-        return set([p for p in self.infra.resources()
+        return set([p for p in self.infra.components()
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
         
     def add_roles(self, **kwargs):

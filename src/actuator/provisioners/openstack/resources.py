@@ -70,7 +70,7 @@ class NetworkInterface(object):
 
 
 class Server(_OpenstackProvisionableInfraResource, IPAddressable):
-    def __init__(self, logicalName, imageName, flavorName, meta=None, files=None,
+    def __init__(self, name, imageName, flavorName, meta=None, files=None,
                  reservation_id=None, min_count=None, max_count=None, security_groups=None,
                  userdata=None, key_name=None, availability_zone=None, block_device_mapping=None,
                  block_device_mapping_v2=None, nics=None, scheduler_hints=None,
@@ -78,7 +78,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         """
         secgroups: string, comma separated list of security group names
         """
-        super(Server, self).__init__(logicalName)
+        super(Server, self).__init__(name)
         self._imageName = imageName
         self.imageName = None
         self._flavorName = flavorName
@@ -224,8 +224,8 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         
         
 class Network(_OpenstackProvisionableInfraResource):
-    def __init__(self, logicalName, admin_state_up=True):
-        super(Network, self).__init__(logicalName)
+    def __init__(self, name, admin_state_up=True):
+        super(Network, self).__init__(name)
         self.admin_state_up = None
         self._admin_state_up = admin_state_up
         
@@ -239,8 +239,8 @@ class Network(_OpenstackProvisionableInfraResource):
         
         
 class SecGroup(_OpenstackProvisionableInfraResource):
-    def __init__(self, logicalName, description=None):
-        super(SecGroup, self).__init__(logicalName)
+    def __init__(self, name, description=None):
+        super(SecGroup, self).__init__(name)
         self._description = description
         self.description = None
         
@@ -253,9 +253,9 @@ class SecGroup(_OpenstackProvisionableInfraResource):
         
 
 class SecGroupRule(_OpenstackProvisionableInfraResource):
-    def __init__(self, logicalName, secgroup, ip_protocol=None, from_port=None,
+    def __init__(self, name, secgroup, ip_protocol=None, from_port=None,
                  to_port=None, cidr=None):
-        super(SecGroupRule, self).__init__(logicalName)
+        super(SecGroupRule, self).__init__(name)
         self._secgroup = secgroup
         self.secgroup = None
         self._ip_protocol = ip_protocol
@@ -284,7 +284,7 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
         
 class Subnet(_OpenstackProvisionableInfraResource):
     _ipversion_map = {ipaddress.IPv4Network:4, ipaddress.IPv6Network:6}
-    def __init__(self, logicalName, network, cidr, dns_nameservers=None, ip_version=4):
+    def __init__(self, name, network, cidr, dns_nameservers=None, ip_version=4):
         """
         @param name: string; logical name for the subnet
         @param network: Network; a string containing the Openstack id of a network, or a callable
@@ -293,7 +293,7 @@ class Subnet(_OpenstackProvisionableInfraResource):
         @param dns_nameservers: list of strings of IP addresses of DNS nameservers, or may be
             a callable the produces a list of strings
         """
-        super(Subnet, self).__init__(logicalName)
+        super(Subnet, self).__init__(name)
         self._network = network
         self.network = None
         self._cidr = cidr
@@ -323,7 +323,7 @@ class Subnet(_OpenstackProvisionableInfraResource):
     
     
 class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
-    def __init__(self, logicalName, server, associated_ip, pool=None):
+    def __init__(self, name, server, associated_ip, pool=None):
         """
         Creates a floating IP and attaches it to a server
         @param server: string with a Openstack server id, or a callable that returns either an
@@ -333,7 +333,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         @param pool: optional; string name of the pool to allocate the IP from, or a callable that returns
                 
         """
-        super(FloatingIP, self).__init__(logicalName)
+        super(FloatingIP, self).__init__(name)
         self._server = server
         self.server = None
         self._associated_ip = associated_ip
@@ -361,12 +361,12 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
     
     
 class Router(_OpenstackProvisionableInfraResource):
-    def __init__(self, logicalName, admin_state_up=True):
+    def __init__(self, name, admin_state_up=True):
         """
         @param admin_state_up: optional; True or False depending on whether or not the state of
             the router should be considered 'up'
         """
-        super(Router, self).__init__(logicalName)
+        super(Router, self).__init__(name)
         self._admin_state_up = admin_state_up
         self.admin_state_up = None
         
@@ -378,7 +378,7 @@ class Router(_OpenstackProvisionableInfraResource):
     
     
 class RouterGateway(_OpenstackProvisionableInfraResource):
-    def __init__(self, logicalName, router, external_network_name):
+    def __init__(self, name, router, external_network_name):
         """
         @param name: string; a logical name that will be used for the gateway
         @param router: a string with Openstack id of a router, or a callable that yields
@@ -386,7 +386,7 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         @param external_network_name: string; the name of the external network to 
                 connect the router to
         """
-        super(RouterGateway, self).__init__(logicalName)
+        super(RouterGateway, self).__init__(name)
         self._router = router
         self.router = None
         self._external_network_name = external_network_name
@@ -407,7 +407,7 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
     
     
 class RouterInterface(_OpenstackProvisionableInfraResource):
-    def __init__(self, logicalName, router, subnet):
+    def __init__(self, name, router, subnet):
         """
         @param name: string; a logical name for the interface
         @param router: a string or callable that yields a model reference whose value
@@ -416,7 +416,7 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         @param subnet: a string or a callable that yields a model reference whose
                 value is a string; either way, the result is the name of a subnet
         """
-        super(RouterInterface, self).__init__(logicalName)
+        super(RouterInterface, self).__init__(name)
         self._router = router
         self.router = None
         self._subnet = subnet

@@ -237,7 +237,7 @@ def test014():
         for j in range(5):
             _ = model.collective[i].workers[j]
     rec = provisioner.provision_infra_model(model)
-    assert len(model.resources()) == 22
+    assert len(model.components()) == 22
     
 def test015():
     provisioner = get_provisioner()
