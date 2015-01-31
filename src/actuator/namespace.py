@@ -390,8 +390,8 @@ class VariableContainer(_ModelRefSetAcquireable):
             possible is performed and the result in returned, possibly still
             with replacement patterns in the returned value.
         """
-        v, _ = self.find_variable(name, allow_unexpanded=allow_unexpanded)
-        return v.get_value(self)
+        v, _ = self.find_variable(name)
+        return v.get_value(self, allow_unexpanded=allow_unexpanded)
     
     def future(self, name):
         """
