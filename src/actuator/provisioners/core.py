@@ -32,7 +32,16 @@ class ProvisionerException(Exception):
 
 
 class BaseProvisioner(object):
+    """
+    Base class for all provisioners.
+    """
     def provision_infra_model(self, inframodel_instance):
+        """
+        Instructs the provisioner to do the work to provision the supplied
+        infra model
+        
+        @param inframodel_instance: An instance of a derived class of InfraModel
+        """
         if not isinstance(inframodel_instance, InfraModel):
             raise ProvisionerException("Provisioner asked to provision something not an InfraModel")
         _ = inframodel_instance.refs_for_components()
@@ -42,6 +51,9 @@ class BaseProvisioner(object):
         raise TypeError("Derived class must implement _provision()")
     
     def deprovision_infra_from_record(self, record):
+        """
+        Not implemented.
+        """
         if not isinstance(record, BaseProvisioningRecord):
             raise ProvisionerException("Record must be a kind of BaseProvisioningRecord")
         self._deprovision(record)
@@ -51,6 +63,9 @@ class BaseProvisioner(object):
     
     
 class BaseProvisioningRecord(object):
+    """
+    Captures the details of provisioning a single resource.
+    """
     def __init__(self, id):
         self.id = id
         

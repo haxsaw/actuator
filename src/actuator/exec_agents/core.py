@@ -42,22 +42,65 @@ class ExecutionException(ActuatorException):
 
 
 class ConfigRecord(object):
+    """
+    Returned by the execution agent; a record of the tasks that have been
+    performed as part of the orchestration.
+    """
     def __init__(self):
+        """
+        Sets up a record container for tasks as they complete. The attribute
+        completed_tasks is a public list of the tasks that have successfully
+        completed during orchestration. It is a list of 2-tuples,
+        (task, completion time.ctime).
+        """
         self.completed_tasks = []
         
     def record_completed_task(self, task):
+        """
+        Captures the completion of a single task. Adds the 2-tuple
+        (task, time.ctime()) to the completed_tasks list.
+        """
         self.completed_tasks.append((task, time.ctime()))
         
     def is_completed(self, task):
-        return task in self.completed_tasks
+        return task in set([r[0] for r in self.completed_tasks])
 
 
 class ExecutionAgent(object):
+    """
+    Base class for execution agents. The mechanics of actually executing a task
+    are left to the derived class; this class takes care of all the business of
+    managing the task dependency graph and deciding what tasks should be run
+    when.
+    """
     exception_class = ExecutionException
     exec_agent = "exec_agent"
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
                  num_threads=5, do_log=False, no_delay=False, log_level=LOG_INFO):
+        """
+        Make a new ExecutionAgent
+        
+        @keyword exec_model_instance: Reserved for latter use
+        @keyword config_model_instance: an instance of a derived class of
+            ConfigModel
+        @keyword namespace_model_instance: an instance of a derived class of
+            NamespaceModel
+        @keyword infra_model_instance: UNUSED; an instance of a derived class of
+            InfraModel
+        @keyword num_threads: Integer, default 5. The number of worker threads
+            to spin up to perform tasks.
+        @keyword do_log: boolean, default False. If True, creates a log file
+            that contains more detailed logs of the activities carried out.
+            Independent of log_level (see below).
+        @keyword no_delay: booleand, default False. The default causes a short
+            pause of up to 2.5 seconds to be taken before a task is started.
+            This keeps a single host from being bombarded with too many ssh
+            requests at the same time in the case where a number of different
+            tasks can all start in parallel on the same Role's host.
+        @keyword log_level: Any of the symbolic log levels in the actuator root
+            package, LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, or LOG_WARN
+        """
         #@TODO: need to add a test for the type of the exec_model_instance 
         self.exec_mi = exec_model_instance
         if config_model_instance is not None and not isinstance(config_model_instance, ConfigModel):
@@ -87,9 +130,21 @@ class ExecutionAgent(object):
         self.no_delay = no_delay
         
     def record_aborted_task(self, task, etype, value, tb):
+        """
+        Internal; used by a worker thread to report that it is giving up on
+        performing a task.
+        
+        @param task: The task that is aborting
+        @param etype: The aborting exception type
+        @param value: The exception value
+        @param tb: The exception traceback object, as returned by sys.exc_info()
+        """
         self.aborted_tasks.append( (task, etype, value, tb) )
         
     def has_aborted_tasks(self):
+        """
+        Test to see if there are any aborted tasks
+        """
         return len(self.aborted_tasks) > 0
     
     def get_aborted_tasks(self):
@@ -100,8 +155,15 @@ class ExecutionAgent(object):
         return list(self.aborted_tasks)
         
     def perform_task(self, graph, task):
-        #start with a small random wait to try to avoid too many things going to the
-        #same machine at the same time
+        """
+        Internal, used to perform a task in graph. Derived classes implement
+        _perform_task() to supply the actual mechanics of for the underlying
+        task execution system.
+        
+        @param graph: an NetworkX DiGraph; needed to find the next tasks
+            to queue when the current one is done
+        @param task: The actual task to perform
+        """
         add_suffix = lambda t, sfx: ("task %s named %s id %s->%s" %
                                      (t.__class__.__name__, t.name, t._id, sfx))
         logger = root_logger.getChild(self.exec_agent)
@@ -173,12 +235,23 @@ class ExecutionAgent(object):
             self.abort_process_tasks()
         
     def _perform_task(self, task, logfile=None):
+        """
+        Actually do the task; the default asks the task to perform itself,
+        which usually means that it does nothing.
+        """
         task.perform()
         
     def abort_process_tasks(self):
+        """
+        The the agent to abort performing any further tasks.
+        """
         self.stop = True
         
     def process_tasks(self):
+        """
+        Tell the agent to start performing tasks; results in calls to
+        self.perform_task()
+        """
         while not self.stop:
             try:
                 graph, task = self.task_queue.get(block=True, timeout=0.2)
@@ -188,6 +261,13 @@ class ExecutionAgent(object):
                 pass
         
     def perform_config(self, completion_record=None):
+        """
+        Start the agent working on the configuration tasks. This is the method
+        the outside world calls when it wants the agent to start the config
+        processing process.
+        
+        @keyword completion_record: currently unused
+        """
         logger = root_logger.getChild(self.exec_agent)
         logger.info("Agent starting task processing")
         if self.namespace_mi and self.config_mi:

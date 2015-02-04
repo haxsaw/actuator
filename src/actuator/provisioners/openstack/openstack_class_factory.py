@@ -20,6 +20,9 @@
 # SOFTWARE.
 
 '''
+This module is a simple factory for Openstack Neutron and Nova clients. It
+exists so that mocks can easily be supplied for testing.
+
 Created on 7 Sep 2014
 '''
 from novaclient import client as NovaClient

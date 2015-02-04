@@ -45,10 +45,24 @@ _class_module_map = {PingTask:"ping"}
 
 
 class TaskProcessor(object):
+    """
+    Base class for all Ansible task processing classes. Establishes the protocol
+    for naming modules, making argument structures, and checking results. 
+    """
     def module_name(self):
+        """
+        Returns the name of the Ansible module to use. The derived class must
+        implement this and return a suitable string with the module name in it.
+        """
         raise TypeError("Derived class must implement module_name()")
     
     def make_args(self, task, hlist):
+        """
+        Make the genericargument structure to use with the Ansible Runner object.
+        
+        @param task: the task object to process
+        @param hlist: A list of host names/IPs to apply the task to.
+        """
         kwargs = {"host_list":hlist,
                   "environment":task.task_variables(for_env=True)
                   }
@@ -65,9 +79,26 @@ class TaskProcessor(object):
         return kwargs
     
     def _make_args(self, task):
+        """
+        Supplies the module-specific arguments for the processor. Must return
+        a dict of Ansible Runner keyword args that are relevant to the module
+        the class is for. The derived class must override this method.
+        """
         raise TypeError("derived class must implement")
     
     def result_check(self, task, result, logfile=None):
+        """
+        Checks the result of a Ansible Runner invocation. If there is a problem,
+        raise ExecutionException with helpful data in the response.
+        
+        @param task: the Task that was performed
+        @param result: The result dict returned from the Runner
+        @param logfile: If present, a file-like object that log messages will
+            be written, regardless of the log level.
+        @raise ExecutionException: Raised if the result looks bad; the result
+            itself will be formatted and added to the exception in the 
+            exception's 'response' attribute.
+        """
         host = task.get_task_host()
         if len(result["dark"]):
             cmd_msg = (result["dark"][host]["msg"]
@@ -112,6 +143,9 @@ class TaskProcessor(object):
 
 @capture_mapping(_agent_domain, PingTask)
 class PingProcessor(TaskProcessor):
+    """
+    Supplies the processing details for the Ansible 'ping' module.
+    """
     def module_name(self):
         return "ping"
 
@@ -122,6 +156,9 @@ class PingProcessor(TaskProcessor):
             
 @capture_mapping(_agent_domain, ScriptTask)
 class ScriptProcessor(TaskProcessor):
+    """
+    Supplies the processing details for the Ansible 'script' module.
+    """
     def module_name(self):
         return "script"
     
@@ -134,6 +171,9 @@ class ScriptProcessor(TaskProcessor):
             
 @capture_mapping(_agent_domain, CommandTask)
 class CommandProcessor(ScriptProcessor):
+    """
+    Supplies theh processing details for the Ansible "command" module.
+    """
     def module_name(self):
         return "command"
     
@@ -148,6 +188,9 @@ class CommandProcessor(ScriptProcessor):
     
 @capture_mapping(_agent_domain, ShellTask)
 class ShellProcessor(CommandProcessor):
+    """
+    Supplies the processing details for the Ansible "shell" module.
+    """
     def module_name(self):
         return "shell"
     
@@ -159,6 +202,9 @@ class ShellProcessor(CommandProcessor):
         
 @capture_mapping(_agent_domain, CopyFileTask)
 class CopyFileProcessor(TaskProcessor):
+    """
+    Supplies the processing detail for the Ansible 'copy' module.
+    """
     def module_name(self):
         return "copy"
     
@@ -187,6 +233,10 @@ class CopyFileProcessor(TaskProcessor):
     
 @capture_mapping(_agent_domain, ProcessCopyFileTask)
 class ProcessCopyFileProcessor(CopyFileProcessor):
+    """
+    Supplies the processing detail and namespace processing capabilities
+    on top of the Ansible "copy" module.
+    """
     def _make_args(self, task):
         args = super(ProcessCopyFileProcessor, self)._make_args(task)
         complex_args = args["complex_args"]
@@ -207,6 +257,9 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
     
 
 class AnsibleExecutionAgent(ExecutionAgent):
+    """
+    Specific execution agent to run on top of Ansible.
+    """
     def _get_run_host(self, task):
         #NOTE about task_role and run_from:
         # the task role provides the focal point for tasks to be performed
