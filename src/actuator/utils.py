@@ -38,6 +38,10 @@ LOG_CRIT = logging.CRITICAL
 
 
 class ClassMapper(dict):
+    """
+    Internal; used to map a class, and its derived classes, to some other object.
+    Really just a kind of dict that has some more interesting properties.
+    """
     def __getitem__(self, item):
         """
         This method differs from normal __getitem__ in that since item is expected to be
@@ -64,6 +68,12 @@ _all_mappers = {}
 
 
 def capture_mapping(domain, from_class):
+    """
+    Internal; a decorator that maps one class to another relative to a specific
+    usage domain. Typically used to map a class to another, such that the second
+    has some understanding of how to process the first. Often used to map
+    data objects (and their derived classes) to handler classes.
+    """
     def capmap(to_class):
         themap = _all_mappers.get(domain)
         if not themap:
@@ -81,8 +91,15 @@ MODIFIERS = "__actuator_modifiers__"
 
 
 class ClassModifier(object):
+    """
+    This is the mechanism to create functions that modify the content of
+    of a class (with_dependencies, with_variables, etc). This class is a
+    decorator for another function that processes the so-called "class modifiers"
+    later on, usually in the metaclass __new__ for the class.
+    """
     def __init__(self, func):
         self.func = func
+        self.__doc__ = func.__doc__
         
     def __call__(self, *args, **kwargs):
         class_locals = sys._getframe(1).f_locals
@@ -93,12 +110,24 @@ class ClassModifier(object):
         self.func(obj, *args, **kwargs)
         
 def process_modifiers(obj):
+    """
+    Processes the modifiers against the class they were meant to modify.
+    """
     modifiers = getattr(obj, MODIFIERS, [])
     for modifier, args, kwargs in modifiers:
         modifier.process(obj, *args, **kwargs)
         
         
 def find_file(filename, start_path=None):
+    """
+    Helpful utility that finds a file relative to some starting point.
+    
+    @param filename: The name of the file to find.
+    @keyword start_path: A path prefix to use as the place to start looking
+        for the file; if unspecified, will use the current value of
+        os.getcwd() to determine the starting poing.
+    @return: the full path to the file, or None if it can't be found.
+    """
     test_file_path = None
     if start_path is None:
         start_path = os.getcwd()
@@ -110,7 +139,6 @@ def find_file(filename, start_path=None):
             if filename in files:
                 test_file_path = os.path.join(root, filename)
                 break
-    assert test_file_path, "Can't the file {}; aborting find".format(filename)
     return test_file_path
 
 

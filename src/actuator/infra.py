@@ -133,6 +133,9 @@ class InfraModel(ModelBase):
         """
         Creates a new instance of an infra model.
         
+        You may override this method as long as you call super().__init__()
+        in the derived class's __init__() method.
+        
         @param name: a logical name for the infra instance
         """
         super(InfraModel, self).__init__()

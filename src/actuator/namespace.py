@@ -28,6 +28,7 @@ from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase
                                ModelReference, ModelInstanceReference, ModelBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
                                CallContext)
+from actuator.infra import InfraModel
 
 
 class NamespaceException(Exception): pass
@@ -445,7 +446,7 @@ _common_vars = "__common_vars__"
 def with_variables(cls, *args, **kwargs):
     """
     Used at the class level of a Namespace class model to set global Vars
-    on the model. May be call repeatedly to set additional Vars.
+    on the model. May be called repeatedly to set additional Vars.
     
     @param *args: One or more Var objects.
     """
@@ -537,6 +538,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         return clone
     
     def _get_arg_value(self, arg):
+        #internal
         val = super(Role, self)._get_arg_value(arg)
         if isinstance(val, basestring):
             #check if we have a variable to resolve
@@ -547,6 +549,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         return val
             
     def _fix_arguments(self):
+        #internal
         host_ref = self._get_arg_value(self._host_ref)
         if not isinstance(host_ref, AbstractModelReference):
             #@FIXME: The problem here is that it won't always be possible
@@ -568,6 +571,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         return ((self.name,), kwargs)
         
     def _get_model_refs(self):
+        #internal
         modelrefs = super(Role, self)._get_model_refs()
         if self.host_ref is not None:
             modelrefs.add(self.host_ref)
@@ -577,9 +581,13 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
 @capture_mapping(_namespace_mapper_domain, ComponentGroup)
 class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
     """
-    Defines a group of Roles that are used together; is a kind of L{ComponentGroup}.
+    Defines a group of Roles that are used together; a kind of L{ComponentGroup}.
     
-    Thi
+    This class allows a set of Roles to be grouped together so that the group
+    can be used easily in single model. The use cases for this tend to be
+    situations where a set of Roles all are associated to a single IPAddressable
+    in an infra model, as otherwise it gets a bit clumsy to name different
+    IPAddressables to associate with each Role in the group. 
     """
     def _set_model_instance(self, mi):
         super(RoleGroup, self)._set_model_instance(mi)
@@ -587,6 +595,14 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
             c._set_model_instance(mi)
 
     def clone(self, clone_into_class=None):
+        """
+        Create a copy of the initial state of this RoleGroup
+        
+        Creates a copy of the RoleGroup as if the original arguments to __init__()
+        were used (in fact, they are).
+        
+        @keyword clone_into_class: internal
+        """
         clone = super(RoleGroup, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self._model_instance)
         clone._set_parent(self.parent_container)
@@ -606,12 +622,39 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
 
 @capture_mapping(_namespace_mapper_domain, MultiComponent)
 class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
+    """
+    Provides a way to name multiple instances of the same template Role that
+    map to different resources in the infra model.
+    
+    The MultiRole class provides a means to have sets of near-identical Roles
+    created to go along with multiple instances of a infra server resource.
+    The canonical example would be a compute grid; each logical compute Role
+    in the namespace should be associated with an independent server resource
+    in the infra model.
+    
+    Once part of a model, the MultiRole can be treated like a dict, except that
+    new keys cause new instances of the template Role to be created, which in
+    turn can drive the creation of new infra model resources.
+    
+    MultiRoles are a kind of L{MultiComponent}, and hence follow the instatiation
+    rules for those objects with the exception that the template object is
+    a Role or other Role container (such as another MultiRole).
+    
+    See the base classes L{MultiComponent} annd L{VariableContainer} for details
+    on instantiation and usage. 
+    """
     def _set_model_instance(self, mi):
         super(MultiRole, self)._set_model_instance(mi)
         for c in self.instances().values():
             c._set_model_instance(mi)
             
     def clone(self, clone_into_class=None):
+        """
+        Create a copy of the initial state of the MultiRole. This is generally
+        only used by Actuator itself to ensure Role independence.
+        
+        @keyword clone_into_class: used internally.
+        """
         clone = super(MultiRole, self).clone(clone_into_class=clone_into_class)
         for k, v in self._instances.items():
             child = v.clone()
@@ -624,6 +667,16 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
         return clone
     
     def get_instance(self, key):
+        """
+        Returns an instance of the template identified by the 'key'.
+        
+        If the 'key' has been seen before, return the instance that was created
+        for the key. If this is a new key, create a new instance for the key
+        and return that.
+        
+        @param key: Immutable key to identify the instance to return. This will
+            be coerced to a string internally.
+        """
         inst = super(MultiRole, self).get_instance(key)
         inst._set_parent(self)
         inst._set_model_instance(self._model_instance)
@@ -638,6 +691,17 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
 
 @capture_mapping(_namespace_mapper_domain, MultiComponentGroup)
 class MultiRoleGroup(MultiRole, VariableContainer):
+    """
+    Allow the creation of multiple RoleGroup based on a key.
+    
+    This is a convenience class that simply wraps a L{RoleGroup} in a
+    L{MultiRole} so that a group of roles can be created with each new key
+    used to index into the group. Like MultiRole, this class behaves like a
+    dict, where keys are immutable and coerced to strings.
+    
+    See the base classes L{MultiRole} and L{VariableContainer} for more info
+    on instantiation and usage. 
+    """
     def __new__(self, name, **kwargs):
         group = RoleGroup(name, **kwargs)
         return MultiRole(group)
@@ -657,10 +721,27 @@ class NamespaceModelMeta(ModelBaseMeta):
     
 
 class NamespaceModel(VariableContainer, ModelBase):
+    """
+    Base class for Namespace model classes.
+    
+    To create a new namespace model, derive a class from this class and add
+    roles, Vars, etc.
+    
+    See the base classes L{VariableContainer} and L{ModelBase} for info on
+    other methods.
+    """
     __metaclass__ = NamespaceModelMeta
     ref_class = ModelInstanceReference
 
     def __init__(self):
+        """
+        Create a new instance of the namespace model that can be further
+        customized with different Var values.
+        
+        Makes a new instance of namespace model for a system. This method may
+        be overridden as long as you call super().__init__() in the derived
+        class's __init__() method.
+        """
         super(NamespaceModel, self).__init__()
         components = set()
         clone_map = {}
@@ -695,18 +776,53 @@ class NamespaceModel(VariableContainer, ModelBase):
         return modelrefs
     
     def get_roles(self):
+        """
+        Returns a dict of all the roles defined on the model. This includes
+        the Role containers such as RoleGroup and MultiRole.
+        """
         return dict(self._roles)
     
     def get_infra_model(self):
+        """
+        Returns the infra model for this namespace, if one has been specified.
+        """
         return self.infra
     
     def set_infra_model(self, infra_model):
+        """
+        Internal; set the infra model instance to be used by this namespace instance.
+        
+        @param infra_model: An instance of some kind of L{InfraModel} derived
+            class. Raises an exception is the infra has already been supplied,
+            or if the model isn't a kind of InfraModel.
+        """
         if self.infra is None:
-            self.infra = infra_model
+            if isinstance(infra_model, InfraModel):
+                self.infra = infra_model
+            else:
+                raise NamespaceException("The infra_model argument isn't an "
+                                         "instance of InfraModel; {}"
+                                         .format(str(infra_model)))
         elif self.infra is not infra_model:
             raise NamespaceException("A different infra model has already been supplied")
     
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):
+        """
+        Computes the provisioning needed for an instance of a namespace model.
+        
+        This method takes an infra model instance and for the current state of
+        the namespace computes the required resources that need to be provisioned
+        to satisfy the requirements of the namespace. It then returns a set
+        containing the infra resources to be provisioned. Users usually have no
+        need for this method; it is there for internal use, but made available
+        for inspecting how a namespace model instance impacts an infra
+        instance.
+        
+        @param infra_instance: An instance of an InfraModel derived class.
+        @keyword exclude_refs: An iterable of references to exclude from the
+            resulting set of provisionable resources. These can be either
+            model or instance references.
+        """
         self.infra = infra_instance
         if exclude_refs is None:
             exclude_refs = set()
@@ -719,6 +835,20 @@ class NamespaceModel(VariableContainer, ModelBase):
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
         
     def add_roles(self, **kwargs):
+        """
+        Add a group of plain Roles to the model instance.
+        
+        This method provides a way to add Roles to an already instantiated 
+        namespace model object. The Roles are supplied as keyword arguments, and
+        each keyword is turned into an attribute on the namespace instance object.
+        Added roles only have an impact if they are added before the computation
+        of provisioning.
+        
+        @keyword **kwargs: A series of keyword args, the values of which must
+            be instances of L{Role}. These are added to the set of Roles for the
+            model instance, and each keyword is also turned into an attribute
+            (with the corresponding Role as value) on the model instance.
+        """
         for k, v in kwargs.items():
             if not isinstance(v, Role):
                 raise NamespaceException("%s is not a kind of role or role container" % str(v))
