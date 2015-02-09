@@ -1,0 +1,11 @@
+#!/bin/bash
+STYLE=grouped
+#STYLE=listed
+#STYLE=included
+if /usr/bin/test -d actuator; then
+    epydoc --html -v -o ../doc/html --name Actuator --docformat epytext --inheritance=$STYLE actuator
+    #the following raises an error in epydoc so it's disabled
+    #epydoc --pdf -v -o ../doc/pdf --name Actuator --docformat epytext --inheritance=$STYLE actuator
+else
+    echo "THIS MUST BE RUN IN THE DIRECTORY WITH THE ACTUATOR PACKAGE ROOT"
+fi

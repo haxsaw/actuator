@@ -1,0 +1,11 @@
+#!/bin/bash
+echo Doing quick tests
+echo =================
+echo The quick tests skip the Ansible integration tests which take a fair
+echo amount of time due to ssh connection setup and encrypt/decrypt
+if /usr/bin/test -d tests; then
+    rm -f .coverage
+    nosetests  --cover-package=actuator --with-coverage -I "ansible.*.py"
+else
+    echo "THIS MUST BE RUN IN THE DIRECTORY THAT CONTAINS THE 'tests' DIRECTORY"
+fi
