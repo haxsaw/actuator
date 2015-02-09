@@ -1,0 +1,699 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>actuator.namespace.VariableContainer</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="actuator-module.html">Package&nbsp;actuator</a> ::
+        <a href="actuator.namespace-module.html">Module&nbsp;namespace</a> ::
+        Class&nbsp;VariableContainer
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="actuator.namespace.VariableContainer-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class VariableContainer</h1><p class="nomargin-top"><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+             object --+    
+                      |    
+<a href="actuator.namespace._ModelRefSetAcquireable-class.html" onclick="show_private();">_ModelRefSetAcquireable</a> --+
+                          |
+                         <strong class="uidshort">VariableContainer</strong>
+</pre>
+
+<dl><dt>Known Subclasses:</dt>
+<dd>
+      <ul class="subclass-list">
+<li><a href="actuator.namespace.MultiRole-class.html">MultiRole</a></li><li>, <a href="actuator.namespace.MultiRoleGroup-class.html">MultiRoleGroup</a></li><li>, <a href="actuator.namespace.NamespaceModel-class.html">NamespaceModel</a></li><li>, <a href="actuator.namespace.Role-class.html">Role</a></li><li>, <a href="actuator.namespace.RoleGroup-class.html">RoleGroup</a></li>  </ul>
+</dd></dl>
+
+<hr />
+<p>A base mixin class for other classes that allows the class to be a 
+  container for Var objects.</p>
+  <p>VariableContainers are arranged in a hierarchy, so that variables that
+  can't be found in one container may be searched for in a parent. Searches
+  for variables always start at the most &quot;local&quot; container.</p>
+
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">parent</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">variables</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">overrides</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Create a new VariableContainer</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_set_parent"></a><span class="summary-sig-name">_set_parent</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">parent</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer._set_parent">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#_get_model_refs" class="summary-sig-name" onclick="show_private();">_get_model_refs</a>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer._get_model_refs">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#add_variable" class="summary-sig-name">add_variable</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">*args</span>)</span><br />
+      Adds one or more Vars to the container.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.add_variable">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#add_override" class="summary-sig-name">add_override</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">*args</span>)</span><br />
+      Adds one or more Vars to the overrides collection in the container.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.add_override">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#find_variable" class="summary-sig-name">find_variable</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">name</span>)</span><br />
+      Locates the named Var and the VariableContainer where it is defined.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.find_variable">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#var_value" class="summary-sig-name">var_value</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">name</span>,
+        <span class="summary-sig-arg">allow_unexpanded</span>=<span class="summary-sig-default">False</span>)</span><br />
+      Locate the named Var and return it's value relative to the current 
+      VariableContainer.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.var_value">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#future" class="summary-sig-name">future</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">name</span>)</span><br />
+      Get a a <a href="actuator.namespace.VarFuture-class.html" 
+      class="link">VarFuture</a> object for the named Var.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.future">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#find_infra_model" class="summary-sig-name">find_infra_model</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Locate the infra model for this VariableContainer.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.find_infra_model">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#get_infra_model" class="summary-sig-name">get_infra_model</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Get the infra model on this container.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.get_infra_model">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#get_visible_vars" class="summary-sig-name">get_visible_vars</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return all the Vars visible to this container</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.get_visible_vars">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__getattribute__</code>,
+      <code>__hash__</code>,
+      <code>__new__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__repr__</code>,
+      <code>__setattr__</code>,
+      <code>__sizeof__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="__init__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__init__</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">parent</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">variables</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">overrides</span>=<span class="sig-default">None</span>)</span>
+    <br /><em class="fname">(Constructor)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.__init__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Create a new VariableContainer</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>parent</code></strong> - Optional; a kind of VariableContainer. This will be treated as 
+          the new container's parent, and any searches for variables in 
+          this container that can't be satisfied will continue with the 
+          parent if there is one. The default is no parent.</li>
+        <li><strong class="pname"><code>variables</code></strong> - Optional; a sequence of Var objects that are used to initially 
+          populate the container with variables.</li>
+        <li><strong class="pname"><code>overrides</code></strong> - Optional; a sequence of Var objects. Overrides provide a 
+          non-destructive way to supplying an alternate value for a 
+          variable. Normally, supplying a new Var with the same name as an 
+          existing Var overwrites the old Var, but overrides are managed 
+          independently and simply mask any variable Vars with the same 
+          name. Overrides can be cleared out later, allowing the original 
+          variable to be visible once again.</li>
+    </ul></dd>
+    <dt>Overrides:
+        object.__init__
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="_get_model_refs"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_get_model_refs</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer._get_model_refs">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  
+  <dl class="fields">
+    <dt>Overrides:
+        <a href="actuator.namespace._ModelRefSetAcquireable-class.html#_get_model_refs" onclick="show_private();">_ModelRefSetAcquireable._get_model_refs</a>
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="add_variable"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">add_variable</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">*args</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.add_variable">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Adds one or more Vars to the container. Returns self so other calls 
+  can be chained from this one.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>*args</code></strong> - One or more Var objects. This method can take an arbitrary number
+          of Var objects in the invocation and put them into its variable 
+          storage. If something not Var is passed in an exception is 
+          raised.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="add_override"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">add_override</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">*args</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.add_override">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Adds one or more Vars to the overrides collection in the container. 
+  Overrides are searched first for a particular Var, so their value takes 
+  precedence. Returns self so other calls can be chained from this one.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>*args</code></strong> - One or more Var objects. This method can take an arbitrary number
+          of Var objects when invoked and put them into the overrides 
+          collection. If something not a Var is passed ii an exception is 
+          raised.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="find_variable"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">find_variable</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">name</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.find_variable">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Locates the named Var and the VariableContainer where it is 
+  defined.</p>
+  <p>This method is concerned with finding a named Var and the container 
+  that manages it, as opposed to actually determining the Var's value. 
+  Self's overrides are first searched from the Var, and then self's 
+  variables, and if it can't be found in either of those places, self's 
+  parent is searched (if it has one).</p>
+  <p>When the Var is found, the method returns a 2-tuple: the Var, and the 
+  VariableContainer that manages the Var (or None, None if no Var with the 
+  supplied name can be found).</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>name</code></strong> - String; name of the Var to locate.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="var_value"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">var_value</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">name</span>,
+        <span class="sig-arg">allow_unexpanded</span>=<span class="sig-default">False</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.var_value">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Locate the named Var and return it's value relative to the current 
+  VariableContainer.</p>
+  <p>Using the search rules from <a 
+  href="actuator.namespace.VariableContainer-class.html#find_variable" 
+  class="link">find_variable</a>, locate the Var with the supplied name, 
+  and then return the computed value for the Var from the perspective of 
+  the current VariableContainer</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>name</code></strong> - string; the name of the Var to locate</li>
+        <li><strong class="pname"><code>allow_unexpanded</code></strong> - Optional; default False. Determines what happens if a Var's value
+          can't have all replacement patterns expanded. The default, False,
+          causes None to be returned if all patterns can't be expanded. If 
+          True, then as much expansion as possible is performed and the 
+          result in returned, possibly still with replacement patterns in 
+          the returned value.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="future"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">future</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">name</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.future">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Get a a <a href="actuator.namespace.VarFuture-class.html" 
+  class="link">VarFuture</a> object for the named Var.</p>
+  <p>Searches for a Var named 'name' as per the search rules for <a 
+  href="actuator.namespace.VariableContainer-class.html#find_variable" 
+  class="link">find_variable</a>, and if found return a <a 
+  href="actuator.namespace.VarFuture-class.html" class="link">VarFuture</a>
+  object for the Var and the current VariableContainer, else None.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>name</code></strong> - String; name of the Var to find.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="find_infra_model"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">find_infra_model</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.find_infra_model">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Locate the infra model for this VariableContainer.</p>
+  <p>Infra models are needed to perform certain Var processing; this method
+  searches through the container hierarchy for the model to use. Returns 
+  the found infra model or None</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="get_infra_model"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">get_infra_model</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.get_infra_model">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Get the infra model on this container.</p>
+  <p>Default implementation has no model so it returns None.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="get_visible_vars"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">get_visible_vars</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.get_visible_vars">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Return all the Vars visible to this container</p>
+  <p>Computes the set of Vars visible to this container, taking into 
+  account parent containers and overrides, and the returns a dict 
+  containing the Vars that would be used from the perspective of this 
+  container.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:52 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

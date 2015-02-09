@@ -1,0 +1,791 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Class Hierarchy</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th bgcolor="#70b0f0" class="navbar-select"
+          >&nbsp;&nbsp;&nbsp;Trees&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">&nbsp;</td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="class-tree.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<center><b>
+ [ <a href="module-tree.html">Module Hierarchy</a>
+ | <a href="class-tree.html">Class Hierarchy</a> ]
+</b></center><br />
+<h1 class="epydoc">Class Hierarchy</h1>
+<ul class="nomargin-top">
+    <li> <strong class="uidlink">object</strong>:
+      <em class="summary">The most base type</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.AbstractModelReference-class.html">actuator.modeling.AbstractModelReference</a></strong>:
+      <em class="summary">Base for all model reference classes.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ModelInstanceReference-class.html">actuator.modeling.ModelInstanceReference</a></strong>:
+      <em class="summary">Instances of this class are created when accessing attributes on a 
+        model class instance.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ModelReference-class.html">actuator.modeling.ModelReference</a></strong>:
+      <em class="summary">Instances of this class are generated whenever accesses are made to
+        the attributes of a model class.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.AbstractModelingEntity-class.html">actuator.modeling.AbstractModelingEntity</a></strong>:
+      <em class="summary">Base class for all modeling entities</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ComponentGroup-class.html">actuator.modeling.ComponentGroup</a></strong>:
+      <em class="summary">A container that groups together other components</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.infra.ResourceGroup-class.html">actuator.infra.ResourceGroup</a></strong>:
+      <em class="summary">A specialization of the <a 
+        href="actuator.modeling.ComponentGroup-class.html" 
+        class="link">ComponentGroup</a> class</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.RoleGroup-class.html">actuator.namespace.RoleGroup</a></strong>:
+      <em class="summary">Defines a group of Roles that are used together; a kind of <a 
+        href="actuator.modeling.ComponentGroup-class.html" 
+        class="link">ComponentGroup</a>.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ModelComponent-class.html">actuator.modeling.ModelComponent</a></strong>:
+      <em class="summary">Base class that is for any entity that will be a component of a 
+        model</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.infra.Provisionable-class.html">actuator.infra.Provisionable</a></strong>:
+      <em class="summary">This class serves as a marker class for any <a 
+        href="actuator.modeling.ModelComponent-class.html" 
+        class="link">ModelComponent</a> derived class as something that can
+        actually be provisioned.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.example_resources.ProvisionableWithFixer-class.html">actuator.provisioners.example_resources.ProvisionableWithFixer</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.example_resources.Database-class.html">actuator.provisioners.example_resources.Database</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.example_resources.Queue-class.html">actuator.provisioners.example_resources.Queue</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.example_resources.Server-class.html">actuator.provisioners.example_resources.Server</a></strong>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.StaticServer-class.html">actuator.infra.StaticServer</a></strong>:
+      <em class="summary">Represents an already existing server to be used in an 
+        infrastructure.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource-class.html" onclick="show_private();">actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource</a></strong>:
+      <em class="summary">Base class for all Openstack provisionable resources.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.FloatingIP-class.html">actuator.provisioners.openstack.resources.FloatingIP</a></strong>:
+      <em class="summary">Represents an Openstack floating IP and the server it should be 
+        associated with.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.Network-class.html">actuator.provisioners.openstack.resources.Network</a></strong>:
+      <em class="summary">Represents an Openstack Neutron Network.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.Router-class.html">actuator.provisioners.openstack.resources.Router</a></strong>:
+      <em class="summary">Represents an Openstack router</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.RouterGateway-class.html">actuator.provisioners.openstack.resources.RouterGateway</a></strong>:
+      <em class="summary">Represents an Openstack RouterGateway, which provides the path to 
+        the world.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.RouterInterface-class.html">actuator.provisioners.openstack.resources.RouterInterface</a></strong>:
+      <em class="summary">Represents and Openstack router interface, which associates a 
+        router with a subnet.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.SecGroup-class.html">actuator.provisioners.openstack.resources.SecGroup</a></strong>:
+      <em class="summary">Represents an Openstack Nova security group.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.SecGroupRule-class.html">actuator.provisioners.openstack.resources.SecGroupRule</a></strong>:
+      <em class="summary">Represents an Openstack Security Group Rule</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.Server-class.html">actuator.provisioners.openstack.resources.Server</a></strong>:
+      <em class="summary">Represents an Openstack server instance.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.Subnet-class.html">actuator.provisioners.openstack.resources.Subnet</a></strong>:
+      <em class="summary">Represents an Openstack Neutron subnet</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.Role-class.html">actuator.namespace.Role</a></strong>:
+      <em class="summary">Defines a role for some component of a system, optionally 
+        establishing Vars and its place in the namespace hierarchy.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config._ConfigTask-class.html" onclick="show_private();">actuator.config._ConfigTask</a></strong>:
+      <em class="summary">Base class for all config model tasks.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigClassTask-class.html">actuator.config.ConfigClassTask</a></strong>:
+      <em class="summary">This class wraps up a ConfigModel and makes the entire model appear
+        as a single task.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.CopyFileTask-class.html">actuator.config_tasks.CopyFileTask</a></strong>:
+      <em class="summary">Copies a file from the local system to the remote system.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.ProcessCopyFileTask-class.html">actuator.config_tasks.ProcessCopyFileTask</a></strong>:
+      <em class="summary">Like CopyFileTask, except for two crucial differences:</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.MultiTask-class.html">actuator.config.MultiTask</a></strong>:
+      <em class="summary">This class allows a template task to be run against a list of 
+        different Roles.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.NullTask-class.html">actuator.config.NullTask</a></strong>:
+      <em class="summary">Non-functional task that's mostly good for testing</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.PingTask-class.html">actuator.config_tasks.PingTask</a></strong>:
+      <em class="summary">Checks to see if a remote machine is alive by ssh'ing into it.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.RendezvousTask-class.html">actuator.config.RendezvousTask</a></strong>:
+      <em class="summary">Internally used task for some of the container tasks; allows a 
+        common exit point to be identified for all tasks in the container.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.ScriptTask-class.html">actuator.config_tasks.ScriptTask</a></strong>:
+      <em class="summary">Transfers a script *as is* to the remote host and executes it.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.CommandTask-class.html">actuator.config_tasks.CommandTask</a></strong>:
+      <em class="summary">Runs a command on the remote system.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.ShellTask-class.html">actuator.config_tasks.ShellTask</a></strong>:
+      <em class="summary">Almost the same as the <a 
+        href="actuator.config_tasks.CommandTask-class.html" 
+        class="link">CommandTask</a>, except that the task is run within a 
+        shell, and so shell meta-characters (rediction, etc) can be used.</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html" onclick="show_private();">actuator.provisioners.openstack.resource_tasks._ProvisioningTask</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionFloatingIPTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionFloatingIPTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionNetworkTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionNetworkTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionRouterGatewayTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionRouterGatewayTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionRouterInterfaceTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionRouterInterfaceTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionRouterTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionRouterTask</a></strong>:
+      <em class="summary">depends on nothing</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupRuleTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupRuleTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupTask</a></strong>:
+      <em class="summary">depends on nothing</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionServerTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionServerTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask</a></strong>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.MultiComponent-class.html">actuator.modeling.MultiComponent</a></strong>:
+      <em class="summary">A container that can create duplicates of a provided template 
+        component</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.MultiComponentGroup-class.html">actuator.modeling.MultiComponentGroup</a></strong>:
+      <em class="summary">A mixture of ComponentGroup and MultiComponent.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.infra.MultiResourceGroup-class.html">actuator.infra.MultiResourceGroup</a></strong>:
+      <em class="summary">A specialization of the <a 
+        href="actuator.modeling.MultiComponentGroup-class.html" 
+        class="link">MultiComponentGroup</a> class</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.MultiResource-class.html">actuator.infra.MultiResource</a></strong>:
+      <em class="summary">A specialization of the <a 
+        href="actuator.modeling.MultiComponent-class.html" 
+        class="link">MultiComponent</a> class</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRole-class.html">actuator.namespace.MultiRole</a></strong>:
+      <em class="summary">Provides a way to name multiple instances of the same template Role
+        that map to different resources in the infra model.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRoleGroup-class.html">actuator.namespace.MultiRoleGroup</a></strong>:
+      <em class="summary">Allow the creation of multiple RoleGroup based on a key.</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.ActuatorOrchestration-class.html">actuator.ActuatorOrchestration</a></strong>:
+      <em class="summary">Processes Actuator models to stand up the system being model 
+        (initiate a system).</em>
+    </li>
+    <li> <strong class="uidlink">exceptions.BaseException</strong>:
+      <em class="summary">Common base class for all exceptions</em>
+    <ul>
+    <li> <strong class="uidlink">exceptions.Exception</strong>:
+      <em class="summary">Common base class for all non-exit exceptions.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ActuatorException-class.html">actuator.modeling.ActuatorException</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.core.ExecutionException-class.html">actuator.exec_agents.core.ExecutionException</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.InfraException-class.html">actuator.infra.InfraException</a></strong>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigException-class.html">actuator.config.ConfigException</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.NamespaceException-class.html">actuator.namespace.NamespaceException</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.core.ProvisionerException-class.html">actuator.provisioners.core.ProvisionerException</a></strong>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.core.BaseProvisioner-class.html">actuator.provisioners.core.BaseProvisioner</a></strong>:
+      <em class="summary">Base class for all provisioners.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner-class.html">actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner</a></strong>:
+      <em class="summary">This flavor of Actuator provisioner is meant operate against an 
+        Openstack- equipped cloud API.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.core.BaseProvisioningRecord-class.html">actuator.provisioners.core.BaseProvisioningRecord</a></strong>:
+      <em class="summary">Captures the details of provisioning a single resource.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.support.OpenstackProvisioningRecord-class.html">actuator.provisioners.openstack.support.OpenstackProvisioningRecord</a></strong>:
+      <em class="summary">Primitive record of provisioned Openstack resources.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.CallContext-class.html">actuator.modeling.CallContext</a></strong>:
+      <em class="summary">Captures the context in which a callable argument is evaluated, and
+        is passed into the callable when it is invoked.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.utils.ClassModifier-class.html">actuator.utils.ClassModifier</a></strong>:
+      <em class="summary">This is the mechanism to create functions that modify the content 
+        of of a class (with_dependencies, with_variables, etc).</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.core.ConfigRecord-class.html">actuator.exec_agents.core.ConfigRecord</a></strong>:
+      <em class="summary">Returned by the execution agent; a record of the tasks that have 
+        been performed as part of the orchestration.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ContextExpr-class.html">actuator.modeling.ContextExpr</a></strong>:
+      <em class="summary">Creates deferred references to object attrs</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.core.ExecutionAgent-class.html">actuator.exec_agents.core.ExecutionAgent</a></strong>:
+      <em class="summary">Base class for execution agents.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.AnsibleExecutionAgent-class.html">actuator.exec_agents.ansible.agent.AnsibleExecutionAgent</a></strong>:
+      <em class="summary">Specific execution agent to run on top of Ansible.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent-class.html">actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent</a></strong>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.IPAddressable-class.html">actuator.infra.IPAddressable</a></strong>:
+      <em class="summary">This is a protocol for any object that can acquire and be addressed
+        with and IP adddress.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.FloatingIP-class.html">actuator.provisioners.openstack.resources.FloatingIP</a></strong>:
+      <em class="summary">Represents an Openstack floating IP and the server it should be 
+        associated with.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.Server-class.html">actuator.provisioners.openstack.resources.Server</a></strong>:
+      <em class="summary">Represents an Openstack server instance.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.StaticServer-class.html">actuator.infra.StaticServer</a></strong>:
+      <em class="summary">Represents an already existing server to be used in an 
+        infrastructure.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.KeyItem-class.html">actuator.modeling.KeyItem</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.ModelInstanceFinderMixin-class.html">actuator.namespace.ModelInstanceFinderMixin</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRole-class.html">actuator.namespace.MultiRole</a></strong>:
+      <em class="summary">Provides a way to name multiple instances of the same template Role
+        that map to different resources in the infra model.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRoleGroup-class.html">actuator.namespace.MultiRoleGroup</a></strong>:
+      <em class="summary">Allow the creation of multiple RoleGroup based on a key.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.Role-class.html">actuator.namespace.Role</a></strong>:
+      <em class="summary">Defines a role for some component of a system, optionally 
+        establishing Vars and its place in the namespace hierarchy.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.RoleGroup-class.html">actuator.namespace.RoleGroup</a></strong>:
+      <em class="summary">Defines a group of Roles that are used together; a kind of <a 
+        href="actuator.modeling.ComponentGroup-class.html" 
+        class="link">ComponentGroup</a>.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resources.NetworkInterface-class.html">actuator.provisioners.openstack.resources.NetworkInterface</a></strong>:
+      <em class="summary">This class provides a place to store broken-out address fields into
+        discrete attributes that can successfully have model references 
+        built on top of them.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.OpenstackCredentials-class.html">actuator.provisioners.openstack.resource_tasks.OpenstackCredentials</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.Orable-class.html">actuator.config.Orable</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.TaskGroup-class.html">actuator.config.TaskGroup</a></strong>:
+      <em class="summary">This class supplies an alternative to the use of the '&amp;' 
+        operator when defining dependencies.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config._ConfigTask-class.html" onclick="show_private();">actuator.config._ConfigTask</a></strong>:
+      <em class="summary">Base class for all config model tasks.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigClassTask-class.html">actuator.config.ConfigClassTask</a></strong>:
+      <em class="summary">This class wraps up a ConfigModel and makes the entire model appear
+        as a single task.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.CopyFileTask-class.html">actuator.config_tasks.CopyFileTask</a></strong>:
+      <em class="summary">Copies a file from the local system to the remote system.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.ProcessCopyFileTask-class.html">actuator.config_tasks.ProcessCopyFileTask</a></strong>:
+      <em class="summary">Like CopyFileTask, except for two crucial differences:</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.MultiTask-class.html">actuator.config.MultiTask</a></strong>:
+      <em class="summary">This class allows a template task to be run against a list of 
+        different Roles.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.NullTask-class.html">actuator.config.NullTask</a></strong>:
+      <em class="summary">Non-functional task that's mostly good for testing</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.PingTask-class.html">actuator.config_tasks.PingTask</a></strong>:
+      <em class="summary">Checks to see if a remote machine is alive by ssh'ing into it.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.RendezvousTask-class.html">actuator.config.RendezvousTask</a></strong>:
+      <em class="summary">Internally used task for some of the container tasks; allows a 
+        common exit point to be identified for all tasks in the container.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.ScriptTask-class.html">actuator.config_tasks.ScriptTask</a></strong>:
+      <em class="summary">Transfers a script *as is* to the remote host and executes it.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.CommandTask-class.html">actuator.config_tasks.CommandTask</a></strong>:
+      <em class="summary">Runs a command on the remote system.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config_tasks.ShellTask-class.html">actuator.config_tasks.ShellTask</a></strong>:
+      <em class="summary">Almost the same as the <a 
+        href="actuator.config_tasks.CommandTask-class.html" 
+        class="link">CommandTask</a>, except that the task is run within a 
+        shell, and so shell meta-characters (rediction, etc) can be used.</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html" onclick="show_private();">actuator.provisioners.openstack.resource_tasks._ProvisioningTask</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionFloatingIPTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionFloatingIPTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionNetworkTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionNetworkTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionRouterGatewayTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionRouterGatewayTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionRouterInterfaceTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionRouterInterfaceTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionRouterTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionRouterTask</a></strong>:
+      <em class="summary">depends on nothing</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupRuleTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupRuleTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupTask</a></strong>:
+      <em class="summary">depends on nothing</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionServerTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionServerTask</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask-class.html">actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask</a></strong>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config._Dependency-class.html" onclick="show_private();">actuator.config._Dependency</a></strong>:
+      <em class="summary">Internal; represents a dependency between two tasks.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.RefSelTest-class.html">actuator.modeling.RefSelTest</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.RefSelectBuilder-class.html">actuator.modeling.RefSelectBuilder</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.RefSelectUnion-class.html">actuator.modeling.RefSelectUnion</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.resource_tasks.RunContext-class.html">actuator.provisioners.openstack.resource_tasks.RunContext</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.SelectElement-class.html">actuator.modeling.SelectElement</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.StructuralTask-class.html">actuator.config.StructuralTask</a></strong>:
+      <em class="summary">Flag mixin class to indicate a task that that is only for 
+        structuring other tasks.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigClassTask-class.html">actuator.config.ConfigClassTask</a></strong>:
+      <em class="summary">This class wraps up a ConfigModel and makes the entire model appear
+        as a single task.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.MultiTask-class.html">actuator.config.MultiTask</a></strong>:
+      <em class="summary">This class allows a template task to be run against a list of 
+        different Roles.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.RendezvousTask-class.html">actuator.config.RendezvousTask</a></strong>:
+      <em class="summary">Internally used task for some of the container tasks; allows a 
+        common exit point to be identified for all tasks in the container.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.TaskProcessor-class.html">actuator.exec_agents.ansible.agent.TaskProcessor</a></strong>:
+      <em class="summary">Base class for all Ansible task processing classes.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.CopyFileProcessor-class.html">actuator.exec_agents.ansible.agent.CopyFileProcessor</a></strong>:
+      <em class="summary">Supplies the processing detail for the Ansible 'copy' module.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.ProcessCopyFileProcessor-class.html">actuator.exec_agents.ansible.agent.ProcessCopyFileProcessor</a></strong>:
+      <em class="summary">Supplies the processing detail and namespace processing 
+        capabilities on top of the Ansible &quot;copy&quot; module.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.PingProcessor-class.html">actuator.exec_agents.ansible.agent.PingProcessor</a></strong>:
+      <em class="summary">Supplies the processing details for the Ansible 'ping' module.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.ScriptProcessor-class.html">actuator.exec_agents.ansible.agent.ScriptProcessor</a></strong>:
+      <em class="summary">Supplies the processing details for the Ansible 'script' module.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.CommandProcessor-class.html">actuator.exec_agents.ansible.agent.CommandProcessor</a></strong>:
+      <em class="summary">Supplies theh processing details for the Ansible 
+        &quot;command&quot; module.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.exec_agents.ansible.agent.ShellProcessor-class.html">actuator.exec_agents.ansible.agent.ShellProcessor</a></strong>:
+      <em class="summary">Supplies the processing details for the Ansible &quot;shell&quot; 
+        module.</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.VarFuture-class.html">actuator.namespace.VarFuture</a></strong>:
+      <em class="summary">A wrapper that allows a Var to be treated like reference into a 
+        model.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config._Cloneable-class.html" onclick="show_private();">actuator.config._Cloneable</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.TaskGroup-class.html">actuator.config.TaskGroup</a></strong>:
+      <em class="summary">This class supplies an alternative to the use of the '&amp;' 
+        operator when defining dependencies.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config._Dependency-class.html" onclick="show_private();">actuator.config._Dependency</a></strong>:
+      <em class="summary">Internal; represents a dependency between two tasks.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling._ComputeModelComponents-class.html" onclick="show_private();">actuator.modeling._ComputeModelComponents</a></strong>:
+      <em class="summary">Mixin class; do not instantiate directly</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ComponentGroup-class.html">actuator.modeling.ComponentGroup</a></strong>:
+      <em class="summary">A container that groups together other components</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.infra.ResourceGroup-class.html">actuator.infra.ResourceGroup</a></strong>:
+      <em class="summary">A specialization of the <a 
+        href="actuator.modeling.ComponentGroup-class.html" 
+        class="link">ComponentGroup</a> class</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.RoleGroup-class.html">actuator.namespace.RoleGroup</a></strong>:
+      <em class="summary">Defines a group of Roles that are used together; a kind of <a 
+        href="actuator.modeling.ComponentGroup-class.html" 
+        class="link">ComponentGroup</a>.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ModelBase-class.html">actuator.modeling.ModelBase</a></strong>:
+      <em class="summary">This is the common base class for all models</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigModel-class.html">actuator.config.ConfigModel</a></strong>:
+      <em class="summary">Base class for all config models.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.InfraModel-class.html">actuator.infra.InfraModel</a></strong>:
+      <em class="summary">This is the base class to use for any infrastructure model.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.NamespaceModel-class.html">actuator.namespace.NamespaceModel</a></strong>:
+      <em class="summary">Base class for Namespace model classes.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling.MultiComponent-class.html">actuator.modeling.MultiComponent</a></strong>:
+      <em class="summary">A container that can create duplicates of a provided template 
+        component</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.MultiComponentGroup-class.html">actuator.modeling.MultiComponentGroup</a></strong>:
+      <em class="summary">A mixture of ComponentGroup and MultiComponent.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.infra.MultiResourceGroup-class.html">actuator.infra.MultiResourceGroup</a></strong>:
+      <em class="summary">A specialization of the <a 
+        href="actuator.modeling.MultiComponentGroup-class.html" 
+        class="link">MultiComponentGroup</a> class</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.MultiResource-class.html">actuator.infra.MultiResource</a></strong>:
+      <em class="summary">A specialization of the <a 
+        href="actuator.modeling.MultiComponent-class.html" 
+        class="link">MultiComponent</a> class</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRole-class.html">actuator.namespace.MultiRole</a></strong>:
+      <em class="summary">Provides a way to name multiple instances of the same template Role
+        that map to different resources in the infra model.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRoleGroup-class.html">actuator.namespace.MultiRoleGroup</a></strong>:
+      <em class="summary">Allow the creation of multiple RoleGroup based on a key.</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace._ModelRefSetAcquireable-class.html" onclick="show_private();">actuator.namespace._ModelRefSetAcquireable</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.namespace.Var-class.html">actuator.namespace.Var</a></strong>:
+      <em class="summary">A container for a name-value pair in which the value is a <a 
+        href="actuator.namespace._ComputableValue-class.html" class="link" 
+        onclick="show_private();">_ComputableValue</a>, and hence whose 
+        value can be a plain string, a string with replacement patterns, a 
+        callable that returns a string, or an AbstractModelReference.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.VariableContainer-class.html">actuator.namespace.VariableContainer</a></strong>:
+      <em class="summary">A base mixin class for other classes that allows the class to be a 
+        container for Var objects.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRole-class.html">actuator.namespace.MultiRole</a></strong>:
+      <em class="summary">Provides a way to name multiple instances of the same template Role
+        that map to different resources in the infra model.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRoleGroup-class.html">actuator.namespace.MultiRoleGroup</a></strong>:
+      <em class="summary">Allow the creation of multiple RoleGroup based on a key.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.MultiRoleGroup-class.html">actuator.namespace.MultiRoleGroup</a></strong>:
+      <em class="summary">Allow the creation of multiple RoleGroup based on a key.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.NamespaceModel-class.html">actuator.namespace.NamespaceModel</a></strong>:
+      <em class="summary">Base class for Namespace model classes.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.Role-class.html">actuator.namespace.Role</a></strong>:
+      <em class="summary">Defines a role for some component of a system, optionally 
+        establishing Vars and its place in the namespace hierarchy.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.RoleGroup-class.html">actuator.namespace.RoleGroup</a></strong>:
+      <em class="summary">Defines a group of Roles that are used together; a kind of <a 
+        href="actuator.modeling.ComponentGroup-class.html" 
+        class="link">ComponentGroup</a>.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace._ComputableValue-class.html" onclick="show_private();">actuator.namespace._ComputableValue</a></strong>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling._Nexus-class.html" onclick="show_private();">actuator.modeling._Nexus</a></strong>:
+      <em class="summary">Internal to Actuator</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.modeling._NexusMember-class.html" onclick="show_private();">actuator.modeling._NexusMember</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ModelBase-class.html">actuator.modeling.ModelBase</a></strong>:
+      <em class="summary">This is the common base class for all models</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigModel-class.html">actuator.config.ConfigModel</a></strong>:
+      <em class="summary">Base class for all config models.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.InfraModel-class.html">actuator.infra.InfraModel</a></strong>:
+      <em class="summary">This is the base class to use for any infrastructure model.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.NamespaceModel-class.html">actuator.namespace.NamespaceModel</a></strong>:
+      <em class="summary">Base class for Namespace model classes.</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.provisioners.openstack.support._OSMaps-class.html" onclick="show_private();">actuator.provisioners.openstack.support._OSMaps</a></strong>:
+      <em class="summary">Utility class that creates a cache of Openstack resources.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config._Unpackable-class.html" onclick="show_private();">actuator.config._Unpackable</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigClassTask-class.html">actuator.config.ConfigClassTask</a></strong>:
+      <em class="summary">This class wraps up a ConfigModel and makes the entire model appear
+        as a single task.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.MultiTask-class.html">actuator.config.MultiTask</a></strong>:
+      <em class="summary">This class allows a template task to be run against a list of 
+        different Roles.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config.TaskGroup-class.html">actuator.config.TaskGroup</a></strong>:
+      <em class="summary">This class supplies an alternative to the use of the '&amp;' 
+        operator when defining dependencies.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.config._Dependency-class.html" onclick="show_private();">actuator.config._Dependency</a></strong>:
+      <em class="summary">Internal; represents a dependency between two tasks.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink">basestring</strong>:
+      <em class="summary">Type basestring cannot be instantiated; it is the base for str and 
+        unicode.</em>
+    <ul>
+    <li> <strong class="uidlink">str</strong>:
+      <em class="summary">str(object='') -&gt; string</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.KeyAsAttr-class.html">actuator.modeling.KeyAsAttr</a></strong>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink">dict</strong>:
+      <em class="summary">dict() -&gt; new empty dictionary
+dict(mapping) -&gt; new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -&gt; new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -&gt; new dictionary initialized with the name=value pairs
+    in the keyword argument list.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.utils.ClassMapper-class.html">actuator.utils.ClassMapper</a></strong>:
+      <em class="summary">Internal; used to map a class, and its derived classes, to some 
+        other object.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink">type</strong>:
+      <em class="summary">type(object) -&gt; the object's type type(name, bases, dict) -&gt; 
+        a new type</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.modeling.ModelBaseMeta-class.html">actuator.modeling.ModelBaseMeta</a></strong>
+    <ul>
+    <li> <strong class="uidlink"><a href="actuator.config.ConfigModelMeta-class.html">actuator.config.ConfigModelMeta</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.infra.InfraModelMeta-class.html">actuator.infra.InfraModelMeta</a></strong>
+    </li>
+    <li> <strong class="uidlink"><a href="actuator.namespace.NamespaceModelMeta-class.html">actuator.namespace.NamespaceModelMeta</a></strong>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+</ul>
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th bgcolor="#70b0f0" class="navbar-select"
+          >&nbsp;&nbsp;&nbsp;Trees&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:51 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

@@ -18,12 +18,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 '''
-Created on Jan 6, 2015
+Support for the Openstack provisioner.
+
+This module's main contents are a class that captures the Openstack ids
+of Openstack resources that have been provisioned for a model, and a class that
+can retrieves and caches identifiers for Openstack resources that may be needed
+when provisioning infra for a model.
 '''
 from actuator.provisioners.core import BaseProvisioningRecord
 
 
 class OpenstackProvisioningRecord(BaseProvisioningRecord):
+    """
+    Primitive record of provisioned Openstack resources. Currently only capture
+    the ids of the resources.
+    """
     def __init__(self, id):
         super(OpenstackProvisioningRecord, self).__init__(id)
         self.network_ids = dict()
@@ -55,36 +64,94 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
             setattr(self, k, set(d[k]))
             del d[k]
         
-    def add_port_id(self, pid, osid):
-        "map the provisionable id (pid) to the id of the provisioned Openstack item (osid)"
-        self.port_ids[pid] = osid
+    def add_port_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
         
-    def add_server_id(self, pid, osid):
-        self.server_ids[pid] = osid
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.port_ids[rid] = osid
         
-    def add_secgroup_id(self, pid, osid):
-        self.secgroup_ids[pid] = osid
+    def add_server_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
         
-    def add_secgroup_rule_id(self, pid, osid):
-        self.secgroup_rule_ids[pid] = osid
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.server_ids[rid] = osid
         
-    def add_router_id(self, pid, osid):
-        self.router_ids[pid] = osid
+    def add_secgroup_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
         
-    def add_router_iface_id(self, pid, osid):
-        self.router_iface_ids[pid] = osid
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.secgroup_ids[rid] = osid
         
-    def add_floating_ip_id(self, pid, osid):
-        self.floating_ip_ids[pid] = osid
+    def add_secgroup_rule_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
         
-    def add_subnet_id(self, pid, osid):
-        self.subnet_ids[pid] = osid
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.secgroup_rule_ids[rid] = osid
         
-    def add_network_id(self, pid, osid):
-        self.network_ids[pid] = osid
+    def add_router_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
+        
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.router_ids[rid] = osid
+        
+    def add_router_iface_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
+        
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.router_iface_ids[rid] = osid
+        
+    def add_floating_ip_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
+        
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.floating_ip_ids[rid] = osid
+        
+    def add_subnet_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
+        
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.subnet_ids[rid] = osid
+        
+    def add_network_id(self, rid, osid):
+        """
+        Maps an Actuator resource id to the associated Openstack resource id
+        
+        @param rid: Actuator resource id
+        @param osid: Openstack resource id
+        """
+        self.network_ids[rid] = osid
         
         
 class _OSMaps(object):
+    """
+    Utility class that creates a cache of Openstack resources. The resources
+    are mapped by their "natural" key to their appropriate Openstack API
+    client object (nova, neutron, etc).
+    """
     def __init__(self, os_provisioner):
         self.os_provisioner = os_provisioner
         self.image_map = {}
@@ -93,9 +160,12 @@ class _OSMaps(object):
         self.secgroup_map = {}
         self.secgroup_rule_map = {}
         self.router_map = {}
-        self.subnets_map = {}
+        self.subnet_map = {}
         
     def refresh_all(self):
+        """
+        Refresh all maps
+        """
         self.refresh_flavors()
         self.refresh_images()
         self.refresh_networks()
@@ -104,26 +174,51 @@ class _OSMaps(object):
         self.refresh_subnets()
         
     def refresh_subnets(self):
+        """
+        Refresh the subnets map, subnet_map.
+        Keys are the subnet name, value is the neutron subnet dict.
+        """
         response = self.os_provisioner.nuclient.list_subnets()
-        self.subnets_map = {d['name']:d for d in response['subnets']}
+        self.subnet_map = {d['name']:d for d in response['subnets']}
         
     def refresh_routers(self):
+        """
+        Refresh the routers map, router_map
+        Keys are the Openstack ID for the router, values are the same ID
+        """
         response = self.os_provisioner.nuclient.list_routers()
         self.router_map = {d['id']:d['id'] for d in response["routers"]}
         
     def refresh_networks(self):
+        """
+        Refresh the networks map, network_map.
+        Keys are the network id, values are nova Network objects
+        """
         networks = self.os_provisioner.nvclient.networks.list()
         self.network_map = {n.label:n for n in networks}
         for network in networks:
             self.network_map[network.id] = network
 
     def refresh_images(self):
+        """
+        Refresh the images map, image_map
+        Keys are image names, values are nova Image objects.
+        """
         self.image_map = {i.name:i for i in self.os_provisioner.nvclient.images.list()}
 
     def refresh_flavors(self):
+        """
+        Refresh the flavors map, flavor_map
+        Keys are flavor names, values are nova Flavor objects
+        """
         self.flavor_map = {f.name:f for f in self.os_provisioner.nvclient.flavors.list()}
 
     def refresh_secgroups(self):
+        """
+        Refresh the sec groups map, secgroup_map
+        Keys are secgroup names and secgroup ids, values are nova SecGroup
+        objects.
+        """
         secgroups = list(self.os_provisioner.nvclient.security_groups.list())
         self.secgroup_map = {sg.name:sg for sg in secgroups}
         self.secgroup_map.update({sg.id:sg for sg in secgroups})

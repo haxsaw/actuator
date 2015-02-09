@@ -1,0 +1,963 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>actuator.namespace.NamespaceModel</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="actuator-module.html">Package&nbsp;actuator</a> ::
+        <a href="actuator.namespace-module.html">Module&nbsp;namespace</a> ::
+        Class&nbsp;NamespaceModel
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="actuator.namespace.NamespaceModel-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class NamespaceModel</h1><p class="nomargin-top"><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+                      object --+        
+                               |        
+         <a href="actuator.namespace._ModelRefSetAcquireable-class.html" onclick="show_private();">_ModelRefSetAcquireable</a> --+    
+                                   |    
+                   <a href="actuator.namespace.VariableContainer-class.html">VariableContainer</a> --+
+                                       |
+                      object --+       |
+                               |       |
+           <a href="actuator.modeling._NexusMember-class.html" onclick="show_private();">modeling._NexusMember</a> --+   |
+                                   |   |
+                      object --+   |   |
+                               |   |   |
+<a href="actuator.modeling._ComputeModelComponents-class.html" onclick="show_private();">modeling._ComputeModelComponents</a> --+   |
+                                   |   |
+                  <a href="actuator.modeling.ModelBase-class.html">modeling.ModelBase</a> --+
+                                       |
+                                      <strong class="uidshort">NamespaceModel</strong>
+</pre>
+
+<hr />
+<p>Base class for Namespace model classes.</p>
+  <p>To create a new namespace model, derive a class from this class and 
+  add roles, Vars, etc.</p>
+  <p>See the base classes <a 
+  href="actuator.namespace.VariableContainer-class.html" 
+  class="link">VariableContainer</a> and <a 
+  href="actuator.modeling.ModelBase-class.html" class="link">ModelBase</a> 
+  for info on other methods.</p>
+
+<!-- ==================== NESTED CLASSES ==================== -->
+<a name="section-NestedClasses"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Nested Classes</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-NestedClasses"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="actuator.namespace.NamespaceModelMeta-class.html" class="summary-name">__metaclass__</a>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="actuator.modeling.ModelInstanceReference-class.html" class="summary-name">ref_class</a><br />
+      Instances of this class are created when accessing attributes on a 
+        model class instance.
+    </td>
+  </tr>
+</table>
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Create a new instance of the namespace model that can be further 
+      customized with different Var values.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#_comp_source" class="summary-sig-name" onclick="show_private();">_comp_source</a>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel._comp_source">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#_get_model_refs" class="summary-sig-name" onclick="show_private();">_get_model_refs</a>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel._get_model_refs">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#get_roles" class="summary-sig-name">get_roles</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns a dict of all the roles defined on the model.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.get_roles">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#get_infra_model" class="summary-sig-name">get_infra_model</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns the infra model for this namespace, if one has been 
+      specified.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.get_infra_model">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#set_infra_model" class="summary-sig-name">set_infra_model</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">infra_model</span>)</span><br />
+      Internal; set the infra model instance to be used by this namespace 
+      instance.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.set_infra_model">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#compute_provisioning_for_environ" class="summary-sig-name">compute_provisioning_for_environ</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">infra_instance</span>,
+        <span class="summary-sig-arg">exclude_refs</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Computes the provisioning needed for an instance of a namespace 
+      model.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.compute_provisioning_for_environ">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#add_roles" class="summary-sig-name">add_roles</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">**kwargs</span>)</span><br />
+      Add a group of plain Roles to the model instance.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.add_roles">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__hash__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__repr__</code>,
+      <code>__setattr__</code>,
+      <code>__sizeof__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.namespace.VariableContainer-class.html">VariableContainer</a></th></tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_set_parent"></a><span class="summary-sig-name">_set_parent</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">parent</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer._set_parent">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#add_override" class="summary-sig-name">add_override</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">*args</span>)</span><br />
+      Adds one or more Vars to the overrides collection in the container.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.add_override">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#add_variable" class="summary-sig-name">add_variable</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">*args</span>)</span><br />
+      Adds one or more Vars to the container.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.add_variable">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#find_infra_model" class="summary-sig-name">find_infra_model</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Locate the infra model for this VariableContainer.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.find_infra_model">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#find_variable" class="summary-sig-name">find_variable</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">name</span>)</span><br />
+      Locates the named Var and the VariableContainer where it is defined.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.find_variable">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#future" class="summary-sig-name">future</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">name</span>)</span><br />
+      Get a a <a href="actuator.namespace.VarFuture-class.html" 
+      class="link">VarFuture</a> object for the named Var.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.future">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#get_visible_vars" class="summary-sig-name">get_visible_vars</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return all the Vars visible to this container</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.get_visible_vars">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.VariableContainer-class.html#var_value" class="summary-sig-name">var_value</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">name</span>,
+        <span class="summary-sig-arg">allow_unexpanded</span>=<span class="summary-sig-default">False</span>)</span><br />
+      Locate the named Var and return it's value relative to the current 
+      VariableContainer.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#VariableContainer.var_value">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.modeling.ModelBase-class.html">modeling.ModelBase</a></th></tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.ModelBase-class.html#__getattribute__" class="summary-sig-name">__getattribute__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">attrname</span>)</span><br />
+      x.__getattribute__('name') &lt;==&gt; x.name</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#ModelBase.__getattribute__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.ModelBase-class.html#get_inst_ref" class="summary-sig-name">get_inst_ref</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">model_ref</span>)</span><br />
+      Take a model ref object and get an associated model instance ref for 
+      this model instance.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#ModelBase.get_inst_ref">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.modeling._NexusMember-class.html" onclick="show_private();">modeling._NexusMember</a></th></tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="update_nexus"></a><span class="summary-sig-name">update_nexus</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">new_nexus</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#_NexusMember.update_nexus">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.modeling._ComputeModelComponents-class.html" onclick="show_private();">modeling._ComputeModelComponents</a></th></tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling._ComputeModelComponents-class.html#components" class="summary-sig-name">components</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns a set of component entities (instances of ModelComponent) in 
+      self</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#_ComputeModelComponents.components">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling._ComputeModelComponents-class.html#refs_for_components" class="summary-sig-name">refs_for_components</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">my_ref</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Returns a set of model references for all ModelComponents within 
+      self.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#_ComputeModelComponents.refs_for_components">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+</table>
+<!-- ==================== STATIC METHODS ==================== -->
+<a name="section-StaticMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Static Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-StaticMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">a new object with type S, a subtype of T</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.namespace.NamespaceModel-class.html#__new__" class="summary-sig-name">__new__</a>(<span class="summary-sig-arg">cls</span>,
+        <span class="summary-sig-arg">*args</span>,
+        <span class="summary-sig-arg">**kwargs</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.__new__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS VARIABLES ==================== -->
+<a name="section-ClassVariables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Class Variables</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-ClassVariables"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="q"></a><span class="summary-name">q</span> = <code title="&lt;actuator.modeling.RefSelectBuilder object at 0x7feca3bd6890&gt;">&lt;actuator.modeling.RefSelectBuilder object at 0x7feca3bd6890&gt;</code>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="__init__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__init__</span>(<span class="sig-arg">self</span>)</span>
+    <br /><em class="fname">(Constructor)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.__init__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Create a new instance of the namespace model that can be further 
+  customized with different Var values.</p>
+  <p>Makes a new instance of namespace model for a system. This method may 
+  be overridden as long as you call super().__init__() in the derived 
+  class's __init__() method.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>parent</code></strong> - Optional; a kind of VariableContainer. This will be treated as 
+          the new container's parent, and any searches for variables in 
+          this container that can't be satisfied will continue with the 
+          parent if there is one. The default is no parent.</li>
+        <li><strong class="pname"><code>variables</code></strong> - Optional; a sequence of Var objects that are used to initially 
+          populate the container with variables.</li>
+        <li><strong class="pname"><code>overrides</code></strong> - Optional; a sequence of Var objects. Overrides provide a 
+          non-destructive way to supplying an alternate value for a 
+          variable. Normally, supplying a new Var with the same name as an 
+          existing Var overwrites the old Var, but overrides are managed 
+          independently and simply mask any variable Vars with the same 
+          name. Overrides can be cleared out later, allowing the original 
+          variable to be visible once again.</li>
+    </ul></dd>
+    <dt>Overrides:
+        object.__init__
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="__new__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__new__</span>(<span class="sig-arg">cls</span>,
+        <span class="sig-arg">*args</span>,
+        <span class="sig-arg">**kwargs</span>)</span>
+    <br /><em class="fname">Static Method</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.__new__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  
+  <dl class="fields">
+    <dt>Returns: a new object with type S, a subtype of T</dt>
+    <dt>Overrides:
+        object.__new__
+        <dd><em class="note">(inherited documentation)</em></dd>
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="_comp_source"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_comp_source</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel._comp_source">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  
+  <dl class="fields">
+    <dt>Overrides:
+        <a href="actuator.modeling._ComputeModelComponents-class.html#_comp_source" onclick="show_private();">modeling._ComputeModelComponents._comp_source</a>
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="_get_model_refs"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_get_model_refs</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel._get_model_refs">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  
+  <dl class="fields">
+    <dt>Overrides:
+        <a href="actuator.namespace._ModelRefSetAcquireable-class.html#_get_model_refs" onclick="show_private();">_ModelRefSetAcquireable._get_model_refs</a>
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="get_roles"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">get_roles</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.get_roles">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Returns a dict of all the roles defined on the model. This includes 
+  the Role containers such as RoleGroup and MultiRole.</p>
+  <dl class="fields">
+  </dl>
+</td></tr></table>
+</div>
+<a name="get_infra_model"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">get_infra_model</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.get_infra_model">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Returns the infra model for this namespace, if one has been 
+  specified.</p>
+  <dl class="fields">
+    <dt>Overrides:
+        <a href="actuator.namespace.VariableContainer-class.html#get_infra_model">VariableContainer.get_infra_model</a>
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="set_infra_model"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">set_infra_model</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">infra_model</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.set_infra_model">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Internal; set the infra model instance to be used by this namespace 
+  instance.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>infra_model</code></strong> - An instance of some kind of <a 
+          href="actuator.infra.InfraModel-class.html" 
+          class="link">InfraModel</a> derived class. Raises an exception is
+          the infra has already been supplied, or if the model isn't a kind
+          of InfraModel.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="compute_provisioning_for_environ"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">compute_provisioning_for_environ</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">infra_instance</span>,
+        <span class="sig-arg">exclude_refs</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.compute_provisioning_for_environ">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Computes the provisioning needed for an instance of a namespace 
+  model.</p>
+  <p>This method takes an infra model instance and for the current state of
+  the namespace computes the required resources that need to be provisioned
+  to satisfy the requirements of the namespace. It then returns a set 
+  containing the infra resources to be provisioned. Users usually have no 
+  need for this method; it is there for internal use, but made available 
+  for inspecting how a namespace model instance impacts an infra 
+  instance.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>infra_instance</code></strong> - An instance of an InfraModel derived class.</li>
+        <li><strong class="pname"><code>exclude_refs</code></strong> - An iterable of references to exclude from the resulting set of 
+          provisionable resources. These can be either model or instance 
+          references.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="add_roles"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">add_roles</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">**kwargs</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.namespace-pysrc.html#NamespaceModel.add_roles">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Add a group of plain Roles to the model instance.</p>
+  <p>This method provides a way to add Roles to an already instantiated 
+  namespace model object. The Roles are supplied as keyword arguments, and 
+  each keyword is turned into an attribute on the namespace instance 
+  object. Added roles only have an impact if they are added before the 
+  computation of provisioning.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>**kwargs</code></strong> - A series of keyword args, the values of which must be instances 
+          of <a href="actuator.namespace.Role-class.html" 
+          class="link">Role</a>. These are added to the set of Roles for 
+          the model instance, and each keyword is also turned into an 
+          attribute (with the corresponding Role as value) on the model 
+          instance.</li>
+    </ul></dd>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:52 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

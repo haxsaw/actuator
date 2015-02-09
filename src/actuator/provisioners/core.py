@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 '''
-Created on 7 Sep 2014
+Base classes for all Actuator provisioners.
 '''
 from actuator.infra import InfraModel
 

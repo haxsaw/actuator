@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 '''
-Created on Jan 5, 2015
+Internal to Actuator; responsible for processing Openstack resource objects
 '''
 import time
 import threading
@@ -374,9 +374,32 @@ class ResourceTaskSequencerAgent(ExecutionAgent):
                 
 
 class OpenstackProvisioner(BaseProvisioner):
+    """
+    This flavor of Actuator provisioner is meant operate against an Openstack-
+    equipped cloud API. It will take an Actuator infra model and provsion
+    all Openstack resources it finds in it.
+    
+    The provisioner is conventionally used within the Actuator orchestrator,
+    but can be used independently to simply provsion Openstack infrastructure.
+    
+    See the doc for L{BaseProvisioner} for the rest of the details to run
+    the provisioner independently.
+    """
     LOG_SUFFIX = "os_provisioner"
     def __init__(self, username, password, tenant_name, auth_url, num_threads=5,
                  log_level=LOG_INFO):
+        """
+        @param username: String; the Openstack user name
+        @param password: String; the Openstack password for username
+        @param tenant_name: String, the Openstack tenant's name
+        @param auth_url: String; the Openstack authentication URL. This will
+            authenticate the username/password to allow them to perform the
+            resource provisioning tasks.
+        @keyword num_threads: Optional. Integer, default 5. The number of threads
+            to spawn to handle parallel provisioning tasks
+        @keyword log_level: Optional; default LOG_INFO. One of the logging values
+            from actuator: LOG_CRIT, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG.
+        """
         self.os_creds = OpenstackCredentials(username, password, tenant_name, auth_url)
         self.agent = None
         self.num_threads = num_threads
@@ -391,3 +414,4 @@ class OpenstackProvisioner(BaseProvisioner):
         self.agent.perform_config()
         self.logger.info("...provisioning complete.")
         return self.agent.record
+    

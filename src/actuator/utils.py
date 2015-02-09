@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 '''
-Created on 7 Sep 2014
+Actuator utilities, for both public and private use
 '''
 import sys
 import os, os.path

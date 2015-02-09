@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 '''
-Created on 7 Sep 2014
+Support for creating Actuator configuration models.
 '''
 
 import getpass
@@ -804,7 +804,7 @@ class ConfigModel(ModelBase):
     
     def get_tasks(self):
         """
-        Returns a list of the L{Task} objects in the model.
+        Returns a list of the L{_ConfigTask} objects in the model.
         """
         return [getattr(self, k).value() for k in self._node_dict.values()]
 

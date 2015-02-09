@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>actuator.infra</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="actuator-module.html">Package&nbsp;actuator</a> ::
+        Module&nbsp;infra
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="actuator.infra-pysrc.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<h1 class="epydoc">Source Code for <a href="actuator.infra-module.html">Module actuator.infra</a></h1>
+<pre class="py-src">
+<a name="L1"></a><tt class="py-lineno">  1</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L2"></a><tt class="py-lineno">  2</tt>  <tt class="py-line"><tt class="py-comment"># Copyright (c) 2014 Tom Carroll</tt> </tt>
+<a name="L3"></a><tt class="py-lineno">  3</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L4"></a><tt class="py-lineno">  4</tt>  <tt class="py-line"><tt class="py-comment"># Permission is hereby granted, free of charge, to any person obtaining a copy</tt> </tt>
+<a name="L5"></a><tt class="py-lineno">  5</tt>  <tt class="py-line"><tt class="py-comment"># of this software and associated documentation files (the "Software"), to deal</tt> </tt>
+<a name="L6"></a><tt class="py-lineno">  6</tt>  <tt class="py-line"><tt class="py-comment"># in the Software without restriction, including without limitation the rights</tt> </tt>
+<a name="L7"></a><tt class="py-lineno">  7</tt>  <tt class="py-line"><tt class="py-comment"># to use, copy, modify, merge, publish, distribute, sublicense, and/or sell</tt> </tt>
+<a name="L8"></a><tt class="py-lineno">  8</tt>  <tt class="py-line"><tt class="py-comment"># copies of the Software, and to permit persons to whom the Software is</tt> </tt>
+<a name="L9"></a><tt class="py-lineno">  9</tt>  <tt class="py-line"><tt class="py-comment"># furnished to do so, subject to the following conditions:</tt> </tt>
+<a name="L10"></a><tt class="py-lineno"> 10</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L11"></a><tt class="py-lineno"> 11</tt>  <tt class="py-line"><tt class="py-comment"># The above copyright notice and this permission notice shall be included in all</tt> </tt>
+<a name="L12"></a><tt class="py-lineno"> 12</tt>  <tt class="py-line"><tt class="py-comment"># copies or substantial portions of the Software.</tt> </tt>
+<a name="L13"></a><tt class="py-lineno"> 13</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L14"></a><tt class="py-lineno"> 14</tt>  <tt class="py-line"><tt class="py-comment"># THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</tt> </tt>
+<a name="L15"></a><tt class="py-lineno"> 15</tt>  <tt class="py-line"><tt class="py-comment"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</tt> </tt>
+<a name="L16"></a><tt class="py-lineno"> 16</tt>  <tt class="py-line"><tt class="py-comment"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</tt> </tt>
+<a name="L17"></a><tt class="py-lineno"> 17</tt>  <tt class="py-line"><tt class="py-comment"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</tt> </tt>
+<a name="L18"></a><tt class="py-lineno"> 18</tt>  <tt class="py-line"><tt class="py-comment"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,</tt> </tt>
+<a name="L19"></a><tt class="py-lineno"> 19</tt>  <tt class="py-line"><tt class="py-comment"># OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</tt> </tt>
+<a name="L20"></a><tt class="py-lineno"> 20</tt>  <tt class="py-line"><tt class="py-comment"># SOFTWARE.</tt> </tt>
+<a name="L21"></a><tt class="py-lineno"> 21</tt>  <tt class="py-line"> </tt>
+<a name="L22"></a><tt class="py-lineno"> 22</tt>  <tt class="py-line"><tt class="py-docstring">'''</tt> </tt>
+<a name="L23"></a><tt class="py-lineno"> 23</tt>  <tt class="py-line"><tt class="py-docstring">Support for creating Actuator infrastructure models</tt> </tt>
+<a name="L24"></a><tt class="py-lineno"> 24</tt>  <tt class="py-line"><tt class="py-docstring">'''</tt> </tt>
+<a name="L25"></a><tt class="py-lineno"> 25</tt>  <tt class="py-line"> </tt>
+<a name="L26"></a><tt class="py-lineno"> 26</tt>  <tt class="py-line"><tt class="py-keyword">from</tt> <tt id="link-0" class="py-name" targets="Package actuator=actuator-module.html"><a title="actuator" class="py-name" href="#" onclick="return doclink('link-0', 'actuator', 'link-0');">actuator</a></tt><tt class="py-op">.</tt><tt id="link-1" class="py-name" targets="Module actuator.utils=actuator.utils-module.html"><a title="actuator.utils" class="py-name" href="#" onclick="return doclink('link-1', 'utils', 'link-1');">utils</a></tt> <tt class="py-keyword">import</tt> <tt id="link-2" class="py-name" targets="Class actuator.utils.ClassModifier=actuator.utils.ClassModifier-class.html"><a title="actuator.utils.ClassModifier" class="py-name" href="#" onclick="return doclink('link-2', 'ClassModifier', 'link-2');">ClassModifier</a></tt><tt class="py-op">,</tt> <tt id="link-3" class="py-name" targets="Function actuator.utils.process_modifiers()=actuator.utils-module.html#process_modifiers"><a title="actuator.utils.process_modifiers" class="py-name" href="#" onclick="return doclink('link-3', 'process_modifiers', 'link-3');">process_modifiers</a></tt> </tt>
+<a name="L27"></a><tt class="py-lineno"> 27</tt>  <tt class="py-line"><tt class="py-keyword">from</tt> <tt id="link-4" class="py-name"><a title="actuator" class="py-name" href="#" onclick="return doclink('link-4', 'actuator', 'link-0');">actuator</a></tt><tt class="py-op">.</tt><tt id="link-5" class="py-name" targets="Module actuator.modeling=actuator.modeling-module.html"><a title="actuator.modeling" class="py-name" href="#" onclick="return doclink('link-5', 'modeling', 'link-5');">modeling</a></tt> <tt class="py-keyword">import</tt> <tt class="py-op">(</tt><tt id="link-6" class="py-name" targets="Class actuator.modeling.ActuatorException=actuator.modeling.ActuatorException-class.html"><a title="actuator.modeling.ActuatorException" class="py-name" href="#" onclick="return doclink('link-6', 'ActuatorException', 'link-6');">ActuatorException</a></tt><tt class="py-op">,</tt><tt id="link-7" class="py-name" targets="Class actuator.modeling.ModelBaseMeta=actuator.modeling.ModelBaseMeta-class.html"><a title="actuator.modeling.ModelBaseMeta" class="py-name" href="#" onclick="return doclink('link-7', 'ModelBaseMeta', 'link-7');">ModelBaseMeta</a></tt><tt class="py-op">,</tt> <tt id="link-8" class="py-name" targets="Class actuator.modeling.ModelBase=actuator.modeling.ModelBase-class.html"><a title="actuator.modeling.ModelBase" class="py-name" href="#" onclick="return doclink('link-8', 'ModelBase', 'link-8');">ModelBase</a></tt><tt class="py-op">,</tt> </tt>
+<a name="L28"></a><tt class="py-lineno"> 28</tt>  <tt class="py-line">                               <tt id="link-9" class="py-name" targets="Class actuator.modeling.ModelComponent=actuator.modeling.ModelComponent-class.html"><a title="actuator.modeling.ModelComponent" class="py-name" href="#" onclick="return doclink('link-9', 'ModelComponent', 'link-9');">ModelComponent</a></tt><tt class="py-op">,</tt> <tt id="link-10" class="py-name" targets="Class actuator.modeling.AbstractModelingEntity=actuator.modeling.AbstractModelingEntity-class.html"><a title="actuator.modeling.AbstractModelingEntity" class="py-name" href="#" onclick="return doclink('link-10', 'AbstractModelingEntity', 'link-10');">AbstractModelingEntity</a></tt><tt class="py-op">,</tt> </tt>
+<a name="L29"></a><tt class="py-lineno"> 29</tt>  <tt class="py-line">                               <tt id="link-11" class="py-name" targets="Class actuator.modeling.ModelInstanceReference=actuator.modeling.ModelInstanceReference-class.html"><a title="actuator.modeling.ModelInstanceReference" class="py-name" href="#" onclick="return doclink('link-11', 'ModelInstanceReference', 'link-11');">ModelInstanceReference</a></tt><tt class="py-op">,</tt> <tt id="link-12" class="py-name" targets="Class actuator.modeling.KeyAsAttr=actuator.modeling.KeyAsAttr-class.html"><a title="actuator.modeling.KeyAsAttr" class="py-name" href="#" onclick="return doclink('link-12', 'KeyAsAttr', 'link-12');">KeyAsAttr</a></tt><tt class="py-op">,</tt> </tt>
+<a name="L30"></a><tt class="py-lineno"> 30</tt>  <tt class="py-line">                               <tt id="link-13" class="py-name" targets="Class actuator.modeling._ComputeModelComponents=actuator.modeling._ComputeModelComponents-class.html"><a title="actuator.modeling._ComputeModelComponents" class="py-name" href="#" onclick="return doclink('link-13', '_ComputeModelComponents', 'link-13');">_ComputeModelComponents</a></tt><tt class="py-op">,</tt> <tt id="link-14" class="py-name" targets="Class actuator.modeling.ModelReference=actuator.modeling.ModelReference-class.html"><a title="actuator.modeling.ModelReference" class="py-name" href="#" onclick="return doclink('link-14', 'ModelReference', 'link-14');">ModelReference</a></tt><tt class="py-op">,</tt> </tt>
+<a name="L31"></a><tt class="py-lineno"> 31</tt>  <tt class="py-line">                               <tt id="link-15" class="py-name" targets="Class actuator.modeling.ComponentGroup=actuator.modeling.ComponentGroup-class.html"><a title="actuator.modeling.ComponentGroup" class="py-name" href="#" onclick="return doclink('link-15', 'ComponentGroup', 'link-15');">ComponentGroup</a></tt><tt class="py-op">,</tt> <tt id="link-16" class="py-name" targets="Class actuator.modeling.MultiComponent=actuator.modeling.MultiComponent-class.html"><a title="actuator.modeling.MultiComponent" class="py-name" href="#" onclick="return doclink('link-16', 'MultiComponent', 'link-16');">MultiComponent</a></tt><tt class="py-op">,</tt> </tt>
+<a name="L32"></a><tt class="py-lineno"> 32</tt>  <tt class="py-line">                               <tt id="link-17" class="py-name" targets="Class actuator.modeling.MultiComponentGroup=actuator.modeling.MultiComponentGroup-class.html"><a title="actuator.modeling.MultiComponentGroup" class="py-name" href="#" onclick="return doclink('link-17', 'MultiComponentGroup', 'link-17');">MultiComponentGroup</a></tt><tt class="py-op">)</tt> </tt>
+<a name="InfraException"></a><div id="InfraException-def"><a name="L33"></a><tt class="py-lineno"> 33</tt>  <tt class="py-line"> </tt>
+<a name="L34"></a><tt class="py-lineno"> 34</tt>  <tt class="py-line"> </tt>
+<a name="L35"></a><tt class="py-lineno"> 35</tt> <a class="py-toggle" href="#" id="InfraException-toggle" onclick="return toggle('InfraException');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.InfraException-class.html">InfraException</a><tt class="py-op">(</tt><tt class="py-base-class">ActuatorException</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> <tt class="py-keyword">pass</tt> </tt>
+</div><a name="L36"></a><tt class="py-lineno"> 36</tt>  <tt class="py-line"> </tt>
+<a name="L37"></a><tt class="py-lineno"> 37</tt>  <tt class="py-line"> </tt>
+<a name="L38"></a><tt class="py-lineno"> 38</tt>  <tt class="py-line"><tt id="link-18" class="py-name" targets="Variable actuator.infra._infra_options=actuator.infra-module.html#_infra_options"><a title="actuator.infra._infra_options" class="py-name" href="#" onclick="return doclink('link-18', '_infra_options', 'link-18');">_infra_options</a></tt> <tt class="py-op">=</tt> <tt class="py-string">"__infra_options__"</tt> </tt>
+<a name="L39"></a><tt class="py-lineno"> 39</tt>  <tt class="py-line"><tt id="link-19" class="py-name" targets="Variable actuator.infra._recognized_options=actuator.infra-module.html#_recognized_options"><a title="actuator.infra._recognized_options" class="py-name" href="#" onclick="return doclink('link-19', '_recognized_options', 'link-19');">_recognized_options</a></tt> <tt class="py-op">=</tt> <tt class="py-name">set</tt><tt class="py-op">(</tt><tt class="py-op">[</tt><tt class="py-string">"long_names"</tt><tt class="py-op">]</tt><tt class="py-op">)</tt> </tt>
+<a name="with_resources"></a><div id="with_resources-def"><a name="L40"></a><tt class="py-lineno"> 40</tt>  <tt class="py-line"><tt class="py-comment"># @ClassModifier</tt> </tt>
+<a name="L41"></a><tt class="py-lineno"> 41</tt>  <tt class="py-line"><tt class="py-comment"># def with_infra_options(cls, *args, **kwargs):</tt> </tt>
+<a name="L42"></a><tt class="py-lineno"> 42</tt>  <tt class="py-line"><tt class="py-comment">#     """</tt> </tt>
+<a name="L43"></a><tt class="py-lineno"> 43</tt>  <tt class="py-line"><tt class="py-comment">#     Available options:</tt> </tt>
+<a name="L44"></a><tt class="py-lineno"> 44</tt>  <tt class="py-line"><tt class="py-comment">#     default_provisioner=None</tt> </tt>
+<a name="L45"></a><tt class="py-lineno"> 45</tt>  <tt class="py-line"><tt class="py-comment">#     """</tt> </tt>
+<a name="L46"></a><tt class="py-lineno"> 46</tt>  <tt class="py-line"><tt class="py-comment">#     opts_dict = cls.__dict__.get(_infra_options)</tt> </tt>
+<a name="L47"></a><tt class="py-lineno"> 47</tt>  <tt class="py-line"><tt class="py-comment">#     if opts_dict is None:</tt> </tt>
+<a name="L48"></a><tt class="py-lineno"> 48</tt>  <tt class="py-line"><tt class="py-comment">#         opts_dict = {}</tt> </tt>
+<a name="L49"></a><tt class="py-lineno"> 49</tt>  <tt class="py-line"><tt class="py-comment">#         setattr(cls, _infra_options, opts_dict)</tt> </tt>
+<a name="L50"></a><tt class="py-lineno"> 50</tt>  <tt class="py-line"><tt class="py-comment">#     for k, v in kwargs.items():</tt> </tt>
+<a name="L51"></a><tt class="py-lineno"> 51</tt>  <tt class="py-line"><tt class="py-comment">#         if k not in _recognized_options:</tt> </tt>
+<a name="L52"></a><tt class="py-lineno"> 52</tt>  <tt class="py-line"><tt class="py-comment">#             raise InfraException("Unrecognized InfraModel option: %s" % k)</tt> </tt>
+<a name="L53"></a><tt class="py-lineno"> 53</tt>  <tt class="py-line"><tt class="py-comment">#         opts_dict[k] = v</tt> </tt>
+<a name="L54"></a><tt class="py-lineno"> 54</tt>  <tt class="py-line"> </tt>
+<a name="L55"></a><tt class="py-lineno"> 55</tt>  <tt class="py-line"> </tt>
+<a name="L56"></a><tt class="py-lineno"> 56</tt>  <tt class="py-line"><tt class="py-decorator">@</tt><tt class="py-decorator">ClassModifier</tt> </tt>
+<a name="L57"></a><tt class="py-lineno"> 57</tt> <a class="py-toggle" href="#" id="with_resources-toggle" onclick="return toggle('with_resources');">-</a><tt class="py-line"><tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra-module.html#with_resources">with_resources</a><tt class="py-op">(</tt><tt class="py-param">cls</tt><tt class="py-op">,</tt> <tt class="py-op">*</tt><tt class="py-param">args</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-param">kwargs</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="with_resources-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="with_resources-expanded"><a name="L58"></a><tt class="py-lineno"> 58</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L59"></a><tt class="py-lineno"> 59</tt>  <tt class="py-line"><tt class="py-docstring">    This function attaches additional resources onto a class object.</tt> </tt>
+<a name="L60"></a><tt class="py-lineno"> 60</tt>  <tt class="py-line"><tt class="py-docstring"></tt> </tt>
+<a name="L61"></a><tt class="py-lineno"> 61</tt>  <tt class="py-line"><tt class="py-docstring">    :param cls: a new class object</tt> </tt>
+<a name="L62"></a><tt class="py-lineno"> 62</tt>  <tt class="py-line"><tt class="py-docstring">    :param args: no positional args are recognized</tt> </tt>
+<a name="L63"></a><tt class="py-lineno"> 63</tt>  <tt class="py-line"><tt class="py-docstring">    :param kwargs: dict of names and associated components to provision; must</tt> </tt>
+<a name="L64"></a><tt class="py-lineno"> 64</tt>  <tt class="py-line"><tt class="py-docstring">        all be derived from AbstractModelingEntity</tt> </tt>
+<a name="L65"></a><tt class="py-lineno"> 65</tt>  <tt class="py-line"><tt class="py-docstring">    :return: None</tt> </tt>
+<a name="L66"></a><tt class="py-lineno"> 66</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="L67"></a><tt class="py-lineno"> 67</tt>  <tt class="py-line">    <tt id="link-20" class="py-name" targets="Method actuator.infra.InfraModel.components()=actuator.infra.InfraModel-class.html#components,Method actuator.modeling._ComputeModelComponents.components()=actuator.modeling._ComputeModelComponents-class.html#components"><a title="actuator.infra.InfraModel.components
+actuator.modeling._ComputeModelComponents.components" class="py-name" href="#" onclick="return doclink('link-20', 'components', 'link-20');">components</a></tt> <tt class="py-op">=</tt> <tt class="py-name">getattr</tt><tt class="py-op">(</tt><tt class="py-name">cls</tt><tt class="py-op">,</tt> <tt id="link-21" class="py-name" targets="Class actuator.infra.InfraModelMeta=actuator.infra.InfraModelMeta-class.html"><a title="actuator.infra.InfraModelMeta" class="py-name" href="#" onclick="return doclink('link-21', 'InfraModelMeta', 'link-21');">InfraModelMeta</a></tt><tt class="py-op">.</tt><tt id="link-22" class="py-name" targets="Variable actuator.modeling.ModelBaseMeta._COMPONENTS=actuator.modeling.ModelBaseMeta-class.html#_COMPONENTS"><a title="actuator.modeling.ModelBaseMeta._COMPONENTS" class="py-name" href="#" onclick="return doclink('link-22', '_COMPONENTS', 'link-22');">_COMPONENTS</a></tt><tt class="py-op">)</tt> </tt>
+<a name="L68"></a><tt class="py-lineno"> 68</tt>  <tt class="py-line">    <tt class="py-keyword">if</tt> <tt id="link-23" class="py-name"><a title="actuator.infra.InfraModel.components
+actuator.modeling._ComputeModelComponents.components" class="py-name" href="#" onclick="return doclink('link-23', 'components', 'link-20');">components</a></tt> <tt class="py-keyword">is</tt> <tt class="py-name">None</tt><tt class="py-op">:</tt> </tt>
+<a name="L69"></a><tt class="py-lineno"> 69</tt>  <tt class="py-line">        <tt class="py-keyword">raise</tt> <tt id="link-24" class="py-name" targets="Class actuator.infra.InfraException=actuator.infra.InfraException-class.html"><a title="actuator.infra.InfraException" class="py-name" href="#" onclick="return doclink('link-24', 'InfraException', 'link-24');">InfraException</a></tt><tt class="py-op">(</tt><tt class="py-string">"FATAL ERROR: no components collection on the class object"</tt><tt class="py-op">)</tt> </tt>
+<a name="L70"></a><tt class="py-lineno"> 70</tt>  <tt class="py-line">    <tt class="py-keyword">for</tt> <tt class="py-name">k</tt><tt class="py-op">,</tt> <tt class="py-name">v</tt> <tt class="py-keyword">in</tt> <tt class="py-name">kwargs</tt><tt class="py-op">.</tt><tt id="link-25" class="py-name" targets="Method actuator.modeling.MultiComponent.items()=actuator.modeling.MultiComponent-class.html#items"><a title="actuator.modeling.MultiComponent.items" class="py-name" href="#" onclick="return doclink('link-25', 'items', 'link-25');">items</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L71"></a><tt class="py-lineno"> 71</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-keyword">not</tt> <tt class="py-name">isinstance</tt><tt class="py-op">(</tt><tt class="py-name">v</tt><tt class="py-op">,</tt> <tt id="link-26" class="py-name"><a title="actuator.modeling.AbstractModelingEntity" class="py-name" href="#" onclick="return doclink('link-26', 'AbstractModelingEntity', 'link-10');">AbstractModelingEntity</a></tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L72"></a><tt class="py-lineno"> 72</tt>  <tt class="py-line">            <tt class="py-keyword">raise</tt> <tt id="link-27" class="py-name"><a title="actuator.infra.InfraException" class="py-name" href="#" onclick="return doclink('link-27', 'InfraException', 'link-24');">InfraException</a></tt><tt class="py-op">(</tt><tt class="py-string">"Argument %s is not derived from AbstractModelingEntity"</tt> <tt class="py-op">%</tt> <tt class="py-name">k</tt><tt class="py-op">)</tt> </tt>
+<a name="L73"></a><tt class="py-lineno"> 73</tt>  <tt class="py-line">        <tt class="py-name">setattr</tt><tt class="py-op">(</tt><tt class="py-name">cls</tt><tt class="py-op">,</tt> <tt class="py-name">k</tt><tt class="py-op">,</tt> <tt class="py-name">v</tt><tt class="py-op">)</tt> </tt>
+<a name="L74"></a><tt class="py-lineno"> 74</tt>  <tt class="py-line">        <tt id="link-28" class="py-name"><a title="actuator.infra.InfraModel.components
+actuator.modeling._ComputeModelComponents.components" class="py-name" href="#" onclick="return doclink('link-28', 'components', 'link-20');">components</a></tt><tt class="py-op">[</tt><tt class="py-name">k</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">v</tt> </tt>
+<a name="L75"></a><tt class="py-lineno"> 75</tt>  <tt class="py-line">    <tt class="py-keyword">return</tt> </tt>
+</div><a name="L76"></a><tt class="py-lineno"> 76</tt>  <tt class="py-line"> </tt>
+<a name="ResourceGroup"></a><div id="ResourceGroup-def"><a name="L77"></a><tt class="py-lineno"> 77</tt>  <tt class="py-line"> </tt>
+<a name="L78"></a><tt class="py-lineno"> 78</tt> <a class="py-toggle" href="#" id="ResourceGroup-toggle" onclick="return toggle('ResourceGroup');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.ResourceGroup-class.html">ResourceGroup</a><tt class="py-op">(</tt><tt class="py-base-class">ComponentGroup</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ResourceGroup-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="ResourceGroup-expanded"><a name="L79"></a><tt class="py-lineno"> 79</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L80"></a><tt class="py-lineno"> 80</tt>  <tt class="py-line"><tt class="py-docstring">    A specialization of the L{ComponentGroup} class</tt> </tt>
+<a name="L81"></a><tt class="py-lineno"> 81</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="L82"></a><tt class="py-lineno"> 82</tt>  <tt class="py-line">    <tt class="py-keyword">pass</tt> </tt>
+</div><a name="L83"></a><tt class="py-lineno"> 83</tt>  <tt class="py-line"> </tt>
+<a name="MultiResource"></a><div id="MultiResource-def"><a name="L84"></a><tt class="py-lineno"> 84</tt>  <tt class="py-line"> </tt>
+<a name="L85"></a><tt class="py-lineno"> 85</tt> <a class="py-toggle" href="#" id="MultiResource-toggle" onclick="return toggle('MultiResource');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.MultiResource-class.html">MultiResource</a><tt class="py-op">(</tt><tt class="py-base-class">MultiComponent</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="MultiResource-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="MultiResource-expanded"><a name="L86"></a><tt class="py-lineno"> 86</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L87"></a><tt class="py-lineno"> 87</tt>  <tt class="py-line"><tt class="py-docstring">    A specialization of the L{MultiComponent} class</tt> </tt>
+<a name="L88"></a><tt class="py-lineno"> 88</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="L89"></a><tt class="py-lineno"> 89</tt>  <tt class="py-line">    <tt class="py-keyword">pass</tt> </tt>
+</div><a name="L90"></a><tt class="py-lineno"> 90</tt>  <tt class="py-line"> </tt>
+<a name="MultiResourceGroup"></a><div id="MultiResourceGroup-def"><a name="L91"></a><tt class="py-lineno"> 91</tt>  <tt class="py-line"> </tt>
+<a name="L92"></a><tt class="py-lineno"> 92</tt> <a class="py-toggle" href="#" id="MultiResourceGroup-toggle" onclick="return toggle('MultiResourceGroup');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.MultiResourceGroup-class.html">MultiResourceGroup</a><tt class="py-op">(</tt><tt class="py-base-class">MultiComponentGroup</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="MultiResourceGroup-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="MultiResourceGroup-expanded"><a name="L93"></a><tt class="py-lineno"> 93</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L94"></a><tt class="py-lineno"> 94</tt>  <tt class="py-line"><tt class="py-docstring">    A specialization of the L{MultiComponentGroup} class</tt> </tt>
+<a name="L95"></a><tt class="py-lineno"> 95</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="MultiResourceGroup.__new__"></a><div id="MultiResourceGroup.__new__-def"><a name="L96"></a><tt class="py-lineno"> 96</tt> <a class="py-toggle" href="#" id="MultiResourceGroup.__new__-toggle" onclick="return toggle('MultiResourceGroup.__new__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.MultiResourceGroup-class.html#__new__">__new__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">name</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-param">kwargs</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="MultiResourceGroup.__new__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="MultiResourceGroup.__new__-expanded"><a name="L97"></a><tt class="py-lineno"> 97</tt>  <tt class="py-line">        <tt class="py-name">group</tt> <tt class="py-op">=</tt> <tt id="link-29" class="py-name" targets="Class actuator.infra.ResourceGroup=actuator.infra.ResourceGroup-class.html"><a title="actuator.infra.ResourceGroup" class="py-name" href="#" onclick="return doclink('link-29', 'ResourceGroup', 'link-29');">ResourceGroup</a></tt><tt class="py-op">(</tt><tt class="py-name">name</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-name">kwargs</tt><tt class="py-op">)</tt> </tt>
+<a name="L98"></a><tt class="py-lineno"> 98</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt id="link-30" class="py-name" targets="Class actuator.infra.MultiResource=actuator.infra.MultiResource-class.html"><a title="actuator.infra.MultiResource" class="py-name" href="#" onclick="return doclink('link-30', 'MultiResource', 'link-30');">MultiResource</a></tt><tt class="py-op">(</tt><tt class="py-name">group</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L99"></a><tt class="py-lineno"> 99</tt>  <tt class="py-line"> </tt>
+<a name="Provisionable"></a><div id="Provisionable-def"><a name="L100"></a><tt class="py-lineno">100</tt>  <tt class="py-line"> </tt>
+<a name="L101"></a><tt class="py-lineno">101</tt> <a class="py-toggle" href="#" id="Provisionable-toggle" onclick="return toggle('Provisionable');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.Provisionable-class.html">Provisionable</a><tt class="py-op">(</tt><tt class="py-base-class">ModelComponent</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="Provisionable-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="Provisionable-expanded"><a name="L102"></a><tt class="py-lineno">102</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L103"></a><tt class="py-lineno">103</tt>  <tt class="py-line"><tt class="py-docstring">    This class serves as a marker class for any L{ModelComponent} derived</tt> </tt>
+<a name="L104"></a><tt class="py-lineno">104</tt>  <tt class="py-line"><tt class="py-docstring">    class as something that can actually be provisioned.</tt> </tt>
+<a name="L105"></a><tt class="py-lineno">105</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="L106"></a><tt class="py-lineno">106</tt>  <tt class="py-line">    <tt class="py-keyword">pass</tt> </tt>
+</div><a name="L107"></a><tt class="py-lineno">107</tt>  <tt class="py-line">         </tt>
+<a name="InfraModelMeta"></a><div id="InfraModelMeta-def"><a name="L108"></a><tt class="py-lineno">108</tt>  <tt class="py-line"> </tt>
+<a name="L109"></a><tt class="py-lineno">109</tt> <a class="py-toggle" href="#" id="InfraModelMeta-toggle" onclick="return toggle('InfraModelMeta');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.InfraModelMeta-class.html">InfraModelMeta</a><tt class="py-op">(</tt><tt class="py-base-class">ModelBaseMeta</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModelMeta-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="InfraModelMeta-expanded"><a name="L110"></a><tt class="py-lineno">110</tt>  <tt class="py-line">    <tt id="link-31" class="py-name" targets="Variable actuator.modeling.ModelBaseMeta.model_ref_class=actuator.modeling.ModelBaseMeta-class.html#model_ref_class"><a title="actuator.modeling.ModelBaseMeta.model_ref_class" class="py-name" href="#" onclick="return doclink('link-31', 'model_ref_class', 'link-31');">model_ref_class</a></tt> <tt class="py-op">=</tt> <tt id="link-32" class="py-name"><a title="actuator.modeling.ModelReference" class="py-name" href="#" onclick="return doclink('link-32', 'ModelReference', 'link-14');">ModelReference</a></tt> </tt>
+<a name="L111"></a><tt class="py-lineno">111</tt>  <tt class="py-line"> </tt>
+<a name="InfraModelMeta.__new__"></a><div id="InfraModelMeta.__new__-def"><a name="L112"></a><tt class="py-lineno">112</tt> <a class="py-toggle" href="#" id="InfraModelMeta.__new__-toggle" onclick="return toggle('InfraModelMeta.__new__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModelMeta-class.html#__new__">__new__</a><tt class="py-op">(</tt><tt class="py-param">cls</tt><tt class="py-op">,</tt> <tt class="py-param">name</tt><tt class="py-op">,</tt> <tt class="py-param">bases</tt><tt class="py-op">,</tt> <tt class="py-param">attr_dict</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModelMeta.__new__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModelMeta.__new__-expanded"><a name="L113"></a><tt class="py-lineno">113</tt>  <tt class="py-line">        <tt class="py-name">new_class</tt> <tt class="py-op">=</tt> <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-33" class="py-name"><a title="actuator.infra.InfraModelMeta" class="py-name" href="#" onclick="return doclink('link-33', 'InfraModelMeta', 'link-21');">InfraModelMeta</a></tt><tt class="py-op">,</tt> <tt class="py-name">cls</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-34" class="py-name" targets="Static Method actuator.config.ConfigModelMeta.__new__()=actuator.config.ConfigModelMeta-class.html#__new__,Static Method actuator.infra.InfraModelMeta.__new__()=actuator.infra.InfraModelMeta-class.html#__new__,Static Method actuator.infra.MultiResourceGroup.__new__()=actuator.infra.MultiResourceGroup-class.html#__new__,Static Method actuator.modeling.AbstractModelReference.__new__()=actuator.modeling.AbstractModelReference-class.html#__new__,Static Method actuator.modeling.ModelBaseMeta.__new__()=actuator.modeling.ModelBaseMeta-class.html#__new__,Static Method actuator.modeling.MultiComponentGroup.__new__()=actuator.modeling.MultiComponentGroup-class.html#__new__,Static Method actuator.namespace.MultiRoleGroup.__new__()=actuator.namespace.MultiRoleGroup-class.html#__new__,Static Method actuator.namespace.NamespaceModel.__new__()=actuator.namespace.NamespaceModel-class.html#__new__,Static Method actuator.namespace.NamespaceModelMeta.__new__()=actuator.namespace.NamespaceModelMeta-class.html#__new__"><a title="actuator.config.ConfigModelMeta.__new__
+actuator.infra.InfraModelMeta.__new__
+actuator.infra.MultiResourceGroup.__new__
+actuator.modeling.AbstractModelReference.__new__
+actuator.modeling.ModelBaseMeta.__new__
+actuator.modeling.MultiComponentGroup.__new__
+actuator.namespace.MultiRoleGroup.__new__
+actuator.namespace.NamespaceModel.__new__
+actuator.namespace.NamespaceModelMeta.__new__" class="py-name" href="#" onclick="return doclink('link-34', '__new__', 'link-34');">__new__</a></tt><tt class="py-op">(</tt><tt class="py-name">cls</tt><tt class="py-op">,</tt> <tt class="py-name">name</tt><tt class="py-op">,</tt> <tt class="py-name">bases</tt><tt class="py-op">,</tt> <tt class="py-name">attr_dict</tt><tt class="py-op">)</tt> </tt>
+<a name="L114"></a><tt class="py-lineno">114</tt>  <tt class="py-line">        <tt id="link-35" class="py-name"><a title="actuator.utils.process_modifiers" class="py-name" href="#" onclick="return doclink('link-35', 'process_modifiers', 'link-3');">process_modifiers</a></tt><tt class="py-op">(</tt><tt class="py-name">new_class</tt><tt class="py-op">)</tt> </tt>
+<a name="L115"></a><tt class="py-lineno">115</tt>  <tt class="py-line">        <tt class="py-name">new_class</tt><tt class="py-op">.</tt><tt id="link-36" class="py-name" targets="Class Method actuator.infra.InfraModel._class_refs_for_resources()=actuator.infra.InfraModel-class.html#_class_refs_for_resources"><a title="actuator.infra.InfraModel._class_refs_for_resources" class="py-name" href="#" onclick="return doclink('link-36', '_class_refs_for_resources', 'link-36');">_class_refs_for_resources</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L116"></a><tt class="py-lineno">116</tt>  <tt class="py-line">        <tt class="py-comment">#</tt> </tt>
+<a name="L117"></a><tt class="py-lineno">117</tt>  <tt class="py-line">        <tt class="py-comment">#@FIXME: The validation here has been suspended as there are some deeper</tt> </tt>
+<a name="L118"></a><tt class="py-lineno">118</tt>  <tt class="py-line">        <tt class="py-comment">#design problems that have to be sorted out to fix it</tt> </tt>
+<a name="L119"></a><tt class="py-lineno">119</tt>  <tt class="py-line"><tt class="py-comment">#         for resource in components.values():</tt> </tt>
+<a name="L120"></a><tt class="py-lineno">120</tt>  <tt class="py-line"><tt class="py-comment">#             resource._validate_args(new_class)</tt> </tt>
+<a name="L121"></a><tt class="py-lineno">121</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">new_class</tt> </tt>
+</div></div><a name="L122"></a><tt class="py-lineno">122</tt>  <tt class="py-line">             </tt>
+<a name="InfraModel"></a><div id="InfraModel-def"><a name="L123"></a><tt class="py-lineno">123</tt>  <tt class="py-line"> </tt>
+<a name="L124"></a><tt class="py-lineno">124</tt> <a class="py-toggle" href="#" id="InfraModel-toggle" onclick="return toggle('InfraModel');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html">InfraModel</a><tt class="py-op">(</tt><tt class="py-base-class">ModelBase</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="InfraModel-expanded"><a name="L125"></a><tt class="py-lineno">125</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L126"></a><tt class="py-lineno">126</tt>  <tt class="py-line"><tt class="py-docstring">    This is the base class to use for any infrastructure model. Derive a class</tt> </tt>
+<a name="L127"></a><tt class="py-lineno">127</tt>  <tt class="py-line"><tt class="py-docstring">    from this class to make your own infra models.</tt> </tt>
+<a name="L128"></a><tt class="py-lineno">128</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="L129"></a><tt class="py-lineno">129</tt>  <tt class="py-line">    <tt class="py-name">__metaclass__</tt> <tt class="py-op">=</tt> <tt id="link-37" class="py-name"><a title="actuator.infra.InfraModelMeta" class="py-name" href="#" onclick="return doclink('link-37', 'InfraModelMeta', 'link-21');">InfraModelMeta</a></tt> </tt>
+<a name="L130"></a><tt class="py-lineno">130</tt>  <tt class="py-line">    <tt class="py-name">ref_class</tt> <tt class="py-op">=</tt> <tt id="link-38" class="py-name"><a title="actuator.modeling.ModelInstanceReference" class="py-name" href="#" onclick="return doclink('link-38', 'ModelInstanceReference', 'link-11');">ModelInstanceReference</a></tt> </tt>
+<a name="L131"></a><tt class="py-lineno">131</tt>  <tt class="py-line">     </tt>
+<a name="InfraModel.__init__"></a><div id="InfraModel.__init__-def"><a name="L132"></a><tt class="py-lineno">132</tt> <a class="py-toggle" href="#" id="InfraModel.__init__-toggle" onclick="return toggle('InfraModel.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">name</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel.__init__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModel.__init__-expanded"><a name="L133"></a><tt class="py-lineno">133</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L134"></a><tt class="py-lineno">134</tt>  <tt class="py-line"><tt class="py-docstring">        Creates a new instance of an infra model.</tt> </tt>
+<a name="L135"></a><tt class="py-lineno">135</tt>  <tt class="py-line"><tt class="py-docstring">        </tt> </tt>
+<a name="L136"></a><tt class="py-lineno">136</tt>  <tt class="py-line"><tt class="py-docstring">        You may override this method as long as you call super().__init__()</tt> </tt>
+<a name="L137"></a><tt class="py-lineno">137</tt>  <tt class="py-line"><tt class="py-docstring">        in the derived class's __init__() method.</tt> </tt>
+<a name="L138"></a><tt class="py-lineno">138</tt>  <tt class="py-line"><tt class="py-docstring">        </tt> </tt>
+<a name="L139"></a><tt class="py-lineno">139</tt>  <tt class="py-line"><tt class="py-docstring">        @param name: a logical name for the infra instance</tt> </tt>
+<a name="L140"></a><tt class="py-lineno">140</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L141"></a><tt class="py-lineno">141</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-39" class="py-name" targets="Class actuator.infra.InfraModel=actuator.infra.InfraModel-class.html"><a title="actuator.infra.InfraModel" class="py-name" href="#" onclick="return doclink('link-39', 'InfraModel', 'link-39');">InfraModel</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-40" class="py-name" targets="Method actuator.ActuatorOrchestration.__init__()=actuator.ActuatorOrchestration-class.html#__init__,Method actuator.config.ConfigClassTask.__init__()=actuator.config.ConfigClassTask-class.html#__init__,Method actuator.config.ConfigModel.__init__()=actuator.config.ConfigModel-class.html#__init__,Method actuator.config.MultiTask.__init__()=actuator.config.MultiTask-class.html#__init__,Method actuator.config.NullTask.__init__()=actuator.config.NullTask-class.html#__init__,Method actuator.config.TaskGroup.__init__()=actuator.config.TaskGroup-class.html#__init__,Method actuator.config._ConfigTask.__init__()=actuator.config._ConfigTask-class.html#__init__,Method actuator.config._Dependency.__init__()=actuator.config._Dependency-class.html#__init__,Method actuator.config_tasks.CommandTask.__init__()=actuator.config_tasks.CommandTask-class.html#__init__,Method actuator.config_tasks.CopyFileTask.__init__()=actuator.config_tasks.CopyFileTask-class.html#__init__,Method actuator.config_tasks.ProcessCopyFileTask.__init__()=actuator.config_tasks.ProcessCopyFileTask-class.html#__init__,Method actuator.config_tasks.ScriptTask.__init__()=actuator.config_tasks.ScriptTask-class.html#__init__,Method actuator.exec_agents.core.ConfigRecord.__init__()=actuator.exec_agents.core.ConfigRecord-class.html#__init__,Method actuator.exec_agents.core.ExecutionAgent.__init__()=actuator.exec_agents.core.ExecutionAgent-class.html#__init__,Method actuator.exec_agents.core.ExecutionException.__init__()=actuator.exec_agents.core.ExecutionException-class.html#__init__,Method actuator.infra.InfraModel.__init__()=actuator.infra.InfraModel-class.html#__init__,Method actuator.infra.StaticServer.__init__()=actuator.infra.StaticServer-class.html#__init__,Method actuator.modeling.AbstractModelReference.__init__()=actuator.modeling.AbstractModelReference-class.html#__init__,Method actuator.modeling.AbstractModelingEntity.__init__()=actuator.modeling.AbstractModelingEntity-class.html#__init__,Method actuator.modeling.CallContext.__init__()=actuator.modeling.CallContext-class.html#__init__,Method actuator.modeling.ComponentGroup.__init__()=actuator.modeling.ComponentGroup-class.html#__init__,Method actuator.modeling.ContextExpr.__init__()=actuator.modeling.ContextExpr-class.html#__init__,Method actuator.modeling.KeyItem.__init__()=actuator.modeling.KeyItem-class.html#__init__,Method actuator.modeling.MultiComponent.__init__()=actuator.modeling.MultiComponent-class.html#__init__,Method actuator.modeling.RefSelTest.__init__()=actuator.modeling.RefSelTest-class.html#__init__,Method actuator.modeling.RefSelectBuilder.__init__()=actuator.modeling.RefSelectBuilder-class.html#__init__,Method actuator.modeling.RefSelectUnion.__init__()=actuator.modeling.RefSelectUnion-class.html#__init__,Method actuator.modeling.SelectElement.__init__()=actuator.modeling.SelectElement-class.html#__init__,Method actuator.modeling._Nexus.__init__()=actuator.modeling._Nexus-class.html#__init__,Method actuator.modeling._NexusMember.__init__()=actuator.modeling._NexusMember-class.html#__init__,Method actuator.namespace.NamespaceModel.__init__()=actuator.namespace.NamespaceModel-class.html#__init__,Method actuator.namespace.Role.__init__()=actuator.namespace.Role-class.html#__init__,Method actuator.namespace.Var.__init__()=actuator.namespace.Var-class.html#__init__,Method actuator.namespace.VarFuture.__init__()=actuator.namespace.VarFuture-class.html#__init__,Method actuator.namespace.VariableContainer.__init__()=actuator.namespace.VariableContainer-class.html#__init__,Method actuator.namespace._ComputableValue.__init__()=actuator.namespace._ComputableValue-class.html#__init__,Method actuator.provisioners.core.BaseProvisioningRecord.__init__()=actuator.provisioners.core.BaseProvisioningRecord-class.html#__init__,Method actuator.provisioners.core.ProvisionerException.__init__()=actuator.provisioners.core.ProvisionerException-class.html#__init__,Method actuator.provisioners.example_resources.Database.__init__()=actuator.provisioners.example_resources.Database-class.html#__init__,Method actuator.provisioners.example_resources.Queue.__init__()=actuator.provisioners.example_resources.Queue-class.html#__init__,Method actuator.provisioners.example_resources.Server.__init__()=actuator.provisioners.example_resources.Server-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__()=actuator.provisioners.openstack.resource_tasks.OpenstackCredentials-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__()=actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__()=actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.RunContext.__init__()=actuator.provisioners.openstack.resource_tasks.RunContext-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__()=actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#__init__,Method actuator.provisioners.openstack.resources.FloatingIP.__init__()=actuator.provisioners.openstack.resources.FloatingIP-class.html#__init__,Method actuator.provisioners.openstack.resources.Network.__init__()=actuator.provisioners.openstack.resources.Network-class.html#__init__,Method actuator.provisioners.openstack.resources.NetworkInterface.__init__()=actuator.provisioners.openstack.resources.NetworkInterface-class.html#__init__,Method actuator.provisioners.openstack.resources.Router.__init__()=actuator.provisioners.openstack.resources.Router-class.html#__init__,Method actuator.provisioners.openstack.resources.RouterGateway.__init__()=actuator.provisioners.openstack.resources.RouterGateway-class.html#__init__,Method actuator.provisioners.openstack.resources.RouterInterface.__init__()=actuator.provisioners.openstack.resources.RouterInterface-class.html#__init__,Method actuator.provisioners.openstack.resources.SecGroup.__init__()=actuator.provisioners.openstack.resources.SecGroup-class.html#__init__,Method actuator.provisioners.openstack.resources.SecGroupRule.__init__()=actuator.provisioners.openstack.resources.SecGroupRule-class.html#__init__,Method actuator.provisioners.openstack.resources.Server.__init__()=actuator.provisioners.openstack.resources.Server-class.html#__init__,Method actuator.provisioners.openstack.resources.Subnet.__init__()=actuator.provisioners.openstack.resources.Subnet-class.html#__init__,Method actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__()=actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource-class.html#__init__,Method actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__()=actuator.provisioners.openstack.support.OpenstackProvisioningRecord-class.html#__init__,Method actuator.provisioners.openstack.support._OSMaps.__init__()=actuator.provisioners.openstack.support._OSMaps-class.html#__init__,Method actuator.utils.ClassModifier.__init__()=actuator.utils.ClassModifier-class.html#__init__"><a title="actuator.ActuatorOrchestration.__init__
+actuator.config.ConfigClassTask.__init__
+actuator.config.ConfigModel.__init__
+actuator.config.MultiTask.__init__
+actuator.config.NullTask.__init__
+actuator.config.TaskGroup.__init__
+actuator.config._ConfigTask.__init__
+actuator.config._Dependency.__init__
+actuator.config_tasks.CommandTask.__init__
+actuator.config_tasks.CopyFileTask.__init__
+actuator.config_tasks.ProcessCopyFileTask.__init__
+actuator.config_tasks.ScriptTask.__init__
+actuator.exec_agents.core.ConfigRecord.__init__
+actuator.exec_agents.core.ExecutionAgent.__init__
+actuator.exec_agents.core.ExecutionException.__init__
+actuator.infra.InfraModel.__init__
+actuator.infra.StaticServer.__init__
+actuator.modeling.AbstractModelReference.__init__
+actuator.modeling.AbstractModelingEntity.__init__
+actuator.modeling.CallContext.__init__
+actuator.modeling.ComponentGroup.__init__
+actuator.modeling.ContextExpr.__init__
+actuator.modeling.KeyItem.__init__
+actuator.modeling.MultiComponent.__init__
+actuator.modeling.RefSelTest.__init__
+actuator.modeling.RefSelectBuilder.__init__
+actuator.modeling.RefSelectUnion.__init__
+actuator.modeling.SelectElement.__init__
+actuator.modeling._Nexus.__init__
+actuator.modeling._NexusMember.__init__
+actuator.namespace.NamespaceModel.__init__
+actuator.namespace.Role.__init__
+actuator.namespace.Var.__init__
+actuator.namespace.VarFuture.__init__
+actuator.namespace.VariableContainer.__init__
+actuator.namespace._ComputableValue.__init__
+actuator.provisioners.core.BaseProvisioningRecord.__init__
+actuator.provisioners.core.ProvisionerException.__init__
+actuator.provisioners.example_resources.Database.__init__
+actuator.provisioners.example_resources.Queue.__init__
+actuator.provisioners.example_resources.Server.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__
+actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__
+actuator.provisioners.openstack.resource_tasks.RunContext.__init__
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__
+actuator.provisioners.openstack.resources.FloatingIP.__init__
+actuator.provisioners.openstack.resources.Network.__init__
+actuator.provisioners.openstack.resources.NetworkInterface.__init__
+actuator.provisioners.openstack.resources.Router.__init__
+actuator.provisioners.openstack.resources.RouterGateway.__init__
+actuator.provisioners.openstack.resources.RouterInterface.__init__
+actuator.provisioners.openstack.resources.SecGroup.__init__
+actuator.provisioners.openstack.resources.SecGroupRule.__init__
+actuator.provisioners.openstack.resources.Server.__init__
+actuator.provisioners.openstack.resources.Subnet.__init__
+actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__
+actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__
+actuator.provisioners.openstack.support._OSMaps.__init__
+actuator.utils.ClassModifier.__init__" class="py-name" href="#" onclick="return doclink('link-40', '__init__', 'link-40');">__init__</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L142"></a><tt class="py-lineno">142</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">name</tt> <tt class="py-op">=</tt> <tt class="py-name">name</tt> </tt>
+<a name="L143"></a><tt class="py-lineno">143</tt>  <tt class="py-line">        <tt class="py-name">ga</tt> <tt class="py-op">=</tt> <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-41" class="py-name"><a title="actuator.infra.InfraModel" class="py-name" href="#" onclick="return doclink('link-41', 'InfraModel', 'link-39');">InfraModel</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-42" class="py-name" targets="Method actuator.modeling.AbstractModelReference.__getattribute__()=actuator.modeling.AbstractModelReference-class.html#__getattribute__,Method actuator.modeling.ModelBase.__getattribute__()=actuator.modeling.ModelBase-class.html#__getattribute__,Method actuator.modeling.ModelBaseMeta.__getattribute__()=actuator.modeling.ModelBaseMeta-class.html#__getattribute__"><a title="actuator.modeling.AbstractModelReference.__getattribute__
+actuator.modeling.ModelBase.__getattribute__
+actuator.modeling.ModelBaseMeta.__getattribute__" class="py-name" href="#" onclick="return doclink('link-42', '__getattribute__', 'link-42');">__getattribute__</a></tt> </tt>
+<a name="L144"></a><tt class="py-lineno">144</tt>  <tt class="py-line">        <tt class="py-name">attrdict</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">__dict__</tt> </tt>
+<a name="L145"></a><tt class="py-lineno">145</tt>  <tt class="py-line">        <tt class="py-keyword">for</tt> <tt class="py-name">k</tt><tt class="py-op">,</tt> <tt class="py-name">v</tt> <tt class="py-keyword">in</tt> <tt class="py-name">ga</tt><tt class="py-op">(</tt><tt id="link-43" class="py-name"><a title="actuator.infra.InfraModelMeta" class="py-name" href="#" onclick="return doclink('link-43', 'InfraModelMeta', 'link-21');">InfraModelMeta</a></tt><tt class="py-op">.</tt><tt id="link-44" class="py-name"><a title="actuator.modeling.ModelBaseMeta._COMPONENTS" class="py-name" href="#" onclick="return doclink('link-44', '_COMPONENTS', 'link-22');">_COMPONENTS</a></tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-45" class="py-name"><a title="actuator.modeling.MultiComponent.items" class="py-name" href="#" onclick="return doclink('link-45', 'items', 'link-25');">items</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L146"></a><tt class="py-lineno">146</tt>  <tt class="py-line">            <tt class="py-name">attrdict</tt><tt class="py-op">[</tt><tt class="py-name">k</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt id="link-46" class="py-name" targets="Method actuator.config.TaskGroup.clone()=actuator.config.TaskGroup-class.html#clone,Method actuator.config._Cloneable.clone()=actuator.config._Cloneable-class.html#clone,Method actuator.config._Dependency.clone()=actuator.config._Dependency-class.html#clone,Method actuator.modeling.AbstractModelingEntity.clone()=actuator.modeling.AbstractModelingEntity-class.html#clone,Method actuator.namespace.MultiRole.clone()=actuator.namespace.MultiRole-class.html#clone,Method actuator.namespace.Role.clone()=actuator.namespace.Role-class.html#clone,Method actuator.namespace.RoleGroup.clone()=actuator.namespace.RoleGroup-class.html#clone"><a title="actuator.config.TaskGroup.clone
+actuator.config._Cloneable.clone
+actuator.config._Dependency.clone
+actuator.modeling.AbstractModelingEntity.clone
+actuator.namespace.MultiRole.clone
+actuator.namespace.Role.clone
+actuator.namespace.RoleGroup.clone" class="py-name" href="#" onclick="return doclink('link-46', 'clone', 'link-46');">clone</a></tt> <tt class="py-op">=</tt> <tt class="py-name">v</tt><tt class="py-op">.</tt><tt id="link-47" class="py-name"><a title="actuator.config.TaskGroup.clone
+actuator.config._Cloneable.clone
+actuator.config._Dependency.clone
+actuator.modeling.AbstractModelingEntity.clone
+actuator.namespace.MultiRole.clone
+actuator.namespace.Role.clone
+actuator.namespace.RoleGroup.clone" class="py-name" href="#" onclick="return doclink('link-47', 'clone', 'link-46');">clone</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L147"></a><tt class="py-lineno">147</tt>  <tt class="py-line">            <tt id="link-48" class="py-name"><a title="actuator.config.TaskGroup.clone
+actuator.config._Cloneable.clone
+actuator.config._Dependency.clone
+actuator.modeling.AbstractModelingEntity.clone
+actuator.namespace.MultiRole.clone
+actuator.namespace.Role.clone
+actuator.namespace.RoleGroup.clone" class="py-name" href="#" onclick="return doclink('link-48', 'clone', 'link-46');">clone</a></tt><tt class="py-op">.</tt><tt id="link-49" class="py-name" targets="Method actuator.config.ConfigClassTask._set_model_instance()=actuator.config.ConfigClassTask-class.html#_set_model_instance,Method actuator.config.MultiTask._set_model_instance()=actuator.config.MultiTask-class.html#_set_model_instance,Method actuator.modeling.AbstractModelingEntity._set_model_instance()=actuator.modeling.AbstractModelingEntity-class.html#_set_model_instance,Method actuator.namespace.MultiRole._set_model_instance()=actuator.namespace.MultiRole-class.html#_set_model_instance,Method actuator.namespace.RoleGroup._set_model_instance()=actuator.namespace.RoleGroup-class.html#_set_model_instance"><a title="actuator.config.ConfigClassTask._set_model_instance
+actuator.config.MultiTask._set_model_instance
+actuator.modeling.AbstractModelingEntity._set_model_instance
+actuator.namespace.MultiRole._set_model_instance
+actuator.namespace.RoleGroup._set_model_instance" class="py-name" href="#" onclick="return doclink('link-49', '_set_model_instance', 'link-49');">_set_model_instance</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">)</tt> </tt>
+<a name="L148"></a><tt class="py-lineno">148</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">provisioning_computed</tt> <tt class="py-op">=</tt> <tt class="py-name">False</tt> </tt>
+</div><a name="L149"></a><tt class="py-lineno">149</tt>  <tt class="py-line">         </tt>
+<a name="InfraModel.validate_args"></a><div id="InfraModel.validate_args-def"><a name="L150"></a><tt class="py-lineno">150</tt> <a class="py-toggle" href="#" id="InfraModel.validate_args-toggle" onclick="return toggle('InfraModel.validate_args');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html#validate_args">validate_args</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel.validate_args-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModel.validate_args-expanded"><a name="L151"></a><tt class="py-lineno">151</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L152"></a><tt class="py-lineno">152</tt>  <tt class="py-line"><tt class="py-docstring">        Currently unused</tt> </tt>
+<a name="L153"></a><tt class="py-lineno">153</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L154"></a><tt class="py-lineno">154</tt>  <tt class="py-line">        <tt class="py-keyword">for</tt> <tt class="py-name">resource</tt> <tt class="py-keyword">in</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">__class__</tt><tt class="py-op">.</tt><tt class="py-name">__dict__</tt><tt class="py-op">[</tt><tt id="link-50" class="py-name"><a title="actuator.infra.InfraModelMeta" class="py-name" href="#" onclick="return doclink('link-50', 'InfraModelMeta', 'link-21');">InfraModelMeta</a></tt><tt class="py-op">.</tt><tt id="link-51" class="py-name"><a title="actuator.modeling.ModelBaseMeta._COMPONENTS" class="py-name" href="#" onclick="return doclink('link-51', '_COMPONENTS', 'link-22');">_COMPONENTS</a></tt><tt class="py-op">]</tt><tt class="py-op">.</tt><tt id="link-52" class="py-name" targets="Method actuator.modeling.MultiComponent.values()=actuator.modeling.MultiComponent-class.html#values"><a title="actuator.modeling.MultiComponent.values" class="py-name" href="#" onclick="return doclink('link-52', 'values', 'link-52');">values</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L155"></a><tt class="py-lineno">155</tt>  <tt class="py-line">            <tt class="py-name">resource</tt><tt class="py-op">.</tt><tt id="link-53" class="py-name" targets="Method actuator.modeling.AbstractModelingEntity._validate_args()=actuator.modeling.AbstractModelingEntity-class.html#_validate_args,Method actuator.modeling.ComponentGroup._validate_args()=actuator.modeling.ComponentGroup-class.html#_validate_args,Method actuator.modeling.MultiComponent._validate_args()=actuator.modeling.MultiComponent-class.html#_validate_args"><a title="actuator.modeling.AbstractModelingEntity._validate_args
+actuator.modeling.ComponentGroup._validate_args
+actuator.modeling.MultiComponent._validate_args" class="py-name" href="#" onclick="return doclink('link-53', '_validate_args', 'link-53');">_validate_args</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L156"></a><tt class="py-lineno">156</tt>  <tt class="py-line">         </tt>
+<a name="InfraModel.provisioning_been_computed"></a><div id="InfraModel.provisioning_been_computed-def"><a name="L157"></a><tt class="py-lineno">157</tt> <a class="py-toggle" href="#" id="InfraModel.provisioning_been_computed-toggle" onclick="return toggle('InfraModel.provisioning_been_computed');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html#provisioning_been_computed">provisioning_been_computed</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel.provisioning_been_computed-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModel.provisioning_been_computed-expanded"><a name="L158"></a><tt class="py-lineno">158</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L159"></a><tt class="py-lineno">159</tt>  <tt class="py-line"><tt class="py-docstring">        Returns if provisioning has been run on this model instance.</tt> </tt>
+<a name="L160"></a><tt class="py-lineno">160</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L161"></a><tt class="py-lineno">161</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">provisioning_computed</tt> </tt>
+</div><a name="L162"></a><tt class="py-lineno">162</tt>  <tt class="py-line">     </tt>
+<a name="InfraModel.components"></a><div id="InfraModel.components-def"><a name="L163"></a><tt class="py-lineno">163</tt> <a class="py-toggle" href="#" id="InfraModel.components-toggle" onclick="return toggle('InfraModel.components');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html#components">components</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel.components-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModel.components-expanded"><a name="L164"></a><tt class="py-lineno">164</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L165"></a><tt class="py-lineno">165</tt>  <tt class="py-line"><tt class="py-docstring">        Returns a set with the unique resources to provision on this instance.</tt> </tt>
+<a name="L166"></a><tt class="py-lineno">166</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L167"></a><tt class="py-lineno">167</tt>  <tt class="py-line">        <tt class="py-name">_resources</tt> <tt class="py-op">=</tt> <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-54" class="py-name"><a title="actuator.infra.InfraModel" class="py-name" href="#" onclick="return doclink('link-54', 'InfraModel', 'link-39');">InfraModel</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-55" class="py-name"><a title="actuator.infra.InfraModel.components
+actuator.modeling._ComputeModelComponents.components" class="py-name" href="#" onclick="return doclink('link-55', 'components', 'link-20');">components</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L168"></a><tt class="py-lineno">168</tt>  <tt class="py-line">        <tt class="py-comment">#We need some place where we have a reasonable expectations</tt> </tt>
+<a name="L169"></a><tt class="py-lineno">169</tt>  <tt class="py-line">        <tt class="py-comment">#that all logical refs have been eval'd against the model instance</tt> </tt>
+<a name="L170"></a><tt class="py-lineno">170</tt>  <tt class="py-line">        <tt class="py-comment">#and hence we can tell every Provisionable that's out there so we</tt> </tt>
+<a name="L171"></a><tt class="py-lineno">171</tt>  <tt class="py-line">        <tt class="py-comment">#can let them all know where the infra instance is.</tt> </tt>
+<a name="L172"></a><tt class="py-lineno">172</tt>  <tt class="py-line">        <tt class="py-comment">#</tt> </tt>
+<a name="L173"></a><tt class="py-lineno">173</tt>  <tt class="py-line">        <tt class="py-comment">#this is kind of crap to do here, but there really isn't a better place</tt> </tt>
+<a name="L174"></a><tt class="py-lineno">174</tt>  <tt class="py-line">        <tt class="py-comment">#unless we enforce some kind of stateful API that gives is a chance</tt> </tt>
+<a name="L175"></a><tt class="py-lineno">175</tt>  <tt class="py-line">        <tt class="py-comment">#to call _set_model_instance(). This is a pretty cheap and harmless</tt> </tt>
+<a name="L176"></a><tt class="py-lineno">176</tt>  <tt class="py-line">        <tt class="py-comment">#sideeffect, and one that isn't so bad that fixing it by introducing some</tt> </tt>
+<a name="L177"></a><tt class="py-lineno">177</tt>  <tt class="py-line">        <tt class="py-comment">#sort of stateful API elements</tt> </tt>
+<a name="L178"></a><tt class="py-lineno">178</tt>  <tt class="py-line">        <tt class="py-keyword">for</tt> <tt class="py-name">resource</tt> <tt class="py-keyword">in</tt> <tt class="py-name">_resources</tt><tt class="py-op">:</tt> </tt>
+<a name="L179"></a><tt class="py-lineno">179</tt>  <tt class="py-line">            <tt class="py-name">resource</tt><tt class="py-op">.</tt><tt id="link-56" class="py-name"><a title="actuator.config.ConfigClassTask._set_model_instance
+actuator.config.MultiTask._set_model_instance
+actuator.modeling.AbstractModelingEntity._set_model_instance
+actuator.namespace.MultiRole._set_model_instance
+actuator.namespace.RoleGroup._set_model_instance" class="py-name" href="#" onclick="return doclink('link-56', '_set_model_instance', 'link-49');">_set_model_instance</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">)</tt> </tt>
+<a name="L180"></a><tt class="py-lineno">180</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">_resources</tt> </tt>
+</div><a name="L181"></a><tt class="py-lineno">181</tt>  <tt class="py-line">     </tt>
+<a name="L182"></a><tt class="py-lineno">182</tt>  <tt class="py-line">    <tt id="link-57" class="py-name" targets="Module actuator.provisioners.openstack.resources=actuator.provisioners.openstack.resources-module.html"><a title="actuator.provisioners.openstack.resources" class="py-name" href="#" onclick="return doclink('link-57', 'resources', 'link-57');">resources</a></tt> <tt class="py-op">=</tt> <tt id="link-58" class="py-name"><a title="actuator.infra.InfraModel.components
+actuator.modeling._ComputeModelComponents.components" class="py-name" href="#" onclick="return doclink('link-58', 'components', 'link-20');">components</a></tt> </tt>
+<a name="L183"></a><tt class="py-lineno">183</tt>  <tt class="py-line">     </tt>
+<a name="InfraModel.compute_provisioning_from_refs"></a><div id="InfraModel.compute_provisioning_from_refs-def"><a name="L184"></a><tt class="py-lineno">184</tt> <a class="py-toggle" href="#" id="InfraModel.compute_provisioning_from_refs-toggle" onclick="return toggle('InfraModel.compute_provisioning_from_refs');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html#compute_provisioning_from_refs">compute_provisioning_from_refs</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">modelrefs</tt><tt class="py-op">,</tt> <tt class="py-param">exclude_refs</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel.compute_provisioning_from_refs-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModel.compute_provisioning_from_refs-expanded"><a name="L185"></a><tt class="py-lineno">185</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L186"></a><tt class="py-lineno">186</tt>  <tt class="py-line"><tt class="py-docstring">        Take a collection of model reference objects and compute the Provisionables needed</tt> </tt>
+<a name="L187"></a><tt class="py-lineno">187</tt>  <tt class="py-line"><tt class="py-docstring">        to satisfy the refs. An optional collection of model refs can be supplied and any</tt> </tt>
+<a name="L188"></a><tt class="py-lineno">188</tt>  <tt class="py-line"><tt class="py-docstring">        ref in both collections will be skipped when computing the Provisionables.</tt> </tt>
+<a name="L189"></a><tt class="py-lineno">189</tt>  <tt class="py-line"><tt class="py-docstring">        </tt> </tt>
+<a name="L190"></a><tt class="py-lineno">190</tt>  <tt class="py-line"><tt class="py-docstring">        @param modelrefs: an iterable of InfraModelReference instances for the model this</tt> </tt>
+<a name="L191"></a><tt class="py-lineno">191</tt>  <tt class="py-line"><tt class="py-docstring">            SystemSpec instance is for</tt> </tt>
+<a name="L192"></a><tt class="py-lineno">192</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword exclude_refs: an iterable of InfraModelReference instances whioh should not</tt> </tt>
+<a name="L193"></a><tt class="py-lineno">193</tt>  <tt class="py-line"><tt class="py-docstring">            be considered when computing Provisionables (this will be skipped)</tt> </tt>
+<a name="L194"></a><tt class="py-lineno">194</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L195"></a><tt class="py-lineno">195</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">provisioning_computed</tt><tt class="py-op">:</tt> </tt>
+<a name="L196"></a><tt class="py-lineno">196</tt>  <tt class="py-line">            <tt class="py-keyword">raise</tt> <tt id="link-59" class="py-name"><a title="actuator.infra.InfraException" class="py-name" href="#" onclick="return doclink('link-59', 'InfraException', 'link-24');">InfraException</a></tt><tt class="py-op">(</tt><tt class="py-string">"The provisioning for this instance has already been computed"</tt><tt class="py-op">)</tt> </tt>
+<a name="L197"></a><tt class="py-lineno">197</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">provisioning_computed</tt> <tt class="py-op">=</tt> <tt class="py-name">True</tt> </tt>
+<a name="L198"></a><tt class="py-lineno">198</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-name">exclude_refs</tt> <tt class="py-keyword">is</tt> <tt class="py-name">None</tt><tt class="py-op">:</tt> </tt>
+<a name="L199"></a><tt class="py-lineno">199</tt>  <tt class="py-line">            <tt class="py-name">exclude_refs</tt> <tt class="py-op">=</tt> <tt class="py-name">set</tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L200"></a><tt class="py-lineno">200</tt>  <tt class="py-line">        <tt class="py-keyword">else</tt><tt class="py-op">:</tt> </tt>
+<a name="L201"></a><tt class="py-lineno">201</tt>  <tt class="py-line">            <tt class="py-name">exclude_refs</tt> <tt class="py-op">=</tt> <tt class="py-name">set</tt><tt class="py-op">(</tt><tt class="py-name">exclude_refs</tt><tt class="py-op">)</tt> </tt>
+<a name="L202"></a><tt class="py-lineno">202</tt>  <tt class="py-line">        <tt class="py-keyword">for</tt> <tt class="py-name">mr</tt> <tt class="py-keyword">in</tt> <tt class="py-name">modelrefs</tt><tt class="py-op">:</tt> </tt>
+<a name="L203"></a><tt class="py-lineno">203</tt>  <tt class="py-line">            <tt class="py-keyword">if</tt> <tt class="py-name">mr</tt> <tt class="py-keyword">not</tt> <tt class="py-keyword">in</tt> <tt class="py-name">exclude_refs</tt> <tt class="py-keyword">and</tt> <tt class="py-name">mr</tt><tt class="py-op">.</tt><tt id="link-60" class="py-name" targets="Method actuator.modeling.AbstractModelReference.get_containing_component_ref()=actuator.modeling.AbstractModelReference-class.html#get_containing_component_ref"><a title="actuator.modeling.AbstractModelReference.get_containing_component_ref" class="py-name" href="#" onclick="return doclink('link-60', 'get_containing_component_ref', 'link-60');">get_containing_component_ref</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> <tt class="py-keyword">not</tt> <tt class="py-keyword">in</tt> <tt class="py-name">exclude_refs</tt><tt class="py-op">:</tt> </tt>
+<a name="L204"></a><tt class="py-lineno">204</tt>  <tt class="py-line">                <tt class="py-name">_</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-61" class="py-name" targets="Method actuator.modeling.ModelBase.get_inst_ref()=actuator.modeling.ModelBase-class.html#get_inst_ref"><a title="actuator.modeling.ModelBase.get_inst_ref" class="py-name" href="#" onclick="return doclink('link-61', 'get_inst_ref', 'link-61');">get_inst_ref</a></tt><tt class="py-op">(</tt><tt class="py-name">mr</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L205"></a><tt class="py-lineno">205</tt>  <tt class="py-line">             </tt>
+<a name="L206"></a><tt class="py-lineno">206</tt>  <tt class="py-line">    <tt class="py-decorator">@</tt><tt class="py-decorator">classmethod</tt> </tt>
+<a name="InfraModel._class_refs_for_resources"></a><div id="InfraModel._class_refs_for_resources-def"><a name="L207"></a><tt class="py-lineno">207</tt> <a class="py-toggle" href="#" id="InfraModel._class_refs_for_resources-toggle" onclick="return toggle('InfraModel._class_refs_for_resources');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html#_class_refs_for_resources">_class_refs_for_resources</a><tt class="py-op">(</tt><tt class="py-param">cls</tt><tt class="py-op">,</tt> <tt class="py-param">my_ref</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel._class_refs_for_resources-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModel._class_refs_for_resources-expanded"><a name="L208"></a><tt class="py-lineno">208</tt>  <tt class="py-line">        <tt class="py-name">all_refs</tt> <tt class="py-op">=</tt> <tt class="py-name">set</tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L209"></a><tt class="py-lineno">209</tt>  <tt class="py-line">        <tt class="py-keyword">for</tt> <tt class="py-name">k</tt><tt class="py-op">,</tt> <tt class="py-name">v</tt> <tt class="py-keyword">in</tt> <tt class="py-name">cls</tt><tt class="py-op">.</tt><tt class="py-name">__dict__</tt><tt class="py-op">[</tt><tt id="link-62" class="py-name"><a title="actuator.infra.InfraModelMeta" class="py-name" href="#" onclick="return doclink('link-62', 'InfraModelMeta', 'link-21');">InfraModelMeta</a></tt><tt class="py-op">.</tt><tt id="link-63" class="py-name"><a title="actuator.modeling.ModelBaseMeta._COMPONENTS" class="py-name" href="#" onclick="return doclink('link-63', '_COMPONENTS', 'link-22');">_COMPONENTS</a></tt><tt class="py-op">]</tt><tt class="py-op">.</tt><tt id="link-64" class="py-name"><a title="actuator.modeling.MultiComponent.items" class="py-name" href="#" onclick="return doclink('link-64', 'items', 'link-25');">items</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L210"></a><tt class="py-lineno">210</tt>  <tt class="py-line">            <tt class="py-keyword">if</tt> <tt class="py-name">isinstance</tt><tt class="py-op">(</tt><tt class="py-name">v</tt><tt class="py-op">,</tt> <tt id="link-65" class="py-name" targets="Class actuator.infra.Provisionable=actuator.infra.Provisionable-class.html"><a title="actuator.infra.Provisionable" class="py-name" href="#" onclick="return doclink('link-65', 'Provisionable', 'link-65');">Provisionable</a></tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L211"></a><tt class="py-lineno">211</tt>  <tt class="py-line">                <tt class="py-keyword">if</tt> <tt class="py-name">isinstance</tt><tt class="py-op">(</tt><tt class="py-name">k</tt><tt class="py-op">,</tt> <tt id="link-66" class="py-name"><a title="actuator.modeling.KeyAsAttr" class="py-name" href="#" onclick="return doclink('link-66', 'KeyAsAttr', 'link-12');">KeyAsAttr</a></tt><tt class="py-op">)</tt><tt class="py-op">:</tt>  <tt class="py-comment">#this probably isn't possible</tt> </tt>
+<a name="L212"></a><tt class="py-lineno">212</tt>  <tt class="py-line">                    <tt class="py-name">all_refs</tt><tt class="py-op">.</tt><tt class="py-name">add</tt><tt class="py-op">(</tt><tt class="py-name">my_ref</tt><tt class="py-op">[</tt><tt class="py-name">k</tt><tt class="py-op">]</tt><tt class="py-op">)</tt> </tt>
+<a name="L213"></a><tt class="py-lineno">213</tt>  <tt class="py-line">                <tt class="py-keyword">else</tt><tt class="py-op">:</tt> </tt>
+<a name="L214"></a><tt class="py-lineno">214</tt>  <tt class="py-line">                    <tt class="py-name">all_refs</tt><tt class="py-op">.</tt><tt class="py-name">add</tt><tt class="py-op">(</tt><tt class="py-name">getattr</tt><tt class="py-op">(</tt><tt class="py-name">cls</tt> <tt class="py-keyword">if</tt> <tt class="py-name">my_ref</tt> <tt class="py-keyword">is</tt> <tt class="py-name">None</tt> <tt class="py-keyword">else</tt> <tt class="py-name">my_ref</tt><tt class="py-op">,</tt> <tt class="py-name">k</tt><tt class="py-op">)</tt><tt class="py-op">)</tt> </tt>
+<a name="L215"></a><tt class="py-lineno">215</tt>  <tt class="py-line">            <tt class="py-keyword">elif</tt> <tt class="py-name">isinstance</tt><tt class="py-op">(</tt><tt class="py-name">v</tt><tt class="py-op">,</tt> <tt id="link-67" class="py-name"><a title="actuator.modeling._ComputeModelComponents" class="py-name" href="#" onclick="return doclink('link-67', '_ComputeModelComponents', 'link-13');">_ComputeModelComponents</a></tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L216"></a><tt class="py-lineno">216</tt>  <tt class="py-line">                <tt class="py-name">ref</tt> <tt class="py-op">=</tt> <tt class="py-name">getattr</tt><tt class="py-op">(</tt><tt class="py-name">cls</tt><tt class="py-op">,</tt> <tt class="py-name">k</tt><tt class="py-op">)</tt> </tt>
+<a name="L217"></a><tt class="py-lineno">217</tt>  <tt class="py-line">                <tt class="py-name">all_refs</tt> <tt class="py-op">|=</tt> <tt class="py-name">v</tt><tt class="py-op">.</tt><tt id="link-68" class="py-name" targets="Method actuator.modeling._ComputeModelComponents.refs_for_components()=actuator.modeling._ComputeModelComponents-class.html#refs_for_components"><a title="actuator.modeling._ComputeModelComponents.refs_for_components" class="py-name" href="#" onclick="return doclink('link-68', 'refs_for_components', 'link-68');">refs_for_components</a></tt><tt class="py-op">(</tt><tt class="py-name">my_ref</tt><tt class="py-op">=</tt><tt class="py-name">ref</tt><tt class="py-op">)</tt> </tt>
+<a name="L218"></a><tt class="py-lineno">218</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">all_refs</tt>                 </tt>
+</div><a name="L219"></a><tt class="py-lineno">219</tt>  <tt class="py-line">     </tt>
+<a name="InfraModel._comp_source"></a><div id="InfraModel._comp_source-def"><a name="L220"></a><tt class="py-lineno">220</tt> <a class="py-toggle" href="#" id="InfraModel._comp_source-toggle" onclick="return toggle('InfraModel._comp_source');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.InfraModel-class.html#_comp_source">_comp_source</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="InfraModel._comp_source-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="InfraModel._comp_source-expanded"><a name="L221"></a><tt class="py-lineno">221</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">dict</tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">__dict__</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L222"></a><tt class="py-lineno">222</tt>  <tt class="py-line">     </tt>
+<a name="IPAddressable"></a><div id="IPAddressable-def"><a name="L223"></a><tt class="py-lineno">223</tt>  <tt class="py-line">     </tt>
+<a name="L224"></a><tt class="py-lineno">224</tt> <a class="py-toggle" href="#" id="IPAddressable-toggle" onclick="return toggle('IPAddressable');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.IPAddressable-class.html">IPAddressable</a><tt class="py-op">(</tt><tt class="py-base-class">object</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="IPAddressable-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="IPAddressable-expanded"><a name="L225"></a><tt class="py-lineno">225</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L226"></a><tt class="py-lineno">226</tt>  <tt class="py-line"><tt class="py-docstring">    This is a protocol for any object that can acquire and be addressed with</tt> </tt>
+<a name="L227"></a><tt class="py-lineno">227</tt>  <tt class="py-line"><tt class="py-docstring">    and IP adddress. Other classes derive from this to allow them to be used</tt> </tt>
+<a name="L228"></a><tt class="py-lineno">228</tt>  <tt class="py-line"><tt class="py-docstring">    as references for other components.</tt> </tt>
+<a name="L229"></a><tt class="py-lineno">229</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="IPAddressable.get_ip"></a><div id="IPAddressable.get_ip-def"><a name="L230"></a><tt class="py-lineno">230</tt> <a class="py-toggle" href="#" id="IPAddressable.get_ip-toggle" onclick="return toggle('IPAddressable.get_ip');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.IPAddressable-class.html#get_ip">get_ip</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">context</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="IPAddressable.get_ip-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="IPAddressable.get_ip-expanded"><a name="L231"></a><tt class="py-lineno">231</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L232"></a><tt class="py-lineno">232</tt>  <tt class="py-line"><tt class="py-docstring">        Return the IP address for self as a string. Derived classes are</tt> </tt>
+<a name="L233"></a><tt class="py-lineno">233</tt>  <tt class="py-line"><tt class="py-docstring">        responsible for implementing this.</tt> </tt>
+<a name="L234"></a><tt class="py-lineno">234</tt>  <tt class="py-line"><tt class="py-docstring">        </tt> </tt>
+<a name="L235"></a><tt class="py-lineno">235</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword context: Ignored; this param exists to allow this method to be</tt> </tt>
+<a name="L236"></a><tt class="py-lineno">236</tt>  <tt class="py-line"><tt class="py-docstring">            used where callable params are allowed so that a L{CallContext} object</tt> </tt>
+<a name="L237"></a><tt class="py-lineno">237</tt>  <tt class="py-line"><tt class="py-docstring">            can be passed in.</tt> </tt>
+<a name="L238"></a><tt class="py-lineno">238</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L239"></a><tt class="py-lineno">239</tt>  <tt class="py-line">        <tt class="py-keyword">raise</tt> <tt class="py-name">TypeError</tt><tt class="py-op">(</tt><tt class="py-string">"Not implemented"</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L240"></a><tt class="py-lineno">240</tt>  <tt class="py-line">     </tt>
+<a name="StaticServer"></a><div id="StaticServer-def"><a name="L241"></a><tt class="py-lineno">241</tt>  <tt class="py-line">     </tt>
+<a name="L242"></a><tt class="py-lineno">242</tt> <a class="py-toggle" href="#" id="StaticServer-toggle" onclick="return toggle('StaticServer');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.infra.StaticServer-class.html">StaticServer</a><tt class="py-op">(</tt><tt class="py-base-class">IPAddressable</tt><tt class="py-op">,</tt> <tt class="py-base-class">Provisionable</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="StaticServer-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="StaticServer-expanded"><a name="L243"></a><tt class="py-lineno">243</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L244"></a><tt class="py-lineno">244</tt>  <tt class="py-line"><tt class="py-docstring">    Represents an already existing server to be used in an infrastructure.</tt> </tt>
+<a name="L245"></a><tt class="py-lineno">245</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L246"></a><tt class="py-lineno">246</tt>  <tt class="py-line"><tt class="py-docstring">    A StaticServer provides a way knit non-dynamic (virtual or cloud) resources</tt> </tt>
+<a name="L247"></a><tt class="py-lineno">247</tt>  <tt class="py-line"><tt class="py-docstring">    into an infra model. This resource won't be provisioned, as it already has,</tt> </tt>
+<a name="L248"></a><tt class="py-lineno">248</tt>  <tt class="py-line"><tt class="py-docstring">    but it can be used wherever a reference to a server &amp; L{IPAddressable} are</tt> </tt>
+<a name="L249"></a><tt class="py-lineno">249</tt>  <tt class="py-line"><tt class="py-docstring">    required in other models.</tt> </tt>
+<a name="L250"></a><tt class="py-lineno">250</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="StaticServer.__init__"></a><div id="StaticServer.__init__-def"><a name="L251"></a><tt class="py-lineno">251</tt> <a class="py-toggle" href="#" id="StaticServer.__init__-toggle" onclick="return toggle('StaticServer.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.StaticServer-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">name</tt><tt class="py-op">,</tt> <tt class="py-param">hostname_or_ip</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="StaticServer.__init__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="StaticServer.__init__-expanded"><a name="L252"></a><tt class="py-lineno">252</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L253"></a><tt class="py-lineno">253</tt>  <tt class="py-line"><tt class="py-docstring">        Create a new StaticServer instance.</tt> </tt>
+<a name="L254"></a><tt class="py-lineno">254</tt>  <tt class="py-line"><tt class="py-docstring">        </tt> </tt>
+<a name="L255"></a><tt class="py-lineno">255</tt>  <tt class="py-line"><tt class="py-docstring">        @param name: A logical name for the server</tt> </tt>
+<a name="L256"></a><tt class="py-lineno">256</tt>  <tt class="py-line"><tt class="py-docstring">        @param hostname_or_ip: a resolveable name for the server, either an</tt> </tt>
+<a name="L257"></a><tt class="py-lineno">257</tt>  <tt class="py-line"><tt class="py-docstring">            IP address or a host name (FQDN where required). Actuator assumes</tt> </tt>
+<a name="L258"></a><tt class="py-lineno">258</tt>  <tt class="py-line"><tt class="py-docstring">            that the name will be resolveable if a hostname is provided.</tt> </tt>
+<a name="L259"></a><tt class="py-lineno">259</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L260"></a><tt class="py-lineno">260</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-69" class="py-name" targets="Class actuator.infra.StaticServer=actuator.infra.StaticServer-class.html"><a title="actuator.infra.StaticServer" class="py-name" href="#" onclick="return doclink('link-69', 'StaticServer', 'link-69');">StaticServer</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-70" class="py-name"><a title="actuator.ActuatorOrchestration.__init__
+actuator.config.ConfigClassTask.__init__
+actuator.config.ConfigModel.__init__
+actuator.config.MultiTask.__init__
+actuator.config.NullTask.__init__
+actuator.config.TaskGroup.__init__
+actuator.config._ConfigTask.__init__
+actuator.config._Dependency.__init__
+actuator.config_tasks.CommandTask.__init__
+actuator.config_tasks.CopyFileTask.__init__
+actuator.config_tasks.ProcessCopyFileTask.__init__
+actuator.config_tasks.ScriptTask.__init__
+actuator.exec_agents.core.ConfigRecord.__init__
+actuator.exec_agents.core.ExecutionAgent.__init__
+actuator.exec_agents.core.ExecutionException.__init__
+actuator.infra.InfraModel.__init__
+actuator.infra.StaticServer.__init__
+actuator.modeling.AbstractModelReference.__init__
+actuator.modeling.AbstractModelingEntity.__init__
+actuator.modeling.CallContext.__init__
+actuator.modeling.ComponentGroup.__init__
+actuator.modeling.ContextExpr.__init__
+actuator.modeling.KeyItem.__init__
+actuator.modeling.MultiComponent.__init__
+actuator.modeling.RefSelTest.__init__
+actuator.modeling.RefSelectBuilder.__init__
+actuator.modeling.RefSelectUnion.__init__
+actuator.modeling.SelectElement.__init__
+actuator.modeling._Nexus.__init__
+actuator.modeling._NexusMember.__init__
+actuator.namespace.NamespaceModel.__init__
+actuator.namespace.Role.__init__
+actuator.namespace.Var.__init__
+actuator.namespace.VarFuture.__init__
+actuator.namespace.VariableContainer.__init__
+actuator.namespace._ComputableValue.__init__
+actuator.provisioners.core.BaseProvisioningRecord.__init__
+actuator.provisioners.core.ProvisionerException.__init__
+actuator.provisioners.example_resources.Database.__init__
+actuator.provisioners.example_resources.Queue.__init__
+actuator.provisioners.example_resources.Server.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__
+actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__
+actuator.provisioners.openstack.resource_tasks.RunContext.__init__
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__
+actuator.provisioners.openstack.resources.FloatingIP.__init__
+actuator.provisioners.openstack.resources.Network.__init__
+actuator.provisioners.openstack.resources.NetworkInterface.__init__
+actuator.provisioners.openstack.resources.Router.__init__
+actuator.provisioners.openstack.resources.RouterGateway.__init__
+actuator.provisioners.openstack.resources.RouterInterface.__init__
+actuator.provisioners.openstack.resources.SecGroup.__init__
+actuator.provisioners.openstack.resources.SecGroupRule.__init__
+actuator.provisioners.openstack.resources.Server.__init__
+actuator.provisioners.openstack.resources.Subnet.__init__
+actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__
+actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__
+actuator.provisioners.openstack.support._OSMaps.__init__
+actuator.utils.ClassModifier.__init__" class="py-name" href="#" onclick="return doclink('link-70', '__init__', 'link-40');">__init__</a></tt><tt class="py-op">(</tt><tt class="py-name">name</tt><tt class="py-op">)</tt> </tt>
+<a name="L261"></a><tt class="py-lineno">261</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">hostname_or_ip</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L262"></a><tt class="py-lineno">262</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_hostname_or_ip</tt> <tt class="py-op">=</tt> <tt class="py-name">hostname_or_ip</tt> </tt>
+</div><a name="L263"></a><tt class="py-lineno">263</tt>  <tt class="py-line">         </tt>
+<a name="StaticServer._fix_arguments"></a><div id="StaticServer._fix_arguments-def"><a name="L264"></a><tt class="py-lineno">264</tt> <a class="py-toggle" href="#" id="StaticServer._fix_arguments-toggle" onclick="return toggle('StaticServer._fix_arguments');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.StaticServer-class.html#_fix_arguments">_fix_arguments</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="StaticServer._fix_arguments-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="StaticServer._fix_arguments-expanded"><a name="L265"></a><tt class="py-lineno">265</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">hostname_or_ip</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-71" class="py-name" targets="Method actuator.config._ConfigTask._get_arg_value()=actuator.config._ConfigTask-class.html#_get_arg_value,Method actuator.modeling.AbstractModelingEntity._get_arg_value()=actuator.modeling.AbstractModelingEntity-class.html#_get_arg_value,Method actuator.namespace.Role._get_arg_value()=actuator.namespace.Role-class.html#_get_arg_value"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-71', '_get_arg_value', 'link-71');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_hostname_or_ip</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L266"></a><tt class="py-lineno">266</tt>  <tt class="py-line">         </tt>
+<a name="StaticServer.get_init_args"></a><div id="StaticServer.get_init_args-def"><a name="L267"></a><tt class="py-lineno">267</tt> <a class="py-toggle" href="#" id="StaticServer.get_init_args-toggle" onclick="return toggle('StaticServer.get_init_args');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.StaticServer-class.html#get_init_args">get_init_args</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="StaticServer.get_init_args-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="StaticServer.get_init_args-expanded"><a name="L268"></a><tt class="py-lineno">268</tt>  <tt class="py-line">        <tt class="py-name">__doc__</tt> <tt class="py-op">=</tt> <tt id="link-72" class="py-name"><a title="actuator.infra.Provisionable" class="py-name" href="#" onclick="return doclink('link-72', 'Provisionable', 'link-65');">Provisionable</a></tt><tt class="py-op">.</tt><tt id="link-73" class="py-name" targets="Method actuator.config.ConfigClassTask.get_init_args()=actuator.config.ConfigClassTask-class.html#get_init_args,Method actuator.config.MultiTask.get_init_args()=actuator.config.MultiTask-class.html#get_init_args,Method actuator.config._ConfigTask.get_init_args()=actuator.config._ConfigTask-class.html#get_init_args,Method actuator.config_tasks.CommandTask.get_init_args()=actuator.config_tasks.CommandTask-class.html#get_init_args,Method actuator.config_tasks.CopyFileTask.get_init_args()=actuator.config_tasks.CopyFileTask-class.html#get_init_args,Method actuator.config_tasks.ScriptTask.get_init_args()=actuator.config_tasks.ScriptTask-class.html#get_init_args,Method actuator.infra.StaticServer.get_init_args()=actuator.infra.StaticServer-class.html#get_init_args,Method actuator.modeling.AbstractModelingEntity.get_init_args()=actuator.modeling.AbstractModelingEntity-class.html#get_init_args,Method actuator.modeling.ComponentGroup.get_init_args()=actuator.modeling.ComponentGroup-class.html#get_init_args,Method actuator.modeling.MultiComponent.get_init_args()=actuator.modeling.MultiComponent-class.html#get_init_args,Method actuator.namespace.Role.get_init_args()=actuator.namespace.Role-class.html#get_init_args,Method actuator.provisioners.example_resources.Database.get_init_args()=actuator.provisioners.example_resources.Database-class.html#get_init_args,Method actuator.provisioners.example_resources.Queue.get_init_args()=actuator.provisioners.example_resources.Queue-class.html#get_init_args,Method actuator.provisioners.example_resources.Server.get_init_args()=actuator.provisioners.example_resources.Server-class.html#get_init_args,Method actuator.provisioners.openstack.resource_tasks._ProvisioningTask.get_init_args()=actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#get_init_args,Method actuator.provisioners.openstack.resources.FloatingIP.get_init_args()=actuator.provisioners.openstack.resources.FloatingIP-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Network.get_init_args()=actuator.provisioners.openstack.resources.Network-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Router.get_init_args()=actuator.provisioners.openstack.resources.Router-class.html#get_init_args,Method actuator.provisioners.openstack.resources.RouterGateway.get_init_args()=actuator.provisioners.openstack.resources.RouterGateway-class.html#get_init_args,Method actuator.provisioners.openstack.resources.RouterInterface.get_init_args()=actuator.provisioners.openstack.resources.RouterInterface-class.html#get_init_args,Method actuator.provisioners.openstack.resources.SecGroup.get_init_args()=actuator.provisioners.openstack.resources.SecGroup-class.html#get_init_args,Method actuator.provisioners.openstack.resources.SecGroupRule.get_init_args()=actuator.provisioners.openstack.resources.SecGroupRule-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Server.get_init_args()=actuator.provisioners.openstack.resources.Server-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Subnet.get_init_args()=actuator.provisioners.openstack.resources.Subnet-class.html#get_init_args"><a title="actuator.config.ConfigClassTask.get_init_args
+actuator.config.MultiTask.get_init_args
+actuator.config._ConfigTask.get_init_args
+actuator.config_tasks.CommandTask.get_init_args
+actuator.config_tasks.CopyFileTask.get_init_args
+actuator.config_tasks.ScriptTask.get_init_args
+actuator.infra.StaticServer.get_init_args
+actuator.modeling.AbstractModelingEntity.get_init_args
+actuator.modeling.ComponentGroup.get_init_args
+actuator.modeling.MultiComponent.get_init_args
+actuator.namespace.Role.get_init_args
+actuator.provisioners.example_resources.Database.get_init_args
+actuator.provisioners.example_resources.Queue.get_init_args
+actuator.provisioners.example_resources.Server.get_init_args
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.get_init_args
+actuator.provisioners.openstack.resources.FloatingIP.get_init_args
+actuator.provisioners.openstack.resources.Network.get_init_args
+actuator.provisioners.openstack.resources.Router.get_init_args
+actuator.provisioners.openstack.resources.RouterGateway.get_init_args
+actuator.provisioners.openstack.resources.RouterInterface.get_init_args
+actuator.provisioners.openstack.resources.SecGroup.get_init_args
+actuator.provisioners.openstack.resources.SecGroupRule.get_init_args
+actuator.provisioners.openstack.resources.Server.get_init_args
+actuator.provisioners.openstack.resources.Subnet.get_init_args" class="py-name" href="#" onclick="return doclink('link-73', 'get_init_args', 'link-73');">get_init_args</a></tt><tt class="py-op">.</tt><tt class="py-name">__doc__</tt> </tt>
+<a name="L269"></a><tt class="py-lineno">269</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-op">(</tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">name</tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_hostname_or_ip</tt><tt class="py-op">)</tt><tt class="py-op">,</tt> <tt class="py-op">{</tt><tt class="py-op">}</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L270"></a><tt class="py-lineno">270</tt>  <tt class="py-line">     </tt>
+<a name="StaticServer.get_ip"></a><div id="StaticServer.get_ip-def"><a name="L271"></a><tt class="py-lineno">271</tt> <a class="py-toggle" href="#" id="StaticServer.get_ip-toggle" onclick="return toggle('StaticServer.get_ip');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.infra.StaticServer-class.html#get_ip">get_ip</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">context</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="StaticServer.get_ip-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="StaticServer.get_ip-expanded"><a name="L272"></a><tt class="py-lineno">272</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L273"></a><tt class="py-lineno">273</tt>  <tt class="py-line"><tt class="py-docstring">        Returns the hostname or IP that was provided in the constructor.</tt> </tt>
+<a name="L274"></a><tt class="py-lineno">274</tt>  <tt class="py-line"><tt class="py-docstring">        </tt> </tt>
+<a name="L275"></a><tt class="py-lineno">275</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword context: Ignored; present so this method can be passed as a</tt> </tt>
+<a name="L276"></a><tt class="py-lineno">276</tt>  <tt class="py-line"><tt class="py-docstring">            callable value for ann argument.</tt> </tt>
+<a name="L277"></a><tt class="py-lineno">277</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L278"></a><tt class="py-lineno">278</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">hostname_or_ip</tt> </tt>
+</div></div><a name="L279"></a><tt class="py-lineno">279</tt>  <tt class="py-line"> </tt><script type="text/javascript">
+<!--
+expandto(location.href);
+// -->
+</script>
+</pre>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:53 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

@@ -1,0 +1,991 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="actuator-module.html">Package&nbsp;actuator</a> ::
+        <a href="actuator.provisioners-module.html">Package&nbsp;provisioners</a> ::
+        <a href="actuator.provisioners.openstack-module.html">Package&nbsp;openstack</a> ::
+        <a href="actuator.provisioners.openstack.resource_tasks-module.html">Module&nbsp;resource_tasks</a> ::
+        Class&nbsp;ProvisionSubnetTask
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class ProvisionSubnetTask</h1><p class="nomargin-top"><span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#ProvisionSubnetTask">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+                         object --+            
+                                  |            
+                      <a href="actuator.config.Orable-class.html">config.Orable</a> --+        
+                                      |        
+                     object --+       |        
+                              |       |        
+<a href="actuator.modeling.AbstractModelingEntity-class.html">modeling.AbstractModelingEntity</a> --+   |        
+                                  |   |        
+            <a href="actuator.modeling.ModelComponent-class.html">modeling.ModelComponent</a> --+        
+                                      |        
+                     <a href="actuator.config._ConfigTask-class.html" onclick="show_private();">config._ConfigTask</a> --+    
+                                          |    
+                          <a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html" onclick="show_private();">_ProvisioningTask</a> --+
+                                              |
+                                             <strong class="uidshort">ProvisionSubnetTask</strong>
+</pre>
+
+<hr />
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask-class.html#depends_on_list" class="summary-sig-name">depends_on_list</a>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#ProvisionSubnetTask.depends_on_list">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask-class.html#_provision" class="summary-sig-name" onclick="show_private();">_provision</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">run_context</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#ProvisionSubnetTask._provision">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__getattribute__</code>,
+      <code>__hash__</code>,
+      <code>__new__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__repr__</code>,
+      <code>__setattr__</code>,
+      <code>__sizeof__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html" onclick="show_private();">_ProvisioningTask</a></th></tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">rsrc</span>,
+        <span class="summary-sig-arg">repeat_count</span>=<span class="summary-sig-default">1</span>)</span><br />
+      Create a new modeling entity</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#_ProvisioningTask.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_get_rsrc"></a><span class="summary-sig-name">_get_rsrc</span>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#_ProvisioningTask._get_rsrc">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#get_init_args" class="summary-sig-name">get_init_args</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns the arguments that were used to create this object</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#_ProvisioningTask.get_init_args">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="provision"></a><span class="summary-sig-name">provision</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">run_context</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#_ProvisioningTask.provision">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.config._ConfigTask-class.html" onclick="show_private();">config._ConfigTask</a></th></tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_embedded_exittask_attrnames"></a><span class="summary-sig-name">_embedded_exittask_attrnames</span>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask._embedded_exittask_attrnames">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.config._ConfigTask-class.html#_fix_arguments" class="summary-sig-name" onclick="show_private();">_fix_arguments</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Derived classes override this to fix any arguments to themselves.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask._fix_arguments">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.config._ConfigTask-class.html#_get_arg_value" class="summary-sig-name" onclick="show_private();">_get_arg_value</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">arg</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask._get_arg_value">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.config._ConfigTask-class.html#_or_result_class" class="summary-sig-name" onclick="show_private();">_or_result_class</a>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask._or_result_class">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_set_delegate"></a><span class="summary-sig-name">_set_delegate</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">delegate</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask._set_delegate">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.config._ConfigTask-class.html#entry_nodes" class="summary-sig-name">entry_nodes</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Internal</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.entry_nodes">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.config._ConfigTask-class.html#exit_nodes" class="summary-sig-name">exit_nodes</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Internal</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.exit_nodes">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_private_key_file"></a><span class="summary-sig-name">get_private_key_file</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return the effective private key file to use for this task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.get_private_key_file">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_remote_pass"></a><span class="summary-sig-name">get_remote_pass</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return the effective remote password to use for this user.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.get_remote_pass">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_remote_user"></a><span class="summary-sig-name">get_remote_user</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return the effective remote user to use for this task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.get_remote_user">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_run_from"></a><span class="summary-sig-name">get_run_from</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return the Role associated with the run_from Role for this task</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.get_run_from">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_run_host"></a><span class="summary-sig-name">get_run_host</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return the host associated with the run_from Role for this task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.get_run_host">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_task_host"></a><span class="summary-sig-name">get_task_host</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return the host associated with the task_role for this task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.get_task_host">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_task_role"></a><span class="summary-sig-name">get_task_role</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Return the Role associated with this task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.get_task_role">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.config._ConfigTask-class.html#perform" class="summary-sig-name">perform</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Perform the task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.perform">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="set_run_from"></a><span class="summary-sig-name">set_run_from</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">run_from</span>)</span><br />
+      Used internally; sets the Role to use as the run_from Role for the 
+      task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.set_run_from">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="set_task_role"></a><span class="summary-sig-name">set_task_role</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">task_role</span>)</span><br />
+      Used internally; sets the Role to use as the task_role for the task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.set_task_role">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.config._ConfigTask-class.html#task_variables" class="summary-sig-name">task_variables</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">for_env</span>=<span class="summary-sig-default">False</span>)</span><br />
+      Return a dict with all the Vars that apply to this task according to 
+      the task_role for the task.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#_ConfigTask.task_variables">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.config.Orable-class.html">config.Orable</a></th></tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="__and__"></a><span class="summary-sig-name">__and__</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">other</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#Orable.__and__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="__nonzero__"></a><span class="summary-sig-name">__nonzero__</span>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#Orable.__nonzero__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="__or__"></a><span class="summary-sig-name">__or__</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">other</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#Orable.__or__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_and_result_class"></a><span class="summary-sig-name">_and_result_class</span>(<span class="summary-sig-arg">self</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.config-pysrc.html#Orable._and_result_class">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.modeling.AbstractModelingEntity-class.html">modeling.AbstractModelingEntity</a></th></tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.AbstractModelingEntity-class.html#_container" class="summary-sig-name" onclick="show_private();">_container</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      This returns the entity that contains self</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity._container">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="_set_model_instance"></a><span class="summary-sig-name">_set_model_instance</span>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">inst</span>)</span></td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity._set_model_instance">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.AbstractModelingEntity-class.html#_validate_args" class="summary-sig-name" onclick="show_private();">_validate_args</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">referenceable</span>)</span><br />
+      CURRENTLY UNUSED: certain problems with finding references keep this 
+      private method out of use</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity._validate_args">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.AbstractModelingEntity-class.html#clone" class="summary-sig-name">clone</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">clone_into_class</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Make a copy of this object</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity.clone">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.AbstractModelingEntity-class.html#fix_arguments" class="summary-sig-name">fix_arguments</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Called internally when it time to fix arguments on the entity</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity.fix_arguments">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.AbstractModelingEntity-class.html#get_class" class="summary-sig-name">get_class</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns the class of the object (or another class if desired)</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity.get_class">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a name="get_model_instance"></a><span class="summary-sig-name">get_model_instance</span>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns the model instance this entity is a part of (if any)</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity.get_model_instance">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.modeling.AbstractModelingEntity-class.html#refix_arguments" class="summary-sig-name">refix_arguments</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Allows arguments to be fixed again.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator.modeling-pysrc.html#AbstractModelingEntity.refix_arguments">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS VARIABLES ==================== -->
+<a name="section-ClassVariables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Class Variables</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-ClassVariables"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html" onclick="show_private();">_ProvisioningTask</a></th></tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="_rsrc_by_id"></a><span class="summary-name">_rsrc_by_id</span> = <code title="{}"><code class="variable-group">{</code><code class="variable-group">}</code></code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="clone_attrs"></a><span class="summary-name">clone_attrs</span> = <code title="False">False</code>
+    </td>
+  </tr>
+</table>
+<!-- ==================== INSTANCE VARIABLES ==================== -->
+<a name="section-InstanceVariables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Variables</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceVariables"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.modeling.AbstractModelingEntity-class.html">modeling.AbstractModelingEntity</a></th></tr>
+<tr class="private">
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="_id"></a><span class="summary-name">_id</span><br />
+      public; internally generated unique id for this instance, a 
+      uuid.uuid4
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="actuator.modeling.AbstractModelingEntity-class.html#fixed" class="summary-name">fixed</a><br />
+      public, read only.
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="name"></a><span class="summary-name">name</span><br />
+      publically available name attr for this entity
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html" onclick="show_private();">_ProvisioningTask</a></th></tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#rsrc" class="summary-name">rsrc</a>
+    </td>
+  </tr>
+<tr bgcolor="#e8f0f8" >
+  <th colspan="2" class="group-header"
+    >&nbsp;&nbsp;&nbsp;&nbsp;Inherited from <a href="actuator.modeling.AbstractModelingEntity-class.html">modeling.AbstractModelingEntity</a></th></tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a href="actuator.modeling.AbstractModelingEntity-class.html#container" class="summary-name">container</a><br />
+      This returns the entity that contains self
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="depends_on_list"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">depends_on_list</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#ProvisionSubnetTask.depends_on_list">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  
+  <dl class="fields">
+    <dt>Overrides:
+        <a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#depends_on_list">_ProvisioningTask.depends_on_list</a>
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="_provision"></a>
+<div class="private">
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">_provision</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">run_context</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator.provisioners.openstack.resource_tasks-pysrc.html#ProvisionSubnetTask._provision">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  
+  <dl class="fields">
+    <dt>Overrides:
+        <a href="actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#_provision" onclick="show_private();">_ProvisioningTask._provision</a>
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:53 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

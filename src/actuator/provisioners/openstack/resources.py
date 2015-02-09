@@ -20,9 +20,7 @@
 # SOFTWARE.
 
 '''
-This module contains resource classes that are analogs for Openstack resources
-
-Created on 7 Sep 2014
+This module contains resource classes for provisioning Openstack resources.
 '''
 import collections
 import ipaddress
@@ -108,15 +106,15 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         
         @param name: String; the logical name for the server. This name may be modified if
             the server is a template for a MultiResource.
-        @param image: String; the name of the image to boot with. The Nova API
+        @param imageName: String; the name of the image to boot with. The Nova API
             normally requires an Image object here, but currently just the
             string name of the image is required, as the lookups for the Image
             are done internally.
-        @param flavor: String; the name of the flavor to boot onto. The Nova API
+        @param flavorName: String; the name of the flavor to boot onto. The Nova API
             normally requires a Flavor object here, but currently just the
             string name of the image is required, as the lookups for the Flavor
             are done internally.
-        @keywords meta: A dict of arbitrary key/value metadata to store for this
+        @keyword meta: A dict of arbitrary key/value metadata to store for this
             server. A maximum of five entries is allowed, and both keys and
             values must be 255 characters or less.
         @keyword files: A dict of files to overrwrite on the server upon boot.
@@ -378,10 +376,10 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
     def __init__(self, name, secgroup, ip_protocol=None, from_port=None,
                  to_port=None, cidr=None):
         """
-        Create a new SecGroupRule on a SecurityGroup
+        Create a new SecGroupRule on a SecGroup
         
         @param name: string; logical name for the rule
-        @param secgroup: reference to an Actuator L{SecurityGroup} in a model.
+        @param secgroup: reference to an Actuator L{SecGroup} in a model.
             Generally these tend to be context expressions, for example
             'ctxt.model.secgroup'
         @keyword ip_protocol: string; an IP protocol name, one of 'tcp', 'udp'
@@ -665,95 +663,3 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
     def get_init_args(self):
         return ((self.name, self._router, self._subnet), {})
     
-    
-def _checktype(aType):
-    def check_add_type(f):
-        def exec_with_check(self, toAdd):
-            if not isinstance(toAdd, aType):
-                raise ProvisionerException("Received a %s, expected a %s" % (str(type(toAdd)), str(aType)))
-            return f(self, toAdd)
-        exec_with_check.__name__ = f.__name__
-        exec_with_check.__doc__ = f.__doc__
-        return exec_with_check
-    return check_add_type
-                
-    
-# class _ResourceSorter(object):
-#     #internal
-#     def __init__(self):
-#         self.networks = set()
-#         self.subnets = set()
-#         self.floating_ips = set()
-#         self.routers = set()
-#         self.router_gateways = set()
-#         self.router_interfaces = set()
-#         self.secgroups = set()
-#         self.secgroup_rules = set()
-#         self.servers = set()
-#         self.ports = set()
-#         self.sorter_map = {Network:self.add_network,
-#                            Subnet:self.add_subnet,
-#                            FloatingIP:self.add_floating_ip,
-#                            Router:self.add_router,
-#                            Server:self.add_server,
-#                            RouterGateway:self.add_router_gateway,
-#                            RouterInterface:self.add_router_interface,
-#                            SecGroup:self.add_secgroup,
-#                            SecGroupRule:self.add_secgroup_rule}
-#         
-#     def reset(self):
-#         self.networks.clear()
-#         self.subnets.clear()
-#         self.floating_ips.clear()
-#         self.routers.clear()
-#         self.router_gateways.clear()
-#         self.router_interfaces.clear()
-#         self.secgroups.clear()
-#         self.secgroup_rules.clear()
-#         self.servers.clear()
-#         self.ports.clear()
-#         
-#     def sort_provisionables(self, provisionable_iter):
-#         for prov in provisionable_iter:
-#             if not isinstance(prov, _OpenstackProvisionableInfraResource):
-#                 continue
-#             self.sorter_map[prov.__class__](prov)
-#             
-#     @_checktype(RouterInterface)
-#     def add_router_interface(self, router_interface):
-#         self.router_interfaces.add(router_interface)
-#             
-#     @_checktype(RouterGateway)
-#     def add_router_gateway(self, router_gateway):
-#         self.router_gateways.add(router_gateway)
-# 
-#     @_checktype(Network)
-#     def add_network(self, network):
-#         self.networks.add(network)
-#     
-#     @_checktype(Subnet)
-#     def add_subnet(self, subnet):
-#         self.subnets.add(subnet)
-#         
-#     @_checktype(FloatingIP)
-#     def add_floating_ip(self, floating_ip):
-#         self.floating_ips.add(floating_ip)
-#         
-#     @_checktype(Router)
-#     def add_router(self, router):
-#         self.routers.add(router)
-#         
-#     def add_secgroup(self, secgroup):
-#         self.secgroups.add(secgroup)
-#         
-#     def add_secgroup_rule(self, secgroup_rule):
-#         self.secgroup_rules.add(secgroup_rule)
-#         
-#     @_checktype(Server)
-#     def add_server(self, server):
-#         self.servers.add(server)
-#         
-#     def add_port(self, port):
-#         self.ports.add(port)
-#         
-        

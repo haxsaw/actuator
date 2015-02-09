@@ -1,7 +1,0 @@
-For All:
-networkx
-
-for matplotlib
-numpy
-freetype dev
-libpng

@@ -19,6 +19,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+"""
+Base package for Actuator.
+
+Contains most of the imported symbols from sub-packages and the orchestrator.
+
+NOTE: be sure to import this package before importing any Ansible modules.
+Actuator requires Python 3.2 semantics for the subprocess module in order for
+Ansible to work the way it needs to, and by importing Actuator first, it can
+patch in subprocess32 (a drop-in replacement for subprocess) to be used instead
+of subprocess, ensuring that Ansible behaves properly.
+"""
 
 import sys
 #patch in the subprocess32 module so that it gets picked up
@@ -135,7 +146,7 @@ class ActuatorOrchestration(object):
             or simply no infra/provisioner), then the pause is skipped.
             
         @raise ExecutionException: In the following circumstances this method
-            will raise actuator.ExecutionException:
+        will raise actuator.ExecutionException:
             - The value supplied for infra_model_inst is not an instance of
                 L{actuator.infra.InfraModel}
             - The value supplied for provisioner is not an instance of the

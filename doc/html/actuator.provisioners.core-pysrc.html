@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>actuator.provisioners.core</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="actuator-module.html">Package&nbsp;actuator</a> ::
+        <a href="actuator.provisioners-module.html">Package&nbsp;provisioners</a> ::
+        Module&nbsp;core
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="actuator.provisioners.core-pysrc.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<h1 class="epydoc">Source Code for <a href="actuator.provisioners.core-module.html">Module actuator.provisioners.core</a></h1>
+<pre class="py-src">
+<a name="L1"></a><tt class="py-lineno"> 1</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L2"></a><tt class="py-lineno"> 2</tt>  <tt class="py-line"><tt class="py-comment"># Copyright (c) 2014 Tom Carroll</tt> </tt>
+<a name="L3"></a><tt class="py-lineno"> 3</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L4"></a><tt class="py-lineno"> 4</tt>  <tt class="py-line"><tt class="py-comment"># Permission is hereby granted, free of charge, to any person obtaining a copy</tt> </tt>
+<a name="L5"></a><tt class="py-lineno"> 5</tt>  <tt class="py-line"><tt class="py-comment"># of this software and associated documentation files (the "Software"), to deal</tt> </tt>
+<a name="L6"></a><tt class="py-lineno"> 6</tt>  <tt class="py-line"><tt class="py-comment"># in the Software without restriction, including without limitation the rights</tt> </tt>
+<a name="L7"></a><tt class="py-lineno"> 7</tt>  <tt class="py-line"><tt class="py-comment"># to use, copy, modify, merge, publish, distribute, sublicense, and/or sell</tt> </tt>
+<a name="L8"></a><tt class="py-lineno"> 8</tt>  <tt class="py-line"><tt class="py-comment"># copies of the Software, and to permit persons to whom the Software is</tt> </tt>
+<a name="L9"></a><tt class="py-lineno"> 9</tt>  <tt class="py-line"><tt class="py-comment"># furnished to do so, subject to the following conditions:</tt> </tt>
+<a name="L10"></a><tt class="py-lineno">10</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L11"></a><tt class="py-lineno">11</tt>  <tt class="py-line"><tt class="py-comment"># The above copyright notice and this permission notice shall be included in all</tt> </tt>
+<a name="L12"></a><tt class="py-lineno">12</tt>  <tt class="py-line"><tt class="py-comment"># copies or substantial portions of the Software.</tt> </tt>
+<a name="L13"></a><tt class="py-lineno">13</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L14"></a><tt class="py-lineno">14</tt>  <tt class="py-line"><tt class="py-comment"># THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</tt> </tt>
+<a name="L15"></a><tt class="py-lineno">15</tt>  <tt class="py-line"><tt class="py-comment"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</tt> </tt>
+<a name="L16"></a><tt class="py-lineno">16</tt>  <tt class="py-line"><tt class="py-comment"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</tt> </tt>
+<a name="L17"></a><tt class="py-lineno">17</tt>  <tt class="py-line"><tt class="py-comment"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</tt> </tt>
+<a name="L18"></a><tt class="py-lineno">18</tt>  <tt class="py-line"><tt class="py-comment"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,</tt> </tt>
+<a name="L19"></a><tt class="py-lineno">19</tt>  <tt class="py-line"><tt class="py-comment"># OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</tt> </tt>
+<a name="L20"></a><tt class="py-lineno">20</tt>  <tt class="py-line"><tt class="py-comment"># SOFTWARE.</tt> </tt>
+<a name="L21"></a><tt class="py-lineno">21</tt>  <tt class="py-line"> </tt>
+<a name="L22"></a><tt class="py-lineno">22</tt>  <tt class="py-line"><tt class="py-docstring">'''</tt> </tt>
+<a name="L23"></a><tt class="py-lineno">23</tt>  <tt class="py-line"><tt class="py-docstring">Base classes for all Actuator provisioners.</tt> </tt>
+<a name="L24"></a><tt class="py-lineno">24</tt>  <tt class="py-line"><tt class="py-docstring">'''</tt> </tt>
+<a name="L25"></a><tt class="py-lineno">25</tt>  <tt class="py-line"><tt class="py-keyword">from</tt> <tt id="link-0" class="py-name" targets="Package actuator=actuator-module.html"><a title="actuator" class="py-name" href="#" onclick="return doclink('link-0', 'actuator', 'link-0');">actuator</a></tt><tt class="py-op">.</tt><tt id="link-1" class="py-name" targets="Module actuator.infra=actuator.infra-module.html"><a title="actuator.infra" class="py-name" href="#" onclick="return doclink('link-1', 'infra', 'link-1');">infra</a></tt> <tt class="py-keyword">import</tt> <tt id="link-2" class="py-name" targets="Class actuator.infra.InfraModel=actuator.infra.InfraModel-class.html"><a title="actuator.infra.InfraModel" class="py-name" href="#" onclick="return doclink('link-2', 'InfraModel', 'link-2');">InfraModel</a></tt> </tt>
+<a name="L26"></a><tt class="py-lineno">26</tt>  <tt class="py-line"> </tt>
+<a name="L27"></a><tt class="py-lineno">27</tt>  <tt class="py-line"> </tt>
+<a name="ProvisionerException"></a><div id="ProvisionerException-def"><a name="L28"></a><tt class="py-lineno">28</tt> <a class="py-toggle" href="#" id="ProvisionerException-toggle" onclick="return toggle('ProvisionerException');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.provisioners.core.ProvisionerException-class.html">ProvisionerException</a><tt class="py-op">(</tt><tt class="py-base-class">Exception</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ProvisionerException-collapsed" style="display:none;" pad="++" indent="++++"></div><div id="ProvisionerException-expanded"><a name="ProvisionerException.__init__"></a><div id="ProvisionerException.__init__-def"><a name="L29"></a><tt class="py-lineno">29</tt> <a class="py-toggle" href="#" id="ProvisionerException.__init__-toggle" onclick="return toggle('ProvisionerException.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.ProvisionerException-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">msg</tt><tt class="py-op">,</tt> <tt class="py-param">record</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ProvisionerException.__init__-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="ProvisionerException.__init__-expanded"><a name="L30"></a><tt class="py-lineno">30</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-3" class="py-name" targets="Class actuator.provisioners.core.ProvisionerException=actuator.provisioners.core.ProvisionerException-class.html"><a title="actuator.provisioners.core.ProvisionerException" class="py-name" href="#" onclick="return doclink('link-3', 'ProvisionerException', 'link-3');">ProvisionerException</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-4" class="py-name" targets="Method actuator.ActuatorOrchestration.__init__()=actuator.ActuatorOrchestration-class.html#__init__,Method actuator.config.ConfigClassTask.__init__()=actuator.config.ConfigClassTask-class.html#__init__,Method actuator.config.ConfigModel.__init__()=actuator.config.ConfigModel-class.html#__init__,Method actuator.config.MultiTask.__init__()=actuator.config.MultiTask-class.html#__init__,Method actuator.config.NullTask.__init__()=actuator.config.NullTask-class.html#__init__,Method actuator.config.TaskGroup.__init__()=actuator.config.TaskGroup-class.html#__init__,Method actuator.config._ConfigTask.__init__()=actuator.config._ConfigTask-class.html#__init__,Method actuator.config._Dependency.__init__()=actuator.config._Dependency-class.html#__init__,Method actuator.config_tasks.CommandTask.__init__()=actuator.config_tasks.CommandTask-class.html#__init__,Method actuator.config_tasks.CopyFileTask.__init__()=actuator.config_tasks.CopyFileTask-class.html#__init__,Method actuator.config_tasks.ProcessCopyFileTask.__init__()=actuator.config_tasks.ProcessCopyFileTask-class.html#__init__,Method actuator.config_tasks.ScriptTask.__init__()=actuator.config_tasks.ScriptTask-class.html#__init__,Method actuator.exec_agents.core.ConfigRecord.__init__()=actuator.exec_agents.core.ConfigRecord-class.html#__init__,Method actuator.exec_agents.core.ExecutionAgent.__init__()=actuator.exec_agents.core.ExecutionAgent-class.html#__init__,Method actuator.exec_agents.core.ExecutionException.__init__()=actuator.exec_agents.core.ExecutionException-class.html#__init__,Method actuator.infra.InfraModel.__init__()=actuator.infra.InfraModel-class.html#__init__,Method actuator.infra.StaticServer.__init__()=actuator.infra.StaticServer-class.html#__init__,Method actuator.modeling.AbstractModelReference.__init__()=actuator.modeling.AbstractModelReference-class.html#__init__,Method actuator.modeling.AbstractModelingEntity.__init__()=actuator.modeling.AbstractModelingEntity-class.html#__init__,Method actuator.modeling.CallContext.__init__()=actuator.modeling.CallContext-class.html#__init__,Method actuator.modeling.ComponentGroup.__init__()=actuator.modeling.ComponentGroup-class.html#__init__,Method actuator.modeling.ContextExpr.__init__()=actuator.modeling.ContextExpr-class.html#__init__,Method actuator.modeling.KeyItem.__init__()=actuator.modeling.KeyItem-class.html#__init__,Method actuator.modeling.MultiComponent.__init__()=actuator.modeling.MultiComponent-class.html#__init__,Method actuator.modeling.RefSelTest.__init__()=actuator.modeling.RefSelTest-class.html#__init__,Method actuator.modeling.RefSelectBuilder.__init__()=actuator.modeling.RefSelectBuilder-class.html#__init__,Method actuator.modeling.RefSelectUnion.__init__()=actuator.modeling.RefSelectUnion-class.html#__init__,Method actuator.modeling.SelectElement.__init__()=actuator.modeling.SelectElement-class.html#__init__,Method actuator.modeling._Nexus.__init__()=actuator.modeling._Nexus-class.html#__init__,Method actuator.modeling._NexusMember.__init__()=actuator.modeling._NexusMember-class.html#__init__,Method actuator.namespace.NamespaceModel.__init__()=actuator.namespace.NamespaceModel-class.html#__init__,Method actuator.namespace.Role.__init__()=actuator.namespace.Role-class.html#__init__,Method actuator.namespace.Var.__init__()=actuator.namespace.Var-class.html#__init__,Method actuator.namespace.VarFuture.__init__()=actuator.namespace.VarFuture-class.html#__init__,Method actuator.namespace.VariableContainer.__init__()=actuator.namespace.VariableContainer-class.html#__init__,Method actuator.namespace._ComputableValue.__init__()=actuator.namespace._ComputableValue-class.html#__init__,Method actuator.provisioners.core.BaseProvisioningRecord.__init__()=actuator.provisioners.core.BaseProvisioningRecord-class.html#__init__,Method actuator.provisioners.core.ProvisionerException.__init__()=actuator.provisioners.core.ProvisionerException-class.html#__init__,Method actuator.provisioners.example_resources.Database.__init__()=actuator.provisioners.example_resources.Database-class.html#__init__,Method actuator.provisioners.example_resources.Queue.__init__()=actuator.provisioners.example_resources.Queue-class.html#__init__,Method actuator.provisioners.example_resources.Server.__init__()=actuator.provisioners.example_resources.Server-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__()=actuator.provisioners.openstack.resource_tasks.OpenstackCredentials-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__()=actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__()=actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.RunContext.__init__()=actuator.provisioners.openstack.resource_tasks.RunContext-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__()=actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#__init__,Method actuator.provisioners.openstack.resources.FloatingIP.__init__()=actuator.provisioners.openstack.resources.FloatingIP-class.html#__init__,Method actuator.provisioners.openstack.resources.Network.__init__()=actuator.provisioners.openstack.resources.Network-class.html#__init__,Method actuator.provisioners.openstack.resources.NetworkInterface.__init__()=actuator.provisioners.openstack.resources.NetworkInterface-class.html#__init__,Method actuator.provisioners.openstack.resources.Router.__init__()=actuator.provisioners.openstack.resources.Router-class.html#__init__,Method actuator.provisioners.openstack.resources.RouterGateway.__init__()=actuator.provisioners.openstack.resources.RouterGateway-class.html#__init__,Method actuator.provisioners.openstack.resources.RouterInterface.__init__()=actuator.provisioners.openstack.resources.RouterInterface-class.html#__init__,Method actuator.provisioners.openstack.resources.SecGroup.__init__()=actuator.provisioners.openstack.resources.SecGroup-class.html#__init__,Method actuator.provisioners.openstack.resources.SecGroupRule.__init__()=actuator.provisioners.openstack.resources.SecGroupRule-class.html#__init__,Method actuator.provisioners.openstack.resources.Server.__init__()=actuator.provisioners.openstack.resources.Server-class.html#__init__,Method actuator.provisioners.openstack.resources.Subnet.__init__()=actuator.provisioners.openstack.resources.Subnet-class.html#__init__,Method actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__()=actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource-class.html#__init__,Method actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__()=actuator.provisioners.openstack.support.OpenstackProvisioningRecord-class.html#__init__,Method actuator.provisioners.openstack.support._OSMaps.__init__()=actuator.provisioners.openstack.support._OSMaps-class.html#__init__,Method actuator.utils.ClassModifier.__init__()=actuator.utils.ClassModifier-class.html#__init__"><a title="actuator.ActuatorOrchestration.__init__
+actuator.config.ConfigClassTask.__init__
+actuator.config.ConfigModel.__init__
+actuator.config.MultiTask.__init__
+actuator.config.NullTask.__init__
+actuator.config.TaskGroup.__init__
+actuator.config._ConfigTask.__init__
+actuator.config._Dependency.__init__
+actuator.config_tasks.CommandTask.__init__
+actuator.config_tasks.CopyFileTask.__init__
+actuator.config_tasks.ProcessCopyFileTask.__init__
+actuator.config_tasks.ScriptTask.__init__
+actuator.exec_agents.core.ConfigRecord.__init__
+actuator.exec_agents.core.ExecutionAgent.__init__
+actuator.exec_agents.core.ExecutionException.__init__
+actuator.infra.InfraModel.__init__
+actuator.infra.StaticServer.__init__
+actuator.modeling.AbstractModelReference.__init__
+actuator.modeling.AbstractModelingEntity.__init__
+actuator.modeling.CallContext.__init__
+actuator.modeling.ComponentGroup.__init__
+actuator.modeling.ContextExpr.__init__
+actuator.modeling.KeyItem.__init__
+actuator.modeling.MultiComponent.__init__
+actuator.modeling.RefSelTest.__init__
+actuator.modeling.RefSelectBuilder.__init__
+actuator.modeling.RefSelectUnion.__init__
+actuator.modeling.SelectElement.__init__
+actuator.modeling._Nexus.__init__
+actuator.modeling._NexusMember.__init__
+actuator.namespace.NamespaceModel.__init__
+actuator.namespace.Role.__init__
+actuator.namespace.Var.__init__
+actuator.namespace.VarFuture.__init__
+actuator.namespace.VariableContainer.__init__
+actuator.namespace._ComputableValue.__init__
+actuator.provisioners.core.BaseProvisioningRecord.__init__
+actuator.provisioners.core.ProvisionerException.__init__
+actuator.provisioners.example_resources.Database.__init__
+actuator.provisioners.example_resources.Queue.__init__
+actuator.provisioners.example_resources.Server.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__
+actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__
+actuator.provisioners.openstack.resource_tasks.RunContext.__init__
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__
+actuator.provisioners.openstack.resources.FloatingIP.__init__
+actuator.provisioners.openstack.resources.Network.__init__
+actuator.provisioners.openstack.resources.NetworkInterface.__init__
+actuator.provisioners.openstack.resources.Router.__init__
+actuator.provisioners.openstack.resources.RouterGateway.__init__
+actuator.provisioners.openstack.resources.RouterInterface.__init__
+actuator.provisioners.openstack.resources.SecGroup.__init__
+actuator.provisioners.openstack.resources.SecGroupRule.__init__
+actuator.provisioners.openstack.resources.Server.__init__
+actuator.provisioners.openstack.resources.Subnet.__init__
+actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__
+actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__
+actuator.provisioners.openstack.support._OSMaps.__init__
+actuator.utils.ClassModifier.__init__" class="py-name" href="#" onclick="return doclink('link-4', '__init__', 'link-4');">__init__</a></tt><tt class="py-op">(</tt><tt class="py-name">msg</tt><tt class="py-op">)</tt> </tt>
+<a name="L31"></a><tt class="py-lineno">31</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">record</tt> <tt class="py-op">=</tt> <tt class="py-name">record</tt> </tt>
+</div></div><a name="L32"></a><tt class="py-lineno">32</tt>  <tt class="py-line"> </tt>
+<a name="L33"></a><tt class="py-lineno">33</tt>  <tt class="py-line"> </tt>
+<a name="BaseProvisioner"></a><div id="BaseProvisioner-def"><a name="L34"></a><tt class="py-lineno">34</tt> <a class="py-toggle" href="#" id="BaseProvisioner-toggle" onclick="return toggle('BaseProvisioner');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioner-class.html">BaseProvisioner</a><tt class="py-op">(</tt><tt class="py-base-class">object</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioner-collapsed" style="display:none;" pad="++" indent="++++"></div><div id="BaseProvisioner-expanded"><a name="L35"></a><tt class="py-lineno">35</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L36"></a><tt class="py-lineno">36</tt>  <tt class="py-line"><tt class="py-docstring">    Base class for all provisioners.</tt> </tt>
+<a name="L37"></a><tt class="py-lineno">37</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="BaseProvisioner.provision_infra_model"></a><div id="BaseProvisioner.provision_infra_model-def"><a name="L38"></a><tt class="py-lineno">38</tt> <a class="py-toggle" href="#" id="BaseProvisioner.provision_infra_model-toggle" onclick="return toggle('BaseProvisioner.provision_infra_model');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioner-class.html#provision_infra_model">provision_infra_model</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">inframodel_instance</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioner.provision_infra_model-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="BaseProvisioner.provision_infra_model-expanded"><a name="L39"></a><tt class="py-lineno">39</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L40"></a><tt class="py-lineno">40</tt>  <tt class="py-line"><tt class="py-docstring">        Instructs the provisioner to do the work to provision the supplied</tt> </tt>
+<a name="L41"></a><tt class="py-lineno">41</tt>  <tt class="py-line"><tt class="py-docstring">        infra model</tt> </tt>
+<a name="L42"></a><tt class="py-lineno">42</tt>  <tt class="py-line"><tt class="py-docstring">        </tt> </tt>
+<a name="L43"></a><tt class="py-lineno">43</tt>  <tt class="py-line"><tt class="py-docstring">        @param inframodel_instance: An instance of a derived class of InfraModel</tt> </tt>
+<a name="L44"></a><tt class="py-lineno">44</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L45"></a><tt class="py-lineno">45</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-keyword">not</tt> <tt class="py-name">isinstance</tt><tt class="py-op">(</tt><tt class="py-name">inframodel_instance</tt><tt class="py-op">,</tt> <tt id="link-5" class="py-name"><a title="actuator.infra.InfraModel" class="py-name" href="#" onclick="return doclink('link-5', 'InfraModel', 'link-2');">InfraModel</a></tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L46"></a><tt class="py-lineno">46</tt>  <tt class="py-line">            <tt class="py-keyword">raise</tt> <tt id="link-6" class="py-name"><a title="actuator.provisioners.core.ProvisionerException" class="py-name" href="#" onclick="return doclink('link-6', 'ProvisionerException', 'link-3');">ProvisionerException</a></tt><tt class="py-op">(</tt><tt class="py-string">"Provisioner asked to provision something not an InfraModel"</tt><tt class="py-op">)</tt> </tt>
+<a name="L47"></a><tt class="py-lineno">47</tt>  <tt class="py-line">        <tt class="py-name">_</tt> <tt class="py-op">=</tt> <tt class="py-name">inframodel_instance</tt><tt class="py-op">.</tt><tt id="link-7" class="py-name" targets="Method actuator.modeling._ComputeModelComponents.refs_for_components()=actuator.modeling._ComputeModelComponents-class.html#refs_for_components"><a title="actuator.modeling._ComputeModelComponents.refs_for_components" class="py-name" href="#" onclick="return doclink('link-7', 'refs_for_components', 'link-7');">refs_for_components</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L48"></a><tt class="py-lineno">48</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-8" class="py-name" targets="Method actuator.provisioners.core.BaseProvisioner._provision()=actuator.provisioners.core.BaseProvisioner-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner._provision()=actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionFloatingIPTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionFloatingIPTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionNetworkTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionNetworkTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionRouterGatewayTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionRouterGatewayTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionRouterInterfaceTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionRouterInterfaceTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionRouterTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionRouterTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupRuleTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupRuleTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionServerTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionServerTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask._provision()=actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask-class.html#_provision,Method actuator.provisioners.openstack.resource_tasks._ProvisioningTask._provision()=actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#_provision"><a title="actuator.provisioners.core.BaseProvisioner._provision
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionFloatingIPTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionNetworkTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionRouterGatewayTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionRouterInterfaceTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionRouterTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupRuleTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionSecGroupTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionServerTask._provision
+actuator.provisioners.openstack.resource_tasks.ProvisionSubnetTask._provision
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask._provision" class="py-name" href="#" onclick="return doclink('link-8', '_provision', 'link-8');">_provision</a></tt><tt class="py-op">(</tt><tt class="py-name">inframodel_instance</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L49"></a><tt class="py-lineno">49</tt>  <tt class="py-line">     </tt>
+<a name="BaseProvisioner._provision"></a><div id="BaseProvisioner._provision-def"><a name="L50"></a><tt class="py-lineno">50</tt> <a class="py-toggle" href="#" id="BaseProvisioner._provision-toggle" onclick="return toggle('BaseProvisioner._provision');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioner-class.html#_provision">_provision</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">inframodel_instance</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioner._provision-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="BaseProvisioner._provision-expanded"><a name="L51"></a><tt class="py-lineno">51</tt>  <tt class="py-line">        <tt class="py-keyword">raise</tt> <tt class="py-name">TypeError</tt><tt class="py-op">(</tt><tt class="py-string">"Derived class must implement _provision()"</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L52"></a><tt class="py-lineno">52</tt>  <tt class="py-line">     </tt>
+<a name="BaseProvisioner.deprovision_infra_from_record"></a><div id="BaseProvisioner.deprovision_infra_from_record-def"><a name="L53"></a><tt class="py-lineno">53</tt> <a class="py-toggle" href="#" id="BaseProvisioner.deprovision_infra_from_record-toggle" onclick="return toggle('BaseProvisioner.deprovision_infra_from_record');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioner-class.html#deprovision_infra_from_record">deprovision_infra_from_record</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">record</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioner.deprovision_infra_from_record-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="BaseProvisioner.deprovision_infra_from_record-expanded"><a name="L54"></a><tt class="py-lineno">54</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L55"></a><tt class="py-lineno">55</tt>  <tt class="py-line"><tt class="py-docstring">        Not implemented.</tt> </tt>
+<a name="L56"></a><tt class="py-lineno">56</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L57"></a><tt class="py-lineno">57</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-keyword">not</tt> <tt class="py-name">isinstance</tt><tt class="py-op">(</tt><tt class="py-name">record</tt><tt class="py-op">,</tt> <tt id="link-9" class="py-name" targets="Class actuator.provisioners.core.BaseProvisioningRecord=actuator.provisioners.core.BaseProvisioningRecord-class.html"><a title="actuator.provisioners.core.BaseProvisioningRecord" class="py-name" href="#" onclick="return doclink('link-9', 'BaseProvisioningRecord', 'link-9');">BaseProvisioningRecord</a></tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+<a name="L58"></a><tt class="py-lineno">58</tt>  <tt class="py-line">            <tt class="py-keyword">raise</tt> <tt id="link-10" class="py-name"><a title="actuator.provisioners.core.ProvisionerException" class="py-name" href="#" onclick="return doclink('link-10', 'ProvisionerException', 'link-3');">ProvisionerException</a></tt><tt class="py-op">(</tt><tt class="py-string">"Record must be a kind of BaseProvisioningRecord"</tt><tt class="py-op">)</tt> </tt>
+<a name="L59"></a><tt class="py-lineno">59</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-11" class="py-name" targets="Method actuator.provisioners.core.BaseProvisioner._deprovision()=actuator.provisioners.core.BaseProvisioner-class.html#_deprovision"><a title="actuator.provisioners.core.BaseProvisioner._deprovision" class="py-name" href="#" onclick="return doclink('link-11', '_deprovision', 'link-11');">_deprovision</a></tt><tt class="py-op">(</tt><tt class="py-name">record</tt><tt class="py-op">)</tt> </tt>
+</div><a name="L60"></a><tt class="py-lineno">60</tt>  <tt class="py-line">         </tt>
+<a name="BaseProvisioner._deprovision"></a><div id="BaseProvisioner._deprovision-def"><a name="L61"></a><tt class="py-lineno">61</tt> <a class="py-toggle" href="#" id="BaseProvisioner._deprovision-toggle" onclick="return toggle('BaseProvisioner._deprovision');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioner-class.html#_deprovision">_deprovision</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">record</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioner._deprovision-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="BaseProvisioner._deprovision-expanded"><a name="L62"></a><tt class="py-lineno">62</tt>  <tt class="py-line">        <tt class="py-keyword">raise</tt> <tt class="py-name">TypeError</tt><tt class="py-op">(</tt><tt class="py-string">"Derived class must implement _deprovision()"</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L63"></a><tt class="py-lineno">63</tt>  <tt class="py-line">     </tt>
+<a name="L64"></a><tt class="py-lineno">64</tt>  <tt class="py-line">     </tt>
+<a name="BaseProvisioningRecord"></a><div id="BaseProvisioningRecord-def"><a name="L65"></a><tt class="py-lineno">65</tt> <a class="py-toggle" href="#" id="BaseProvisioningRecord-toggle" onclick="return toggle('BaseProvisioningRecord');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioningRecord-class.html">BaseProvisioningRecord</a><tt class="py-op">(</tt><tt class="py-base-class">object</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioningRecord-collapsed" style="display:none;" pad="++" indent="++++"></div><div id="BaseProvisioningRecord-expanded"><a name="L66"></a><tt class="py-lineno">66</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L67"></a><tt class="py-lineno">67</tt>  <tt class="py-line"><tt class="py-docstring">    Captures the details of provisioning a single resource.</tt> </tt>
+<a name="L68"></a><tt class="py-lineno">68</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="BaseProvisioningRecord.__init__"></a><div id="BaseProvisioningRecord.__init__-def"><a name="L69"></a><tt class="py-lineno">69</tt> <a class="py-toggle" href="#" id="BaseProvisioningRecord.__init__-toggle" onclick="return toggle('BaseProvisioningRecord.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioningRecord-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">id</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioningRecord.__init__-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="BaseProvisioningRecord.__init__-expanded"><a name="L70"></a><tt class="py-lineno">70</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">id</tt> <tt class="py-op">=</tt> <tt class="py-name">id</tt> </tt>
+</div><a name="L71"></a><tt class="py-lineno">71</tt>  <tt class="py-line">         </tt>
+<a name="BaseProvisioningRecord.__getstate__"></a><div id="BaseProvisioningRecord.__getstate__-def"><a name="L72"></a><tt class="py-lineno">72</tt> <a class="py-toggle" href="#" id="BaseProvisioningRecord.__getstate__-toggle" onclick="return toggle('BaseProvisioningRecord.__getstate__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioningRecord-class.html#__getstate__">__getstate__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioningRecord.__getstate__-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="BaseProvisioningRecord.__getstate__-expanded"><a name="L73"></a><tt class="py-lineno">73</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-op">{</tt><tt class="py-string">"id"</tt><tt class="py-op">:</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">id</tt><tt class="py-op">}</tt> </tt>
+</div><a name="L74"></a><tt class="py-lineno">74</tt>  <tt class="py-line">     </tt>
+<a name="BaseProvisioningRecord.__setstate__"></a><div id="BaseProvisioningRecord.__setstate__-def"><a name="L75"></a><tt class="py-lineno">75</tt> <a class="py-toggle" href="#" id="BaseProvisioningRecord.__setstate__-toggle" onclick="return toggle('BaseProvisioningRecord.__setstate__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.provisioners.core.BaseProvisioningRecord-class.html#__setstate__">__setstate__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">state</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="BaseProvisioningRecord.__setstate__-collapsed" style="display:none;" pad="++" indent="++++++++"></div><div id="BaseProvisioningRecord.__setstate__-expanded"><a name="L76"></a><tt class="py-lineno">76</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">id</tt> <tt class="py-op">=</tt> <tt class="py-name">state</tt><tt class="py-op">[</tt><tt class="py-string">"id"</tt><tt class="py-op">]</tt> </tt>
+<a name="L77"></a><tt class="py-lineno">77</tt>  <tt class="py-line">        <tt class="py-keyword">del</tt> <tt class="py-name">state</tt><tt class="py-op">[</tt><tt class="py-string">"id"</tt><tt class="py-op">]</tt> </tt>
+</div></div><a name="L78"></a><tt class="py-lineno">78</tt>  <tt class="py-line"> </tt><script type="text/javascript">
+<!--
+expandto(location.href);
+// -->
+</script>
+</pre>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:54 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

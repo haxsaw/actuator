@@ -1,0 +1,17 @@
+
+packages used:
+python-novaclient
+python-neutronclient
+ipaddress
+networkx
+ansible
+subprocess32
+
+Testing support packages:
+fake-factory (Faker)
+nose
+coverage
+
+Doc:
+epydoc
+

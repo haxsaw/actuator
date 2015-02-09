@@ -17,14 +17,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from nose.util import src
-from actuator.exec_agents.core import ExecutionException
-
 '''
-Created on Oct 22, 2014
+Configuration tasks modeled after Ansible modules
 '''
 
 from actuator.config import _ConfigTask, ConfigException
+from actuator.exec_agents.core import ExecutionException
 
 class PingTask(_ConfigTask):
     """

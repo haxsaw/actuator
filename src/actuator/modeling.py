@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 '''
-Created on 3 Oct 2014
+Base Actuator modeling support
 '''
 import uuid
 import sys
@@ -127,13 +127,6 @@ class AbstractModelingEntity(object):
             unique or unmolested; container components may modify this name to
             suit its purposes, although they are to guarantee that the user supplied
             name will be present in any mangled version.
-        
-        @ivar name: publically available name attr for this entity
-        @ivar _id: public; internally generated unique id for this instance,
-            a L{uuid.uuid4}
-        @ivar fixed: public, read only. Indicates if the value of this entity
-            has had its final computation (all refs resolved, callable args
-            all called). Once fixed, callables won't be called again
         @keyword model_instance: used internally; provides the model this
             entity is a part of. Users don't have to specify this value, and
             generally can't anyway
@@ -143,9 +136,15 @@ class AbstractModelingEntity(object):
             kwargs.pop("model_instance")
         super(AbstractModelingEntity, self).__init__(*args, **kwargs)
         self.name = name
+        "@ivar: publically available name attr for this entity"
         self._id = uuid.uuid4()
+        """@ivar: public; internally generated unique id for this instance,
+            a uuid.uuid4"""
         self._model_instance = model
         self.fixed = False
+        """@ivar: public, read only. Indicates if the value of this entity
+            has had its final computation (all refs resolved, callable args
+            all called). Once fixed, callables won't be called again"""
         
     def _validate_args(self, referenceable):
         """
@@ -399,9 +398,9 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         
         @param name: string; the logical name to give the component
         @keyword {any keyword argument}: There are no fixed keyword arguments for
-            this class; all keyword arg keys will be turned into attributes on
-            the instance of this object. The value of each keyword arg must be
-            a derived class of L{AbstractModelingEntity}.
+        this class; all keyword arg keys will be turned into attributes on
+        the instance of this object. The value of each keyword arg must be
+        a derived class of L{AbstractModelingEntity}.
         @raise TypeError: Raised if a keyword argument isn't an instance of
             L{AbstractModelingEntity}
         """
@@ -602,8 +601,8 @@ class MultiComponentGroup(MultiComponent):
         the returned object (obj[key]).
         
         @param name: the logical name to give the grouping
-        @keyword {all arguments}: This will become the attributes of each
-            instance of the group that is created with a new key.
+        @keyword **kwargs: This will become the attributes of each
+        instance of the group that is created with a new key.
         """
         group = ComponentGroup(name, **kwargs)
         return MultiComponent(group)
@@ -702,14 +701,14 @@ class AbstractModelReference(object):
         to a more basic data item, such as a string. For instance, you may need
         to know the actual component that a reference to string attribute of
         that component is part of in order to properly compute dependencies. This
-        method returns that reference. For example, suppose you have:
+        method returns that reference. For example, suppose you have: ::
         
-        class Thing(ModelComponent):
-            def __init__(self, name):
-                self.field = 1
-                
-        t = Thing()
-        ref = t.field
+            class Thing(ModelComponent):
+                def __init__(self, name):
+                    self.field = 1
+                    
+            t = Thing()
+            ref = t.field
         
         To later find the L{ModelComponent} that ref is from, you can say:
         
@@ -807,7 +806,7 @@ class AbstractModelReference(object):
 class ModelReference(AbstractModelReference):
     """
     Instances of this class are generated whenever accesses are made to the
-    attributes of a model class. See the doc for L{AbstractModelReference) for
+    attributes of a model class. See the doc for L{AbstractModelReference} for
     the rest of the interface for this class.
     
     NOTE: these references are generated when accessing attributes on a model

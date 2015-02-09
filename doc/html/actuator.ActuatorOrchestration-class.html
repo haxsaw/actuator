@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>actuator.ActuatorOrchestration</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="actuator-module.html">Package&nbsp;actuator</a> ::
+        Class&nbsp;ActuatorOrchestration
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="actuator.ActuatorOrchestration-class.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS DESCRIPTION ==================== -->
+<h1 class="epydoc">Class ActuatorOrchestration</h1><p class="nomargin-top"><span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration">source&nbsp;code</a></span></p>
+<pre class="base-tree">
+object --+
+         |
+        <strong class="uidshort">ActuatorOrchestration</strong>
+</pre>
+
+<hr />
+<p>Processes Actuator models to stand up the system being model (initiate
+  a system).</p>
+  <p>This class provides the overall controls to process a set of Actuator 
+  models, along with a provisioner, to stand up an instance of they system 
+  they model.</p>
+  <p>When the standup is being processed, log messages are sent to stdout 
+  using the standard Python logging module. You can change where messages 
+  are sent by installing a different handler on the root logger. See the 
+  logging section of the Python manual for more info.</p>
+
+<!-- ==================== INSTANCE METHODS ==================== -->
+<a name="section-InstanceMethods"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Instance Methods</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-InstanceMethods"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.ActuatorOrchestration-class.html#__init__" class="summary-sig-name">__init__</a>(<span class="summary-sig-arg">self</span>,
+        <span class="summary-sig-arg">infra_model_inst</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">provisioner</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">namespace_model_inst</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">config_model_inst</span>=<span class="summary-sig-default">None</span>,
+        <span class="summary-sig-arg">log_level</span>=<span class="summary-sig-default">20</span>,
+        <span class="summary-sig-arg">no_delay</span>=<span class="summary-sig-default">False</span>,
+        <span class="summary-sig-arg">num_threads</span>=<span class="summary-sig-default">5</span>,
+        <span class="summary-sig-arg">post_prov_pause</span>=<span class="summary-sig-default">60</span>)</span><br />
+      Create an instance of the orchestrator to operate on the supplied 
+      models/provisioner</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.__init__">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.ActuatorOrchestration-class.html#is_running" class="summary-sig-name">is_running</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Predicate method to call to check if the initiation is still running.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.is_running">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.ActuatorOrchestration-class.html#is_complete" class="summary-sig-name">is_complete</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Predicate method to check if the run is complete with no error</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.is_complete">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.ActuatorOrchestration-class.html#get_errors" class="summary-sig-name">get_errors</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Returns the error details of any failed tasks during initiation.</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.get_errors">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="actuator.ActuatorOrchestration-class.html#initiate_system" class="summary-sig-name">initiate_system</a>(<span class="summary-sig-arg">self</span>)</span><br />
+      Stand up (initiate) the system from the models</td>
+          <td align="right" valign="top">
+            <span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.initiate_system">source&nbsp;code</a></span>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__delattr__</code>,
+      <code>__format__</code>,
+      <code>__getattribute__</code>,
+      <code>__hash__</code>,
+      <code>__new__</code>,
+      <code>__reduce__</code>,
+      <code>__reduce_ex__</code>,
+      <code>__repr__</code>,
+      <code>__setattr__</code>,
+      <code>__sizeof__</code>,
+      <code>__str__</code>,
+      <code>__subclasshook__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== CLASS VARIABLES ==================== -->
+<a name="section-ClassVariables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Class Variables</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-ClassVariables"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="NOT_STARTED"></a><span class="summary-name">NOT_STARTED</span> = <code title="0">0</code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="PERFORMING_PROVISION"></a><span class="summary-name">PERFORMING_PROVISION</span> = <code title="1">1</code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="PERFORMING_CONFIG"></a><span class="summary-name">PERFORMING_CONFIG</span> = <code title="2">2</code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="PERFORMING_EXEC"></a><span class="summary-name">PERFORMING_EXEC</span> = <code title="3">3</code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="COMPLETE"></a><span class="summary-name">COMPLETE</span> = <code title="4">4</code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="ABORT_PROVISION"></a><span class="summary-name">ABORT_PROVISION</span> = <code title="5">5</code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="ABORT_CONFIG"></a><span class="summary-name">ABORT_CONFIG</span> = <code title="6">6</code>
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="ABORT_EXEC"></a><span class="summary-name">ABORT_EXEC</span> = <code title="7">7</code>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PROPERTIES ==================== -->
+<a name="section-Properties"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Properties</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-Properties"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+  <tr>
+    <td colspan="2" class="summary">
+    <p class="indent-wrapped-lines"><b>Inherited from <code>object</code></b>:
+      <code>__class__</code>
+      </p>
+    </td>
+  </tr>
+</table>
+<!-- ==================== METHOD DETAILS ==================== -->
+<a name="section-MethodDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td colspan="2" class="table-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr valign="top">
+        <td align="left"><span class="table-header">Method Details</span></td>
+        <td align="right" valign="top"
+         ><span class="options">[<a href="#section-MethodDetails"
+         class="privatelink" onclick="toggle_private();"
+         >hide private</a>]</span></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+<a name="__init__"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">__init__</span>(<span class="sig-arg">self</span>,
+        <span class="sig-arg">infra_model_inst</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">provisioner</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">namespace_model_inst</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">config_model_inst</span>=<span class="sig-default">None</span>,
+        <span class="sig-arg">log_level</span>=<span class="sig-default">20</span>,
+        <span class="sig-arg">no_delay</span>=<span class="sig-default">False</span>,
+        <span class="sig-arg">num_threads</span>=<span class="sig-default">5</span>,
+        <span class="sig-arg">post_prov_pause</span>=<span class="sig-default">60</span>)</span>
+    <br /><em class="fname">(Constructor)</em>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.__init__">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Create an instance of the orchestrator to operate on the supplied 
+  models/provisioner</p>
+  <p>This method creates a new orchestrator, which is then ready to 
+  initiate the system described by the models provided to it. Some 
+  reasonableness checks are done on the arguments to ensure that there are 
+  no conflicting semantics being requested, otherwise the method simply 
+  returns an orchestrator ready to go.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>infra_model_instance</code></strong> - Optional; an instance of a subclass of <a 
+          href="actuator.infra.InfraModel-class.html" 
+          class="link">actuator.infra.InfraModel</a>. If absent, all host 
+          information must be contained as values for host_refs in the 
+          NamespaceModel that resolve to either an IP address or a 
+          resolvable host name.</li>
+        <li><strong class="pname"><code>provisioner</code></strong> - Optional; an  instance of a subclass of <a 
+          href="actuator.provisioners.core.BaseProvisioner-class.html" 
+          class="link">actuator.provisioners.core.BaseProvisioner</a>, such
+          as the Openstack provisioner. If absent and an infra model has 
+          been supplied, then all resources in the model must be 
+          StaticServers, or else the resource will not get provisioned.</li>
+        <li><strong class="pname"><code>namespace_model_inst</code></strong> - Optional; an instance of a subclass of <a 
+          href="actuator.namespace.NamespaceModel-class.html" 
+          class="link">actuator.namespace.NamespaceModel</a>. If absent, 
+          then only infra model processing will be possible (if one was 
+          supplied).</li>
+        <li><strong class="pname"><code>config_model_instance</code></strong> - Optional; an instance of a subclass of <a 
+          href="actuator.config.ConfigModel-class.html" 
+          class="link">actuator.config.ConfigModel</a>. If absent, no 
+          configuration will be carried out, but the namespace can be 
+          interrogated after orchestration to determine values from any 
+          provisioned infra</li>
+        <li><strong class="pname"><code>log_level</code></strong> - Optional; default is LOG_INFO. One of the symbolic log constants 
+          from the top level actuator package. These are LOG_CRIT, 
+          LOG_ERROR, LOG_WARN, LOG_INFO, and LOG_DEBUG. The default 
+          supplies progress on each provisioning and configuration task.</li>
+        <li><strong class="pname"><code>no_delay</code></strong> - Optional; boolean, default is False. Flags if a short, random 
+          delay of up to 2.5 seconds should be inserted prior to performing
+          a task. May be desirable in cases where many tasks may hit a 
+          single host at one time, which spreads out the load of 
+          establishing ssh connections, helping to avoid timeouts.</li>
+        <li><strong class="pname"><code>num_threads</code></strong> - Optional; int, default is 5. Each task, whether resource 
+          provisioning or configuration, is carried out in a separate 
+          thread. The more parallel tasks your model has the higher this 
+          number can be to have a positive impact on the overall task 
+          completion rate. There is no value in making this larger than the
+          largest number of tasks you may have running in parallel.</li>
+        <li><strong class="pname"><code>post_prov_pause</code></strong> - Optional: int, default is 60. The number of seconds to pause 
+          after provision is done before starting on configuration. The 
+          reason this is useful is because virtual/cloud systems may 
+          complete provisioning, but they may not have all route 
+          information propagated for newly provisioned hosts/floating ips 
+          right away. This pause gives virtual/cloud systems a chance to 
+          stabilize before starting on configuration tasks. If no 
+          provisioning was done (a static infra model or simply no 
+          infra/provisioner), then the pause is skipped.</li>
+    </ul></dd>
+    <dt>Returns:</dt>
+        <dd>initialized orchestrator instance</dd>
+    <dt>Raises:</dt>
+    <dd><ul class="nomargin-top">
+        <li><code><strong class='fraise'><a href="actuator.exec_agents.core.ExecutionException-class.html">ExecutionException</a></strong></code> - In the following circumstances this method will raise 
+        actuator.ExecutionException:
+        <ul>
+          <li>
+            The value supplied for infra_model_inst is not an instance of 
+            <a href="actuator.infra.InfraModel-class.html" 
+            class="link">actuator.infra.InfraModel</a>
+          </li>
+          <li>
+            The value supplied for provisioner is not an instance of the <a
+            href="actuator.provisioners.core.BaseProvisioner-class.html" 
+            class="link">actuator.provisioners.core.BaseProvisioner</a> 
+            base class
+          </li>
+          <li>
+            The value supplied for namespace_model_inst is not an instance 
+            of <a href="actuator.namespace.NamespaceModel-class.html" 
+            class="link">actuator.namespace.NamespaceModel</a>
+          </li>
+          <li>
+            The value supplied for config_model_inst is not an instance of 
+            <a href="actuator.config.ConfigModel-class.html" 
+            class="link">actuator.config.ConfigModel</a>
+          </li>
+        </ul></li>
+    </ul></dd>
+    <dt>Overrides:
+        object.__init__
+    </dt>
+  </dl>
+</td></tr></table>
+</div>
+<a name="is_running"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">is_running</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.is_running">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Predicate method to call to check if the initiation is still 
+  running.</p>
+  <dl class="fields">
+    <dt>Returns:</dt>
+        <dd>True is the initiation is still running, False otherwise</dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="is_complete"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">is_complete</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.is_complete">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Predicate method to check if the run is complete with no error</p>
+  <dl class="fields">
+    <dt>Returns:</dt>
+        <dd>True is the run completed successfully; False otherwise</dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="get_errors"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">get_errors</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.get_errors">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Returns the error details of any failed tasks during initiation.</p>
+  <dl class="fields">
+    <dt>Returns:</dt>
+        <dd>A list of 4-tuples: (t, et, ev, tb), where: t is the task that 
+          experienced the error et is the exception type ev is the 
+          exception value tb is the traceback from where the exception was 
+          raised</dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="initiate_system"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">initiate_system</span>(<span class="sig-arg">self</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    ><span class="codelink"><a href="actuator-pysrc.html#ActuatorOrchestration.initiate_system">source&nbsp;code</a></span>&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Stand up (initiate) the system from the models</p>
+  <p>Starts the process of system initiation. By default, logs progress 
+  messages to stdout. If errors are raised, then they will be logged with 
+  level CRITICAL.</p>
+  <dl class="fields">
+    <dt>Returns:</dt>
+        <dd>True if initiation was successful, False otherwise.</dd>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:51 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

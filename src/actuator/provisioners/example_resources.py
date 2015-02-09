@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 '''
-Created on 7 Sep 2014
+Example classes mainly used in testing.
 '''
 from actuator.infra import Provisionable
 from actuator.modeling import ContextExpr

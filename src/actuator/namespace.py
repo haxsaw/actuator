@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 '''
-Created on 7 Sep 2014
+Support for creating Actuator namespace models
 '''
 import re
 from actuator.utils import ClassModifier, process_modifiers, capture_mapping, get_mapper
@@ -152,7 +152,7 @@ class Var(_ModelRefSetAcquireable):
         """
         Define a new Var name-value pair.
         
-        @param param: string; the 'name' in the pair. Cannot contain replacement
+        @param name: string; the 'name' in the pair. Cannot contain replacement
             patterns; if it does, they won't be processed
         @param value: Can be:
             1. A plain string

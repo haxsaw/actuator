@@ -1,0 +1,863 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>actuator.config_tasks</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="actuator-module.html">Package&nbsp;actuator</a> ::
+        Module&nbsp;config_tasks
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+        <tr><td align="right"><span class="options">[<a href="javascript:void(0);" class="privatelink"
+    onclick="toggle_private();">hide&nbsp;private</a>]</span></td></tr>
+        <tr><td align="right"><span class="options"
+            >[<a href="frames.html" target="_top">frames</a
+            >]&nbsp;|&nbsp;<a href="actuator.config_tasks-pysrc.html"
+            target="_top">no&nbsp;frames</a>]</span></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<h1 class="epydoc">Source Code for <a href="actuator.config_tasks-module.html">Module actuator.config_tasks</a></h1>
+<pre class="py-src">
+<a name="L1"></a><tt class="py-lineno">  1</tt>  <tt class="py-line"><tt class="py-comment"># Copyright (c) 2014 Tom Carroll</tt> </tt>
+<a name="L2"></a><tt class="py-lineno">  2</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L3"></a><tt class="py-lineno">  3</tt>  <tt class="py-line"><tt class="py-comment"># Permission is hereby granted, free of charge, to any person obtaining a copy</tt> </tt>
+<a name="L4"></a><tt class="py-lineno">  4</tt>  <tt class="py-line"><tt class="py-comment"># of this software and associated documentation files (the "Software"), to deal</tt> </tt>
+<a name="L5"></a><tt class="py-lineno">  5</tt>  <tt class="py-line"><tt class="py-comment"># in the Software without restriction, including without limitation the rights</tt> </tt>
+<a name="L6"></a><tt class="py-lineno">  6</tt>  <tt class="py-line"><tt class="py-comment"># to use, copy, modify, merge, publish, distribute, sublicense, and/or sell</tt> </tt>
+<a name="L7"></a><tt class="py-lineno">  7</tt>  <tt class="py-line"><tt class="py-comment"># copies of the Software, and to permit persons to whom the Software is</tt> </tt>
+<a name="L8"></a><tt class="py-lineno">  8</tt>  <tt class="py-line"><tt class="py-comment"># furnished to do so, subject to the following conditions:</tt> </tt>
+<a name="L9"></a><tt class="py-lineno">  9</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L10"></a><tt class="py-lineno"> 10</tt>  <tt class="py-line"><tt class="py-comment"># The above copyright notice and this permission notice shall be included in all</tt> </tt>
+<a name="L11"></a><tt class="py-lineno"> 11</tt>  <tt class="py-line"><tt class="py-comment"># copies or substantial portions of the Software.</tt> </tt>
+<a name="L12"></a><tt class="py-lineno"> 12</tt>  <tt class="py-line"><tt class="py-comment"># </tt> </tt>
+<a name="L13"></a><tt class="py-lineno"> 13</tt>  <tt class="py-line"><tt class="py-comment"># THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR</tt> </tt>
+<a name="L14"></a><tt class="py-lineno"> 14</tt>  <tt class="py-line"><tt class="py-comment"># IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,</tt> </tt>
+<a name="L15"></a><tt class="py-lineno"> 15</tt>  <tt class="py-line"><tt class="py-comment"># FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE</tt> </tt>
+<a name="L16"></a><tt class="py-lineno"> 16</tt>  <tt class="py-line"><tt class="py-comment"># AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER</tt> </tt>
+<a name="L17"></a><tt class="py-lineno"> 17</tt>  <tt class="py-line"><tt class="py-comment"># LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,</tt> </tt>
+<a name="L18"></a><tt class="py-lineno"> 18</tt>  <tt class="py-line"><tt class="py-comment"># OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</tt> </tt>
+<a name="L19"></a><tt class="py-lineno"> 19</tt>  <tt class="py-line"><tt class="py-comment"># SOFTWARE.</tt> </tt>
+<a name="L20"></a><tt class="py-lineno"> 20</tt>  <tt class="py-line"><tt class="py-docstring">'''</tt> </tt>
+<a name="L21"></a><tt class="py-lineno"> 21</tt>  <tt class="py-line"><tt class="py-docstring">Configuration tasks modeled after Ansible modules</tt> </tt>
+<a name="L22"></a><tt class="py-lineno"> 22</tt>  <tt class="py-line"><tt class="py-docstring">'''</tt> </tt>
+<a name="L23"></a><tt class="py-lineno"> 23</tt>  <tt class="py-line"> </tt>
+<a name="L24"></a><tt class="py-lineno"> 24</tt>  <tt class="py-line"><tt class="py-keyword">from</tt> <tt id="link-0" class="py-name" targets="Package actuator=actuator-module.html"><a title="actuator" class="py-name" href="#" onclick="return doclink('link-0', 'actuator', 'link-0');">actuator</a></tt><tt class="py-op">.</tt><tt id="link-1" class="py-name" targets="Module actuator.config=actuator.config-module.html"><a title="actuator.config" class="py-name" href="#" onclick="return doclink('link-1', 'config', 'link-1');">config</a></tt> <tt class="py-keyword">import</tt> <tt id="link-2" class="py-name" targets="Class actuator.config._ConfigTask=actuator.config._ConfigTask-class.html"><a title="actuator.config._ConfigTask" class="py-name" href="#" onclick="return doclink('link-2', '_ConfigTask', 'link-2');">_ConfigTask</a></tt><tt class="py-op">,</tt> <tt id="link-3" class="py-name" targets="Class actuator.config.ConfigException=actuator.config.ConfigException-class.html"><a title="actuator.config.ConfigException" class="py-name" href="#" onclick="return doclink('link-3', 'ConfigException', 'link-3');">ConfigException</a></tt> </tt>
+<a name="L25"></a><tt class="py-lineno"> 25</tt>  <tt class="py-line"><tt class="py-keyword">from</tt> <tt id="link-4" class="py-name"><a title="actuator" class="py-name" href="#" onclick="return doclink('link-4', 'actuator', 'link-0');">actuator</a></tt><tt class="py-op">.</tt><tt id="link-5" class="py-name" targets="Package actuator.exec_agents=actuator.exec_agents-module.html"><a title="actuator.exec_agents" class="py-name" href="#" onclick="return doclink('link-5', 'exec_agents', 'link-5');">exec_agents</a></tt><tt class="py-op">.</tt><tt id="link-6" class="py-name" targets="Module actuator.exec_agents.core=actuator.exec_agents.core-module.html,Module actuator.provisioners.core=actuator.provisioners.core-module.html"><a title="actuator.exec_agents.core
+actuator.provisioners.core" class="py-name" href="#" onclick="return doclink('link-6', 'core', 'link-6');">core</a></tt> <tt class="py-keyword">import</tt> <tt id="link-7" class="py-name" targets="Class actuator.exec_agents.core.ExecutionException=actuator.exec_agents.core.ExecutionException-class.html"><a title="actuator.exec_agents.core.ExecutionException" class="py-name" href="#" onclick="return doclink('link-7', 'ExecutionException', 'link-7');">ExecutionException</a></tt> </tt>
+<a name="L26"></a><tt class="py-lineno"> 26</tt>  <tt class="py-line"> </tt>
+<a name="PingTask"></a><div id="PingTask-def"><a name="L27"></a><tt class="py-lineno"> 27</tt> <a class="py-toggle" href="#" id="PingTask-toggle" onclick="return toggle('PingTask');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.config_tasks.PingTask-class.html">PingTask</a><tt class="py-op">(</tt><tt class="py-base-class">_ConfigTask</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="PingTask-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="PingTask-expanded"><a name="L28"></a><tt class="py-lineno"> 28</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L29"></a><tt class="py-lineno"> 29</tt>  <tt class="py-line"><tt class="py-docstring">    Checks to see if a remote machine is alive by ssh'ing into it.</tt> </tt>
+<a name="L30"></a><tt class="py-lineno"> 30</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="L31"></a><tt class="py-lineno"> 31</tt>  <tt class="py-line">    <tt class="py-keyword">pass</tt> </tt>
+</div><a name="L32"></a><tt class="py-lineno"> 32</tt>  <tt class="py-line"> </tt>
+<a name="L33"></a><tt class="py-lineno"> 33</tt>  <tt class="py-line"> </tt>
+<a name="ScriptTask"></a><div id="ScriptTask-def"><a name="L34"></a><tt class="py-lineno"> 34</tt> <a class="py-toggle" href="#" id="ScriptTask-toggle" onclick="return toggle('ScriptTask');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.config_tasks.ScriptTask-class.html">ScriptTask</a><tt class="py-op">(</tt><tt class="py-base-class">_ConfigTask</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ScriptTask-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="ScriptTask-expanded"><a name="L35"></a><tt class="py-lineno"> 35</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L36"></a><tt class="py-lineno"> 36</tt>  <tt class="py-line"><tt class="py-docstring">    Transfers a script *as is* to the remote host and executes it. The script</tt> </tt>
+<a name="L37"></a><tt class="py-lineno"> 37</tt>  <tt class="py-line"><tt class="py-docstring">    is run in a shell environment. This task will process Var replacement </tt> </tt>
+<a name="L38"></a><tt class="py-lineno"> 38</tt>  <tt class="py-line"><tt class="py-docstring">    patterns out of the arguments, but does not touch the contents of the </tt> </tt>
+<a name="L39"></a><tt class="py-lineno"> 39</tt>  <tt class="py-line"><tt class="py-docstring">    script. </tt> </tt>
+<a name="L40"></a><tt class="py-lineno"> 40</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L41"></a><tt class="py-lineno"> 41</tt>  <tt class="py-line"><tt class="py-docstring">    See http://docs.ansible.com/script_module.html for full details.</tt> </tt>
+<a name="L42"></a><tt class="py-lineno"> 42</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="ScriptTask.__init__"></a><div id="ScriptTask.__init__-def"><a name="L43"></a><tt class="py-lineno"> 43</tt> <a class="py-toggle" href="#" id="ScriptTask.__init__-toggle" onclick="return toggle('ScriptTask.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.ScriptTask-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">name</tt><tt class="py-op">,</tt> <tt class="py-param">free_form</tt><tt class="py-op">,</tt> <tt class="py-param">creates</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">removes</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-param">kwargs</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ScriptTask.__init__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="ScriptTask.__init__-expanded"><a name="L44"></a><tt class="py-lineno"> 44</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L45"></a><tt class="py-lineno"> 45</tt>  <tt class="py-line"><tt class="py-docstring">        @param name: logical name for the task</tt> </tt>
+<a name="L46"></a><tt class="py-lineno"> 46</tt>  <tt class="py-line"><tt class="py-docstring">        @param free_form: A string with the path to the locally available</tt> </tt>
+<a name="L47"></a><tt class="py-lineno"> 47</tt>  <tt class="py-line"><tt class="py-docstring">            script followed by optional arguments to the script. This may</tt> </tt>
+<a name="L48"></a><tt class="py-lineno"> 48</tt>  <tt class="py-line"><tt class="py-docstring">            contain Var replacement patterns that will be processed through</tt> </tt>
+<a name="L49"></a><tt class="py-lineno"> 49</tt>  <tt class="py-line"><tt class="py-docstring">            the Vars for the task_role.</tt> </tt>
+<a name="L50"></a><tt class="py-lineno"> 50</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword creates: String; the name of a file on the remote system that</tt> </tt>
+<a name="L51"></a><tt class="py-lineno"> 51</tt>  <tt class="py-line"><tt class="py-docstring">            the script will create. If already present, the script will not</tt> </tt>
+<a name="L52"></a><tt class="py-lineno"> 52</tt>  <tt class="py-line"><tt class="py-docstring">            be run. If not supplied no test for a file to be created will be</tt> </tt>
+<a name="L53"></a><tt class="py-lineno"> 53</tt>  <tt class="py-line"><tt class="py-docstring">            done.</tt> </tt>
+<a name="L54"></a><tt class="py-lineno"> 54</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword removes: String; the name of a file on the remote system that</tt> </tt>
+<a name="L55"></a><tt class="py-lineno"> 55</tt>  <tt class="py-line"><tt class="py-docstring">            the script will remove. If it isn't there, then the script will</tt> </tt>
+<a name="L56"></a><tt class="py-lineno"> 56</tt>  <tt class="py-line"><tt class="py-docstring">            not be run. If not supplied then no removal test will be performed.</tt> </tt>
+<a name="L57"></a><tt class="py-lineno"> 57</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword **kwargs: the other available keyword arguments for</tt> </tt>
+<a name="L58"></a><tt class="py-lineno"> 58</tt>  <tt class="py-line"><tt class="py-docstring">            L{_ConfigTask}</tt> </tt>
+<a name="L59"></a><tt class="py-lineno"> 59</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L60"></a><tt class="py-lineno"> 60</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-8" class="py-name" targets="Class actuator.config_tasks.ScriptTask=actuator.config_tasks.ScriptTask-class.html"><a title="actuator.config_tasks.ScriptTask" class="py-name" href="#" onclick="return doclink('link-8', 'ScriptTask', 'link-8');">ScriptTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-9" class="py-name" targets="Method actuator.ActuatorOrchestration.__init__()=actuator.ActuatorOrchestration-class.html#__init__,Method actuator.config.ConfigClassTask.__init__()=actuator.config.ConfigClassTask-class.html#__init__,Method actuator.config.ConfigModel.__init__()=actuator.config.ConfigModel-class.html#__init__,Method actuator.config.MultiTask.__init__()=actuator.config.MultiTask-class.html#__init__,Method actuator.config.NullTask.__init__()=actuator.config.NullTask-class.html#__init__,Method actuator.config.TaskGroup.__init__()=actuator.config.TaskGroup-class.html#__init__,Method actuator.config._ConfigTask.__init__()=actuator.config._ConfigTask-class.html#__init__,Method actuator.config._Dependency.__init__()=actuator.config._Dependency-class.html#__init__,Method actuator.config_tasks.CommandTask.__init__()=actuator.config_tasks.CommandTask-class.html#__init__,Method actuator.config_tasks.CopyFileTask.__init__()=actuator.config_tasks.CopyFileTask-class.html#__init__,Method actuator.config_tasks.ProcessCopyFileTask.__init__()=actuator.config_tasks.ProcessCopyFileTask-class.html#__init__,Method actuator.config_tasks.ScriptTask.__init__()=actuator.config_tasks.ScriptTask-class.html#__init__,Method actuator.exec_agents.core.ConfigRecord.__init__()=actuator.exec_agents.core.ConfigRecord-class.html#__init__,Method actuator.exec_agents.core.ExecutionAgent.__init__()=actuator.exec_agents.core.ExecutionAgent-class.html#__init__,Method actuator.exec_agents.core.ExecutionException.__init__()=actuator.exec_agents.core.ExecutionException-class.html#__init__,Method actuator.infra.InfraModel.__init__()=actuator.infra.InfraModel-class.html#__init__,Method actuator.infra.StaticServer.__init__()=actuator.infra.StaticServer-class.html#__init__,Method actuator.modeling.AbstractModelReference.__init__()=actuator.modeling.AbstractModelReference-class.html#__init__,Method actuator.modeling.AbstractModelingEntity.__init__()=actuator.modeling.AbstractModelingEntity-class.html#__init__,Method actuator.modeling.CallContext.__init__()=actuator.modeling.CallContext-class.html#__init__,Method actuator.modeling.ComponentGroup.__init__()=actuator.modeling.ComponentGroup-class.html#__init__,Method actuator.modeling.ContextExpr.__init__()=actuator.modeling.ContextExpr-class.html#__init__,Method actuator.modeling.KeyItem.__init__()=actuator.modeling.KeyItem-class.html#__init__,Method actuator.modeling.MultiComponent.__init__()=actuator.modeling.MultiComponent-class.html#__init__,Method actuator.modeling.RefSelTest.__init__()=actuator.modeling.RefSelTest-class.html#__init__,Method actuator.modeling.RefSelectBuilder.__init__()=actuator.modeling.RefSelectBuilder-class.html#__init__,Method actuator.modeling.RefSelectUnion.__init__()=actuator.modeling.RefSelectUnion-class.html#__init__,Method actuator.modeling.SelectElement.__init__()=actuator.modeling.SelectElement-class.html#__init__,Method actuator.modeling._Nexus.__init__()=actuator.modeling._Nexus-class.html#__init__,Method actuator.modeling._NexusMember.__init__()=actuator.modeling._NexusMember-class.html#__init__,Method actuator.namespace.NamespaceModel.__init__()=actuator.namespace.NamespaceModel-class.html#__init__,Method actuator.namespace.Role.__init__()=actuator.namespace.Role-class.html#__init__,Method actuator.namespace.Var.__init__()=actuator.namespace.Var-class.html#__init__,Method actuator.namespace.VarFuture.__init__()=actuator.namespace.VarFuture-class.html#__init__,Method actuator.namespace.VariableContainer.__init__()=actuator.namespace.VariableContainer-class.html#__init__,Method actuator.namespace._ComputableValue.__init__()=actuator.namespace._ComputableValue-class.html#__init__,Method actuator.provisioners.core.BaseProvisioningRecord.__init__()=actuator.provisioners.core.BaseProvisioningRecord-class.html#__init__,Method actuator.provisioners.core.ProvisionerException.__init__()=actuator.provisioners.core.ProvisionerException-class.html#__init__,Method actuator.provisioners.example_resources.Database.__init__()=actuator.provisioners.example_resources.Database-class.html#__init__,Method actuator.provisioners.example_resources.Queue.__init__()=actuator.provisioners.example_resources.Queue-class.html#__init__,Method actuator.provisioners.example_resources.Server.__init__()=actuator.provisioners.example_resources.Server-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__()=actuator.provisioners.openstack.resource_tasks.OpenstackCredentials-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__()=actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__()=actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks.RunContext.__init__()=actuator.provisioners.openstack.resource_tasks.RunContext-class.html#__init__,Method actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__()=actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#__init__,Method actuator.provisioners.openstack.resources.FloatingIP.__init__()=actuator.provisioners.openstack.resources.FloatingIP-class.html#__init__,Method actuator.provisioners.openstack.resources.Network.__init__()=actuator.provisioners.openstack.resources.Network-class.html#__init__,Method actuator.provisioners.openstack.resources.NetworkInterface.__init__()=actuator.provisioners.openstack.resources.NetworkInterface-class.html#__init__,Method actuator.provisioners.openstack.resources.Router.__init__()=actuator.provisioners.openstack.resources.Router-class.html#__init__,Method actuator.provisioners.openstack.resources.RouterGateway.__init__()=actuator.provisioners.openstack.resources.RouterGateway-class.html#__init__,Method actuator.provisioners.openstack.resources.RouterInterface.__init__()=actuator.provisioners.openstack.resources.RouterInterface-class.html#__init__,Method actuator.provisioners.openstack.resources.SecGroup.__init__()=actuator.provisioners.openstack.resources.SecGroup-class.html#__init__,Method actuator.provisioners.openstack.resources.SecGroupRule.__init__()=actuator.provisioners.openstack.resources.SecGroupRule-class.html#__init__,Method actuator.provisioners.openstack.resources.Server.__init__()=actuator.provisioners.openstack.resources.Server-class.html#__init__,Method actuator.provisioners.openstack.resources.Subnet.__init__()=actuator.provisioners.openstack.resources.Subnet-class.html#__init__,Method actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__()=actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource-class.html#__init__,Method actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__()=actuator.provisioners.openstack.support.OpenstackProvisioningRecord-class.html#__init__,Method actuator.provisioners.openstack.support._OSMaps.__init__()=actuator.provisioners.openstack.support._OSMaps-class.html#__init__,Method actuator.utils.ClassModifier.__init__()=actuator.utils.ClassModifier-class.html#__init__"><a title="actuator.ActuatorOrchestration.__init__
+actuator.config.ConfigClassTask.__init__
+actuator.config.ConfigModel.__init__
+actuator.config.MultiTask.__init__
+actuator.config.NullTask.__init__
+actuator.config.TaskGroup.__init__
+actuator.config._ConfigTask.__init__
+actuator.config._Dependency.__init__
+actuator.config_tasks.CommandTask.__init__
+actuator.config_tasks.CopyFileTask.__init__
+actuator.config_tasks.ProcessCopyFileTask.__init__
+actuator.config_tasks.ScriptTask.__init__
+actuator.exec_agents.core.ConfigRecord.__init__
+actuator.exec_agents.core.ExecutionAgent.__init__
+actuator.exec_agents.core.ExecutionException.__init__
+actuator.infra.InfraModel.__init__
+actuator.infra.StaticServer.__init__
+actuator.modeling.AbstractModelReference.__init__
+actuator.modeling.AbstractModelingEntity.__init__
+actuator.modeling.CallContext.__init__
+actuator.modeling.ComponentGroup.__init__
+actuator.modeling.ContextExpr.__init__
+actuator.modeling.KeyItem.__init__
+actuator.modeling.MultiComponent.__init__
+actuator.modeling.RefSelTest.__init__
+actuator.modeling.RefSelectBuilder.__init__
+actuator.modeling.RefSelectUnion.__init__
+actuator.modeling.SelectElement.__init__
+actuator.modeling._Nexus.__init__
+actuator.modeling._NexusMember.__init__
+actuator.namespace.NamespaceModel.__init__
+actuator.namespace.Role.__init__
+actuator.namespace.Var.__init__
+actuator.namespace.VarFuture.__init__
+actuator.namespace.VariableContainer.__init__
+actuator.namespace._ComputableValue.__init__
+actuator.provisioners.core.BaseProvisioningRecord.__init__
+actuator.provisioners.core.ProvisionerException.__init__
+actuator.provisioners.example_resources.Database.__init__
+actuator.provisioners.example_resources.Queue.__init__
+actuator.provisioners.example_resources.Server.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__
+actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__
+actuator.provisioners.openstack.resource_tasks.RunContext.__init__
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__
+actuator.provisioners.openstack.resources.FloatingIP.__init__
+actuator.provisioners.openstack.resources.Network.__init__
+actuator.provisioners.openstack.resources.NetworkInterface.__init__
+actuator.provisioners.openstack.resources.Router.__init__
+actuator.provisioners.openstack.resources.RouterGateway.__init__
+actuator.provisioners.openstack.resources.RouterInterface.__init__
+actuator.provisioners.openstack.resources.SecGroup.__init__
+actuator.provisioners.openstack.resources.SecGroupRule.__init__
+actuator.provisioners.openstack.resources.Server.__init__
+actuator.provisioners.openstack.resources.Subnet.__init__
+actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__
+actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__
+actuator.provisioners.openstack.support._OSMaps.__init__
+actuator.utils.ClassModifier.__init__" class="py-name" href="#" onclick="return doclink('link-9', '__init__', 'link-9');">__init__</a></tt><tt class="py-op">(</tt><tt class="py-name">name</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-name">kwargs</tt><tt class="py-op">)</tt> </tt>
+<a name="L61"></a><tt class="py-lineno"> 61</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">free_form</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L62"></a><tt class="py-lineno"> 62</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_free_form</tt> <tt class="py-op">=</tt> <tt class="py-name">free_form</tt> </tt>
+<a name="L63"></a><tt class="py-lineno"> 63</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">creates</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L64"></a><tt class="py-lineno"> 64</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_creates</tt> <tt class="py-op">=</tt> <tt class="py-name">creates</tt> </tt>
+<a name="L65"></a><tt class="py-lineno"> 65</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">removes</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L66"></a><tt class="py-lineno"> 66</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_removes</tt> <tt class="py-op">=</tt> <tt class="py-name">removes</tt> </tt>
+</div><a name="L67"></a><tt class="py-lineno"> 67</tt>  <tt class="py-line">         </tt>
+<a name="ScriptTask.get_init_args"></a><div id="ScriptTask.get_init_args-def"><a name="L68"></a><tt class="py-lineno"> 68</tt> <a class="py-toggle" href="#" id="ScriptTask.get_init_args-toggle" onclick="return toggle('ScriptTask.get_init_args');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.ScriptTask-class.html#get_init_args">get_init_args</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ScriptTask.get_init_args-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="ScriptTask.get_init_args-expanded"><a name="L69"></a><tt class="py-lineno"> 69</tt>  <tt class="py-line">        <tt class="py-name">__doc__</tt> <tt class="py-op">=</tt> <tt id="link-10" class="py-name"><a title="actuator.config._ConfigTask" class="py-name" href="#" onclick="return doclink('link-10', '_ConfigTask', 'link-2');">_ConfigTask</a></tt><tt class="py-op">.</tt><tt id="link-11" class="py-name" targets="Method actuator.config.ConfigClassTask.get_init_args()=actuator.config.ConfigClassTask-class.html#get_init_args,Method actuator.config.MultiTask.get_init_args()=actuator.config.MultiTask-class.html#get_init_args,Method actuator.config._ConfigTask.get_init_args()=actuator.config._ConfigTask-class.html#get_init_args,Method actuator.config_tasks.CommandTask.get_init_args()=actuator.config_tasks.CommandTask-class.html#get_init_args,Method actuator.config_tasks.CopyFileTask.get_init_args()=actuator.config_tasks.CopyFileTask-class.html#get_init_args,Method actuator.config_tasks.ScriptTask.get_init_args()=actuator.config_tasks.ScriptTask-class.html#get_init_args,Method actuator.infra.StaticServer.get_init_args()=actuator.infra.StaticServer-class.html#get_init_args,Method actuator.modeling.AbstractModelingEntity.get_init_args()=actuator.modeling.AbstractModelingEntity-class.html#get_init_args,Method actuator.modeling.ComponentGroup.get_init_args()=actuator.modeling.ComponentGroup-class.html#get_init_args,Method actuator.modeling.MultiComponent.get_init_args()=actuator.modeling.MultiComponent-class.html#get_init_args,Method actuator.namespace.Role.get_init_args()=actuator.namespace.Role-class.html#get_init_args,Method actuator.provisioners.example_resources.Database.get_init_args()=actuator.provisioners.example_resources.Database-class.html#get_init_args,Method actuator.provisioners.example_resources.Queue.get_init_args()=actuator.provisioners.example_resources.Queue-class.html#get_init_args,Method actuator.provisioners.example_resources.Server.get_init_args()=actuator.provisioners.example_resources.Server-class.html#get_init_args,Method actuator.provisioners.openstack.resource_tasks._ProvisioningTask.get_init_args()=actuator.provisioners.openstack.resource_tasks._ProvisioningTask-class.html#get_init_args,Method actuator.provisioners.openstack.resources.FloatingIP.get_init_args()=actuator.provisioners.openstack.resources.FloatingIP-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Network.get_init_args()=actuator.provisioners.openstack.resources.Network-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Router.get_init_args()=actuator.provisioners.openstack.resources.Router-class.html#get_init_args,Method actuator.provisioners.openstack.resources.RouterGateway.get_init_args()=actuator.provisioners.openstack.resources.RouterGateway-class.html#get_init_args,Method actuator.provisioners.openstack.resources.RouterInterface.get_init_args()=actuator.provisioners.openstack.resources.RouterInterface-class.html#get_init_args,Method actuator.provisioners.openstack.resources.SecGroup.get_init_args()=actuator.provisioners.openstack.resources.SecGroup-class.html#get_init_args,Method actuator.provisioners.openstack.resources.SecGroupRule.get_init_args()=actuator.provisioners.openstack.resources.SecGroupRule-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Server.get_init_args()=actuator.provisioners.openstack.resources.Server-class.html#get_init_args,Method actuator.provisioners.openstack.resources.Subnet.get_init_args()=actuator.provisioners.openstack.resources.Subnet-class.html#get_init_args"><a title="actuator.config.ConfigClassTask.get_init_args
+actuator.config.MultiTask.get_init_args
+actuator.config._ConfigTask.get_init_args
+actuator.config_tasks.CommandTask.get_init_args
+actuator.config_tasks.CopyFileTask.get_init_args
+actuator.config_tasks.ScriptTask.get_init_args
+actuator.infra.StaticServer.get_init_args
+actuator.modeling.AbstractModelingEntity.get_init_args
+actuator.modeling.ComponentGroup.get_init_args
+actuator.modeling.MultiComponent.get_init_args
+actuator.namespace.Role.get_init_args
+actuator.provisioners.example_resources.Database.get_init_args
+actuator.provisioners.example_resources.Queue.get_init_args
+actuator.provisioners.example_resources.Server.get_init_args
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.get_init_args
+actuator.provisioners.openstack.resources.FloatingIP.get_init_args
+actuator.provisioners.openstack.resources.Network.get_init_args
+actuator.provisioners.openstack.resources.Router.get_init_args
+actuator.provisioners.openstack.resources.RouterGateway.get_init_args
+actuator.provisioners.openstack.resources.RouterInterface.get_init_args
+actuator.provisioners.openstack.resources.SecGroup.get_init_args
+actuator.provisioners.openstack.resources.SecGroupRule.get_init_args
+actuator.provisioners.openstack.resources.Server.get_init_args
+actuator.provisioners.openstack.resources.Subnet.get_init_args" class="py-name" href="#" onclick="return doclink('link-11', 'get_init_args', 'link-11');">get_init_args</a></tt><tt class="py-op">.</tt><tt class="py-name">__doc__</tt> </tt>
+<a name="L70"></a><tt class="py-lineno"> 70</tt>  <tt class="py-line">        <tt class="py-name">args</tt><tt class="py-op">,</tt> <tt class="py-name">kwargs</tt> <tt class="py-op">=</tt> <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-12" class="py-name"><a title="actuator.config_tasks.ScriptTask" class="py-name" href="#" onclick="return doclink('link-12', 'ScriptTask', 'link-8');">ScriptTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-13" class="py-name"><a title="actuator.config.ConfigClassTask.get_init_args
+actuator.config.MultiTask.get_init_args
+actuator.config._ConfigTask.get_init_args
+actuator.config_tasks.CommandTask.get_init_args
+actuator.config_tasks.CopyFileTask.get_init_args
+actuator.config_tasks.ScriptTask.get_init_args
+actuator.infra.StaticServer.get_init_args
+actuator.modeling.AbstractModelingEntity.get_init_args
+actuator.modeling.ComponentGroup.get_init_args
+actuator.modeling.MultiComponent.get_init_args
+actuator.namespace.Role.get_init_args
+actuator.provisioners.example_resources.Database.get_init_args
+actuator.provisioners.example_resources.Queue.get_init_args
+actuator.provisioners.example_resources.Server.get_init_args
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.get_init_args
+actuator.provisioners.openstack.resources.FloatingIP.get_init_args
+actuator.provisioners.openstack.resources.Network.get_init_args
+actuator.provisioners.openstack.resources.Router.get_init_args
+actuator.provisioners.openstack.resources.RouterGateway.get_init_args
+actuator.provisioners.openstack.resources.RouterInterface.get_init_args
+actuator.provisioners.openstack.resources.SecGroup.get_init_args
+actuator.provisioners.openstack.resources.SecGroupRule.get_init_args
+actuator.provisioners.openstack.resources.Server.get_init_args
+actuator.provisioners.openstack.resources.Subnet.get_init_args" class="py-name" href="#" onclick="return doclink('link-13', 'get_init_args', 'link-11');">get_init_args</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L71"></a><tt class="py-lineno"> 71</tt>  <tt class="py-line">        <tt class="py-name">args</tt> <tt class="py-op">=</tt> <tt class="py-name">args</tt> <tt class="py-op">+</tt> <tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_free_form</tt><tt class="py-op">,</tt><tt class="py-op">)</tt> </tt>
+<a name="L72"></a><tt class="py-lineno"> 72</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"creates"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_creates</tt> </tt>
+<a name="L73"></a><tt class="py-lineno"> 73</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"removes"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_removes</tt> </tt>
+<a name="L74"></a><tt class="py-lineno"> 74</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">args</tt><tt class="py-op">,</tt> <tt class="py-name">kwargs</tt> </tt>
+</div><a name="L75"></a><tt class="py-lineno"> 75</tt>  <tt class="py-line"> </tt>
+<a name="ScriptTask._fix_arguments"></a><div id="ScriptTask._fix_arguments-def"><a name="L76"></a><tt class="py-lineno"> 76</tt> <a class="py-toggle" href="#" id="ScriptTask._fix_arguments-toggle" onclick="return toggle('ScriptTask._fix_arguments');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.ScriptTask-class.html#_fix_arguments">_fix_arguments</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ScriptTask._fix_arguments-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="ScriptTask._fix_arguments-expanded"><a name="L77"></a><tt class="py-lineno"> 77</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-14" class="py-name"><a title="actuator.config_tasks.ScriptTask" class="py-name" href="#" onclick="return doclink('link-14', 'ScriptTask', 'link-8');">ScriptTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-15" class="py-name" targets="Method actuator.config.ConfigClassTask._fix_arguments()=actuator.config.ConfigClassTask-class.html#_fix_arguments,Method actuator.config.MultiTask._fix_arguments()=actuator.config.MultiTask-class.html#_fix_arguments,Method actuator.config._ConfigTask._fix_arguments()=actuator.config._ConfigTask-class.html#_fix_arguments,Method actuator.config_tasks.CommandTask._fix_arguments()=actuator.config_tasks.CommandTask-class.html#_fix_arguments,Method actuator.config_tasks.CopyFileTask._fix_arguments()=actuator.config_tasks.CopyFileTask-class.html#_fix_arguments,Method actuator.config_tasks.ScriptTask._fix_arguments()=actuator.config_tasks.ScriptTask-class.html#_fix_arguments,Method actuator.infra.StaticServer._fix_arguments()=actuator.infra.StaticServer-class.html#_fix_arguments,Method actuator.modeling.AbstractModelingEntity._fix_arguments()=actuator.modeling.AbstractModelingEntity-class.html#_fix_arguments,Method actuator.modeling.ComponentGroup._fix_arguments()=actuator.modeling.ComponentGroup-class.html#_fix_arguments,Method actuator.modeling.MultiComponent._fix_arguments()=actuator.modeling.MultiComponent-class.html#_fix_arguments,Method actuator.namespace.Role._fix_arguments()=actuator.namespace.Role-class.html#_fix_arguments,Method actuator.provisioners.example_resources.ProvisionableWithFixer._fix_arguments()=actuator.provisioners.example_resources.ProvisionableWithFixer-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.FloatingIP._fix_arguments()=actuator.provisioners.openstack.resources.FloatingIP-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.Network._fix_arguments()=actuator.provisioners.openstack.resources.Network-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.Router._fix_arguments()=actuator.provisioners.openstack.resources.Router-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.RouterGateway._fix_arguments()=actuator.provisioners.openstack.resources.RouterGateway-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.RouterInterface._fix_arguments()=actuator.provisioners.openstack.resources.RouterInterface-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.SecGroup._fix_arguments()=actuator.provisioners.openstack.resources.SecGroup-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.SecGroupRule._fix_arguments()=actuator.provisioners.openstack.resources.SecGroupRule-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.Server._fix_arguments()=actuator.provisioners.openstack.resources.Server-class.html#_fix_arguments,Method actuator.provisioners.openstack.resources.Subnet._fix_arguments()=actuator.provisioners.openstack.resources.Subnet-class.html#_fix_arguments"><a title="actuator.config.ConfigClassTask._fix_arguments
+actuator.config.MultiTask._fix_arguments
+actuator.config._ConfigTask._fix_arguments
+actuator.config_tasks.CommandTask._fix_arguments
+actuator.config_tasks.CopyFileTask._fix_arguments
+actuator.config_tasks.ScriptTask._fix_arguments
+actuator.infra.StaticServer._fix_arguments
+actuator.modeling.AbstractModelingEntity._fix_arguments
+actuator.modeling.ComponentGroup._fix_arguments
+actuator.modeling.MultiComponent._fix_arguments
+actuator.namespace.Role._fix_arguments
+actuator.provisioners.example_resources.ProvisionableWithFixer._fix_arguments
+actuator.provisioners.openstack.resources.FloatingIP._fix_arguments
+actuator.provisioners.openstack.resources.Network._fix_arguments
+actuator.provisioners.openstack.resources.Router._fix_arguments
+actuator.provisioners.openstack.resources.RouterGateway._fix_arguments
+actuator.provisioners.openstack.resources.RouterInterface._fix_arguments
+actuator.provisioners.openstack.resources.SecGroup._fix_arguments
+actuator.provisioners.openstack.resources.SecGroupRule._fix_arguments
+actuator.provisioners.openstack.resources.Server._fix_arguments
+actuator.provisioners.openstack.resources.Subnet._fix_arguments" class="py-name" href="#" onclick="return doclink('link-15', '_fix_arguments', 'link-15');">_fix_arguments</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L78"></a><tt class="py-lineno"> 78</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">free_form</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-16" class="py-name" targets="Method actuator.config._ConfigTask._get_arg_value()=actuator.config._ConfigTask-class.html#_get_arg_value,Method actuator.modeling.AbstractModelingEntity._get_arg_value()=actuator.modeling.AbstractModelingEntity-class.html#_get_arg_value,Method actuator.namespace.Role._get_arg_value()=actuator.namespace.Role-class.html#_get_arg_value"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-16', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_free_form</tt><tt class="py-op">)</tt> </tt>
+<a name="L79"></a><tt class="py-lineno"> 79</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">creates</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-17" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-17', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_creates</tt><tt class="py-op">)</tt> </tt>
+<a name="L80"></a><tt class="py-lineno"> 80</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">removes</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-18" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-18', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_removes</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L81"></a><tt class="py-lineno"> 81</tt>  <tt class="py-line">         </tt>
+<a name="L82"></a><tt class="py-lineno"> 82</tt>  <tt class="py-line"> </tt>
+<a name="CommandTask"></a><div id="CommandTask-def"><a name="L83"></a><tt class="py-lineno"> 83</tt> <a class="py-toggle" href="#" id="CommandTask-toggle" onclick="return toggle('CommandTask');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.config_tasks.CommandTask-class.html">CommandTask</a><tt class="py-op">(</tt><tt class="py-base-class">ScriptTask</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CommandTask-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="CommandTask-expanded"><a name="L84"></a><tt class="py-lineno"> 84</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L85"></a><tt class="py-lineno"> 85</tt>  <tt class="py-line"><tt class="py-docstring">    Runs a command on the remote system. Nothing is transferred to the remote</tt> </tt>
+<a name="L86"></a><tt class="py-lineno"> 86</tt>  <tt class="py-line"><tt class="py-docstring">    system; the command is expected to exist already.</tt> </tt>
+<a name="L87"></a><tt class="py-lineno"> 87</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L88"></a><tt class="py-lineno"> 88</tt>  <tt class="py-line"><tt class="py-docstring">    Arguments besides the name can contain Var replacement patterns; these</tt> </tt>
+<a name="L89"></a><tt class="py-lineno"> 89</tt>  <tt class="py-line"><tt class="py-docstring">    will be processed through the task_role's view of its Vars in the</tt> </tt>
+<a name="L90"></a><tt class="py-lineno"> 90</tt>  <tt class="py-line"><tt class="py-docstring">    namespace.</tt> </tt>
+<a name="L91"></a><tt class="py-lineno"> 91</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L92"></a><tt class="py-lineno"> 92</tt>  <tt class="py-line"><tt class="py-docstring">    If your commmand needs to use shell metacharacters, use L{ShellTask}</tt> </tt>
+<a name="L93"></a><tt class="py-lineno"> 93</tt>  <tt class="py-line"><tt class="py-docstring">    instead.</tt> </tt>
+<a name="L94"></a><tt class="py-lineno"> 94</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L95"></a><tt class="py-lineno"> 95</tt>  <tt class="py-line"><tt class="py-docstring">    See http://docs.ansible.com/command_module.html for full details.</tt> </tt>
+<a name="L96"></a><tt class="py-lineno"> 96</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="CommandTask.__init__"></a><div id="CommandTask.__init__-def"><a name="L97"></a><tt class="py-lineno"> 97</tt> <a class="py-toggle" href="#" id="CommandTask.__init__-toggle" onclick="return toggle('CommandTask.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.CommandTask-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">name</tt><tt class="py-op">,</tt> <tt class="py-param">free_form</tt><tt class="py-op">,</tt> <tt class="py-param">chdir</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">creates</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> </tt>
+<a name="L98"></a><tt class="py-lineno"> 98</tt>  <tt class="py-line">                 <tt class="py-param">executable</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">removes</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">warn</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-param">kwargs</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CommandTask.__init__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="CommandTask.__init__-expanded"><a name="L99"></a><tt class="py-lineno"> 99</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L100"></a><tt class="py-lineno">100</tt>  <tt class="py-line"><tt class="py-docstring">        @param name: logical name for the task</tt> </tt>
+<a name="L101"></a><tt class="py-lineno">101</tt>  <tt class="py-line"><tt class="py-docstring">        @param free_form: A string containing the remote command to run, along</tt> </tt>
+<a name="L102"></a><tt class="py-lineno">102</tt>  <tt class="py-line"><tt class="py-docstring">            with any arguments the command needs</tt> </tt>
+<a name="L103"></a><tt class="py-lineno">103</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword chdir: Directory path to cd to before running the command.</tt> </tt>
+<a name="L104"></a><tt class="py-lineno">104</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword executable: Full path to an alternative shell to run the</tt> </tt>
+<a name="L105"></a><tt class="py-lineno">105</tt>  <tt class="py-line"><tt class="py-docstring">            in</tt> </tt>
+<a name="L106"></a><tt class="py-lineno">106</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword warn: whether or not to warn about this specific command</tt> </tt>
+<a name="L107"></a><tt class="py-lineno">107</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword creates: String; the name of a file on the remote system that</tt> </tt>
+<a name="L108"></a><tt class="py-lineno">108</tt>  <tt class="py-line"><tt class="py-docstring">            the script will create. If already present, the script will not</tt> </tt>
+<a name="L109"></a><tt class="py-lineno">109</tt>  <tt class="py-line"><tt class="py-docstring">            be run. If not supplied no test for a file to be created will be</tt> </tt>
+<a name="L110"></a><tt class="py-lineno">110</tt>  <tt class="py-line"><tt class="py-docstring">            done.</tt> </tt>
+<a name="L111"></a><tt class="py-lineno">111</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword removes: String; the name of a file on the remote system that</tt> </tt>
+<a name="L112"></a><tt class="py-lineno">112</tt>  <tt class="py-line"><tt class="py-docstring">            the script will remove. If it isn't there, then the script will</tt> </tt>
+<a name="L113"></a><tt class="py-lineno">113</tt>  <tt class="py-line"><tt class="py-docstring">            not be run. If not supplied then no removal test will be performed.</tt> </tt>
+<a name="L114"></a><tt class="py-lineno">114</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword **kwargs: the other available keyword arguments for</tt> </tt>
+<a name="L115"></a><tt class="py-lineno">115</tt>  <tt class="py-line"><tt class="py-docstring">            L{_ConfigTask}</tt> </tt>
+<a name="L116"></a><tt class="py-lineno">116</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L117"></a><tt class="py-lineno">117</tt>  <tt class="py-line"> </tt>
+<a name="L118"></a><tt class="py-lineno">118</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-19" class="py-name" targets="Class actuator.config_tasks.CommandTask=actuator.config_tasks.CommandTask-class.html"><a title="actuator.config_tasks.CommandTask" class="py-name" href="#" onclick="return doclink('link-19', 'CommandTask', 'link-19');">CommandTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-20" class="py-name"><a title="actuator.ActuatorOrchestration.__init__
+actuator.config.ConfigClassTask.__init__
+actuator.config.ConfigModel.__init__
+actuator.config.MultiTask.__init__
+actuator.config.NullTask.__init__
+actuator.config.TaskGroup.__init__
+actuator.config._ConfigTask.__init__
+actuator.config._Dependency.__init__
+actuator.config_tasks.CommandTask.__init__
+actuator.config_tasks.CopyFileTask.__init__
+actuator.config_tasks.ProcessCopyFileTask.__init__
+actuator.config_tasks.ScriptTask.__init__
+actuator.exec_agents.core.ConfigRecord.__init__
+actuator.exec_agents.core.ExecutionAgent.__init__
+actuator.exec_agents.core.ExecutionException.__init__
+actuator.infra.InfraModel.__init__
+actuator.infra.StaticServer.__init__
+actuator.modeling.AbstractModelReference.__init__
+actuator.modeling.AbstractModelingEntity.__init__
+actuator.modeling.CallContext.__init__
+actuator.modeling.ComponentGroup.__init__
+actuator.modeling.ContextExpr.__init__
+actuator.modeling.KeyItem.__init__
+actuator.modeling.MultiComponent.__init__
+actuator.modeling.RefSelTest.__init__
+actuator.modeling.RefSelectBuilder.__init__
+actuator.modeling.RefSelectUnion.__init__
+actuator.modeling.SelectElement.__init__
+actuator.modeling._Nexus.__init__
+actuator.modeling._NexusMember.__init__
+actuator.namespace.NamespaceModel.__init__
+actuator.namespace.Role.__init__
+actuator.namespace.Var.__init__
+actuator.namespace.VarFuture.__init__
+actuator.namespace.VariableContainer.__init__
+actuator.namespace._ComputableValue.__init__
+actuator.provisioners.core.BaseProvisioningRecord.__init__
+actuator.provisioners.core.ProvisionerException.__init__
+actuator.provisioners.example_resources.Database.__init__
+actuator.provisioners.example_resources.Queue.__init__
+actuator.provisioners.example_resources.Server.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__
+actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__
+actuator.provisioners.openstack.resource_tasks.RunContext.__init__
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__
+actuator.provisioners.openstack.resources.FloatingIP.__init__
+actuator.provisioners.openstack.resources.Network.__init__
+actuator.provisioners.openstack.resources.NetworkInterface.__init__
+actuator.provisioners.openstack.resources.Router.__init__
+actuator.provisioners.openstack.resources.RouterGateway.__init__
+actuator.provisioners.openstack.resources.RouterInterface.__init__
+actuator.provisioners.openstack.resources.SecGroup.__init__
+actuator.provisioners.openstack.resources.SecGroupRule.__init__
+actuator.provisioners.openstack.resources.Server.__init__
+actuator.provisioners.openstack.resources.Subnet.__init__
+actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__
+actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__
+actuator.provisioners.openstack.support._OSMaps.__init__
+actuator.utils.ClassModifier.__init__" class="py-name" href="#" onclick="return doclink('link-20', '__init__', 'link-9');">__init__</a></tt><tt class="py-op">(</tt><tt class="py-name">name</tt><tt class="py-op">,</tt> <tt class="py-name">free_form</tt><tt class="py-op">,</tt> <tt class="py-name">creates</tt><tt class="py-op">=</tt><tt class="py-name">creates</tt><tt class="py-op">,</tt> </tt>
+<a name="L119"></a><tt class="py-lineno">119</tt>  <tt class="py-line">                                          <tt class="py-name">removes</tt><tt class="py-op">=</tt><tt class="py-name">removes</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-name">kwargs</tt><tt class="py-op">)</tt> </tt>
+<a name="L120"></a><tt class="py-lineno">120</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">chdir</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L121"></a><tt class="py-lineno">121</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_chdir</tt> <tt class="py-op">=</tt> <tt class="py-name">chdir</tt> </tt>
+<a name="L122"></a><tt class="py-lineno">122</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">executable</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L123"></a><tt class="py-lineno">123</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_executable</tt> <tt class="py-op">=</tt> <tt class="py-name">executable</tt> </tt>
+<a name="L124"></a><tt class="py-lineno">124</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">warn</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L125"></a><tt class="py-lineno">125</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_warn</tt> <tt class="py-op">=</tt> <tt class="py-name">warn</tt> </tt>
+</div><a name="L126"></a><tt class="py-lineno">126</tt>  <tt class="py-line">         </tt>
+<a name="CommandTask.get_init_args"></a><div id="CommandTask.get_init_args-def"><a name="L127"></a><tt class="py-lineno">127</tt> <a class="py-toggle" href="#" id="CommandTask.get_init_args-toggle" onclick="return toggle('CommandTask.get_init_args');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.CommandTask-class.html#get_init_args">get_init_args</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CommandTask.get_init_args-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="CommandTask.get_init_args-expanded"><a name="L128"></a><tt class="py-lineno">128</tt>  <tt class="py-line">        <tt class="py-name">args</tt><tt class="py-op">,</tt> <tt class="py-name">kwargs</tt> <tt class="py-op">=</tt> <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-21" class="py-name"><a title="actuator.config_tasks.CommandTask" class="py-name" href="#" onclick="return doclink('link-21', 'CommandTask', 'link-19');">CommandTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-22" class="py-name"><a title="actuator.config.ConfigClassTask.get_init_args
+actuator.config.MultiTask.get_init_args
+actuator.config._ConfigTask.get_init_args
+actuator.config_tasks.CommandTask.get_init_args
+actuator.config_tasks.CopyFileTask.get_init_args
+actuator.config_tasks.ScriptTask.get_init_args
+actuator.infra.StaticServer.get_init_args
+actuator.modeling.AbstractModelingEntity.get_init_args
+actuator.modeling.ComponentGroup.get_init_args
+actuator.modeling.MultiComponent.get_init_args
+actuator.namespace.Role.get_init_args
+actuator.provisioners.example_resources.Database.get_init_args
+actuator.provisioners.example_resources.Queue.get_init_args
+actuator.provisioners.example_resources.Server.get_init_args
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.get_init_args
+actuator.provisioners.openstack.resources.FloatingIP.get_init_args
+actuator.provisioners.openstack.resources.Network.get_init_args
+actuator.provisioners.openstack.resources.Router.get_init_args
+actuator.provisioners.openstack.resources.RouterGateway.get_init_args
+actuator.provisioners.openstack.resources.RouterInterface.get_init_args
+actuator.provisioners.openstack.resources.SecGroup.get_init_args
+actuator.provisioners.openstack.resources.SecGroupRule.get_init_args
+actuator.provisioners.openstack.resources.Server.get_init_args
+actuator.provisioners.openstack.resources.Subnet.get_init_args" class="py-name" href="#" onclick="return doclink('link-22', 'get_init_args', 'link-11');">get_init_args</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L129"></a><tt class="py-lineno">129</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"chdir"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_chdir</tt> </tt>
+<a name="L130"></a><tt class="py-lineno">130</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"executable"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_executable</tt> </tt>
+<a name="L131"></a><tt class="py-lineno">131</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"warn"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_warn</tt> </tt>
+<a name="L132"></a><tt class="py-lineno">132</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">args</tt><tt class="py-op">,</tt> <tt class="py-name">kwargs</tt> </tt>
+</div><a name="L133"></a><tt class="py-lineno">133</tt>  <tt class="py-line"> </tt>
+<a name="CommandTask._fix_arguments"></a><div id="CommandTask._fix_arguments-def"><a name="L134"></a><tt class="py-lineno">134</tt> <a class="py-toggle" href="#" id="CommandTask._fix_arguments-toggle" onclick="return toggle('CommandTask._fix_arguments');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.CommandTask-class.html#_fix_arguments">_fix_arguments</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CommandTask._fix_arguments-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="CommandTask._fix_arguments-expanded"><a name="L135"></a><tt class="py-lineno">135</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-23" class="py-name"><a title="actuator.config_tasks.CommandTask" class="py-name" href="#" onclick="return doclink('link-23', 'CommandTask', 'link-19');">CommandTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-24" class="py-name"><a title="actuator.config.ConfigClassTask._fix_arguments
+actuator.config.MultiTask._fix_arguments
+actuator.config._ConfigTask._fix_arguments
+actuator.config_tasks.CommandTask._fix_arguments
+actuator.config_tasks.CopyFileTask._fix_arguments
+actuator.config_tasks.ScriptTask._fix_arguments
+actuator.infra.StaticServer._fix_arguments
+actuator.modeling.AbstractModelingEntity._fix_arguments
+actuator.modeling.ComponentGroup._fix_arguments
+actuator.modeling.MultiComponent._fix_arguments
+actuator.namespace.Role._fix_arguments
+actuator.provisioners.example_resources.ProvisionableWithFixer._fix_arguments
+actuator.provisioners.openstack.resources.FloatingIP._fix_arguments
+actuator.provisioners.openstack.resources.Network._fix_arguments
+actuator.provisioners.openstack.resources.Router._fix_arguments
+actuator.provisioners.openstack.resources.RouterGateway._fix_arguments
+actuator.provisioners.openstack.resources.RouterInterface._fix_arguments
+actuator.provisioners.openstack.resources.SecGroup._fix_arguments
+actuator.provisioners.openstack.resources.SecGroupRule._fix_arguments
+actuator.provisioners.openstack.resources.Server._fix_arguments
+actuator.provisioners.openstack.resources.Subnet._fix_arguments" class="py-name" href="#" onclick="return doclink('link-24', '_fix_arguments', 'link-15');">_fix_arguments</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L136"></a><tt class="py-lineno">136</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">chdir</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-25" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-25', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_chdir</tt><tt class="py-op">)</tt> </tt>
+<a name="L137"></a><tt class="py-lineno">137</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">executable</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-26" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-26', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_executable</tt><tt class="py-op">)</tt> </tt>
+<a name="L138"></a><tt class="py-lineno">138</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">warn</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-27" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-27', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_warn</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L139"></a><tt class="py-lineno">139</tt>  <tt class="py-line"> </tt>
+<a name="L140"></a><tt class="py-lineno">140</tt>  <tt class="py-line"> </tt>
+<a name="ShellTask"></a><div id="ShellTask-def"><a name="L141"></a><tt class="py-lineno">141</tt> <a class="py-toggle" href="#" id="ShellTask-toggle" onclick="return toggle('ShellTask');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.config_tasks.ShellTask-class.html">ShellTask</a><tt class="py-op">(</tt><tt class="py-base-class">CommandTask</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ShellTask-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="ShellTask-expanded"><a name="L142"></a><tt class="py-lineno">142</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L143"></a><tt class="py-lineno">143</tt>  <tt class="py-line"><tt class="py-docstring">    Almost the same as the L{CommandTask}, except that the task is run within</tt> </tt>
+<a name="L144"></a><tt class="py-lineno">144</tt>  <tt class="py-line"><tt class="py-docstring">    a shell, and so shell meta-characters (rediction, etc) can be used.</tt> </tt>
+<a name="L145"></a><tt class="py-lineno">145</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L146"></a><tt class="py-lineno">146</tt>  <tt class="py-line"><tt class="py-docstring">    The arguments for ShellTask are the same as those for L{CommandTask}.</tt> </tt>
+<a name="L147"></a><tt class="py-lineno">147</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L148"></a><tt class="py-lineno">148</tt>  <tt class="py-line"><tt class="py-docstring">    See http://docs.ansible.com/shell_module.html for full details</tt> </tt>
+<a name="L149"></a><tt class="py-lineno">149</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="L150"></a><tt class="py-lineno">150</tt>  <tt class="py-line">    <tt class="py-keyword">pass</tt> </tt>
+</div><a name="L151"></a><tt class="py-lineno">151</tt>  <tt class="py-line"> </tt>
+<a name="L152"></a><tt class="py-lineno">152</tt>  <tt class="py-line"> </tt>
+<a name="CopyFileTask"></a><div id="CopyFileTask-def"><a name="L153"></a><tt class="py-lineno">153</tt> <a class="py-toggle" href="#" id="CopyFileTask-toggle" onclick="return toggle('CopyFileTask');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.config_tasks.CopyFileTask-class.html">CopyFileTask</a><tt class="py-op">(</tt><tt class="py-base-class">_ConfigTask</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CopyFileTask-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="CopyFileTask-expanded"><a name="L154"></a><tt class="py-lineno">154</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L155"></a><tt class="py-lineno">155</tt>  <tt class="py-line"><tt class="py-docstring">    Copies a file from the local system to the remote system.</tt> </tt>
+<a name="L156"></a><tt class="py-lineno">156</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L157"></a><tt class="py-lineno">157</tt>  <tt class="py-line"><tt class="py-docstring">    The file is copied without impacting its contents. If you want to modify</tt> </tt>
+<a name="L158"></a><tt class="py-lineno">158</tt>  <tt class="py-line"><tt class="py-docstring">    a file using Var replacement patterns and for the Vars in the task_role's</tt> </tt>
+<a name="L159"></a><tt class="py-lineno">159</tt>  <tt class="py-line"><tt class="py-docstring">    namespace, use L{ProcessCopyFileTask} instead.</tt> </tt>
+<a name="L160"></a><tt class="py-lineno">160</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L161"></a><tt class="py-lineno">161</tt>  <tt class="py-line"><tt class="py-docstring">    Copy can work on a single file or a directory hierachy of files.</tt> </tt>
+<a name="L162"></a><tt class="py-lineno">162</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L163"></a><tt class="py-lineno">163</tt>  <tt class="py-line"><tt class="py-docstring">    For full details see http://docs.ansible.com/copy_module.html</tt> </tt>
+<a name="L164"></a><tt class="py-lineno">164</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="CopyFileTask.__init__"></a><div id="CopyFileTask.__init__-def"><a name="L165"></a><tt class="py-lineno">165</tt> <a class="py-toggle" href="#" id="CopyFileTask.__init__-toggle" onclick="return toggle('CopyFileTask.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.CopyFileTask-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-param">name</tt><tt class="py-op">,</tt> <tt class="py-param">dest</tt><tt class="py-op">,</tt> <tt class="py-param">backup</tt><tt class="py-op">=</tt><tt class="py-name">False</tt><tt class="py-op">,</tt> <tt class="py-param">content</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> </tt>
+<a name="L166"></a><tt class="py-lineno">166</tt>  <tt class="py-line">                 <tt class="py-param">directory_mode</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">follow</tt><tt class="py-op">=</tt><tt class="py-name">False</tt><tt class="py-op">,</tt> <tt class="py-param">force</tt><tt class="py-op">=</tt><tt class="py-name">True</tt><tt class="py-op">,</tt> <tt class="py-param">group</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> </tt>
+<a name="L167"></a><tt class="py-lineno">167</tt>  <tt class="py-line">                 <tt class="py-param">mode</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">owner</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">selevel</tt><tt class="py-op">=</tt><tt class="py-string">"s0"</tt><tt class="py-op">,</tt> <tt class="py-param">serole</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">setype</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> </tt>
+<a name="L168"></a><tt class="py-lineno">168</tt>  <tt class="py-line">                 <tt class="py-param">seuser</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">src</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> <tt class="py-param">validate</tt><tt class="py-op">=</tt><tt class="py-name">None</tt><tt class="py-op">,</tt> </tt>
+<a name="L169"></a><tt class="py-lineno">169</tt>  <tt class="py-line">                 <tt class="py-op">**</tt><tt class="py-param">kwargs</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CopyFileTask.__init__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="CopyFileTask.__init__-expanded"><a name="L170"></a><tt class="py-lineno">170</tt>  <tt class="py-line">        <tt class="py-docstring">"""</tt> </tt>
+<a name="L171"></a><tt class="py-lineno">171</tt>  <tt class="py-line"><tt class="py-docstring">        @param name: logical name for the task</tt> </tt>
+<a name="L172"></a><tt class="py-lineno">172</tt>  <tt class="py-line"><tt class="py-docstring">        @param dest: The full path of where to copy the file. If src is a</tt> </tt>
+<a name="L173"></a><tt class="py-lineno">173</tt>  <tt class="py-line"><tt class="py-docstring">            directory this must be a directory as well</tt> </tt>
+<a name="L174"></a><tt class="py-lineno">174</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword backup: boolean; if True, create a backup of any existing</tt> </tt>
+<a name="L175"></a><tt class="py-lineno">175</tt>  <tt class="py-line"><tt class="py-docstring">            file with the same name</tt> </tt>
+<a name="L176"></a><tt class="py-lineno">176</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword content: Content of the file to copy to the remote. If this is</tt> </tt>
+<a name="L177"></a><tt class="py-lineno">177</tt>  <tt class="py-line"><tt class="py-docstring">            used instead of src, then dest must be the path to a file</tt> </tt>
+<a name="L178"></a><tt class="py-lineno">178</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword directory_mode: If the copy is recursive, set the directories</tt> </tt>
+<a name="L179"></a><tt class="py-lineno">179</tt>  <tt class="py-line"><tt class="py-docstring">            to this mode, but only if the directory doesn't already exist.</tt> </tt>
+<a name="L180"></a><tt class="py-lineno">180</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword follow: boolean; flag to indicate that if there are filesystem</tt> </tt>
+<a name="L181"></a><tt class="py-lineno">181</tt>  <tt class="py-line"><tt class="py-docstring">            links, they should be followed. Default no.</tt> </tt>
+<a name="L182"></a><tt class="py-lineno">182</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword force: boolean; default is True. If True, replace the remote</tt> </tt>
+<a name="L183"></a><tt class="py-lineno">183</tt>  <tt class="py-line"><tt class="py-docstring">            file if it already exists. If False, do not replace.</tt> </tt>
+<a name="L184"></a><tt class="py-lineno">184</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword group: name of the group that should own the file/directory,</tt> </tt>
+<a name="L185"></a><tt class="py-lineno">185</tt>  <tt class="py-line"><tt class="py-docstring">            as would be given to chown</tt> </tt>
+<a name="L186"></a><tt class="py-lineno">186</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword mode: string mode that the file/directory should be. Symbolic</tt> </tt>
+<a name="L187"></a><tt class="py-lineno">187</tt>  <tt class="py-line"><tt class="py-docstring">            modes are supported.</tt> </tt>
+<a name="L188"></a><tt class="py-lineno">188</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword owner: name of the user who should own the file/directory,</tt> </tt>
+<a name="L189"></a><tt class="py-lineno">189</tt>  <tt class="py-line"><tt class="py-docstring">            as will be supplied to chown</tt> </tt>
+<a name="L190"></a><tt class="py-lineno">190</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword selevel: Default is 's0'. Level part of the SELinux file</tt> </tt>
+<a name="L191"></a><tt class="py-lineno">191</tt>  <tt class="py-line"><tt class="py-docstring">            context. This is the MLS/MCS attribute, sometimes known as the</tt> </tt>
+<a name="L192"></a><tt class="py-lineno">192</tt>  <tt class="py-line"><tt class="py-docstring">            range. _default feature works as for seuser.</tt> </tt>
+<a name="L193"></a><tt class="py-lineno">193</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword serole: role part of SELinux file context, _default feature</tt> </tt>
+<a name="L194"></a><tt class="py-lineno">194</tt>  <tt class="py-line"><tt class="py-docstring">            works as for seuser.</tt> </tt>
+<a name="L195"></a><tt class="py-lineno">195</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword setype: type part of SELinux file context, _default feature</tt> </tt>
+<a name="L196"></a><tt class="py-lineno">196</tt>  <tt class="py-line"><tt class="py-docstring">            works as for seuser.</tt> </tt>
+<a name="L197"></a><tt class="py-lineno">197</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword seuser: user part of SELinux file context. Will default to</tt> </tt>
+<a name="L198"></a><tt class="py-lineno">198</tt>  <tt class="py-line"><tt class="py-docstring">            system policy, if applicable. If set to _default, it will use the</tt> </tt>
+<a name="L199"></a><tt class="py-lineno">199</tt>  <tt class="py-line"><tt class="py-docstring">            user portion of the policy if available</tt> </tt>
+<a name="L200"></a><tt class="py-lineno">200</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword src: Local path to copy to the remote server; may be absolute</tt> </tt>
+<a name="L201"></a><tt class="py-lineno">201</tt>  <tt class="py-line"><tt class="py-docstring">            or relative. If the path ends in a directory, the directory will</tt> </tt>
+<a name="L202"></a><tt class="py-lineno">202</tt>  <tt class="py-line"><tt class="py-docstring">            be copied recursively. In this case, if the path ends in '/', only</tt> </tt>
+<a name="L203"></a><tt class="py-lineno">203</tt>  <tt class="py-line"><tt class="py-docstring">            the directory content will be copied recursively. If there is no</tt> </tt>
+<a name="L204"></a><tt class="py-lineno">204</tt>  <tt class="py-line"><tt class="py-docstring">            '/' on the end, then the directory and its contents are copied</tt> </tt>
+<a name="L205"></a><tt class="py-lineno">205</tt>  <tt class="py-line"><tt class="py-docstring">            recursively.</tt> </tt>
+<a name="L206"></a><tt class="py-lineno">206</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword validate: The validation command to run before copying into</tt> </tt>
+<a name="L207"></a><tt class="py-lineno">207</tt>  <tt class="py-line"><tt class="py-docstring">            place. The path to the file to validate is passed in via '%s' which</tt> </tt>
+<a name="L208"></a><tt class="py-lineno">208</tt>  <tt class="py-line"><tt class="py-docstring">            must be present as in the visudo example below (or, if in a Var,</tt> </tt>
+<a name="L209"></a><tt class="py-lineno">209</tt>  <tt class="py-line"><tt class="py-docstring">            it can be represented with a replacement pattern). The command is</tt> </tt>
+<a name="L210"></a><tt class="py-lineno">210</tt>  <tt class="py-line"><tt class="py-docstring">            passed securely so shell features like expansion and pipes won't</tt> </tt>
+<a name="L211"></a><tt class="py-lineno">211</tt>  <tt class="py-line"><tt class="py-docstring">            work.</tt> </tt>
+<a name="L212"></a><tt class="py-lineno">212</tt>  <tt class="py-line"><tt class="py-docstring">        @keyword **kwargs: the other available keyword arguments for</tt> </tt>
+<a name="L213"></a><tt class="py-lineno">213</tt>  <tt class="py-line"><tt class="py-docstring">            L{_ConfigTask}</tt> </tt>
+<a name="L214"></a><tt class="py-lineno">214</tt>  <tt class="py-line"><tt class="py-docstring">        """</tt> </tt>
+<a name="L215"></a><tt class="py-lineno">215</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-28" class="py-name" targets="Class actuator.config_tasks.CopyFileTask=actuator.config_tasks.CopyFileTask-class.html"><a title="actuator.config_tasks.CopyFileTask" class="py-name" href="#" onclick="return doclink('link-28', 'CopyFileTask', 'link-28');">CopyFileTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-29" class="py-name"><a title="actuator.ActuatorOrchestration.__init__
+actuator.config.ConfigClassTask.__init__
+actuator.config.ConfigModel.__init__
+actuator.config.MultiTask.__init__
+actuator.config.NullTask.__init__
+actuator.config.TaskGroup.__init__
+actuator.config._ConfigTask.__init__
+actuator.config._Dependency.__init__
+actuator.config_tasks.CommandTask.__init__
+actuator.config_tasks.CopyFileTask.__init__
+actuator.config_tasks.ProcessCopyFileTask.__init__
+actuator.config_tasks.ScriptTask.__init__
+actuator.exec_agents.core.ConfigRecord.__init__
+actuator.exec_agents.core.ExecutionAgent.__init__
+actuator.exec_agents.core.ExecutionException.__init__
+actuator.infra.InfraModel.__init__
+actuator.infra.StaticServer.__init__
+actuator.modeling.AbstractModelReference.__init__
+actuator.modeling.AbstractModelingEntity.__init__
+actuator.modeling.CallContext.__init__
+actuator.modeling.ComponentGroup.__init__
+actuator.modeling.ContextExpr.__init__
+actuator.modeling.KeyItem.__init__
+actuator.modeling.MultiComponent.__init__
+actuator.modeling.RefSelTest.__init__
+actuator.modeling.RefSelectBuilder.__init__
+actuator.modeling.RefSelectUnion.__init__
+actuator.modeling.SelectElement.__init__
+actuator.modeling._Nexus.__init__
+actuator.modeling._NexusMember.__init__
+actuator.namespace.NamespaceModel.__init__
+actuator.namespace.Role.__init__
+actuator.namespace.Var.__init__
+actuator.namespace.VarFuture.__init__
+actuator.namespace.VariableContainer.__init__
+actuator.namespace._ComputableValue.__init__
+actuator.provisioners.core.BaseProvisioningRecord.__init__
+actuator.provisioners.core.ProvisionerException.__init__
+actuator.provisioners.example_resources.Database.__init__
+actuator.provisioners.example_resources.Queue.__init__
+actuator.provisioners.example_resources.Server.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__
+actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__
+actuator.provisioners.openstack.resource_tasks.RunContext.__init__
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__
+actuator.provisioners.openstack.resources.FloatingIP.__init__
+actuator.provisioners.openstack.resources.Network.__init__
+actuator.provisioners.openstack.resources.NetworkInterface.__init__
+actuator.provisioners.openstack.resources.Router.__init__
+actuator.provisioners.openstack.resources.RouterGateway.__init__
+actuator.provisioners.openstack.resources.RouterInterface.__init__
+actuator.provisioners.openstack.resources.SecGroup.__init__
+actuator.provisioners.openstack.resources.SecGroupRule.__init__
+actuator.provisioners.openstack.resources.Server.__init__
+actuator.provisioners.openstack.resources.Subnet.__init__
+actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__
+actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__
+actuator.provisioners.openstack.support._OSMaps.__init__
+actuator.utils.ClassModifier.__init__" class="py-name" href="#" onclick="return doclink('link-29', '__init__', 'link-9');">__init__</a></tt><tt class="py-op">(</tt><tt class="py-name">name</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-name">kwargs</tt><tt class="py-op">)</tt> </tt>
+<a name="L216"></a><tt class="py-lineno">216</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-name">content</tt> <tt class="py-keyword">is</tt> <tt class="py-name">None</tt> <tt class="py-keyword">and</tt> <tt class="py-name">src</tt> <tt class="py-keyword">is</tt> <tt class="py-name">None</tt><tt class="py-op">:</tt> </tt>
+<a name="L217"></a><tt class="py-lineno">217</tt>  <tt class="py-line">            <tt class="py-keyword">raise</tt> <tt id="link-30" class="py-name"><a title="actuator.config.ConfigException" class="py-name" href="#" onclick="return doclink('link-30', 'ConfigException', 'link-3');">ConfigException</a></tt><tt class="py-op">(</tt><tt class="py-string">"Either 'content' or 'src' must be provided"</tt><tt class="py-op">)</tt> </tt>
+<a name="L218"></a><tt class="py-lineno">218</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">dest</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L219"></a><tt class="py-lineno">219</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_dest</tt> <tt class="py-op">=</tt> <tt class="py-name">dest</tt> </tt>
+<a name="L220"></a><tt class="py-lineno">220</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">backup</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L221"></a><tt class="py-lineno">221</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_backup</tt> <tt class="py-op">=</tt> <tt class="py-name">backup</tt> </tt>
+<a name="L222"></a><tt class="py-lineno">222</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">content</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L223"></a><tt class="py-lineno">223</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_content</tt> <tt class="py-op">=</tt> <tt class="py-name">content</tt> </tt>
+<a name="L224"></a><tt class="py-lineno">224</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">directory_mode</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L225"></a><tt class="py-lineno">225</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_directory_mode</tt> <tt class="py-op">=</tt> <tt class="py-name">directory_mode</tt> </tt>
+<a name="L226"></a><tt class="py-lineno">226</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">follow</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L227"></a><tt class="py-lineno">227</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_follow</tt> <tt class="py-op">=</tt> <tt class="py-name">follow</tt> </tt>
+<a name="L228"></a><tt class="py-lineno">228</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">force</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L229"></a><tt class="py-lineno">229</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_force</tt> <tt class="py-op">=</tt> <tt class="py-name">force</tt> </tt>
+<a name="L230"></a><tt class="py-lineno">230</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">group</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L231"></a><tt class="py-lineno">231</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_group</tt> <tt class="py-op">=</tt> <tt class="py-name">group</tt> </tt>
+<a name="L232"></a><tt class="py-lineno">232</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">mode</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L233"></a><tt class="py-lineno">233</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_mode</tt> <tt class="py-op">=</tt> <tt class="py-name">mode</tt> </tt>
+<a name="L234"></a><tt class="py-lineno">234</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">owner</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L235"></a><tt class="py-lineno">235</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_owner</tt> <tt class="py-op">=</tt> <tt class="py-name">owner</tt> </tt>
+<a name="L236"></a><tt class="py-lineno">236</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">selevel</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L237"></a><tt class="py-lineno">237</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_selevel</tt> <tt class="py-op">=</tt> <tt class="py-name">selevel</tt> </tt>
+<a name="L238"></a><tt class="py-lineno">238</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">serole</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L239"></a><tt class="py-lineno">239</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_serole</tt> <tt class="py-op">=</tt> <tt class="py-name">serole</tt> </tt>
+<a name="L240"></a><tt class="py-lineno">240</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">setype</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L241"></a><tt class="py-lineno">241</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_setype</tt> <tt class="py-op">=</tt> <tt class="py-name">setype</tt> </tt>
+<a name="L242"></a><tt class="py-lineno">242</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">seuser</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L243"></a><tt class="py-lineno">243</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_seuser</tt> <tt class="py-op">=</tt> <tt class="py-name">seuser</tt> </tt>
+<a name="L244"></a><tt class="py-lineno">244</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">src</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L245"></a><tt class="py-lineno">245</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_src</tt> <tt class="py-op">=</tt> <tt class="py-name">src</tt> </tt>
+<a name="L246"></a><tt class="py-lineno">246</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">validate</tt> <tt class="py-op">=</tt> <tt class="py-name">None</tt> </tt>
+<a name="L247"></a><tt class="py-lineno">247</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_validate</tt> <tt class="py-op">=</tt> <tt class="py-name">validate</tt> </tt>
+</div><a name="L248"></a><tt class="py-lineno">248</tt>  <tt class="py-line">         </tt>
+<a name="CopyFileTask.get_init_args"></a><div id="CopyFileTask.get_init_args-def"><a name="L249"></a><tt class="py-lineno">249</tt> <a class="py-toggle" href="#" id="CopyFileTask.get_init_args-toggle" onclick="return toggle('CopyFileTask.get_init_args');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.CopyFileTask-class.html#get_init_args">get_init_args</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CopyFileTask.get_init_args-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="CopyFileTask.get_init_args-expanded"><a name="L250"></a><tt class="py-lineno">250</tt>  <tt class="py-line">        <tt class="py-name">args</tt><tt class="py-op">,</tt> <tt class="py-name">kwargs</tt> <tt class="py-op">=</tt> <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-31" class="py-name"><a title="actuator.config_tasks.CopyFileTask" class="py-name" href="#" onclick="return doclink('link-31', 'CopyFileTask', 'link-28');">CopyFileTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-32" class="py-name"><a title="actuator.config.ConfigClassTask.get_init_args
+actuator.config.MultiTask.get_init_args
+actuator.config._ConfigTask.get_init_args
+actuator.config_tasks.CommandTask.get_init_args
+actuator.config_tasks.CopyFileTask.get_init_args
+actuator.config_tasks.ScriptTask.get_init_args
+actuator.infra.StaticServer.get_init_args
+actuator.modeling.AbstractModelingEntity.get_init_args
+actuator.modeling.ComponentGroup.get_init_args
+actuator.modeling.MultiComponent.get_init_args
+actuator.namespace.Role.get_init_args
+actuator.provisioners.example_resources.Database.get_init_args
+actuator.provisioners.example_resources.Queue.get_init_args
+actuator.provisioners.example_resources.Server.get_init_args
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.get_init_args
+actuator.provisioners.openstack.resources.FloatingIP.get_init_args
+actuator.provisioners.openstack.resources.Network.get_init_args
+actuator.provisioners.openstack.resources.Router.get_init_args
+actuator.provisioners.openstack.resources.RouterGateway.get_init_args
+actuator.provisioners.openstack.resources.RouterInterface.get_init_args
+actuator.provisioners.openstack.resources.SecGroup.get_init_args
+actuator.provisioners.openstack.resources.SecGroupRule.get_init_args
+actuator.provisioners.openstack.resources.Server.get_init_args
+actuator.provisioners.openstack.resources.Subnet.get_init_args" class="py-name" href="#" onclick="return doclink('link-32', 'get_init_args', 'link-11');">get_init_args</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L251"></a><tt class="py-lineno">251</tt>  <tt class="py-line">        <tt class="py-name">args</tt> <tt class="py-op">=</tt> <tt class="py-name">args</tt> <tt class="py-op">+</tt> <tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_dest</tt><tt class="py-op">,</tt><tt class="py-op">)</tt> </tt>
+<a name="L252"></a><tt class="py-lineno">252</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"backup"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_backup</tt> </tt>
+<a name="L253"></a><tt class="py-lineno">253</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"content"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_content</tt> </tt>
+<a name="L254"></a><tt class="py-lineno">254</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"directory_mode"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_directory_mode</tt> </tt>
+<a name="L255"></a><tt class="py-lineno">255</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"follow"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_follow</tt> </tt>
+<a name="L256"></a><tt class="py-lineno">256</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"force"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_force</tt> </tt>
+<a name="L257"></a><tt class="py-lineno">257</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"group"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_group</tt> </tt>
+<a name="L258"></a><tt class="py-lineno">258</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"mode"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_mode</tt> </tt>
+<a name="L259"></a><tt class="py-lineno">259</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"owner"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_owner</tt> </tt>
+<a name="L260"></a><tt class="py-lineno">260</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"selevel"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_selevel</tt> </tt>
+<a name="L261"></a><tt class="py-lineno">261</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"serole"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_serole</tt> </tt>
+<a name="L262"></a><tt class="py-lineno">262</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"setype"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_setype</tt> </tt>
+<a name="L263"></a><tt class="py-lineno">263</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"seuser"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_seuser</tt> </tt>
+<a name="L264"></a><tt class="py-lineno">264</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"src"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_src</tt> </tt>
+<a name="L265"></a><tt class="py-lineno">265</tt>  <tt class="py-line">        <tt class="py-name">kwargs</tt><tt class="py-op">[</tt><tt class="py-string">"validate"</tt><tt class="py-op">]</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_validate</tt> </tt>
+<a name="L266"></a><tt class="py-lineno">266</tt>  <tt class="py-line">        <tt class="py-keyword">return</tt> <tt class="py-name">args</tt><tt class="py-op">,</tt> <tt class="py-name">kwargs</tt> </tt>
+</div><a name="L267"></a><tt class="py-lineno">267</tt>  <tt class="py-line">     </tt>
+<a name="CopyFileTask._fix_arguments"></a><div id="CopyFileTask._fix_arguments-def"><a name="L268"></a><tt class="py-lineno">268</tt> <a class="py-toggle" href="#" id="CopyFileTask._fix_arguments-toggle" onclick="return toggle('CopyFileTask._fix_arguments');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.CopyFileTask-class.html#_fix_arguments">_fix_arguments</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="CopyFileTask._fix_arguments-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="CopyFileTask._fix_arguments-expanded"><a name="L269"></a><tt class="py-lineno">269</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-33" class="py-name"><a title="actuator.config_tasks.CopyFileTask" class="py-name" href="#" onclick="return doclink('link-33', 'CopyFileTask', 'link-28');">CopyFileTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-34" class="py-name"><a title="actuator.config.ConfigClassTask._fix_arguments
+actuator.config.MultiTask._fix_arguments
+actuator.config._ConfigTask._fix_arguments
+actuator.config_tasks.CommandTask._fix_arguments
+actuator.config_tasks.CopyFileTask._fix_arguments
+actuator.config_tasks.ScriptTask._fix_arguments
+actuator.infra.StaticServer._fix_arguments
+actuator.modeling.AbstractModelingEntity._fix_arguments
+actuator.modeling.ComponentGroup._fix_arguments
+actuator.modeling.MultiComponent._fix_arguments
+actuator.namespace.Role._fix_arguments
+actuator.provisioners.example_resources.ProvisionableWithFixer._fix_arguments
+actuator.provisioners.openstack.resources.FloatingIP._fix_arguments
+actuator.provisioners.openstack.resources.Network._fix_arguments
+actuator.provisioners.openstack.resources.Router._fix_arguments
+actuator.provisioners.openstack.resources.RouterGateway._fix_arguments
+actuator.provisioners.openstack.resources.RouterInterface._fix_arguments
+actuator.provisioners.openstack.resources.SecGroup._fix_arguments
+actuator.provisioners.openstack.resources.SecGroupRule._fix_arguments
+actuator.provisioners.openstack.resources.Server._fix_arguments
+actuator.provisioners.openstack.resources.Subnet._fix_arguments" class="py-name" href="#" onclick="return doclink('link-34', '_fix_arguments', 'link-15');">_fix_arguments</a></tt><tt class="py-op">(</tt><tt class="py-op">)</tt> </tt>
+<a name="L270"></a><tt class="py-lineno">270</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">dest</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-35" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-35', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_dest</tt><tt class="py-op">)</tt> </tt>
+<a name="L271"></a><tt class="py-lineno">271</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">backup</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-36" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-36', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_backup</tt><tt class="py-op">)</tt> </tt>
+<a name="L272"></a><tt class="py-lineno">272</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">backup</tt> <tt class="py-op">=</tt> <tt class="py-string">"yes"</tt> <tt class="py-keyword">if</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">backup</tt> <tt class="py-keyword">else</tt> <tt class="py-string">"no"</tt> </tt>
+<a name="L273"></a><tt class="py-lineno">273</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">content</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-37" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-37', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_content</tt><tt class="py-op">)</tt> </tt>
+<a name="L274"></a><tt class="py-lineno">274</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">directory_mode</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-38" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-38', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_directory_mode</tt><tt class="py-op">)</tt> </tt>
+<a name="L275"></a><tt class="py-lineno">275</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">follow</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-39" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-39', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_follow</tt><tt class="py-op">)</tt> </tt>
+<a name="L276"></a><tt class="py-lineno">276</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">follow</tt> <tt class="py-op">=</tt> <tt class="py-string">"yes"</tt> <tt class="py-keyword">if</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">follow</tt> <tt class="py-keyword">else</tt> <tt class="py-string">"no"</tt> </tt>
+<a name="L277"></a><tt class="py-lineno">277</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">force</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-40" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-40', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_force</tt><tt class="py-op">)</tt> </tt>
+<a name="L278"></a><tt class="py-lineno">278</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">force</tt> <tt class="py-op">=</tt> <tt class="py-string">"yes"</tt> <tt class="py-keyword">if</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">force</tt> <tt class="py-keyword">else</tt> <tt class="py-string">"no"</tt> </tt>
+<a name="L279"></a><tt class="py-lineno">279</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">group</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-41" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-41', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_group</tt><tt class="py-op">)</tt> </tt>
+<a name="L280"></a><tt class="py-lineno">280</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">mode</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-42" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-42', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_mode</tt><tt class="py-op">)</tt> </tt>
+<a name="L281"></a><tt class="py-lineno">281</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">owner</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-43" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-43', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_owner</tt><tt class="py-op">)</tt> </tt>
+<a name="L282"></a><tt class="py-lineno">282</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">selevel</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-44" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-44', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_selevel</tt><tt class="py-op">)</tt> </tt>
+<a name="L283"></a><tt class="py-lineno">283</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">serole</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-45" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-45', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_serole</tt><tt class="py-op">)</tt> </tt>
+<a name="L284"></a><tt class="py-lineno">284</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">setype</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-46" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-46', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_setype</tt><tt class="py-op">)</tt> </tt>
+<a name="L285"></a><tt class="py-lineno">285</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">seuser</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-47" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-47', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_seuser</tt><tt class="py-op">)</tt> </tt>
+<a name="L286"></a><tt class="py-lineno">286</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">src</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-48" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-48', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_src</tt><tt class="py-op">)</tt> </tt>
+<a name="L287"></a><tt class="py-lineno">287</tt>  <tt class="py-line">        <tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">validate</tt> <tt class="py-op">=</tt> <tt class="py-name">self</tt><tt class="py-op">.</tt><tt id="link-49" class="py-name"><a title="actuator.config._ConfigTask._get_arg_value
+actuator.modeling.AbstractModelingEntity._get_arg_value
+actuator.namespace.Role._get_arg_value" class="py-name" href="#" onclick="return doclink('link-49', '_get_arg_value', 'link-16');">_get_arg_value</a></tt><tt class="py-op">(</tt><tt class="py-name">self</tt><tt class="py-op">.</tt><tt class="py-name">_validate</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L288"></a><tt class="py-lineno">288</tt>  <tt class="py-line">     </tt>
+<a name="L289"></a><tt class="py-lineno">289</tt>  <tt class="py-line">     </tt>
+<a name="ProcessCopyFileTask"></a><div id="ProcessCopyFileTask-def"><a name="L290"></a><tt class="py-lineno">290</tt> <a class="py-toggle" href="#" id="ProcessCopyFileTask-toggle" onclick="return toggle('ProcessCopyFileTask');">-</a><tt class="py-line"><tt class="py-keyword">class</tt> <a class="py-def-name" href="actuator.config_tasks.ProcessCopyFileTask-class.html">ProcessCopyFileTask</a><tt class="py-op">(</tt><tt class="py-base-class">CopyFileTask</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ProcessCopyFileTask-collapsed" style="display:none;" pad="+++" indent="++++"></div><div id="ProcessCopyFileTask-expanded"><a name="L291"></a><tt class="py-lineno">291</tt>  <tt class="py-line">    <tt class="py-docstring">"""</tt> </tt>
+<a name="L292"></a><tt class="py-lineno">292</tt>  <tt class="py-line"><tt class="py-docstring">    Like CopyFileTask, except for two crucial differences:</tt> </tt>
+<a name="L293"></a><tt class="py-lineno">293</tt>  <tt class="py-line"><tt class="py-docstring">    </tt> </tt>
+<a name="L294"></a><tt class="py-lineno">294</tt>  <tt class="py-line"><tt class="py-docstring">      1. The file to be copied can contain Var replacement patterns that will</tt> </tt>
+<a name="L295"></a><tt class="py-lineno">295</tt>  <tt class="py-line"><tt class="py-docstring">         be processed through the task_role's view of the namespace, replacing</tt> </tt>
+<a name="L296"></a><tt class="py-lineno">296</tt>  <tt class="py-line"><tt class="py-docstring">         Var replacement patterns with their namespace value. The modified file</tt> </tt>
+<a name="L297"></a><tt class="py-lineno">297</tt>  <tt class="py-line"><tt class="py-docstring">         is then copied to the remote. The local file remains unchanged.</tt> </tt>
+<a name="L298"></a><tt class="py-lineno">298</tt>  <tt class="py-line"><tt class="py-docstring">      2. Given that the file is changed, recursive copies will not result in</tt> </tt>
+<a name="L299"></a><tt class="py-lineno">299</tt>  <tt class="py-line"><tt class="py-docstring">         replacement patterns being processed. If you have a directory hierarchy</tt> </tt>
+<a name="L300"></a><tt class="py-lineno">300</tt>  <tt class="py-line"><tt class="py-docstring">         to copy that contains some files to replace, the best approach is to</tt> </tt>
+<a name="L301"></a><tt class="py-lineno">301</tt>  <tt class="py-line"><tt class="py-docstring">         use CopyFileTask to copy the whole hierarchy, then use</tt> </tt>
+<a name="L302"></a><tt class="py-lineno">302</tt>  <tt class="py-line"><tt class="py-docstring">         ProcessCopyFileTask to independently copy just the files that have to</tt> </tt>
+<a name="L303"></a><tt class="py-lineno">303</tt>  <tt class="py-line"><tt class="py-docstring">         be processed through the namespace.</tt> </tt>
+<a name="L304"></a><tt class="py-lineno">304</tt>  <tt class="py-line"><tt class="py-docstring">         </tt> </tt>
+<a name="L305"></a><tt class="py-lineno">305</tt>  <tt class="py-line"><tt class="py-docstring">    The arguments are otherwise identical to CopyFileTask.</tt> </tt>
+<a name="L306"></a><tt class="py-lineno">306</tt>  <tt class="py-line"><tt class="py-docstring">    """</tt> </tt>
+<a name="ProcessCopyFileTask.__init__"></a><div id="ProcessCopyFileTask.__init__-def"><a name="L307"></a><tt class="py-lineno">307</tt> <a class="py-toggle" href="#" id="ProcessCopyFileTask.__init__-toggle" onclick="return toggle('ProcessCopyFileTask.__init__');">-</a><tt class="py-line">    <tt class="py-keyword">def</tt> <a class="py-def-name" href="actuator.config_tasks.ProcessCopyFileTask-class.html#__init__">__init__</a><tt class="py-op">(</tt><tt class="py-param">self</tt><tt class="py-op">,</tt> <tt class="py-op">*</tt><tt class="py-param">args</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-param">kwargs</tt><tt class="py-op">)</tt><tt class="py-op">:</tt> </tt>
+</div><div id="ProcessCopyFileTask.__init__-collapsed" style="display:none;" pad="+++" indent="++++++++"></div><div id="ProcessCopyFileTask.__init__-expanded"><a name="L308"></a><tt class="py-lineno">308</tt>  <tt class="py-line">        <tt class="py-keyword">if</tt> <tt class="py-string">"src"</tt> <tt class="py-keyword">not</tt> <tt class="py-keyword">in</tt> <tt class="py-name">kwargs</tt> <tt class="py-keyword">and</tt> <tt class="py-string">"content"</tt> <tt class="py-keyword">not</tt> <tt class="py-keyword">in</tt> <tt class="py-name">kwargs</tt><tt class="py-op">:</tt> </tt>
+<a name="L309"></a><tt class="py-lineno">309</tt>  <tt class="py-line">            <tt class="py-keyword">raise</tt> <tt id="link-50" class="py-name"><a title="actuator.exec_agents.core.ExecutionException" class="py-name" href="#" onclick="return doclink('link-50', 'ExecutionException', 'link-7');">ExecutionException</a></tt><tt class="py-op">(</tt><tt class="py-string">"ProcessCopyFileTask must be given either "</tt> </tt>
+<a name="L310"></a><tt class="py-lineno">310</tt>  <tt class="py-line">                                     <tt class="py-string">"the 'src' or 'content' keyword arguments"</tt><tt class="py-op">)</tt> </tt>
+<a name="L311"></a><tt class="py-lineno">311</tt>  <tt class="py-line">        <tt class="py-name">super</tt><tt class="py-op">(</tt><tt id="link-51" class="py-name" targets="Class actuator.config_tasks.ProcessCopyFileTask=actuator.config_tasks.ProcessCopyFileTask-class.html"><a title="actuator.config_tasks.ProcessCopyFileTask" class="py-name" href="#" onclick="return doclink('link-51', 'ProcessCopyFileTask', 'link-51');">ProcessCopyFileTask</a></tt><tt class="py-op">,</tt> <tt class="py-name">self</tt><tt class="py-op">)</tt><tt class="py-op">.</tt><tt id="link-52" class="py-name"><a title="actuator.ActuatorOrchestration.__init__
+actuator.config.ConfigClassTask.__init__
+actuator.config.ConfigModel.__init__
+actuator.config.MultiTask.__init__
+actuator.config.NullTask.__init__
+actuator.config.TaskGroup.__init__
+actuator.config._ConfigTask.__init__
+actuator.config._Dependency.__init__
+actuator.config_tasks.CommandTask.__init__
+actuator.config_tasks.CopyFileTask.__init__
+actuator.config_tasks.ProcessCopyFileTask.__init__
+actuator.config_tasks.ScriptTask.__init__
+actuator.exec_agents.core.ConfigRecord.__init__
+actuator.exec_agents.core.ExecutionAgent.__init__
+actuator.exec_agents.core.ExecutionException.__init__
+actuator.infra.InfraModel.__init__
+actuator.infra.StaticServer.__init__
+actuator.modeling.AbstractModelReference.__init__
+actuator.modeling.AbstractModelingEntity.__init__
+actuator.modeling.CallContext.__init__
+actuator.modeling.ComponentGroup.__init__
+actuator.modeling.ContextExpr.__init__
+actuator.modeling.KeyItem.__init__
+actuator.modeling.MultiComponent.__init__
+actuator.modeling.RefSelTest.__init__
+actuator.modeling.RefSelectBuilder.__init__
+actuator.modeling.RefSelectUnion.__init__
+actuator.modeling.SelectElement.__init__
+actuator.modeling._Nexus.__init__
+actuator.modeling._NexusMember.__init__
+actuator.namespace.NamespaceModel.__init__
+actuator.namespace.Role.__init__
+actuator.namespace.Var.__init__
+actuator.namespace.VarFuture.__init__
+actuator.namespace.VariableContainer.__init__
+actuator.namespace._ComputableValue.__init__
+actuator.provisioners.core.BaseProvisioningRecord.__init__
+actuator.provisioners.core.ProvisionerException.__init__
+actuator.provisioners.example_resources.Database.__init__
+actuator.provisioners.example_resources.Queue.__init__
+actuator.provisioners.example_resources.Server.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackCredentials.__init__
+actuator.provisioners.openstack.resource_tasks.OpenstackProvisioner.__init__
+actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.__init__
+actuator.provisioners.openstack.resource_tasks.RunContext.__init__
+actuator.provisioners.openstack.resource_tasks._ProvisioningTask.__init__
+actuator.provisioners.openstack.resources.FloatingIP.__init__
+actuator.provisioners.openstack.resources.Network.__init__
+actuator.provisioners.openstack.resources.NetworkInterface.__init__
+actuator.provisioners.openstack.resources.Router.__init__
+actuator.provisioners.openstack.resources.RouterGateway.__init__
+actuator.provisioners.openstack.resources.RouterInterface.__init__
+actuator.provisioners.openstack.resources.SecGroup.__init__
+actuator.provisioners.openstack.resources.SecGroupRule.__init__
+actuator.provisioners.openstack.resources.Server.__init__
+actuator.provisioners.openstack.resources.Subnet.__init__
+actuator.provisioners.openstack.resources._OpenstackProvisionableInfraResource.__init__
+actuator.provisioners.openstack.support.OpenstackProvisioningRecord.__init__
+actuator.provisioners.openstack.support._OSMaps.__init__
+actuator.utils.ClassModifier.__init__" class="py-name" href="#" onclick="return doclink('link-52', '__init__', 'link-9');">__init__</a></tt><tt class="py-op">(</tt><tt class="py-op">*</tt><tt class="py-name">args</tt><tt class="py-op">,</tt> <tt class="py-op">**</tt><tt class="py-name">kwargs</tt><tt class="py-op">)</tt> </tt>
+</div></div><a name="L312"></a><tt class="py-lineno">312</tt>  <tt class="py-line"> </tt><script type="text/javascript">
+<!--
+expandto(location.href);
+// -->
+</script>
+</pre>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="actuator-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            >Actuator</th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Mon Feb  9 18:19:53 2015
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>
