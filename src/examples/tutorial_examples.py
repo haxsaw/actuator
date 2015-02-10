@@ -51,7 +51,7 @@ class SingleOpenstackServer(InfraModel):
 # from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 # inst = SingleOpenstackServer("actuator_ex1")
 # provisioner = OpenstackProvisioner(uid, pwd, uid, url)
-# provisioner.provision_infra_spec(inst)
+# provisioner.provision_infra_model(inst)
   
 
 #repeat of first example with common components factored out
