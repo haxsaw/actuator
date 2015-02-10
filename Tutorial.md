@@ -108,7 +108,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_spec(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_infra_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_infra_resources():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_resources():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -122,20 +122,20 @@ gateway_components = {"net":Network("actuator_ex1_net"),
 
 
 class SingleOpenstackServer(InfraModel):
-  with_infra_resources(**gateway_components)
+  with_resources(**gateway_components)
   server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
   fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
 ```
 
-With with_infra_resources(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
+With with_resources(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
 
 ### <a name="multi_resources">Multiple resources</a>
 If you require a set of identical resources to be created in a model, the MultiResource wrapper provides a way to declare a resource as a template and then to get as many copies of that template created as required:
 
 <a name="multiservers">&nbsp;</a>
 ```python
-from actuator import InfraSpec, MultiResource, ctxt, with_infra_resources
+from actuator import InfraSpec, MultiResource, ctxt, with_resources
 from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
@@ -144,7 +144,7 @@ class MultipleServers(InfraModel):
   #
   #First, declare the common networking components with with_infra_components
   #
-  with_infra_resources(**gateway_components)
+  with_resources(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the workers. It will need a
@@ -225,7 +225,7 @@ class MultipleGroups(InfraSpec):
   #
   #First, declare the common networking resources
   #
-  with_infra_resources(**gateway_components)
+  with_resources(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the leaders of clusters. It will need a
