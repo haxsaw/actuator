@@ -3,8 +3,6 @@ Actuator Tutorial
 
 Actuator allows you to use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
 
-You can find the epydoc-generated documentation [here](doc/index.html).
-
 1. [Intro](#intro)
 2. [Overview](#overview) (as close to a tl;dr that's still meaningful)
   1. [Infra Model](#ov_inframodel)
