@@ -23,7 +23,7 @@ import os, os.path
 from actuator import (InfraModel, MultiResource, MultiResourceGroup, ctxt,
                       with_roles, NamespaceModel, Role, Var, with_variables,
                       with_resources, ResourceGroup, MultiRole,
-                      ConfigModel, CopyFileTask, CommandTask)
+                      ConfigModel, CopyFileTask, CommandTask, with_dependencies)
 from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway,
@@ -225,9 +225,17 @@ if not os.path.isabs(actuator_path):
 
 class SimpleConfig(ConfigModel):
     cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
-                          task_role=SimipleNamespace.copy_target)
+                          task_role=SimpleNamespace.copy_target)
     copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
                         task_role=SimpleNamespace.copy_target)
   
   
+# SimpleConfig again but with dependencies this time
+class SimpleConfig2(ConfigModel):
+    cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
+                          task_role=SimpleNamespace.copy_target)
+    copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
+                        task_role=SimpleNamespace.copy_target)
+    #NOTE: this call must be within the config model, not after it!
+    with_dependencies( cleanup | copy )
   
