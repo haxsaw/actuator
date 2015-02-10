@@ -784,7 +784,7 @@ class GridNamespace(NamespaceModel):
 #Notice that there is no mention of a 'task_role' within this model
 class NodeConfig(ConfigModel):
   reset = CommandTask("remove", "/bin/rm -rf /some/path/*")
-  copy = CopyFileTask("copy-tarball', '/some/path/software.tgz',
+  copy = CopyFileTask("copy-tarball", '/some/path/software.tgz',
                       src='/some/local/path/software.tgz')
   with_dependencies(reset | copy)
   
