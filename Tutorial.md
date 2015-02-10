@@ -872,3 +872,53 @@ The following tests are available to filter out unwanted references:
 - *pred(callable)* only selects items for which the supplied callable returns True. The callable is supplied with one argument, the key of the item it to determine if it should be included.
 
 ## <a name="orchestration">Orchestration</a>
+Orchestration brings all of the models together and manages their processing in order to provision, configure and execute an instance of the system being modeled. Orchestration is flexible in that it can only do part of the job if that's requied; for instance, if you only need to have infra provisioned you can simply supply the infra model and let the orchestrator handle that, or alternatively if you have a namespace that's populated with fixed IP/hostnames for host_ref values for all Roles, you can have the orchestrator manage just the configuration tasks against the set of hosts in the namespace model. This allows you to use the orchestrator in variety of circumstances, such as config model development or provisioning of infra for other purposes, as well as standing up whole systems.
+
+The orchestrator is an instance of `actuator.ActuatorOrchestration` to handle processing the models. You give it a number of different models as keyword arguments as well as a provisioner for the infra model, and then ask it to 'initiate' the system the models represent.
+
+To make this clearer, here's an example of the usage of the orchestrator. The example borrows from a more fully developed example in the Actuator project, the set of models that describe how to stand up a Hadoop cluster (see [src/examples/hadoop](src/examples/hadoop) for more details). The models include an infra model (HadoopInfra), a namespace model (HadoopNamespace), and a config model (HadoopConfig). With these models, and some credential information to log into Openstack, the orchestrator can be created as follows:
+
+```python
+from actuator import ActuatorOrchestration
+from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+from hadoop_models import HadoopInfra, HadoopNamespace, HadoopConfig
+
+# assume you have the Openstack user name (user_id), password (pwd), tenant (tenant),
+# auth url (url), number of slaves (num_slaves) for your cluster, and the number
+# of worker threads that should be started for provisioning and config tasks
+# (thread_count)
+
+# make your model instances
+infra = HadoopInfra("hadoop_infra")
+ns = HadoopNamespace()
+cfg = HadoopConfig(remote_user="ubuntu",   #replace with remote user
+                   private_key_file="actuator-dev-key")   #replace with priv key filename
+                   
+# create the slaves you need
+for i in range(num_slaves):
+  _ = ns.slaves[i]
+
+# make your provisioner
+os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=thread_count)
+  
+# make your orchestrator and run it
+ao = ActuatorOrchestration(infra_model_inst=infra,
+                           provisioner=os_prov,
+                           namespace_model_inst=ns,
+                           config_model_inst=cfg)
+ao.initiate_system()
+```
+
+As orchestration runs, you'll get a stream of output written to stdout by default that informs you of the tasks being performed throughout the orchestration run. If `initiate_system()` returns True, then orchestration ran successfully. If not, then you'll receive the abort messages and associated stack traces for each failed task.
+
+Once orchestration completes, the models and the orchestrator can be inspected to see the information that was gathered for all operations carried out. For example, you can see the IPs of the hosts provisioned for the above run by doing the following:
+
+```python
+print "\n...done! You can reach the reach the assets at the following IPs:"
+print ">>>namenode: %s" % infra.name_node_fip.get_ip()
+print ">>>slaves:"
+for s in infra.slaves.values():
+    print "\t%s" % s.slave_fip.get_ip()
+```
+
+This will show you the IPs for the provisioned resouprces. You can also inspect the model resources to determine the Openstack IDs for all provisioned resources. Likewise, the namespace can be inspected for any values determined by provisioning.
