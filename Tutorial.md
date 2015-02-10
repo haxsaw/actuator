@@ -105,7 +105,7 @@ Instances of the class (and hence the model) are then created, and the instance 
 from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 inst = SingleOpenstackServer("actuator_ex1")
 provisioner = OpenstackProvisioner(uid, pwd, uid, url)
-provisioner.provision_infra_spec(inst)
+provisioner.provision_infra_model(inst)
 ```
 
 Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_resources():
@@ -135,7 +135,7 @@ If you require a set of identical resources to be created in a model, the MultiR
 
 <a name="multiservers">&nbsp;</a>
 ```python
-from actuator import InfraSpec, MultiResource, ctxt, with_resources
+from actuator import InfraModel, MultiResource, ctxt, with_resources
 from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
@@ -198,7 +198,7 @@ gateway_component = ResourceGroup("gateway", net=Network("actuator_ex1_net"),
                                           "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
                               router=Router("actuator_ex1_router"),
                               gateway=RouterGateway("actuator_ex1_gateway", ctxt.comp.container.router,
-                                                    "external")
+                                                    "external"),
                               rinter=RouterInterface("actuator_ex1_rinter", ctxt.comp.container.router,
                                                      ctxt.comp.container.subnet))
 
@@ -221,7 +221,7 @@ from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
-class MultipleGroups(InfraSpec):
+class MultipleGroups(InfraModel):
   #
   #First, declare the common networking resources
   #
@@ -259,11 +259,11 @@ The keyword args used in creating the ResourceGroup become the attributes of the
 >>> len(inst3.cluster)
 3
 >>> inst3.cluster["ny"].leader.iface0.addr0
-<actuator.infra.InfraModelInstanceReference object at 0x02A51970>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df79f090>
 >>> inst3.cluster["ny"].workers[0]
-<actuator.infra.InfraModelInstanceReference object at 0x02A56170>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df79f250>
 >>> inst3.cluster["ny"].workers[0].iface0.addr0
-<actuator.infra.InfraModelInstanceReference object at 0x02A561B0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df79f290>
 >>> len(inst3.cluster["ny"].workers)
 1
 >>>
@@ -277,7 +277,7 @@ A few of the examples above have shown that accessing model attributes results i
 
 There are two different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between memebers is required in the middle of a model class definition, model references aren't yet available, and hence can't be used.
 
-The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference.
+The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference. Additionally, context expressions provide a way to express references that include keyed lookups into Multi* wrappers, but will defer the lookup until needed. These two attributes allow context expressions to be used in a number of ways that a direct model or instance reference can't.
 
 #### Model References
 
@@ -285,32 +285,34 @@ Once a model class has been defined, you can create expressions that refer to at
 
 ```python
 >>> SingleOpenstackServer.server
-<actuator.infra.ModelReference object at 0x0291CB70>
+<actuator.modeling.ModelReference object at 0x7fc9df779d10>
 >>> SingleOpenstackServer.server.iface0
-<actuator.infra.ModelReference object at 0x02920110>
+<actuator.modeling.ModelReference object at 0x7fc9df779cd0>
 >>> SingleOpenstackServer.server.iface0.addr0
-<actuator.infra.ModelReference object at 0x0298C110>
+<actuator.modeling.ModelReference object at 0x7fc9df779a10>
 >>>
 ```
 
 Likewise, you can create references to attributes on instances of the model class:
 ```python
 >>> inst.server
-<actuator.infra.ModelInstanceReference object at 0x0298C6B0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df7280d0>
 >>> inst.server.iface0
-<actuator.infra.ModelInstanceReference object at 0x0298C6D0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df728110>
 >>> inst.server.iface0.addr0
-<actuator.infra.ModelInstanceReference object at 0x0298CAD0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df728150>
 >>>
 ```
 
-All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a resource or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual resource or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a  model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a resource or attribute of a model. _Model references_ are logical references into a model; there may not be an actual resource or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
 >>> inst = SingleOpenstackServer("refs")
 >>> modref = SingleOpenstackServer.server
 >>> instref = inst.server
+>>> modref is not instref
+True
 >>> instref is inst.get_inst_ref(modref)
 True
 >>>
@@ -343,7 +345,7 @@ Since model references are the means to make connections between models, we'll l
 There are circumstances where model references either aren't possible or can't get the job done. For example, take this fragment of the the [SingleOpenstackServer](#simple_openstack_example) infra model example from above:
 
 ```python
-class SingleOpenstackServer(InfraSpec):
+class SingleOpenstackServer(InfraModel):
   router = Router("actuator_ex1_router")
   gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
   rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
@@ -373,7 +375,7 @@ In a model class, the context is referred to by the global object *ctxt*, and th
 These _context expressions_ provide a way to define a reference to another part of the model that will be evaluated only when the reference is needed. Repeating the infra model fragment from above:
 
 ```python
-class SingleOpenstackServer(InfraSpec):
+class SingleOpenstackServer(InfraModel):
   router = Router("actuator_ex1_router")
   gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
   rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
