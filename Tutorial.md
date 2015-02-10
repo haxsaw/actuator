@@ -178,7 +178,7 @@ Keys are always coerced to strings, and for each new instance of the MultiResour
 
 ```python
 >>> for w in inst2.workers.instances().values():
-...     print w.logicalName
+...     print w.name
 ...
 worker_1
 worker_0
@@ -212,7 +212,7 @@ class SingleOpenstackServer(InfraModel):
 
 The keyword args used in creating the ResourceGroup become the attributes of the instances of the group.
 
-If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. The following model only uses Servers in the template, but any resource (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
+If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. Any resource (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
 
 <a name="multigroups">&nbsp;</a>
 ```python
@@ -232,8 +232,8 @@ class MultipleGroups(InfraSpec):
   #floating ip for the outside world to see it
   #
   foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
-  fip = FloatingIP("actuator_ex3_float", ctxt.model.server,
-                   ctxt.model.server.iface0.addr0, pool="external")
+  fip = FloatingIP("actuator_ex3_float", ctxt.model.foreman,
+                   ctxt.model.foreman.iface0.addr0, pool="external")
   #
   #finally, declare a "cluster"; a leader that coordinates the workers in the
   #cluster, which operate under the leader's direction
@@ -443,7 +443,7 @@ These operations look something like this:
 >>> for r in ns.get_roles.values():
 ...     print "Role: %s, Vars:" % r.name
 ...     for v in r.get_visible_vars().values():
-...             value = v.get_value(c)
+...             value = v.get_value(r)
 ...
 ...             print "%s=%s" % (v.name, value if Value is not None else "<UNRESOLVED>")
 ...
