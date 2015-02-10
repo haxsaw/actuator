@@ -679,7 +679,7 @@ if not os.path.isabs(actuator_path):
   
 class SimpleConfig(ConfigModel):
   cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
-                        task_role=SimipleNamespace.copy_target)
+                        task_role=SimpleNamespace.copy_target)
   copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
                       task_role=SimpleNamespace.copy_target)
   #NOTE: this call must be within the config model, not after it!
