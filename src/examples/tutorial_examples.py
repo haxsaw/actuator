@@ -19,11 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os, os.path
+import os.path
 from actuator import (InfraModel, MultiResource, MultiResourceGroup, ctxt,
                       with_roles, NamespaceModel, Role, Var, with_variables,
                       with_resources, ResourceGroup, MultiRole,
-                      ConfigModel, CopyFileTask, CommandTask, with_dependencies)
+                      ConfigModel, CopyFileTask, CommandTask, with_dependencies,
+                      MultiTask)
 from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway,
@@ -238,4 +239,23 @@ class SimpleConfig2(ConfigModel):
                         task_role=SimpleNamespace.copy_target)
     #NOTE: this call must be within the config model, not after it!
     with_dependencies( cleanup | copy )
-  
+
+
+# Auto-scaling example
+class GridInfra(InfraModel):  #needed to add this
+    with_resources(**gateway_components)
+    grid = MultiResource(Server("grid_node", "Ubuntu 13.10", "m1.small",
+                                nics=[ctxt.model.net]))  # @UndefinedVariable
+    
+class GridNamespace2(NamespaceModel):
+    grid = MultiRole(Role("grid-node", host_ref=GridInfra.grid[ctxt.name]))
+
+
+class GridConfig(ConfigModel):
+    reset = MultiTask("reset", CommandTask("remove", "/bin/rm -rf /some/path/*"),
+                      GridNamespace2.q.grid.all())
+    copy = MultiTask("copy", CopyFileTask("copy-tarball", '/some/path/software.tgz',
+                                          src='/some/local/path/software.tgz'),
+                     GridNamespace2.q.grid.all())
+    with_dependencies(reset | copy)
+    
