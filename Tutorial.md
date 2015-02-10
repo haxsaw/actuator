@@ -376,6 +376,9 @@ These _context expressions_ provide a way to define a reference to another part 
 
 ```python
 class SingleOpenstackServer(InfraModel):
+  net = Network("actuator_ex1_net")
+  subnet = Subnet("actuator_ex1_subnet", ctxt.model.net, "192.168.23.0/24",
+                  dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex1_router")
   gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
   rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
@@ -396,7 +399,7 @@ We can use a context expression to create a reference to this IP using the ctxt 
 ctxt.model.server.iface.addr0
 ```
 
-As mentioned previously, context expressions provide a way to express model relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
+As mentioned previously, context expressions provide a way to express relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
 
 ## <a name="nsmodels">Namespace models</a>
 The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical roles of a system, relating these roles to the infrastructure elements where the roles are to execute, and providing the means to identify what configuration task is to be carried out for each role as well as what executables are involved with making the role function.
@@ -440,14 +443,13 @@ When an instance of the namespace is created, useful questions can be posed to t
 
 These operations look something like this:
 ```python
->>> sos = SingleOpenstackServer("sos")
 >>> ns = SOSNamespace()
->>> for r in ns.get_roles.values():
+>>> for r in ns.get_roles().values():
 ...     print "Role: %s, Vars:" % r.name
 ...     for v in r.get_visible_vars().values():
 ...             value = v.get_value(r)
 ...
-...             print "%s=%s" % (v.name, value if Value is not None else "<UNRESOLVED>")
+...             print "%s=%s" % (v.name, value if value is not None else "<UNRESOLVED>")
 ...
 Role: compute_server, Vars:
 COMP_SERVER_HOST=<UNRESOLVED>
@@ -460,15 +462,10 @@ COMP_SERVER_HOST=<UNRESOLVED>
 COMP_SERVER_PORT=8081
 APP_SERVER_PORT=8080
 EXTERNAL_APP_SERVER_IP=<UNRESOLVED>
+>>> sos = SingleOpenstackServer("sos")
 >>> provisionables = ns.compute_provisioning_for_environ(sos)
 >>> provisionables
-set([<actuator.provisioners.openstack.resources.Router object at 0x026EC070>,<actuator.p
-rovisioners.openstack.resources.Subnet object at 0x026E5E90>, <actuator.provisioners.ope
-nstack.resources.Network object at 0x026EC0D0>, <actuator.provisioners.openstack.resourc
-es.FloatingIP object at 0x026E5EF0>, <actuator.provisioners.openstack.resources.RouterG
-ateway object at 0x026EC130>, <actuator.provisioners.openstack.resources.Server object a
-t 0x026E5F50>, <actuator.provisioners.openstack.resources.RouterInterface object at 0x02
-6E5FF0>])
+set([<actuator.provisioners.openstack.resources.RouterGateway object at 0x7fc9df72e610>, <actuator.provisioners.openstack.resources.Server object at 0x7fc9df72e450>, <actuator.provisioners.openstack.resources.FloatingIP object at 0x7fc9df72e090>, <actuator.provisioners.openstack.resources.Router object at 0x7fc9df72e6d0>, <actuator.provisioners.openstack.resources.RouterInterface object at 0x7fc9df72e510>, <actuator.provisioners.openstack.resources.Subnet object at 0x7fc9df72e490>, <actuator.provisioners.openstack.resources.Network object at 0x7fc9df72e590>])
 >>> 
 ```
 
