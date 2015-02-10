@@ -749,7 +749,7 @@ class GridNamespace(NamespaceModel):
 class GridConfig(ConfigModel):
   reset = MultiTask("reset", CommandTask("remove", "/bin/rm -rf /some/path/*"),
                     GridNamespace.q.grid.all())
-  copy = MultiTask("copy", CopyFileTask("copy-tarball', '/some/path/software.tgz',
+  copy = MultiTask("copy", CopyFileTask("copy-tarball", '/some/path/software.tgz',
                                         src='/some/local/path/software.tgz'),
                    GridNamespace.q.grid.all())
   with_dependencies(reset | copy)
