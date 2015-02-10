@@ -3,6 +3,8 @@ Actuator Tutorial
 
 Actuator allows you to use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
 
+You can find the epydoc-generated documentation [here](doc/index.html).
+
 1. [Intro](#intro)
 2. [Overview](#overview) (as close to a tl;dr that's still meaningful)
   1. [Infra Model](#ov_inframodel)
@@ -26,6 +28,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   5. [Config classes as tasks](#classtasks)
   6. [Reference selection expressions](#refselect)
 6. Execution Models (yet to come)
+7. [Orchestration](#orchestration)-- putting it all together
 
 ## <a name="intro">Intro</a>
 
@@ -870,3 +873,4 @@ The following tests are available to filter out unwanted references:
 - *no_match(regex_string)* only selects items whose key doesn't match the supplied regex string
 - *pred(callable)* only selects items for which the supplied callable returns True. The callable is supplied with one argument, the key of the item it to determine if it should be included.
 
+## <a name="orchestration">Orchestration</a>
