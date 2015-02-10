@@ -24,7 +24,7 @@ from actuator import (InfraModel, MultiResource, MultiResourceGroup, ctxt,
                       with_roles, NamespaceModel, Role, Var, with_variables,
                       with_resources, ResourceGroup, MultiRole,
                       ConfigModel, CopyFileTask, CommandTask, with_dependencies,
-                      MultiTask)
+                      MultiTask, ConfigClassTask)
 from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway,
@@ -258,3 +258,25 @@ class GridConfig(ConfigModel):
                                           src='/some/local/path/software.tgz'),
                      GridNamespace2.q.grid.all())
     with_dependencies(reset | copy)
+
+
+# Config classes as tasks example
+#this is the same namespace model as above
+class GridNamespace3(NamespaceModel):
+    grid = MultiRole(Role("grid-node", host_ref=GridInfra.grid[ctxt.name]))
+
+
+#this config model is new; it defines all the tasks and dependencies for a single role
+#Notice that there is no mention of a 'task_role' within this model
+class NodeConfig(ConfigModel):
+    reset = CommandTask("remove", "/bin/rm -rf /some/path/*")
+    copy = CopyFileTask("copy-tarball", '/some/path/software.tgz',
+                        src='/some/local/path/software.tgz')
+    with_dependencies(reset | copy)
+
+
+#this model now uses the NodeConfig model in a MultiTask to define all the tasks that need
+#to be carried out on each role
+class GridConfig2(ConfigModel):
+    setup_nodes = MultiTask("setup-nodes", ConfigClassTask("setup-suite", NodeConfig),
+                            GridNamespace3.q.grid.all())
