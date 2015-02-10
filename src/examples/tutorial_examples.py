@@ -258,4 +258,3 @@ class GridConfig(ConfigModel):
                                           src='/some/local/path/software.tgz'),
                      GridNamespace2.q.grid.all())
     with_dependencies(reset | copy)
-    
