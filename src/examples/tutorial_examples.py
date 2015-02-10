@@ -19,13 +19,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os, os.path
 from actuator import (InfraModel, MultiResource, MultiResourceGroup, ctxt,
                       with_roles, NamespaceModel, Role, Var, with_variables,
-                      with_resources, ResourceGroup)
+                      with_resources, ResourceGroup, MultiRole,
+                      ConfigModel, CopyFileTask, CommandTask)
 from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway,
                                                          RouterInterface)
+import actuator
 
 # Simple Openstack example
 class SingleOpenstackServer(InfraModel):
@@ -163,7 +166,8 @@ class SOSNamespace(NamespaceModel):
                                   
     compute_server = Role("compute_server", host_ref=SingleOpenstackServer.server)
   
-  
+
+# First approach for dynamic Namespaces
 def grid_namespace_factory(num_workers=10):
     class GridNamespace(NamespaceModel):
         with_variables(Var("FOREMAN_EXTERNAL_IP", MultipleServers.fip.ip),
@@ -183,3 +187,47 @@ def grid_namespace_factory(num_workers=10):
         del role_dict, namer
       
     return GridNamespace()
+
+
+# Second approach for dynamic namespaces
+class GridNamespace(NamespaceModel):
+    with_variables(Var("FOREMAN_EXTERNAL_IP", MultipleServers.fip.ip),
+                   Var("FOREMAN_INTERNAL_IP", MultipleServers.foreman.iface0.addr0),
+                   Var("FOREMAN_EXTERNAL_PORT", "3000"),
+                   Var("FOREMAN_WORKER_PORT", "3001"))
+    
+    foreman = Role("foreman", host_ref=MultipleServers.foreman)
+    
+    grid = MultiRole(Role("node",
+                          host_ref=ctxt.model.infra.workers[ctxt.name]))  # @UndefinedVariable
+
+
+# Var examples
+class VarExample(NamespaceModel):
+    with_variables(Var("NODE_NAME", "!{BASE_NAME}-!{NODE_ID}"))
+    grid = (MultiRole(Role("worker", variables=[Var("NODE_ID", ctxt.name)]))
+             .add_variable(Var("BASE_NAME", "Grid")))
+
+
+# Namespace for ConfigExamples
+class SimpleNamespace(NamespaceModel):
+    with_variables(Var("DEST", "/tmp"),
+                   Var("PKG", "actuator"),
+                   Var("CMD_TARGET", "127.0.0.1"))
+    copy_target = Role("copy_target", host_ref="!{CMD_TARGET}")
+
+
+# SimpleConfig example
+#find the path to actuator; if it is under our cwd, the it won't be at an absolute path
+actuator_path = actuator.__file__
+if not os.path.isabs(actuator_path):
+  actuator_path = os.path.join(os.getcwd(), "!{PKG}")
+
+class SimpleConfig(ConfigModel):
+    cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
+                          task_role=SimipleNamespace.copy_target)
+    copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
+                        task_role=SimpleNamespace.copy_target)
+  
+  
+  
