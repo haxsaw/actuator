@@ -7,15 +7,15 @@ Actuator allows you to use Python to declaratively describe system infra, config
 2. [Requirements](#requirements)
   1. [Python version](#python)
   2. [Core packages](#core)
-  3. [Cloud support](#cloud)
-  4. [Testing with nose](#testing)
 3. [Tutorial](#tutorial)
+4. [Documentation](#docs)
+5. [Hadoop Example](#hadoop)
 4. Roadmap (yet to come)
 5. [Acknowledgements](#hattips)
 
 ## <a name="intro">Intro</a>
 **Current status**
-- **27 Oct 2014:** Actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable. Namespace models can drive the variable aspects of infra models successfully, and acquire information from the infra model such as IPs of a provisioned server. These can then be accessed by the configuration model, which has support of a small set of Ansible modules (specifically, ping, command, shell, script, and copy file). Environment variables are populated from the namespace model for each configuration activity run on a remote system. Due to the direct dependency on Ansible, Actuator must itself run on a *nix box.
+- **12 Fed 2015:** Actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable. Namespace models can drive the variable aspects of infra models successfully, and acquire information from the infra model such as IPs of a provisioned server. These can then be accessed by the configuration model, which has support of a small set of Ansible modules (specifically, ping, command, shell, script, and copy file), as well as a task that can process a template file through the namespace before it gets copied to a remote machine. Environment variables are populated from the namespace model for each configuration activity run on a remote system. Due to the direct dependency on Ansible, Actuator must itself run on a *nix box. A number of features over the Oct status have been added to make the environment more expressive.
 
 Actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, defining the names that govern operation, configuring the infra for the software that is to be run, and then executing that system's code on the configured infra.
 
@@ -44,24 +44,26 @@ Actuator has been developed against Python 2.7. Support for 3.x will come later.
 Actuator requires the following packages:
 
   - [networkx](https://pypi.python.org/pypi/networkx), 1.9 minimum
-  - [faker](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
+  - [ipaddress](https://pypi.python.org/pypi/ipaddress), 1.0.4 minimum
+  - [fake-factory](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
   - [ansible](https://pypi.python.org/pypi/ansible/1.7.2), 1.7.2 minimum. Currently required for configuration tasks, but other config systems will be supported in the future
-
-###<a name="cloud">Cloud support</a>
-
-Cloud support modules are only required for the cloud systems you wish to provision against
-
-####Openstack
-  - [python-novaclient](https://pypi.python.org/pypi/python-novaclient), 2.18.1 minimum
-  - [python-neutronclient](https://pypi.python.org/pypi/python-neutronclient), 2.3.7 minimum
-  - [ipaddress](https://pypi.python.org/pypi/ipaddress), 1.0.6 minimum
-
-###<a name="testing">Testing with nose</a>
-  - [nose](https://pypi.python.org/pypi/nose)
-  - [coverage](https://pypi.python.org/pypi/coverage)
+  - [subprocess32](https://pypi.python.org/pypi/subprocess32), 3.2.6 minimum. MUST BE IMPORTED BEFORE ANY ANSIBLE MODULES
+  - [python-novaclient](https://pypi.python.org/pypi/python-novaclient), 2.18.1 minimum (for Openstack)
+  - [python-neutronclient](https://pypi.python.org/pypi/python-neutronclient), 2.3.7 minimum (for Openstack)
+  - [nose](https://pypi.python.org/pypi/nose), 1.3.4 minimum, for testing
+  - [coverage](https://pypi.python.org/pypi/coverage), 3.7.1 minimum, for testing
+  - [epydoc](https://pypi.python.org/pypi/epydoc), 3.0.1 minimum, documentation generation
 
 ## <a name="tutorial">Tutorial</a>
 You can find a discussion of the basic concepts and an overview of the use of Actuator [here](Tutorial.md).
+
+## <a name="docs">Documentation</a>
+Currently, the only supplemental documentation are the epydoc-generated docs, the source html of which can be found
+[here](doc/html). The root document is index.html.
+
+## <a name="hadoop">Hadoop Example</a>
+A more significant example of Actuator's use can be found in the examples directory. It is a set of models that describe setting up a Hadoop cluster with an arbitrary number of slave nodes. You can see the readme and associated example files
+[here](src/examples/hadoop).
 
 ## <a name="hattips">Acknowledgements</a>
 The following projects and people have provided inspiration, ideas, or approaches that are used in Actuator.
