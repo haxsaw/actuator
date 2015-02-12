@@ -4,7 +4,7 @@ Hadoop 1.2.1 cluster model
 This is an Actuator example that illustrates the use of Actuator in modeling a
 Hadoop cluster of arbitrary size. While it doesn't configure every last corner
 of Hadoop (for example, while SSH security is present, other Hadoop security is
-ignored), but it does illustrate a broad range of Actuator features in the
+ignored), it does illustrate a broad range of Actuator features in the
 infra, namespace, and config modeling spaces.
 
 1. Quick start; what you need to do first if you want to run this
