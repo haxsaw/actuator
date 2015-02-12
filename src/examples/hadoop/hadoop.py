@@ -63,10 +63,11 @@ class HadoopInfra(InfraModel):
     #add the standard secgroup and connectivity components
     gateway = external_connection
     secgroup = std_secgroup
-    web_rule=SecGroupRule("web_rule",
-                           ctxt.model.secgroup.group,
-                           ip_protocol="tcp",
-                           from_port=50030, to_port=50030)
+    #now add another rule specific to the Hadoop setup
+    web_rule = SecGroupRule("web_rule",
+                            ctxt.model.secgroup.group,
+                            ip_protocol="tcp",
+                            from_port=50030, to_port=50030)
     
     #HADOOP name node
     name_node = Server("name_node", ubuntu_img, "m1.small",

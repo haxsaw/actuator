@@ -69,6 +69,7 @@ class DevNamespace(NamespaceModel):
     
 
 class HadoopNodeConfig(ConfigModel):
+    #first describe all the tasks; order isn't important
     ping = PingTask("ping_to_check_alive", repeat_count=20)
     send_priv_key = CopyFileTask("send_priv_key", "!{HADOOP_PREP}/!{PRIV_KEY_NAME}",
                                  src=find_file(pkn, "."),
@@ -138,6 +139,9 @@ class HadoopNodeConfig(ConfigModel):
                                                          search_root),
                                            backup=True)
     
+    #now express the dependencies between the tasks. each call to
+    #with_dependencies() is additive; the set dependencies are captured in
+    #the metadata for the class, and evaluated in total at the proper time
     with_dependencies(ping | (reset & add_hostname))
     
     with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop) | unpack |
