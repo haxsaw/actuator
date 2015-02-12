@@ -26,6 +26,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   5. [Config classes as tasks](#classtasks)
   6. [Reference selection expressions](#refselect)
 6. Execution Models (yet to come)
+7. [Orchestration](#orchestration)-- putting it all together
 
 ## <a name="intro">Intro</a>
 
@@ -105,10 +106,10 @@ Instances of the class (and hence the model) are then created, and the instance 
 from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 inst = SingleOpenstackServer("actuator_ex1")
 provisioner = OpenstackProvisioner(uid, pwd, uid, url)
-provisioner.provision_infra_spec(inst)
+provisioner.provision_infra_model(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_infra_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_infra_resources():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_resources():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -122,20 +123,20 @@ gateway_components = {"net":Network("actuator_ex1_net"),
 
 
 class SingleOpenstackServer(InfraModel):
-  with_infra_resources(**gateway_components)
+  with_resources(**gateway_components)
   server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
   fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
 ```
 
-With with_infra_resources(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
+With with_resources(), all the keys in the dictionary are established as attributes on the infra model class, and can be accessed just as if they were declared directly in the class. Since this is just standard keyword argument notation, you could also use a list of "name=value" expressions for the same effect.
 
 ### <a name="multi_resources">Multiple resources</a>
 If you require a set of identical resources to be created in a model, the MultiResource wrapper provides a way to declare a resource as a template and then to get as many copies of that template created as required:
 
 <a name="multiservers">&nbsp;</a>
 ```python
-from actuator import InfraSpec, MultiResource, ctxt, with_infra_resources
+from actuator import InfraModel, MultiResource, ctxt, with_resources
 from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
@@ -144,7 +145,7 @@ class MultipleServers(InfraModel):
   #
   #First, declare the common networking components with with_infra_components
   #
-  with_infra_resources(**gateway_components)
+  with_resources(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the workers. It will need a
@@ -178,7 +179,7 @@ Keys are always coerced to strings, and for each new instance of the MultiResour
 
 ```python
 >>> for w in inst2.workers.instances().values():
-...     print w.logicalName
+...     print w.name
 ...
 worker_1
 worker_0
@@ -198,7 +199,7 @@ gateway_component = ResourceGroup("gateway", net=Network("actuator_ex1_net"),
                                           "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
                               router=Router("actuator_ex1_router"),
                               gateway=RouterGateway("actuator_ex1_gateway", ctxt.comp.container.router,
-                                                    "external")
+                                                    "external"),
                               rinter=RouterInterface("actuator_ex1_rinter", ctxt.comp.container.router,
                                                      ctxt.comp.container.subnet))
 
@@ -212,7 +213,7 @@ class SingleOpenstackServer(InfraModel):
 
 The keyword args used in creating the ResourceGroup become the attributes of the instances of the group.
 
-If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. The following model only uses Servers in the template, but any resource (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
+If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. Any resource (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
 
 <a name="multigroups">&nbsp;</a>
 ```python
@@ -221,19 +222,19 @@ from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
                                                          FloatingIP, Router,
                                                          RouterGateway, RouterInterface)
 
-class MultipleGroups(InfraSpec):
+class MultipleGroups(InfraModel):
   #
   #First, declare the common networking resources
   #
-  with_infra_resources(**gateway_components)
+  with_resources(**gateway_components)
   #
   #now declare the "foreman"; this will be the only server the outside world can
   #reach, and it will pass off work requests to the leaders of clusters. It will need a
   #floating ip for the outside world to see it
   #
   foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
-  fip = FloatingIP("actuator_ex3_float", ctxt.model.server,
-                   ctxt.model.server.iface0.addr0, pool="external")
+  fip = FloatingIP("actuator_ex3_float", ctxt.model.foreman,
+                   ctxt.model.foreman.iface0.addr0, pool="external")
   #
   #finally, declare a "cluster"; a leader that coordinates the workers in the
   #cluster, which operate under the leader's direction
@@ -259,11 +260,11 @@ The keyword args used in creating the ResourceGroup become the attributes of the
 >>> len(inst3.cluster)
 3
 >>> inst3.cluster["ny"].leader.iface0.addr0
-<actuator.infra.InfraModelInstanceReference object at 0x02A51970>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df79f090>
 >>> inst3.cluster["ny"].workers[0]
-<actuator.infra.InfraModelInstanceReference object at 0x02A56170>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df79f250>
 >>> inst3.cluster["ny"].workers[0].iface0.addr0
-<actuator.infra.InfraModelInstanceReference object at 0x02A561B0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df79f290>
 >>> len(inst3.cluster["ny"].workers)
 1
 >>>
@@ -277,7 +278,7 @@ A few of the examples above have shown that accessing model attributes results i
 
 There are two different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between memebers is required in the middle of a model class definition, model references aren't yet available, and hence can't be used.
 
-The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference.
+The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference. Additionally, context expressions provide a way to express references that include keyed lookups into Multi* wrappers, but will defer the lookup until needed. These two attributes allow context expressions to be used in a number of ways that a direct model or instance reference can't.
 
 #### Model References
 
@@ -285,32 +286,34 @@ Once a model class has been defined, you can create expressions that refer to at
 
 ```python
 >>> SingleOpenstackServer.server
-<actuator.infra.ModelReference object at 0x0291CB70>
+<actuator.modeling.ModelReference object at 0x7fc9df779d10>
 >>> SingleOpenstackServer.server.iface0
-<actuator.infra.ModelReference object at 0x02920110>
+<actuator.modeling.ModelReference object at 0x7fc9df779cd0>
 >>> SingleOpenstackServer.server.iface0.addr0
-<actuator.infra.ModelReference object at 0x0298C110>
+<actuator.modeling.ModelReference object at 0x7fc9df779a10>
 >>>
 ```
 
 Likewise, you can create references to attributes on instances of the model class:
 ```python
 >>> inst.server
-<actuator.infra.ModelInstanceReference object at 0x0298C6B0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df7280d0>
 >>> inst.server.iface0
-<actuator.infra.ModelInstanceReference object at 0x0298C6D0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df728110>
 >>> inst.server.iface0.addr0
-<actuator.infra.ModelInstanceReference object at 0x0298CAD0>
+<actuator.modeling.ModelInstanceReference object at 0x7fc9df728150>
 >>>
 ```
 
-All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a resource or attribute of an infra model. _Model references_ are logical references into an infra model; there may not be an actual resource or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a  model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a resource or attribute of a model. _Model references_ are logical references into a model; there may not be an actual resource or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
 >>> inst = SingleOpenstackServer("refs")
 >>> modref = SingleOpenstackServer.server
 >>> instref = inst.server
+>>> modref is not instref
+True
 >>> instref is inst.get_inst_ref(modref)
 True
 >>>
@@ -343,7 +346,7 @@ Since model references are the means to make connections between models, we'll l
 There are circumstances where model references either aren't possible or can't get the job done. For example, take this fragment of the the [SingleOpenstackServer](#simple_openstack_example) infra model example from above:
 
 ```python
-class SingleOpenstackServer(InfraSpec):
+class SingleOpenstackServer(InfraModel):
   router = Router("actuator_ex1_router")
   gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
   rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
@@ -373,7 +376,10 @@ In a model class, the context is referred to by the global object *ctxt*, and th
 These _context expressions_ provide a way to define a reference to another part of the model that will be evaluated only when the reference is needed. Repeating the infra model fragment from above:
 
 ```python
-class SingleOpenstackServer(InfraSpec):
+class SingleOpenstackServer(InfraModel):
+  net = Network("actuator_ex1_net")
+  subnet = Subnet("actuator_ex1_subnet", ctxt.model.net, "192.168.23.0/24",
+                  dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex1_router")
   gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
   rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
@@ -394,7 +400,7 @@ We can use a context expression to create a reference to this IP using the ctxt 
 ctxt.model.server.iface.addr0
 ```
 
-As mentioned previously, context expressions provide a way to express model relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
+As mentioned previously, context expressions provide a way to express relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
 
 ## <a name="nsmodels">Namespace models</a>
 The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical roles of a system, relating these roles to the infrastructure elements where the roles are to execute, and providing the means to identify what configuration task is to be carried out for each role as well as what executables are involved with making the role function.
@@ -438,14 +444,13 @@ When an instance of the namespace is created, useful questions can be posed to t
 
 These operations look something like this:
 ```python
->>> sos = SingleOpenstackServer("sos")
 >>> ns = SOSNamespace()
->>> for r in ns.get_roles.values():
+>>> for r in ns.get_roles().values():
 ...     print "Role: %s, Vars:" % r.name
 ...     for v in r.get_visible_vars().values():
-...             value = v.get_value(c)
+...             value = v.get_value(r)
 ...
-...             print "%s=%s" % (v.name, value if Value is not None else "<UNRESOLVED>")
+...             print "%s=%s" % (v.name, value if value is not None else "<UNRESOLVED>")
 ...
 Role: compute_server, Vars:
 COMP_SERVER_HOST=<UNRESOLVED>
@@ -458,15 +463,10 @@ COMP_SERVER_HOST=<UNRESOLVED>
 COMP_SERVER_PORT=8081
 APP_SERVER_PORT=8080
 EXTERNAL_APP_SERVER_IP=<UNRESOLVED>
+>>> sos = SingleOpenstackServer("sos")
 >>> provisionables = ns.compute_provisioning_for_environ(sos)
 >>> provisionables
-set([<actuator.provisioners.openstack.resources.Router object at 0x026EC070>,<actuator.p
-rovisioners.openstack.resources.Subnet object at 0x026E5E90>, <actuator.provisioners.ope
-nstack.resources.Network object at 0x026EC0D0>, <actuator.provisioners.openstack.resourc
-es.FloatingIP object at 0x026E5EF0>, <actuator.provisioners.openstack.resources.RouterG
-ateway object at 0x026EC130>, <actuator.provisioners.openstack.resources.Server object a
-t 0x026E5F50>, <actuator.provisioners.openstack.resources.RouterInterface object at 0x02
-6E5FF0>])
+set([<actuator.provisioners.openstack.resources.RouterGateway object at 0x7fc9df72e610>, <actuator.provisioners.openstack.resources.Server object at 0x7fc9df72e450>, <actuator.provisioners.openstack.resources.FloatingIP object at 0x7fc9df72e090>, <actuator.provisioners.openstack.resources.Router object at 0x7fc9df72e6d0>, <actuator.provisioners.openstack.resources.RouterInterface object at 0x7fc9df72e510>, <actuator.provisioners.openstack.resources.Subnet object at 0x7fc9df72e490>, <actuator.provisioners.openstack.resources.Network object at 0x7fc9df72e590>])
 >>> 
 ```
 
@@ -643,7 +643,7 @@ if not os.path.isabs(actuator_path):
   
 class SimpleConfig(ConfigModel):
   cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
-                        task_role=SimipleNamespace.copy_target)
+                        task_role=SimpleNamespace.copy_target)
   copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
                       task_role=SimpleNamespace.copy_target)
 ```
@@ -680,7 +680,7 @@ if not os.path.isabs(actuator_path):
   
 class SimpleConfig(ConfigModel):
   cleanup = CommandTask("clean", "/bin/rm -f !{PKG}", chdir="!{DEST}",
-                        task_role=SimipleNamespace.copy_target)
+                        task_role=SimpleNamespace.copy_target)
   copy = CopyFileTask("copy-file", "!{DEST}", src=actuator_path,
                       task_role=SimpleNamespace.copy_target)
   #NOTE: this call must be within the config model, not after it!
@@ -750,7 +750,7 @@ class GridNamespace(NamespaceModel):
 class GridConfig(ConfigModel):
   reset = MultiTask("reset", CommandTask("remove", "/bin/rm -rf /some/path/*"),
                     GridNamespace.q.grid.all())
-  copy = MultiTask("copy", CopyFileTask("copy-tarball', '/some/path/software.tgz',
+  copy = MultiTask("copy", CopyFileTask("copy-tarball", '/some/path/software.tgz',
                                         src='/some/local/path/software.tgz'),
                    GridNamespace.q.grid.all())
   with_dependencies(reset | copy)
@@ -785,7 +785,7 @@ class GridNamespace(NamespaceModel):
 #Notice that there is no mention of a 'task_role' within this model
 class NodeConfig(ConfigModel):
   reset = CommandTask("remove", "/bin/rm -rf /some/path/*")
-  copy = CopyFileTask("copy-tarball', '/some/path/software.tgz',
+  copy = CopyFileTask("copy-tarball", '/some/path/software.tgz',
                       src='/some/local/path/software.tgz')
   with_dependencies(reset | copy)
   
@@ -871,3 +871,54 @@ The following tests are available to filter out unwanted references:
 - *no_match(regex_string)* only selects items whose key doesn't match the supplied regex string
 - *pred(callable)* only selects items for which the supplied callable returns True. The callable is supplied with one argument, the key of the item it to determine if it should be included.
 
+## <a name="orchestration">Orchestration</a>
+Orchestration brings all of the models together and manages their processing in order to provision, configure and execute an instance of the system being modeled. Orchestration is flexible in that it can only do part of the job if that's requied; for instance, if you only need to have infra provisioned you can simply supply the infra model and let the orchestrator handle that, or alternatively if you have a namespace that's populated with fixed IP/hostnames for host_ref values for all Roles, you can have the orchestrator manage just the configuration tasks against the set of hosts in the namespace model. This allows you to use the orchestrator in variety of circumstances, such as config model development or provisioning of infra for other purposes, as well as standing up whole systems.
+
+The orchestrator is an instance of `actuator.ActuatorOrchestration` to handle processing the models. You give it a number of different models as keyword arguments as well as a provisioner for the infra model, and then ask it to 'initiate' the system the models represent.
+
+To make this clearer, here's an example of the usage of the orchestrator. The example borrows from a more fully developed example in the Actuator project, the set of models that describe how to stand up a Hadoop cluster (see [src/examples/hadoop](src/examples/hadoop) for more details). The models include an infra model (HadoopInfra), a namespace model (HadoopNamespace), and a config model (HadoopConfig). With these models, and some credential information to log into Openstack, the orchestrator can be created as follows:
+
+```python
+from actuator import ActuatorOrchestration
+from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+from hadoop_models import HadoopInfra, HadoopNamespace, HadoopConfig
+
+# assume you have the Openstack user name (user_id), password (pwd), tenant (tenant),
+# auth url (url), number of slaves (num_slaves) for your cluster, and the number
+# of worker threads that should be started for provisioning and config tasks
+# (thread_count)
+
+# make your model instances
+infra = HadoopInfra("hadoop_infra")
+ns = HadoopNamespace()
+cfg = HadoopConfig(remote_user="ubuntu",   #replace with remote user
+                   private_key_file="actuator-dev-key")   #replace with priv key filename
+                   
+# create the slaves you need
+for i in range(num_slaves):
+  _ = ns.slaves[i]
+
+# make your provisioner
+os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=thread_count)
+  
+# make your orchestrator and run it
+ao = ActuatorOrchestration(infra_model_inst=infra,
+                           provisioner=os_prov,
+                           namespace_model_inst=ns,
+                           config_model_inst=cfg)
+ao.initiate_system()
+```
+
+As orchestration runs, you'll get a stream of output written to stdout by default that informs you of the tasks being performed throughout the orchestration run. If `initiate_system()` returns True, then orchestration ran successfully. If not, then you'll receive the abort messages and associated stack traces for each failed task.
+
+Once orchestration completes, the models and the orchestrator can be inspected to see the information that was gathered for all operations carried out. For example, you can see the IPs of the hosts provisioned for the above run by doing the following:
+
+```python
+print "\n...done! You can reach the reach the assets at the following IPs:"
+print ">>>namenode: %s" % infra.name_node_fip.get_ip()
+print ">>>slaves:"
+for s in infra.slaves.values():
+    print "\t%s" % s.slave_fip.get_ip()
+```
+
+This will show you the IPs for the provisioned resouprces. You can also inspect the model resources to determine the Openstack IDs for all provisioned resources. Likewise, the namespace can be inspected for any values determined by provisioning.
