@@ -10,4 +10,6 @@ If you DON'T want to test Ansible integration, you can just run the
 do_quick_tests.bsh script, and the Ansible tests will be skipped. Alternatively,
 you can modify the user/keyfile used in the tests so you don't need to add a
 lxle1 user.
- 
+
+Make sure that the private key has permissions of 600 or else you'll get
+failures on anything working with Ansible.
