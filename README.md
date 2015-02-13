@@ -4,14 +4,17 @@ Actuator
 Actuator allows you to use Python to declaratively describe system infra, configuration, and execution requirements, and then provision them in the cloud.
 
 1. [Intro](#intro)
-2. [Requirements](#requirements)
+2. [Installing](#installing)
+  1. [Basic](#basic)
+  2. [IDE install](#ide)
+3. [Requirements](#requirements)
   1. [Python version](#python)
   2. [Core packages](#core)
-3. [Tutorial](#tutorial)
-4. [Documentation](#docs)
-5. [Hadoop Example](#hadoop)
-4. Roadmap (yet to come)
-5. [Acknowledgements](#hattips)
+4. [Tutorial](#tutorial)
+5. [Documentation](#docs)
+6. [Hadoop Example](#hadoop)
+7. Roadmap (yet to come)
+8. [Acknowledgements](#hattips)
 
 ## <a name="intro">Intro</a>
 **Current status**
@@ -33,6 +36,51 @@ And while each model provides capabilties on their own, they can be inter-relate
 Actuator uses a Python *class* as the basis for defining a model, and the class serves as a logical description of the item being modeled; for instance a collection of infrastructure components for a system. These model classes can have both static and dynamic aspects, and can themselves be easily created within a factory function to make the classes' content highly variable.
 
 Actuator models can be related to each other so that their structure and data can inform and sometimes drive the content of other models.
+
+## <a name="installing">Installing</a>
+### <a name="basic">Basic</a>
+The best way to try Actuator out is to create a virtual Python environment with [virtualenv](https://pypi.python.org/pypi/virtualenv) and then use pip to install Actuator into it (virtualenv will take care of installing pip for you). After you fetch virtualenv and install it into your global Python 2.7, you can create an "Actuator test" (at) environment under your home directory with the following command:
+
+```
+~/tmp$ virtualenv --no-site-packages ~/at
+```
+
+You then need to activate the environment to work in it; do that with the following shell command:
+
+```
+~/tmp$ source ~/at/bin/activate
+```
+
+This will change your shell command prompt to now be prepended with the name of your virtual environment, in this case '(at)'. Clone the Actuator project and cd into the project root (where the setup.py file is). There, run the following pip command to install Actuator into your virtual environment:
+
+```
+(at)~/tmp/actuator/$ pip install .
+```
+
+Now, while in your virtual environment, you can start Python and import Actuator:
+
+```
+(at)~/tmp/actuator$ python
+Python 2.7.6 (default, Mar 22 2014, 22:59:56) 
+[GCC 4.8.2] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from actuator import *
+>>> 
+```
+
+When you're done playing around with Actuator, remember to deactivate your virtual env:
+
+```
+(at)~/tmp/actuator$ deactivate
+~/tmp/actuator$
+```
+
+### <a name="ide">IDE install</a>
+To get the full value of Actuator, you'll want to use it from an IDE. Once you have a virtual environment set up, most IDEs provide a way add additional Python interpreters to choose from when you start a project. You can add the interpreter from the virtual environment created above, and the IDE will then know all about Actuator.
+
+The details vary from IDE to IDE, but there's lots of help on the web for this process. For instance, here are directions for adding interpreters to Eclipse using the PyDev plugin:
+
+[http://pydev.org/manual_101_interpreter.html](http://pydev.org/manual_101_interpreter.html)
 
 ## <a name="requirements">Requirements</a>
 ###<a name="python">Python version</a>
