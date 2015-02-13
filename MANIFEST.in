@@ -1,0 +1,14 @@
+include doc/*.txt
+include doc/html/*
+include src/examples/*
+include src/examples/hadoop/*
+include src/examples/hadoop/hadoop-1.2.1-templates/conf/*
+exclude src/examples/.gitignore
+include src/tests/*
+exclude src/tests/.gitignore
+include src/*.bsh
+include LICENSE
+include CONTRIBUTING.md
+include README*
+include Tutorial.*
+include make_docs.bsh

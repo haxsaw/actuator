@@ -45,11 +45,11 @@ Actuator requires the following packages:
 
   - [networkx](https://pypi.python.org/pypi/networkx), 1.9 minimum
   - [ipaddress](https://pypi.python.org/pypi/ipaddress), 1.0.4 minimum
-  - [fake-factory](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
+  - [fake_factory](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
   - [ansible](https://pypi.python.org/pypi/ansible/1.7.2), 1.7.2 minimum. Currently required for configuration tasks, but other config systems will be supported in the future
   - [subprocess32](https://pypi.python.org/pypi/subprocess32), 3.2.6 minimum. MUST BE IMPORTED BEFORE ANY ANSIBLE MODULES
-  - [python-novaclient](https://pypi.python.org/pypi/python-novaclient), 2.18.1 minimum (for Openstack)
-  - [python-neutronclient](https://pypi.python.org/pypi/python-neutronclient), 2.3.7 minimum (for Openstack)
+  - [python_novaclient](https://pypi.python.org/pypi/python-novaclient), 2.18.1 minimum (for Openstack)
+  - [python_neutronclient](https://pypi.python.org/pypi/python-neutronclient), 2.3.7 minimum (for Openstack)
   - [nose](https://pypi.python.org/pypi/nose), 1.3.4 minimum, for testing
   - [coverage](https://pypi.python.org/pypi/coverage), 3.7.1 minimum, for testing
   - [epydoc](https://pypi.python.org/pypi/epydoc), 3.0.1 minimum, documentation generation

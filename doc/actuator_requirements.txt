@@ -1,14 +1,14 @@
 
 packages used:
-python-novaclient
-python-neutronclient
+python_novaclient
+python_neutronclient
 ipaddress
 networkx
 ansible
 subprocess32
 
 Testing support packages:
-fake-factory (Faker)
+fake_factory (Faker)
 nose
 coverage
 

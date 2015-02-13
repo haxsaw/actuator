@@ -18,11 +18,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from IPython.lib.deepreload import add_submodule
-from actuator.modeling import AbstractModelReference
 
 '''
-Created on Oct 20, 2014
+Base classes for bindings to execution agents.
 '''
 import Queue
 import threading
@@ -33,6 +31,7 @@ import random
 
 from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
 from actuator.utils import LOG_INFO, root_logger
+from actuator.modeling import AbstractModelReference
 
 
 class ExecutionException(ActuatorException):

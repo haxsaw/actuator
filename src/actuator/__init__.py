@@ -72,6 +72,8 @@ from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
 from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, root_logger)
 
 
+__version__ = "0.2.a1"
+
 class ActuatorOrchestration(object):
     """
     Processes Actuator models to stand up the system being model (initiate a system).
