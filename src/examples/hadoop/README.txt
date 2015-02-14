@@ -19,6 +19,8 @@ You should also review all tasks in the config models to ensure that none are
 contraindicated in your situation.
 
 SSH keys:
+Make sure the permissions on the private key (actuator-dev-key) are 600!
+
 The example uses an SSH key with the root name of "actuator-dev-key". This is
 the name of the public key on Openstack (and the lookup for the key is done by
 name), as well as the name of the private key that SSH will use to log into
