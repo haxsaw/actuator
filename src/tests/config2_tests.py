@@ -57,7 +57,7 @@ external_connection = ResourceGroup("route_out",
                                                                ctxt.comp.container.router,
                                                                ctxt.comp.container.subnet))
 
-std_secgroup = ResourceGroup("std_secgroup",
+make_std_secgroup = ResourceGroup("make_std_secgroup",
                               group=SecGroup("group", "standard security group"),
                               ping_rule=SecGroupRule("ping_rule",
                                                      ctxt.comp.container.group,
@@ -84,14 +84,14 @@ def test001():
         fip_pool = "external"
         #add the standard secgroup and connectivity components
         gateway = external_connection
-        secgroup = std_secgroup
+        slave_secgroup = make_std_secgroup
         
         #HADOOP slaves
         slaves = MultiResourceGroup("slaves",
                                      slave=Server("slave", ubuntu_img,
                                                   "m1.small",
                                                   nics=[ctxt.model.gateway.net],
-                                                  security_groups=[ctxt.model.secgroup.group],
+                                                  security_groups=[ctxt.model.slave_secgroup.group],
                                                   **common_kwargs),
                                      slave_fip=FloatingIP("sn_fip",
                                                           ctxt.comp.container.slave,
