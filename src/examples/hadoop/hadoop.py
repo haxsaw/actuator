@@ -137,7 +137,7 @@ def host_list(ctx_exp, sep_char=" "):
 class HadoopNamespace(NamespaceModel):
     with_variables(*common_vars)
     with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)),
-                   Var("NAMENODE_IP", HadoopInfra.name_node_fip.ip),
+                   Var("NAMENODE_IP", HadoopInfra.name_node.iface0.addr0),
                    Var("NAMENODE_PORT", HadoopInfra.namenode_rule.to_port),
                    Var("JOBTRACKER_PORT", HadoopInfra.jobtracker_rule.to_port))
     

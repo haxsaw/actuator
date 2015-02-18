@@ -94,9 +94,10 @@ class HadoopNodeConfig(ConfigModel):
     make_transactions = CommandTask("make_transactions", "/bin/mkdir -p !{HADOOP_DATA_XACTION}",
                                     creates="!{HADOOP_DATA_XACTION}",
                                     repeat_count=3)
-    make_block_home = CommandTask("make_block_home", "/bin/mkdir -p !{HADOOP_DATA_BLOCKS}",
-                                  creates="!{HADOOP_DATA_BLOCKS}",
-                                  repeat_count=3)
+    make_block_home = ShellTask("make_block_home",
+                                "/bin/mkdir -p !{HADOOP_DATA_BLOCKS}; /bin/chmod 755 !{HADOOP_DATA_BLOCKS}",
+                                creates="!{HADOOP_DATA_BLOCKS}",
+                                repeat_count=3)
     make_tracker_home = CommandTask("make_tracker_home", "/bin/mkdir -p !{HADOOP_TRACKER_HOME}",
                                     creates="!{HADOOP_TRACKER_HOME}",
                                     repeat_count=3)
