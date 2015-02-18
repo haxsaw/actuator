@@ -14,7 +14,8 @@ Actuator allows you to use Python to declaratively describe system infra, config
 5. [Documentation](#docs)
 6. [Hadoop Example](#hadoop)
 7. Roadmap (yet to come)
-8. [Acknowledgements](#hattips)
+8. [Contact](#contact)
+9. [Acknowledgements](#hattips)
 
 ## <a name="intro">Intro</a>
 **Current status**
@@ -112,6 +113,9 @@ Currently, the only supplemental documentation are the epydoc-generated docs, th
 ## <a name="hadoop">Hadoop Example</a>
 A more significant example of Actuator's use can be found in the examples directory. It is a set of models that describe setting up a Hadoop cluster with an arbitrary number of slave nodes. You can see the readme and associated example files
 [here](src/examples/hadoop).
+
+## <a name="contact">Contact</a>
+You can write to me with questions at actuaor@pobox.com.
 
 ## <a name="hattips">Acknowledgements</a>
 The following projects and people have provided inspiration, ideas, or approaches that are used in Actuator.
