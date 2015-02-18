@@ -36,7 +36,6 @@ common_vars = [Var("USER", "ubuntu"),
                Var("HADOOP_URL",
                    "http://mirror.ox.ac.uk/sites/rsync.apache.org/hadoop/"
                    "common/!{HADOOP_VER}/!{HADOOP_TARBALL}", in_env=False),
-#                Var("HADOOP_PREP", "!{BASE}/hadoop_!{COMP_NAME}", in_env=False),
                Var("HADOOP_PREP", "!{BASE}/hadoop", in_env=False),
                Var("HADOOP_DATA_HOME", "!{HADOOP_PREP}/data", in_env=False),
                Var("HADOOP_DATA_XACTION", "!{HADOOP_DATA_HOME}/xaction", in_env=False),
