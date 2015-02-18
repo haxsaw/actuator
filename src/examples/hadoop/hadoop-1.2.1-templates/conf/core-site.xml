@@ -19,7 +19,7 @@
 <configuration>
     <property>
         <name>fs.default.name</name>
-        <value>hdfs://!{NAMENODE_IP}/</value>
+        <value>hdfs://!{NAMENODE_IP}:!{NAMENODE_PORT}/</value>
         <final>true</final>
     </property>
 </configuration>

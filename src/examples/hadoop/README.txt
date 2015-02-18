@@ -1,5 +1,14 @@
 Hadoop 1.2.1 cluster model
 ==========================
+IMPORTANT:
+
+If you want to try running this with the keys provided, be sure to "chmod 600"
+the "actuator-dev-key*" files first.
+
+Also, if you want to base your provisioning of Hadoop on this example, be sure
+to change the values of the keys if your instance will be in a public cloud!
+
+=====================
 
 This is an Actuator example that illustrates the use of Actuator in modeling a
 Hadoop cluster of arbitrary size. While it doesn't configure every last corner

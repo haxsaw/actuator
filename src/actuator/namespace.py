@@ -135,7 +135,7 @@ class _ComputableValue(_ModelRefSetAcquireable):
             else:
                 history.add(name)
                 value = "".join([leader,
-                                 var.get_raw_value()._expand(context, history, allow_unexpanded),
+                                 str(var.get_raw_value()._expand(context, history, allow_unexpanded)),
                                  trailer])
                 history.remove(name)
             m = self._replacement_pattern.search(value)

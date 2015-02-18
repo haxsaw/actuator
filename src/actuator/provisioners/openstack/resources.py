@@ -391,7 +391,7 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
         """
         super(SecGroupRule, self).__init__(name)
         self._secgroup = secgroup
-        self.secgroup = None
+        self.slave_secgroup = None
         self._ip_protocol = ip_protocol
         self.ip_protocol = None
         self._from_port = from_port
@@ -409,7 +409,7 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
                  "cidr":self._cidr})
     
     def _fix_arguments(self, provisioner=None):
-        self.secgroup = self._get_arg_value(self._secgroup)
+        self.slave_secgroup = self._get_arg_value(self._secgroup)
         self.ip_protocol = self._get_arg_value(self._ip_protocol)
         self.from_port = self._get_arg_value(self._from_port)
         self.to_port = self._get_arg_value(self._to_port)

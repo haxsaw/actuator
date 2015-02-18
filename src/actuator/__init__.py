@@ -285,7 +285,9 @@ class ActuatorOrchestration(object):
                     self.logger.critical("Task %s named %s id %s" %
                                          (t.__class__.__name__, t.name, str(t._id)),
                                          exc_info=(et, ev, tb))
-                    self.logger.critical("Response: %s" % ev.response)
+                    self.logger.critical("Response: %s" % ev.response
+                                         if hasattr(ev, "response")
+                                         else "NO RESPONSE")
                     self.logger.critical("")
                 self.logger.critical("Aborting orchestration")
                 return False

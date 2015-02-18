@@ -29,14 +29,15 @@ pkn = "actuator-dev-key"
 
 common_vars = [Var("USER", "ubuntu"),
                Var("BASE", "/home/!{USER}/tmp", in_env=False),
-               
+               Var("TEMP_PUB_KEY", "!{BASE}/tpk"),
                Var("COMP_NAME", ctxt.name, in_env=False),
                Var("HADOOP_VER", hadoop_ver, in_env=False),
                Var("HADOOP_TARBALL", "!{HADOOP_VER}.tar.gz", in_env=False),
                Var("HADOOP_URL",
                    "http://mirror.ox.ac.uk/sites/rsync.apache.org/hadoop/"
                    "common/!{HADOOP_VER}/!{HADOOP_TARBALL}", in_env=False),
-               Var("HADOOP_PREP", "!{BASE}/hadoop_!{COMP_NAME}", in_env=False),
+#                Var("HADOOP_PREP", "!{BASE}/hadoop_!{COMP_NAME}", in_env=False),
+               Var("HADOOP_PREP", "!{BASE}/hadoop", in_env=False),
                Var("HADOOP_DATA_HOME", "!{HADOOP_PREP}/data", in_env=False),
                Var("HADOOP_DATA_XACTION", "!{HADOOP_DATA_HOME}/xaction", in_env=False),
                Var("HADOOP_DATA_BLOCKS", "!{HADOOP_DATA_HOME}/blocks", in_env=False),
@@ -57,8 +58,8 @@ common_vars = [Var("USER", "ubuntu"),
                #the value of the webport should ultimately come from the
                #infra model which will be setting up the security group rule
                #that explains how to reach the web server
-               Var("HADOOP_WEBPORT", "50031"),
-               Var("JOBTRACKER_PORT", "8020"),
+               Var("NAMENODE_PORT", "50071"),
+               Var("JOBTRACKER_PORT", "50031"),
                Var("PRIV_KEY_NAME", pkn)]
 
 
@@ -93,9 +94,10 @@ class HadoopNodeConfig(ConfigModel):
     make_transactions = CommandTask("make_transactions", "/bin/mkdir -p !{HADOOP_DATA_XACTION}",
                                     creates="!{HADOOP_DATA_XACTION}",
                                     repeat_count=3)
-    make_block_home = CommandTask("make_block_home", "/bin/mkdir -p !{HADOOP_DATA_BLOCKS}",
-                                  creates="!{HADOOP_DATA_BLOCKS}",
-                                  repeat_count=3)
+    make_block_home = ShellTask("make_block_home",
+                                "/bin/mkdir -p !{HADOOP_DATA_BLOCKS}; /bin/chmod 755 !{HADOOP_DATA_BLOCKS}",
+                                creates="!{HADOOP_DATA_BLOCKS}",
+                                repeat_count=3)
     make_tracker_home = CommandTask("make_tracker_home", "/bin/mkdir -p !{HADOOP_TRACKER_HOME}",
                                     creates="!{HADOOP_TRACKER_HOME}",
                                     repeat_count=3)
@@ -115,6 +117,14 @@ class HadoopNodeConfig(ConfigModel):
                              "/usr/bin/sudo -h localhost /bin/bash -c "
                              "'/bin/echo 127.0.1.1 `/bin/hostname` >> /etc/hosts'",
                              repeat_count=3)
+    copy_public_key = CopyFileTask("copy_public_key",
+                                   "!{TEMP_PUB_KEY}",
+                                   src=find_file("%s.pub" % pkn, "."),
+                                   repeat_count=3)
+    append_public_key = ShellTask("append_public_key",
+                                  "cat !{TEMP_PUB_KEY} >> ~/.ssh/authorized_keys; rm !{TEMP_PUB_KEY}",
+                                  repeat_count=3)
+                                   
     #template processing tasks
     #compute the template search root from the current directory
     search_root = os.path.join(os.getcwd(),
@@ -144,8 +154,9 @@ class HadoopNodeConfig(ConfigModel):
     #the metadata for the class, and evaluated in total at the proper time
     with_dependencies(ping | (reset & add_hostname))
     
-    with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop) | unpack |
-                      (send_env & send_core_site & send_hdfs_site &
+    with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop &
+                                           copy_public_key & append_public_key) |
+                      unpack | (send_env & send_core_site & send_hdfs_site &
                        send_mapred_site))
     
     with_dependencies(add_hostname | update | jdk_install)

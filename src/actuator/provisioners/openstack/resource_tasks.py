@@ -27,6 +27,7 @@ import threading
 import uuid
 import string
 import logging
+import threading
 
 from actuator.namespace import NamespaceModel
 from actuator.provisioners.openstack import openstack_class_factory as ocf
@@ -131,9 +132,23 @@ class ProvisionSubnetTask(_ProvisioningTask):
 @capture_mapping(_rt_domain, SecGroup)
 class ProvisionSecGroupTask(_ProvisioningTask):
     "depends on nothing"
+    #@FIXME: this lock and its use are due to an apparent thread-safety issue
+    #down in the novaclient. It would seem that even if there are different
+    #client objects being used in different threads to build security groups,
+    #nova has some shared state that gets hosed and causes one or the other to
+    #fail if they're happening at the same time. For now, this lock will ensure
+    #single-threaded operation of this trouble code, and hopefully we can get
+    #a bug filed and the problem resolved soon.
+    _sg_create_lock = threading.Lock()
     def _provision(self, run_context):
-        response = run_context.nvclient.security_groups.create(name=self.rsrc.name,
-                                                               description=self.rsrc.description)
+        try:
+            #@FIXME: this lock is because nova isn't threadsafe for this
+            #call, and until it is we have to single-thread through it
+            self._sg_create_lock.acquire()
+            response = run_context.nvclient.security_groups.create(name=self.rsrc.name,
+                                                                   description=self.rsrc.description)
+        finally:
+            self._sg_create_lock.release()
         self.rsrc.set_osid(response.id)
         run_context.record.add_secgroup_id(self.rsrc._id, self.rsrc.osid)
 
@@ -141,12 +156,12 @@ class ProvisionSecGroupTask(_ProvisioningTask):
 @capture_mapping(_rt_domain, SecGroupRule)
 class ProvisionSecGroupRuleTask(_ProvisioningTask):
     def depends_on_list(self):
-        return ([self.rsrc.secgroup]
-                if isinstance(self.rsrc.secgroup, SecGroup)
+        return ([self.rsrc.slave_secgroup]
+                if isinstance(self.rsrc.slave_secgroup, SecGroup)
                 else [])
         
     def _provision(self, run_context):
-        response = run_context.nvclient.security_group_rules.create(self.rsrc._get_arg_msg_value(self.rsrc.secgroup,
+        response = run_context.nvclient.security_group_rules.create(self.rsrc._get_arg_msg_value(self.rsrc.slave_secgroup,
                                                                                                  SecGroup,
                                                                                                  "osid", "secgroup"),
                                                                     ip_protocol=self.rsrc.ip_protocol,

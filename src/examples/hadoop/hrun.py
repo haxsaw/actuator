@@ -48,8 +48,7 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
     ns = HadoopNamespace()
     cfg = HadoopConfig(remote_user="ubuntu",
                        private_key_file="actuator-dev-key")
-    for i in range(num_slaves):
-        _ = ns.slaves[i]
+    ns.create_slaves(num_slaves)
         
     os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5)
     ao = ActuatorOrchestration(infra_model_inst=infra,
