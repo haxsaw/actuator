@@ -16,7 +16,8 @@ them in the cloud.
 9.  Documentation  
 10. Hadoop Example  
 11. Roadmap (yet to come)  
-12. Acknowledgements
+12. Contact  
+13. Acknowledgements
 
 Intro
 -----
@@ -175,6 +176,11 @@ examples directory. It is a set of models that describe setting up a
 Hadoop cluster with an arbitrary number of slave nodes. You can see the
 readme and associated example files  
 here.
+
+Contact
+-------
+
+You can write to me with questions at actuaor@pobox.com.
 
 Acknowledgements
 ----------------
