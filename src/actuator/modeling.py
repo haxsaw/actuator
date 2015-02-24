@@ -1047,11 +1047,11 @@ class ModelBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
     def __new__(cls, name, bases, attr_dict):
-        resources = {}
+        components = {}
         for n, v in attr_dict.items():
             if isinstance(v, AbstractModelingEntity):
-                resources[n] = v
-        attr_dict[cls._COMPONENTS] = resources
+                components[n] = v
+        attr_dict[cls._COMPONENTS] = components
         newbie = super(ModelBaseMeta, cls).__new__(cls, name, bases, attr_dict)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
