@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from distutils.dir_util import mkpath
 
 '''
 Created on 25 Aug 2014
@@ -46,6 +47,14 @@ class CreateAndList(Create):
     def list(self):
         return self.list_result()
     
+class CreateListDelete(CreateAndList):
+    def __init__(self, get_result, list_result, delete_result):
+        super(CreateListDelete, self).__init__(get_result, list_result)
+        self.delete_result = delete_result
+        
+    def delete(self, key):
+        return
+    
     
 class FakeOSServer(object):
     addresses = {"eth0":[{"addr":"127.0.0.1"}]}
@@ -57,6 +66,12 @@ class ServerCreate(Create):
     def get(self, server_id):
         return FakeOSServer()
     
+
+class MockKeypair(object):
+    def __init__(self, name, public_key=None):
+        self.name = self.id = name
+        self.public_key = public_key
+
 
 class MockNovaClient(object):
     def __init__(self, version, username, password, tenant_name, auth_url):
@@ -72,6 +87,28 @@ class MockNovaClient(object):
         self.security_groups = CreateAndList(self.secgroup_create_result, self.secgroup_list_result)
         self.networks = CreateAndList(None, self.network_list_result)
         self.security_group_rules = Create(self.secgroup_rule_create_result)
+        self.keypairs = CreateListDelete(self.keypair_create_result,
+                                         self.keypair_list_result,
+                                         self.keypair_delete_result)
+        
+    _keypairs_dict = {n:MockKeypair(n, "startingkey") for n in [u"actuator-dev-key",
+                                                                u"test-key"]}
+    
+    def keypair_list_result(self):
+        return self._keypairs_dict.values()
+    
+    def keypair_create_result(self, name, public_key=None):
+        mkp = MockKeypair(name, public_key=public_key)
+        self._keypairs_dict[name] = mkp
+        return mkp
+    
+    def keypair_delete_result(self, key):
+        lookup = key.name if isinstance(key, self.MockKeypair) else key
+        try:
+            del self._keypairs_dict[lookup]
+        except KeyError, _:
+            pass
+        return
         
     class ImageResult(object):
         def __init__(self, name):

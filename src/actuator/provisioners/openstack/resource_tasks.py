@@ -179,7 +179,10 @@ class ProvisionServerTask(_ProvisioningTask):
         return ([i for i in self.rsrc.security_groups
                 if isinstance(i, SecGroup)] +
                 [j for j in self.rsrc.nics
-                 if isinstance(j, Network)])
+                 if isinstance(j, Network)] +
+                ([self.rsrc.key_name]
+                 if isinstance(self.rsrc.key_name, KeyPair)
+                 else []))
 
     def  _process_server_addresses(self, addr_dict):
         self.rsrc.set_addresses(addr_dict)
@@ -225,6 +228,9 @@ class ProvisionServerTask(_ProvisioningTask):
                                                record=run_context.record)
                 nics_list.append({'net-id':nic.id})
             kwargs['nics'] = nics_list
+            
+        if isinstance(kwargs["key_name"], KeyPair):
+            kwargs = kwargs["key_name"].get_key_name()
             
         srvr = run_context.nvclient.servers.create(name, image, flavor, **kwargs)
         self.rsrc.set_osid(srvr.id)
@@ -299,6 +305,33 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
             server = run_context.nvclient.servers.get(servername)
             run_context.nvclient.servers.add_floating_ip(server, fip, associated_ip)
             
+            
+@capture_mapping(_rt_domain, KeyPair)
+class ProvisionKeyPairTask(_ProvisioningTask):
+    "KeyPairs depend on nothing"
+    def _provision(self, run_context):
+        name = self.rsrc.get_key_name()
+        if self.rsrc.pub_key_file is not None:
+            try:
+                public_key = open(self.rsrc.pub_key_file, "r").read()
+            except Exception, e:
+                raise ProvisionerException("Couldn't open/read the public key file %s "
+                                           "for KeyPair %s; %s" % (self.rsrc.pub_key_file,
+                                                                   self.rsrc.name,
+                                                                   e.message))
+        else:
+            public_key = self.rsrc.pub_key
+        run_context.maps.refresh_keypairs()
+        kp = run_context.maps.keypair_map.get(name)
+        if kp is not None:
+            if self.rsrc.force:
+                run_context.nvclient.keypairs.delete(name)
+                run_context.nvclient.keypairs.create(name, public_key=public_key)
+        else:
+            run_context.nvclient.keypairs.create(name, public_key=public_key)
+                
+        
+
             
 class OpenstackCredentials(object):
     def __init__(self, username, password, tenant_name, auth_url):

@@ -44,6 +44,7 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
         self.secgroup_rule_ids = dict()
         self.server_ids = dict()
         self.port_ids = dict()
+        #keypairs are deliberately left out for now
         
     def __getstate__(self):
         d = super(OpenstackProvisioningRecord, self).__getstate__()
@@ -161,6 +162,7 @@ class _OSMaps(object):
         self.secgroup_rule_map = {}
         self.router_map = {}
         self.subnet_map = {}
+        self.keypair_map = {}
         
     def refresh_all(self):
         """
@@ -172,6 +174,15 @@ class _OSMaps(object):
         self.refresh_secgroups()
         self.refresh_routers()
         self.refresh_subnets()
+        self.refresh_keypairs()
+        
+    def refresh_keypairs(self):
+        """
+        Refresh the keypairs map, keypair_map.
+        Keys are the keypair name, values are nova Keypair values.
+        """
+        response = self.os_provisioner.nvclient.keypairs.list()
+        self.keypair_map = {kp.name:kp for kp in response}
         
     def refresh_subnets(self):
         """

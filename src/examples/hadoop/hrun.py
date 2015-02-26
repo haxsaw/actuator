@@ -55,8 +55,8 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
                                provisioner=os_prov,
                                namespace_model_inst=ns,
                                config_model_inst=cfg)
-    ao.initiate_system()
-    return infra, ns, cfg
+    success = ao.initiate_system()
+    return success, infra, ns, cfg
     
 
 if __name__ == "__main__":
@@ -85,10 +85,14 @@ if __name__ == "__main__":
     tenant = os.environ.get(tenant_env, user_env)
     url = os.environ.get(auth_env)
     
-    infra, ns, cfg = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
-    print "\n...done! You can reach the reach the assets at the following IPs:"
-    print ">>>namenode: %s" % infra.name_node_fip.get_ip()
-    print ">>>slaves:"
-    for s in infra.slaves.values():
-        print "\t%s" % s.slave_fip.get_ip()
+    success, infra, ns, cfg = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
+    if success:
+        print "\n...done! You can reach the reach the assets at the following IPs:"
+        print ">>>namenode: %s" % infra.name_node_fip.get_ip()
+        print ">>>slaves:"
+        for s in infra.slaves.values():
+            print "\t%s" % s.slave_fip.get_ip()
+    else:
+        print "Orchestration failed; see the log for error messages"
+        
 

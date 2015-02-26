@@ -22,6 +22,7 @@
 from actuator import *
 from actuator.provisioners.openstack.resources import *
 from hadoop_node import common_vars, HadoopNodeConfig, pkn
+from actuator.utils import find_file
 
 #This ResourceGroup is boilerplate for making Openstack resources available
 #externally. They are created outside an infra model to illustrate that they
@@ -68,7 +69,7 @@ ubuntu_img = "Ubuntu 14.04 amd64"
 
 
 #common keyword args used for servers
-common_kwargs = {"key_name":pkn}
+common_kwargs = {"key_name":ctxt.model.kp}
 
 
 class HadoopInfra(InfraModel):
@@ -76,6 +77,8 @@ class HadoopInfra(InfraModel):
     #add the standard slave_secgroup and connectivity components
     slave_secgroup = make_std_secgroup("slave", desc="For Hadoop slaves")
     gateway = external_connection
+    
+    kp = KeyPair(pkn, pkn, pub_key_file=find_file("%s.pub" % pkn))
     
     #create an additional secgroup for the namenode
     namenode_secgroup = make_std_secgroup("namenode", desc="For Hadoop namenode")

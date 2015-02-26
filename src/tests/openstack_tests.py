@@ -26,7 +26,6 @@ same series of test data with each run, allowing us to test returned values prop
 that the order of calls into the mocks must not change from run to run or else the expected data
 won't be generated. The lesson here is that as tests are added, they should always be added to the
 end of the list of tests, and never inserted in between existing tests.
-Created on 25 Aug 2014
 '''
 
 import ost_support
@@ -41,8 +40,8 @@ from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Router, FloatingIP,
                                                         Subnet, SecGroup,
-                                                        SecGroupRule)
-from actuator.utils import LOG_WARN, LOG_INFO
+                                                        SecGroupRule, KeyPair)
+from actuator.utils import LOG_WARN, LOG_INFO, find_file
 
 
 def get_provisioner():
@@ -437,6 +436,136 @@ def test030():
     ns.compute_provisioning_for_environ(inst)
     prov.provision_infra_model(inst)
     assert ns.future("SERVER_IP").value()
+    
+def test031():
+    "test basic KeyPair modeling capabilities"
+    class KPTest(InfraModel):
+        kp = KeyPair("kp_test", "pkn", os_name="kp_test",
+                     pub_key_file=None, pub_key="wibble", force=False)
+    inst = KPTest("thing")
+    inst.kp.fix_arguments()
+    assert (inst and inst.kp and inst.kp is not KPTest.kp
+            and inst.kp.priv_key_name.value() == "pkn")
+    
+def test032():
+    "test arg testing"
+    try:
+        class KPTest(InfraModel):
+            kp = KeyPair("kp_test", "pkn", os_name="kp_test", force=False)
+        assert False, "The class creation should have failed"
+    except ProvisionerException, _:
+        assert True
+    
+def test033():
+    "test033 test getting a resource task for the KeyPair"
+    prov = get_provisioner()
+    class KPTest(InfraModel):
+        kp = KeyPair("kp_test", "pkn", os_name="kp_test",
+                     pub_key_file=None, pub_key="wibble", force=False)
+    inst = KPTest("thing")
+    try:
+        prov.provision_infra_model(inst)
+    except ProvisionerException, _:
+        assert False, "provisioning the public key failed"
+    
+def test034():
+    "test034 test provisioning an existing key"
+    prov = get_provisioner()
+    class KPTest(InfraModel):
+        kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble")
+    inst = KPTest("thing")
+    try:
+        prov.provision_infra_model(inst)
+        assert ost_support.MockNovaClient._keypairs_dict["test-key"].public_key == "startingkey"
+    except ProvisionerException, _:
+        assert False, "provisioning the public key failed"
+        
+def test035():
+    "test035 test provisioning an existing key with overwrite"
+    prov = get_provisioner()
+    class KPTest(InfraModel):
+        kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble",
+                     force=True)
+    inst = KPTest("thing")
+    try:
+        prov.provision_infra_model(inst)
+        assert ost_support.MockNovaClient._keypairs_dict["test-key"].public_key == "wibble"
+    except ProvisionerException, _:
+        assert False, "provisioning the public key failed"
+        
+def test036():
+    "test036 test using a os_name instead of the KeyPair name"
+    prov = get_provisioner()
+    class KPTest(InfraModel):
+        kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble",
+                     os_name="alt-key-name")
+    inst = KPTest("thing")
+    try:
+        prov.provision_infra_model(inst)
+        assert ost_support.MockNovaClient._keypairs_dict["alt-key-name"].public_key == "wibble"
+    except ProvisionerException, _:
+        assert False, "provisioning the public key failed"
+        
+def test037():
+    "test037 making sure force doesn't mess with use os_name"
+    prov = get_provisioner()
+    class KPTest(InfraModel):
+        kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble2",
+                     os_name="alt-key-name", force=True)
+    inst = KPTest("thing")
+    try:
+        prov.provision_infra_model(inst)
+        assert ost_support.MockNovaClient._keypairs_dict["alt-key-name"].public_key == "wibble2"
+    except ProvisionerException, _:
+        assert False, "provisioning the public key failed"
+        
+def test038():
+    "test038: check if the key is properly pulled from a file"
+    prov = get_provisioner()
+    class KPTest(InfraModel):
+        kp = KeyPair("test-key", "pkn",
+                     pub_key_file=find_file("actuator-dev-key.pub"),
+                     os_name="alt-key-name", force=True)
+    inst = KPTest("thing")
+    try:
+        prov.provision_infra_model(inst)
+        assert (ost_support.MockNovaClient._keypairs_dict["alt-key-name"].public_key ==
+                open(find_file("actuator-dev-key.pub"), "r").read())
+    except ProvisionerException, _:
+        assert False, "provisioning the public key failed"
+        
+def test039():
+    "test039: ensure that we get an error if we can't find the key file"
+    prov = get_provisioner()
+    class KPTest(InfraModel):
+        kp = KeyPair("test-key", "pkn", pub_key_file="no-such-file.pub")
+    inst = KPTest("thing")
+    try:
+        prov.provision_infra_model(inst)
+        assert False, "should have complained about finding the key file"
+    except ProvisionerException, _:
+        assert True
+        
+def test040():
+    "test040: ensure that we require either a key file or a public key"
+    try:
+        class KPTest(InfraModel):
+            kp = KeyPair("test-key", "pkn")
+        assert False, "should have complained missing key arg"
+    except ProvisionerException, _:
+        assert True
+
+def test041():
+    "test041: ensure that we barf if both key file and pub key are supplied"
+    try:
+        class KPTest(InfraModel):
+            kp = KeyPair("test-key", "pkn", pub_key="not me",
+                         pub_key_file=find_file("actuator-dev-key.pub"))
+        assert False, "should have complained missing key arg"
+    except ProvisionerException, _:
+        assert True
+    
+
 
 def do_all():
     for k, v in globals().items():
