@@ -124,10 +124,11 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         @keyword userdata: user data to pass to be exposed by the metadata
             server this can be a file type object as well or a string.
         @keyword reservation_id: a UUID for the set of servers being requested.
-        @keyword key_name: (optional extension) string; name of previously created
-            keypair to inject into the instance. If you don't already have a
-            predefined keypair to refer to here, you'll probably need to use
-            the 'files' argument to send down the public key that you'll need.
+        @keyword key_name: (optional extension) string or KeyPair referenence;
+            identifies the public side of an ssh keypair to inject into the
+            instance. If a string, must be the name of an already-existing key
+            in Openstack. You can also use the 'files' argument to send down the
+            public key that you want.
         @keyword availability_zone: String name of the availability zone for
             instance placement.
         @keyword block_device_mapping: (optional extension) A dict of block
@@ -286,11 +287,15 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         context expressions, calling all callables, etc.
         """
         return ( (self.name, self.imageName, self.flavorName),
-                 {"meta":self.meta, "files":self.files, "reservation_id":self.reservation_id,
-                  "min_count":self.min_count, "max_count":self.max_count,
+                 {"meta":self.meta,
+                  "files":self.files,
+                  "reservation_id":self.reservation_id,
+                  "min_count":self.min_count,
+                  "max_count":self.max_count,
                   "security_groups":self.security_groups,
                   "userdata":self.userdata,
-                  "key_name":self.key_name, "availability_zone":self.availability_zone,
+                  "key_name":self.key_name,
+                  "availability_zone":self.availability_zone,
                   "block_device_mapping":self.block_device_mapping,
                   "block_device_mapping_v2":self.block_device_mapping_v2,
                   "nics":self.nics,
@@ -663,3 +668,97 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
     def get_init_args(self):
         return ((self.name, self._router, self._subnet), {})
     
+
+class KeyPair(_OpenstackProvisionableInfraResource):
+    """
+    This class represents an Openstack Keypair. More specifically, it represents
+    the public side of a keypair.
+    
+    It allows you to put a public key on Openstack for subsequent use in other
+    resource.
+    
+    NOTE: Since KeyPairs have the semantic of not always overwriting existing
+        public keys, they likewise won't de-provision them when the infra
+        is de-provisioned.
+    """
+    def __init__(self, name, priv_key_name, os_name=None, pub_key_file=None,
+                 pub_key=None, force=False):
+        """
+        Creates a KeyPair resource. It allows you to bind a private key name
+        to a public key, either the actual key or the path to a file where the
+        key is stored.
+        
+        @param name: Actuator name of the KeyPair
+        @param priv_key_name: A string or a callable that takes an 
+            L{actuator.modeling.CallContext} and returns a string; this is the
+            name of the private key that matches with the public key that is going
+            into Openstack. This value has nothing to do with provisioning; it's
+            simply there to allow private key names to be mapped to public keys
+            in the model easily
+        @param os_name: optional; a string or a callable that takes an
+            L{actuator.modeling.CallContext} and returns a string. This is the
+            name that will be supplied to Openstack for the key. This differs
+            from the 'name' parameter in that this name is fixed; the actual
+            value for 'name' may get mangled if the KeyPair the template in
+            a L{actuator.infra.MultiResource}. This name will never get touched.
+            However, be aware that if you have more than one instance of this
+            resource they will all have this same name. If not supplied, then
+            the value of the 'name' parameter is used to name the key in OpenStack.
+            The default None; the 'name' parameter will be used.
+        @param pub_key_file: optional; a string or a callable that takes an
+            L{actuator.modeling.CallContext} and returns a string. This is the
+            path to the public key file to send to OpenStack. This path must
+            be visible and the file must have read perms. Only one of pub_key_file
+            or pub_key *must* be specified. The default is None; the resource
+            will look for a pub_key parameter.
+        @param pub_key: optional; a string or a callable that takes an
+            L{actuator.modeling.CallContext} and returns a string. This is the
+            actual public key to send to OpenStack. Only one of pub_key or
+            pub_key_file *must* be specified. The default is None; the resource
+            will look for a pub_key_file parameter.
+        @param force: optional; boolean, or a callable that takes an
+            L{actuator.modeling.CallContext} and returns a boolean. This
+            indicates what to do at provisioning time if they key already
+            exists; if set to True and the key exists, then the existing key is
+            first deleted before the supplied key is sent to OpenStack. If False
+            and the key exists, then nothing more is done and provisioning is
+            considered complete. Default is False, do not force sending the
+            key.
+        """
+        super(KeyPair, self).__init__(name)
+        self.priv_key_name = None
+        self._priv_key_name = priv_key_name
+        self.os_name = None
+        self._os_name = os_name
+        self.pub_key_file = None
+        self._pub_key_file = pub_key_file
+        self.pub_key = None
+        self._pub_key = pub_key
+        self.force = None
+        self._force = force
+        if self._pub_key is None and self._pub_key_file is None:
+            raise ProvisionerException("KeyPair %s must be supplied with either "
+                                       "a pub_key_file or pub_key argument" % name)
+        if self._pub_key is not None and self._pub_key_file is not None:
+            raise ProvisionerException("KeyPair %s with only one of "
+                                       "pub_key_file or pub_key" % name)
+            
+    def get_key_name(self):
+        return self.name if self.os_name is None else self.os_name
+        
+    def _fix_arguments(self, provisioner=None):
+        self.priv_key_name = self._get_arg_value(self._priv_key_name)
+        self.os_name = self._get_arg_value(self._os_name)
+        self.pub_key_file = self._get_arg_value(self._pub_key_file)
+        self.pub_key = self._get_arg_value(self._pub_key)
+        self.force = self._get_arg_value(self._force)
+        
+    def get_init_args(self):
+        __doc__ = _OpenstackProvisionableInfraResource.get_init_args.__doc__
+        return ((self.name, self._priv_key_name),
+                {"os_name":self._os_name,
+                 "pub_key_file":self._pub_key_file,
+                 "pub_key":self._pub_key,
+                 "force":self._force})
+
+         
