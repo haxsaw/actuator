@@ -97,6 +97,12 @@ class _ProvisioningTask(_ConfigTask):
     def _provision(self, run_context):
         return
     
+    def deprovision(self, run_context):
+        self._deprovision(run_context)
+    
+    def _deprovision(self, run_context):
+        return
+    
     def get_init_args(self):
         return ((self.rsrc,), {"repeat_count":self.repeat_count})
 
@@ -109,6 +115,10 @@ class ProvisionNetworkTask(_ProvisioningTask):
         response = run_context.nuclient.create_network(body=msg)
         self.rsrc.set_osid(response['network']['id'])
         run_context.record.add_network_id(self.rsrc._id, self.rsrc.osid)
+        
+    def _deprovision(self, run_context):
+        netid = self.rsrc.osid
+        run_context.nuclient.delete_network(netid)
         
         
 @capture_mapping(_rt_domain, Subnet)
@@ -131,6 +141,10 @@ class ProvisionSubnetTask(_ProvisioningTask):
         sn = run_context.nuclient.create_subnet(body=msg)
         self.rsrc.set_osid(sn["subnets"][0]["id"])
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
+        
+    def _deprovision(self, run_context):
+        subnet_id = self.rsrc.osid
+        run_context.nuclient.delete_subnet(subnet_id)
 
 
 @capture_mapping(_rt_domain, SecGroup)

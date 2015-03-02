@@ -564,8 +564,62 @@ def test041():
         assert False, "should have complained missing key arg"
     except ProvisionerException, _:
         assert True
+        
+def test042():
+    "test042: Check for basic operation of deprovision proto"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import RunContext
+    from actuator.provisioners.openstack.resource_tasks import _ProvisioningTask
     
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    class NetTest(InfraModel):
+        net = Network("deprov_net", admin_state_up=True)
+    inst = NetTest("net")
+    net = inst.net.value()
+    pvt = _ProvisioningTask(net)
+    result = pvt.deprovision(rc)
+    assert result is None
+    
+def test043():
+    "test043: provision/deprovision a network"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import RunContext
+    from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
+    
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    class NetTest(InfraModel):
+        net = Network("deprov_net", admin_state_up=True)
+    inst = NetTest("net")
+    net = inst.net.value()
+    pvt = ProvisionNetworkTask(net)
+    pvt.provision(rc)
+    result = pvt.deprovision(rc)
+    assert result is None
 
+def test044():
+    "test044: provision/deprovision a subnet"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import RunContext
+    from actuator.provisioners.openstack.resource_tasks import (ProvisionNetworkTask,
+                                                                ProvisionSubnetTask)
+    
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    class NetTest(InfraModel):
+        net = Network("deprov_net", admin_state_up=True)
+        subnet = Subnet("deprov_subnet", ctxt.model.net, "192.168.20.0/24")
+    inst = NetTest("sub")
+    net = inst.net.value()
+    sub = inst.subnet.value()
+    pvt = ProvisionNetworkTask(net)
+    inst.subnet.fix_arguments()
+    psnt = ProvisionSubnetTask(sub)
+    pvt.provision(rc)
+    psnt.provision(rc)
+    result = psnt.deprovision(rc)
+    assert result is None
 
 def do_all():
     for k, v in globals().items():

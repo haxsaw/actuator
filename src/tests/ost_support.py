@@ -196,10 +196,16 @@ class MockNeutronClient(object):
 #         result = {"network": {"id":fake.md5()}}
         result = {"network": {"id":MockNovaClient._networks_list[0].id}}
         return result
+    
+    def delete_network(self, network_id):
+        return
         
     def create_subnet(self, body=None):
         result = {'subnets':[{'id':fake.md5()}]}
         return result
+    
+    def delete_subnet(self, subnet_id):
+        return
     
     def create_router(self, body=None):
         result = {'router': {'id':fake.md5()}}
