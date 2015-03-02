@@ -24,6 +24,7 @@ Actuator utilities, for both public and private use
 import sys
 import os, os.path
 import logging
+import pdb
 
 
 base_logger_name = "actuator"
@@ -142,3 +143,43 @@ def find_file(filename, start_path=None):
     return test_file_path
 
 
+def adb(arg, brk=True):
+    """
+    Provides a way to break in the debugger when an argument is processed.
+    
+    This function gives the model author a way to break into pdb or another
+    debugger when Actuator processes a particular argument so that you can
+    examine the processing of the argument to figure out what's going on when
+    things aren't going as expected.
+    
+    The argument supplied can be any argument, either the type(s) needed for the
+    argument or a callable that will supply those types, and they will get
+    passed on and processed normally, only delayed slightly by the debugger
+    break.
+    
+    This function can't be used on the 'name' parameter of a model component,
+    only on the other args.
+    
+    NOTE: since PyDev in Eclipse don't like programs to invoke pdb.set_trace()
+    themselves, this attempts to determine when in such an environment. It does
+    this by checking if stdin is a tty; if so, then pdb.set_trace() is called.
+    If not, then a line is provided where the user can set a breakpoint in
+    PyDev.
+    
+    @param arg: Any argument to a modeling component (besides the 'name'
+        argument).
+    @keyword brk: Optional, default is True. Flag to indicate whether to actually
+        break or not; this allows actual debug breaking to be turned on and off
+        by changing the value of brk. If True, then actually break.
+    """
+    def inner_adb(context):
+        if brk:
+            if sys.stdin.isatty():
+                pdb.set_trace()
+            else:
+                #
+                # PyDev USERS: set your breakpoint on the line below:
+                _ = 0
+        result = context.comp._get_arg_value(arg)
+        return result
+    return inner_adb

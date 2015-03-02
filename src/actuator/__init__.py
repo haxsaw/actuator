@@ -69,7 +69,8 @@ from exec_agents.core import ExecutionAgent, ExecutionException
 from exec_agents.ansible.agent import AnsibleExecutionAgent
 from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                           CopyFileTask, ProcessCopyFileTask)
-from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN, root_logger)
+from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
+                   root_logger, adb)
 
 
 __version__ = "0.2.a2"

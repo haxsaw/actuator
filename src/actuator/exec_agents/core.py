@@ -165,7 +165,7 @@ class ExecutionAgent(object):
         @param task: The actual task to perform
         
         LOGGING FORMAT:
-        Logging in this method embeds a sub-message in the log message. The
+        Some logging in this method embeds a sub-message in the log message. The
         fields in the sub message a separated by '|', and are as follows:
         - task type name
         - task name

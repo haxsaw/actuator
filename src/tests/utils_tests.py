@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
-Created on 13 Jul 2014
-'''
+import sys
+import subprocess
+
 from actuator.utils import *
 
 #class mapping tests setup
@@ -147,3 +147,13 @@ def test12():
     assert (Test12.a == 1 and Test12.b == 2 and Test12.c == "c" and Test12.d == 4.3
             and set(Test12.MAGIC_ARGS) == set([1,2,3,4,5]))
 
+def test13():
+    '''
+    This tests the operation of adb, but does it with a subprocess. look at flagger.py
+    '''
+    sp = subprocess.Popen([sys.executable, find_file("flagger.py")],
+                          stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE)
+    sp.stdin.write("c\n")
+    returncode = sp.wait()
+    assert returncode == 0, "flagger failed!"
