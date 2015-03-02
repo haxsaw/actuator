@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from actuator.modeling import AbstractModelReference
 
 '''
 Internal to Actuator; responsible for processing Openstack resource objects
@@ -83,6 +84,9 @@ class _ProvisioningTask(_ConfigTask):
         return self._rsrc_by_id[self.rsrc_id]
     
     rsrc = property(_get_rsrc)
+    
+    def get_ref(self):
+        return AbstractModelReference.find_ref_for_obj(self.rsrc)
         
     def depends_on_list(self):
         return []
@@ -293,7 +297,7 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
         return [self.rsrc.server] if isinstance(self.rsrc.server, Server) else []
         
     def _provision(self, run_context):
-        self.rsrc.refix_arguments()
+        self.rsrc._refix_arguments()
         fip = run_context.nvclient.floating_ips.create(self.rsrc.pool)
         self.rsrc.set_addresses(fip.ip)
         self.rsrc.set_osid(fip.id)

@@ -28,6 +28,7 @@ import time
 import sys
 import traceback
 import random
+import six
 
 from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
 from actuator.utils import LOG_INFO, root_logger
@@ -162,10 +163,19 @@ class ExecutionAgent(object):
         @param graph: an NetworkX DiGraph; needed to find the next tasks
             to queue when the current one is done
         @param task: The actual task to perform
+        
+        LOGGING FORMAT:
+        Logging in this method embeds a sub-message in the log message. The
+        fields in the sub message a separated by '|', and are as follows:
+        - task type name
+        - task name
+        - task path in the model (or CAN'T.DETERMINE if a path can't be computed)
+        - task id
+        - name of the role the task is for (or NO_ROLE if there isn't a role)
+        - id of the role (or empty if there is no role)
+        - free-form text message
         """
-        add_suffix = lambda t, sfx: ("task %s named %s id %s->%s" %
-                                     (t.__class__.__name__, t.name, t._id, sfx))
-        logger = root_logger.getChild(self.exec_agent)
+
         try:
             role_name = task.get_task_role().name
             if isinstance(role_name, AbstractModelReference):
@@ -174,8 +184,15 @@ class ExecutionAgent(object):
         except Exception, _:
             role_name = "NO_ROLE"
             role_id = ""
-        logger.info(add_suffix(task, "processing started for role %s(%s)"
-                               % (role_name, role_id)))
+            
+        def fmtmsg(sfx):
+            ref = task.get_ref()
+            path = ".".join(ref.get_path()) if ref is not None else "CAN'T.DETERMINE"
+            return "|".join([task.__class__.__name__, task.name, path,
+                             str(task._id), role_name, str(role_id), sfx])
+            
+        logger = root_logger.getChild(self.exec_agent)
+        logger.info(fmtmsg("processing started"))
         if not self.no_delay:
             time.sleep(random.uniform(0.2, 2.5))
         try_count = 0
@@ -187,29 +204,26 @@ class ExecutionAgent(object):
             else:
                 logfile=None
             try:
-                logger.info(add_suffix(task, "start performing task for role %s(%s)"
-                                       % (role_name, role_id)))
+                logger.info(fmtmsg("start performing task"))
                 self._perform_task(task, logfile=logfile)
-                logger.info(add_suffix(task, "task succeeded for role %s(%s)"
-                                       % (role_name, role_id)))
+                logger.info(fmtmsg("task successfully performed"))
                 success = True
             except Exception, e:
-                logger.warning(add_suffix(task, "task failed for role %s(%s)"
-                                          % (role_name, role_id)))
+                logger.warning(fmtmsg("task performance failed"))
                 msg = ">>>Task Exception for {}!".format(task.name)
                 if logfile:
                     logfile.write("{}\n".format(msg))
                 tb = sys.exc_info()[2]
                 if try_count < task.repeat_count:
                     retry_wait = try_count * task.repeat_interval
-                    logger.warning(add_suffix(task, "retrying after %d secs" % retry_wait))
+                    logger.warning(fmtmsg("retrying after %d secs" % retry_wait))
                     msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
                     if logfile:
                         logfile.write("{}\n".format(msg))
                         traceback.print_exception(type(e), e, tb, file=logfile)
                     time.sleep(retry_wait)
                 else:
-                    logger.error(add_suffix(task, "max tries exceeded; task aborting"))
+                    logger.error(fmtmsg("max tries exceeded; task aborting"))
                     self.record_aborted_task(task, type(e), e, tb)
                 del tb
                 sys.exc_clear()
@@ -222,7 +236,8 @@ class ExecutionAgent(object):
                     for successor in graph.successors_iter(task):
                         graph.node[successor]["ins_traversed"] += 1
                         if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
-                            logger.debug(add_suffix(successor, "queueing up for performance"))
+                            logger.debug(fmtmsg("queueing up %s for performance"
+                                                % successor.name))
                             self.task_queue.put((graph, successor))
                 self.node_lock.release()
             if logfile:

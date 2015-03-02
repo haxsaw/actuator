@@ -26,6 +26,7 @@ import uuid
 import sys
 import re
 import itertools
+import weakref
 
 from actuator.utils import ClassMapper
 
@@ -118,6 +119,8 @@ class AbstractModelingEntity(object):
     #derived classed can set this to false if they don't want to clone
     #model attrs
     clone_attrs = True
+    _inst_map = weakref.WeakValueDictionary()
+    
     def __init__(self, name, *args, **kwargs):
         """
         Create a new modeling entity
@@ -140,11 +143,15 @@ class AbstractModelingEntity(object):
         self._id = uuid.uuid4()
         """@ivar: public; internally generated unique id for this instance,
             a uuid.uuid4"""
+        self._inst_map[self._id] = self  #set up a weak ref to the inst cache
         self._model_instance = model
         self.fixed = False
         """@ivar: public, read only. Indicates if the value of this entity
             has had its final computation (all refs resolved, callable args
             all called). Once fixed, callables won't be called again"""
+            
+    def get_ref(self):
+        return AbstractModelReference.find_ref_for_obj(self)
         
     def _validate_args(self, referenceable):
         """
@@ -198,7 +205,7 @@ class AbstractModelingEntity(object):
             self._fix_arguments()
         return self
             
-    def refix_arguments(self):
+    def _refix_arguments(self):
         """
         Allows arguments to be fixed again.
         
