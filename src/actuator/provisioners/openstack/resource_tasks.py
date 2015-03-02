@@ -280,6 +280,10 @@ class ProvisionRouterTask(_ProvisioningTask):
         reply = run_context.nuclient.create_router(body=msg)
         self.rsrc.set_osid(reply["router"]["id"])
         run_context.record.add_router_id(self.rsrc._id, self.rsrc.osid)
+        
+    def _deprovision(self, run_context):
+        router_id = self.rsrc.osid
+        run_context.nuclient.delete_router(router_id)
 
 
 @capture_mapping(_rt_domain, RouterGateway)

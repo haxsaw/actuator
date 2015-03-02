@@ -657,6 +657,23 @@ def test046():
     result = pst.deprovision(rc)
     assert result is None
     
+def test047():
+    "test047: provision/deprovision a router"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import RunContext
+    from actuator.provisioners.openstack.resource_tasks import ProvisionRouterTask
+    
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    class RouterTest(InfraModel):
+        srvr = Router("deprov_router")
+    inst = RouterTest("router")
+    srvr = inst.srvr.value()
+    prt = ProvisionRouterTask(srvr)
+    prt.provision(rc)
+    result = prt.deprovision(rc)
+    assert result is None
+    
 
 def do_all():
     for k, v in globals().items():

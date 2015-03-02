@@ -218,6 +218,9 @@ class MockNeutronClient(object):
         result = {'router': {'id':fake.md5()}}
         return result
     
+    def delete_router(self, router_id):
+        return
+    
     def list_routers(self, *args, **kwargs):
         """{d['name']:d['id'] for d in response["routers"]}"""
         return {'routers':[{'name':'wibbleRouter', 'id':fake.md5()}]}
