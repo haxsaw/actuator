@@ -63,6 +63,9 @@ class ServerCreate(Create):
     def add_floating_ip(self, *args, **kwargs):
         return
     
+    def delete(self, srvr):
+        return
+    
     def get(self, server_id):
         return FakeOSServer()
     
@@ -84,7 +87,9 @@ class MockNovaClient(object):
         self.servers = ServerCreate(self.server_create_result)
         self.images = CreateAndList(self.image_create_result, self.image_list_result)
         self.flavors = CreateAndList(self.flavor_create_result, self.flavor_list_result)
-        self.security_groups = CreateAndList(self.secgroup_create_result, self.secgroup_list_result)
+        self.security_groups = CreateListDelete(self.secgroup_create_result,
+                                                self.secgroup_list_result,
+                                                self.secgroup_delete_result)
         self.networks = CreateAndList(None, self.network_list_result)
         self.security_group_rules = Create(self.secgroup_rule_create_result)
         self.keypairs = CreateListDelete(self.keypair_create_result,
@@ -150,7 +155,9 @@ class MockNovaClient(object):
     def secgroup_list_result(self):
         return list(itertools.chain(self._secgroup_list,
                                     [MockNovaClient.SecGroupResult(sgr.id) for sgr in self._secgroup_list]))
-    
+        
+    def secgroup_delete_result(self, key):
+        return    
             
     def secgroup_rule_create_result(self, *args, **kwargs):
         class SecGroupRuleResult(object):

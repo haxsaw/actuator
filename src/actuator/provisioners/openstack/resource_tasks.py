@@ -143,6 +143,7 @@ class ProvisionSubnetTask(_ProvisioningTask):
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
         
     def _deprovision(self, run_context):
+        #this may not be needed as the subnet may go with the network
         subnet_id = self.rsrc.osid
         run_context.nuclient.delete_subnet(subnet_id)
 
@@ -169,6 +170,10 @@ class ProvisionSecGroupTask(_ProvisioningTask):
             self._sg_create_lock.release()
         self.rsrc.set_osid(response.id)
         run_context.record.add_secgroup_id(self.rsrc._id, self.rsrc.osid)
+        
+    def _deprovision(self, run_context):
+        secgroup_id = self.rsrc.osid
+        run_context.nvclient.security_groups.delete(secgroup_id)
 
 
 @capture_mapping(_rt_domain, SecGroupRule)
@@ -188,6 +193,8 @@ class ProvisionSecGroupRuleTask(_ProvisioningTask):
                                                                     cidr=self.rsrc.cidr)
         self.rsrc.set_osid(response.id)
         run_context.record.add_secgroup_rule_id(self.rsrc._id, self.rsrc.osid)
+        
+    #NO _deprovision required; the rules should follow the secgroup
 
 
 
@@ -258,6 +265,10 @@ class ProvisionServerTask(_ProvisioningTask):
             time.sleep(0.25)
             srvr.get()
         self._process_server_addresses(srvr.addresses)
+        
+    def _deprovision(self, run_context):
+        server = run_context.nvclient.servers.get(self.rsrc.osid)
+        run_context.nvclient.servers.delete(server)
 
                 
 @capture_mapping(_rt_domain, Router)

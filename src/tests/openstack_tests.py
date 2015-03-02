@@ -621,6 +621,43 @@ def test044():
     result = psnt.deprovision(rc)
     assert result is None
 
+def test045():
+    "test045: provision/deprovision a security group"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import RunContext
+    from actuator.provisioners.openstack.resource_tasks import ProvisionSecGroupTask
+    
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    class SGTest(InfraModel):
+        sg = SecGroup("deprov_sg", description="test secgroup")
+    inst = SGTest("net")
+    net = inst.sg.value()
+    psgt = ProvisionSecGroupTask(net)
+    psgt.provision(rc)
+    result = psgt.deprovision(rc)
+    assert result is None
+    
+def test046():
+    "test046: provision/deprovision a server"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import RunContext
+    from actuator.provisioners.openstack.resource_tasks import ProvisionServerTask
+    
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    class ServerTest(InfraModel):
+        srvr = Server("deprov_server", u"Ubuntu 13.10", "m1.small",
+                      key_name="perseverance_dev_key")
+    inst = ServerTest("server")
+    inst.srvr.fix_arguments()
+    srvr = inst.srvr.value()
+    pst = ProvisionServerTask(srvr)
+    pst.provision(rc)
+    result = pst.deprovision(rc)
+    assert result is None
+    
+
 def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
