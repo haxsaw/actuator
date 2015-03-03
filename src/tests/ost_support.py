@@ -38,6 +38,8 @@ class Create(object):
     def create(self, *args, **kwargs):
         return self.get_result(*args, **kwargs)
     
+    def get(self, server_id):
+        return self.get_result(server_id)
 
 class CreateAndList(Create):
     def __init__(self, get_result, list_result):
@@ -61,6 +63,9 @@ class FakeOSServer(object):
 
 class ServerCreate(Create):
     def add_floating_ip(self, *args, **kwargs):
+        return
+    
+    def remove_floating_ip(self, server, fip):
         return
     
     def delete(self, srvr):
@@ -170,6 +175,9 @@ class MockNovaClient(object):
             def __init__(self):
                 self.ip = fake.ipv4()
                 self.id = fake.md5()
+                
+            def delete(self):
+                return
             
         return FIPResult()
     

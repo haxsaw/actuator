@@ -71,6 +71,10 @@ class RunContext(object):
 class _ProvisioningTask(_ConfigTask):
     clone_attrs = False
     _rsrc_by_id = {}
+    UNSTARTED = 1
+    PROVISIONED = 2
+    DEPROVISIONED = 3
+    
     def __init__(self, rsrc, repeat_count=1):
         super(_ProvisioningTask, self).__init__("{}_provisioning_{}_task"
                                                 .format(rsrc.name,
@@ -78,6 +82,7 @@ class _ProvisioningTask(_ConfigTask):
                                                 repeat_count=1)
         self._rsrc_by_id[rsrc._id] = rsrc
         self.rsrc_id = rsrc._id
+        self.status = self.UNSTARTED
 #         self.rsrc = rsrc
 
     def _get_rsrc(self):
@@ -92,13 +97,51 @@ class _ProvisioningTask(_ConfigTask):
         return []
     
     def provision(self, run_context):
-        self._provision(run_context)
+        """
+        Perform the work needed to provision this task's resource
+        
+        This method performs the provisioning work relative to the task type
+        and associated resource. The work is ONLY undertaken if the task's
+        status is UNSTARTED; if it is instead PROVISIONED or DEPROVISIONED,
+        the provisioning work is silently not performed. Once successfully
+        completed, the task's status is changed to PROVISIONED.
+        
+        If the provisioning work raises an exception, then the status will
+        remain UNSTARTED so a latter attempt can be made. There is no return
+        value.
+        
+        @param run_context: Instance of L{actuator.provisioners.openstack.resource_tasks.RunContext},
+            which provides the needed clients and provisioning record.
+        """
+        if self.status == self.UNSTARTED:
+            self._provision(run_context)
+            self.status = self.PROVISIONED
     
     def _provision(self, run_context):
+        """
+        override this method to perform the actual provisioning work. there is
+        no return value
+        """
         return
     
     def deprovision(self, run_context):
-        self._deprovision(run_context)
+        """
+        Perform the work needed to de:provision this task's resource
+        
+        This method performs the deprovisioning work needed for the task's type
+        and associated resource. The work is ONLY undertaken if the task's
+        status is PROVISIONED; if it is any other value the deprovisioning work
+        is silently skipped. If the deprovisioning work is successful, the
+        task's status is changed to DEPROVISIONED. If the task raises an exception
+        during deprovisioning, the status remains as PROVISIONED so another
+        attempt can be made later. There is no return value,
+        
+        @param run_context: Instance of L{actuator.provisioners.openstack.resource_tasks.RunContext},
+            which provides the needed clients and provisioning record.
+        """
+        if self.status == self.PROVISIONED:
+            self._deprovision(run_context)
+            self.status = self.DEPROVISIONED
     
     def _deprovision(self, run_context):
         return
@@ -343,6 +386,16 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
                                                       "osid", "server")
             server = run_context.nvclient.servers.get(servername)
             run_context.nvclient.servers.add_floating_ip(server, fip, associated_ip)
+            
+    def _deprovision(self, run_context):
+        fip = run_context.nvclient.floating_ips.get(self.rsrc.osid)
+        associated_ip = self.rsrc.associated_ip
+        if associated_ip is not None:
+            servername = self.rsrc._get_arg_msg_value(self.rsrc.server, Server,
+                                                      "osid", "server")
+            server = run_context.nvclient.servers.get(servername)
+            run_context.nvclient.servers.remove_floating_ip(server, fip)
+        fip.delete()
             
             
 @capture_mapping(_rt_domain, KeyPair)

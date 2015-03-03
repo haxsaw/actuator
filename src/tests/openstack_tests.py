@@ -712,9 +712,34 @@ def test048():
     result = prit.deprovision(rc)
     assert result is None
     
+def test049():
+    "test049: provision/deprovision a floating ip"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import (RunContext,
+                                                                ProvisionFloatingIPTask,
+                                                                ProvisionServerTask)
+    from actuator.provisioners.openstack.resources import Server, FloatingIP
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
     
+    class FIPTest(InfraModel):
+        srvr = Server("deprov_server", u"Ubuntu 13.10", "m1.small",
+                      key_name="perseverance_dev_key")
+        fip = FloatingIP("deprov_fip", ctxt.model.srvr,
+                         ctxt.model.srvr.iface0.addr0, pool="external")
+    inst = FIPTest("fip")
+    srvr = inst.srvr.value()
+    fip = inst.fip.value()
     
+    pst = ProvisionServerTask(srvr)
+    pfipt = ProvisionFloatingIPTask(fip)
+    inst.srvr.fix_arguments()
+    pst.provision(rc)
+    inst.fip.fix_arguments()
+    pfipt.provision(rc)
+    result = pfipt.deprovision(rc)
+    assert result is None
 
+    
 def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
@@ -722,3 +747,4 @@ def do_all():
             
 if __name__ == "__main__":
     do_all()
+
