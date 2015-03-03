@@ -666,13 +666,53 @@ def test047():
     rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
     
     class RouterTest(InfraModel):
-        srvr = Router("deprov_router")
+        router = Router("deprov_router")
     inst = RouterTest("router")
-    srvr = inst.srvr.value()
-    prt = ProvisionRouterTask(srvr)
+    router = inst.router.value()
+    prt = ProvisionRouterTask(router)
     prt.provision(rc)
     result = prt.deprovision(rc)
     assert result is None
+    
+def test048():
+    "test048: provision/deprovision a router interface"
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import (RunContext,
+                                                                ProvisionNetworkTask,
+                                                                ProvisionSubnetTask,
+                                                                ProvisionRouterTask,
+                                                                ProvisionRouterInterfaceTask)
+    from actuator.provisioners.openstack.resources import (Router, Subnet,
+                                                           Network,
+                                                           RouterInterface)
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    class RITest(InfraModel):
+        router = Router("deprov_ri")
+        subnet = Subnet("deprov_ri", ctxt.model.network, u"192.168.23.0/24",
+                        dns_nameservers=[u"8.8.8.8"])
+        network = Network("deprov_ri")
+        ri = RouterInterface("deprov_ri", ctxt.model.router, ctxt.model.subnet)
+    
+    inst = RITest(InfraModel)
+    router = inst.router.value()
+    subnet = inst.subnet.value()
+    network = inst.network.value()
+    ri = inst.ri.value()
+    
+    prt = ProvisionRouterTask(router)
+    psnt = ProvisionSubnetTask(subnet)
+    pnt = ProvisionNetworkTask(network)
+    prit = ProvisionRouterInterfaceTask(ri)
+    prt.provision(rc)
+    pnt.provision(rc)
+    psnt.provision(rc)
+    inst.ri.fix_arguments()
+    prit.provision(rc)
+    result = prit.deprovision(rc)
+    assert result is None
+    
+    
     
 
 def do_all():

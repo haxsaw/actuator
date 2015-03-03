@@ -231,4 +231,8 @@ class MockNeutronClient(object):
     def add_interface_router(self, *args, **kwargs):
         return {u'id':uuid.uuid4()}
     
+    def remove_interface_router(self, router_id):
+        return
+    
+    
     

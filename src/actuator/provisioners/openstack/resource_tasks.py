@@ -299,6 +299,8 @@ class ProvisionRouterGatewayTask(_ProvisioningTask):
         ext_net = run_context.maps.network_map.get(self.rsrc.external_network_name)
         msg = {u'network_id':ext_net.id}
         _ = run_context.nuclient.add_gateway_router(router_id, msg)
+        
+    #no deprovisioning; assume it goes with the router
 
 
 @capture_mapping(_rt_domain, RouterInterface)
@@ -318,6 +320,10 @@ class ProvisionRouterInterfaceTask(_ProvisioningTask):
                                                       {u'subnet_id':subnet,
                                                        u'name':self.rsrc.name})
         run_context.record.add_router_iface_id(self.rsrc._id, response[u'id'])
+        
+    def _deprovision(self, run_context):
+        router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
+        run_context.nuclient.remove_interface_router(router_id)
 
 
 @capture_mapping(_rt_domain, FloatingIP)
