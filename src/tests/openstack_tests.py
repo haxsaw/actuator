@@ -940,6 +940,87 @@ def test058():
     prov.provision_infra_model(inst)
     assert ct.prov_count == 1 and len(ct.tasks_seen) == 1
     
+def test059():
+    'test059: multiple provisions, just one performance'
+    from actuator.provisioners.openstack.resource_tasks import _rt_domain
+    from actuator.utils import capture_mapping
+     
+    ct = CaptureTries()
+                     
+    capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+    class ResumeInfra(InfraModel):
+        net = ResumeNetwork("resume")
+    inst = ResumeInfra('resume')
+    assert inst.net.name.value() is 'resume'
+    prov = get_provisioner()
+    BreakableNetworkTask.prov_cb = ct.cb
+    prov.provision_infra_model(inst)
+    prov.provision_infra_model(inst)
+    assert ct.prov_count == 1 and len(ct.tasks_seen) == 1
+    
+def test060():
+    'test060: test fail orchestration'
+    from actuator.provisioners.openstack.resource_tasks import _rt_domain
+    from actuator.utils import capture_mapping
+    from actuator import ActuatorOrchestration
+    
+    ct = CaptureTries()
+                    
+    capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+    class ResumeInfra(InfraModel):
+        net = ResumeNetwork("resume")
+    inst = ResumeInfra('resume')
+    assert inst.net.name.value() is 'resume'
+    prov = get_provisioner()
+    inst.net.set_raise(True)
+    BreakableNetworkTask.prov_cb = ct.cb
+    orch = ActuatorOrchestration(infra_model_inst=inst, provisioner=prov)
+    result = orch.initiate_system()
+    assert not result
+    
+def test061():
+    'test061: test resume to success with orchestration'
+    from actuator.provisioners.openstack.resource_tasks import _rt_domain
+    from actuator.utils import capture_mapping
+    from actuator import ActuatorOrchestration
+    
+    ct = CaptureTries()
+                    
+    capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+    class ResumeInfra(InfraModel):
+        net = ResumeNetwork("resume")
+    inst = ResumeInfra('resume')
+    assert inst.net.name.value() is 'resume'
+    prov = get_provisioner()
+    inst.net.set_raise(True)
+    BreakableNetworkTask.prov_cb = ct.cb
+    orch = ActuatorOrchestration(infra_model_inst=inst, provisioner=prov)
+    result1 = orch.initiate_system()
+
+    inst.net.set_raise(False)
+    result2 = orch.initiate_system()
+    assert not result1 and result2 and ct.prov_count == 1
+    
+def test062():
+    'test062: two initiates only perform the tasks once'
+    from actuator.provisioners.openstack.resource_tasks import _rt_domain
+    from actuator.utils import capture_mapping
+    from actuator import ActuatorOrchestration
+    
+    ct = CaptureTries()
+                    
+    capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+    class ResumeInfra(InfraModel):
+        net = ResumeNetwork("resume")
+    inst = ResumeInfra('resume')
+    assert inst.net.name.value() is 'resume'
+    prov = get_provisioner()
+    BreakableNetworkTask.prov_cb = ct.cb
+    orch = ActuatorOrchestration(infra_model_inst=inst, provisioner=prov)
+    result1 = orch.initiate_system()
+    result2 = orch.initiate_system()
+    assert result1 and result2 and ct.prov_count == 1
+    
 def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
