@@ -128,6 +128,7 @@ class ExecutionAgent(object):
         self.num_threads = num_threads
         self.do_log = do_log
         self.no_delay = no_delay
+        self.graph = None
         
     def record_aborted_task(self, task, etype, value, tb):
         """
@@ -153,6 +154,9 @@ class ExecutionAgent(object):
         value, and the traceback.
         """
         return list(self.aborted_tasks)
+    
+    def reverse_task(self, graph, task):
+        pass
         
     def perform_task(self, graph, task):
         """
@@ -273,6 +277,18 @@ class ExecutionAgent(object):
                     self.perform_task(graph, task)
             except Queue.Empty, _:
                 pass
+            
+    def reverse_process_tasks(self):
+        """
+        Tell the agent to start reverse processing tasks; re
+        """
+        while not self.stop:
+            try:
+                graph, task = self.task_queue.get(block=True, timeout=0.2)
+                if not self.stop:
+                    self.reverse_task(graph, task)
+            except Queue.Empty, _:
+                pass
         
     def perform_config(self, completion_record=None):
         """
@@ -285,12 +301,14 @@ class ExecutionAgent(object):
         logger = root_logger.getChild(self.exec_agent)
         logger.info("Agent starting task processing")
         if self.namespace_mi and self.config_mi:
+            self.aborted_tasks = []
             self.config_mi.update_nexus(self.namespace_mi.nexus)
-            graph = self.config_mi.get_graph(with_fix=True)
-            self.num_tasks_to_perform = len(graph.nodes())
-            for n in graph.nodes():
-                graph.node[n]["ins_traversed"] = 0
-                n.fix_arguments()
+            if self.graph is None:
+                self.graph = self.config_mi.get_graph(with_fix=True)
+            self.num_tasks_to_perform = len(self.graph.nodes())
+            for n in self.graph.nodes():
+                self.graph.node[n]["ins_traversed"] = 0
+#                 n.fix_arguments()
             self.stop = False
             #start the workers
             logger.info("Starting workers...")
@@ -299,10 +317,10 @@ class ExecutionAgent(object):
                 worker.start()
             logger.info("...workers started")
             #queue the initial tasks
-            for task in (t for t in graph.nodes() if graph.in_degree(t) == 0):
+            for task in (t for t in self.graph.nodes() if self.graph.in_degree(t) == 0):
                 logger.debug("Queueing up %s named %s id %s for performance" %
                              (task.__class__.__name__, task.name, str(task._id)))
-                self.task_queue.put((graph, task))
+                self.task_queue.put((self.graph, task))
             logger.info("Initial tasks queued; waiting for completion")
             #now wait to be signaled it finished
             while not self.stop:
@@ -312,3 +330,46 @@ class ExecutionAgent(object):
                 raise self.exception_class("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
+        
+    def perform_reverse(self, completion_record=None):
+        """
+        Traverses the graph in reverse to "unperform" the tasks.
+        
+        This method traverses the graph in reverse order so that dependents have
+        a change to "reverse" whatever they did in task performance before the
+        tasks they depend on do their own reversing work.
+        
+        Reversing can only be done of something already performed, including
+        partial performance.
+        
+        @keyword completion_record: currently unused
+        """
+        logger = root_logger.getChild(self.exec_agent)
+        logger.info("Agent starting reverse processing of tasks")
+        if self.namespace_mi and self.config_mi:
+            graph = self.config_mi.get_graph(with_fix=False)
+            self.num_tasks_to_perform = len(graph.nodes())
+            for n in graph.nodes():
+                graph.node[n]["outs_traversed"] = 0
+            self.stop = False
+            #start the workers
+            logger.info("Starting workers...")
+            for _ in range(self.num_threads):
+                worker = threading.Thread(target=self.reverse_process_tasks)
+                worker.start()
+            logger.info("...workers started")
+            #queue the initial tasks
+            for task in (t for t in graph.nodes() if graph.out_degree(t) == 0):
+                logger.debug("Queueing up %s named %s id %s for reversing" %
+                             (task.__class__.__name__, task.name, str(task._id)))
+                self.task_queue.put((graph, task))
+            logger.info("Initial tasks queued; waiting for completion")
+            #now wait to be signaled it finished
+            while not self.stop:
+                time.sleep(0.2)
+            logger.info("Agent task reversing complete")
+            if self.aborted_tasks:
+                raise self.exception_class("Tasks aborted causing reverse to abort; see the execution agent's aborted_tasks list for details")
+        else:
+            raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
+

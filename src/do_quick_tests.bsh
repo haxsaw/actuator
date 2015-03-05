@@ -4,6 +4,7 @@ echo =================
 echo The quick tests skip the Ansible integration tests which take a fair
 echo amount of time due to ssh connection setup and encrypt/decrypt
 if /usr/bin/test -d tests; then
+    export PYTHONPATH=`pwd`
     rm -f .coverage
     nosetests  --cover-package=actuator --with-coverage -I "ansible.*.py"
 else

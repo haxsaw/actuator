@@ -83,7 +83,7 @@ class _ProvisioningTask(_ConfigTask):
         self._rsrc_by_id[rsrc._id] = rsrc
         self.rsrc_id = rsrc._id
         self.status = self.UNSTARTED
-#         self.rsrc = rsrc
+        #self.rsrc has been turned into a property
 
     def _get_rsrc(self):
         return self._rsrc_by_id[self.rsrc_id]
@@ -548,9 +548,10 @@ class OpenstackProvisioner(BaseProvisioner):
         
     def _provision(self, inframodel_instance):
         self.logger.info("Starting to provision...")
-        self.agent = ResourceTaskSequencerAgent(inframodel_instance,
-                                                self.os_creds,
-                                                num_threads=self.num_threads)
+        if self.agent is None:
+            self.agent = ResourceTaskSequencerAgent(inframodel_instance,
+                                                    self.os_creds,
+                                                    num_threads=self.num_threads)
         self.agent.perform_config()
         self.logger.info("...provisioning complete.")
         return self.agent.record

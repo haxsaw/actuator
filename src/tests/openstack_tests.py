@@ -739,6 +739,206 @@ def test049():
     result = pfipt.deprovision(rc)
     assert result is None
 
+from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
+
+class BreakableNetworkTask(ProvisionNetworkTask):
+    """
+    Used in a bunch of tests below
+    """
+    prov_cb = None
+    deprov_cb = None
+    def __init__(self, *args, **kwargs):
+        super(BreakableNetworkTask, self).__init__(*args, **kwargs)
+        self.prov_tries = 0
+        self.do_prov_fail = False
+        self.deprov_tries = 0
+        self.do_deprov_fail = False
+        
+    def _provision(self, rc):
+        if self.do_prov_fail:
+            raise ProvisionerException("Nope!")
+        super(BreakableNetworkTask, self)._provision(rc)
+        self.prov_tries += 1
+        if self.prov_cb is not None:
+            self.prov_cb(self)
+        
+    def _deprovision(self, rc):
+        if self.do_deprov_fail:
+            raise ProvisionerException("Nope!")
+        super(BreakableNetworkTask, self)._deprovision(rc)
+        self.deprov_tries += 1
+        if self.deprov_cb is not None:
+            self.deprov_cb(self)
+        
+def prov_deprov_setup():
+    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+    from actuator.provisioners.openstack.resource_tasks import RunContext
+    from actuator.provisioners.openstack.resources import Network
+    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+
+    class Test(InfraModel):
+        net = Network("wibble")
+    inst = Test("wibble")
+    return rc, inst
+            
+def test050():
+    'test050: test no multiple provisioning'
+    rc, inst = prov_deprov_setup()
+    net = inst.net.value()
+    pnt = BreakableNetworkTask(net)
+    pnt.provision(rc)
+    pnt.provision(rc)
+    assert pnt.prov_tries == 1
+    
+def test051():
+    'test051: test provision after fail'
+    rc, inst = prov_deprov_setup()
+    net = inst.net.value()
+    pnt = BreakableNetworkTask(net)
+    pnt.do_prov_fail = True
+    try: pnt.provision(rc)
+    except: pass
+    pnt.do_prov_fail = False
+    pnt.provision(rc)
+    assert pnt.prov_tries == 1
+    
+def test052():
+    'test052: test no deprov before prov'
+    rc, inst = prov_deprov_setup()
+    net = inst.net.value()
+    pnt = BreakableNetworkTask(net)
+    pnt.deprovision(rc)
+    assert pnt.prov_tries == 0 and pnt.deprov_tries == 0
+    
+def test053():
+    'test053: test deprov after prov'
+    rc, inst = prov_deprov_setup()
+    net = inst.net.value()
+    pnt = BreakableNetworkTask(net)
+    pnt.provision(rc)
+    pnt.deprovision(rc)
+    assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
+    
+def test054():
+    'test054: test no prov after deprov'
+    rc, inst = prov_deprov_setup()
+    net = inst.net.value()
+    pnt = BreakableNetworkTask(net)
+    pnt.provision(rc)
+    pnt.deprovision(rc)
+    pnt.provision(rc)
+    assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
+    
+def test055():
+    'test055: test deprov after one failed deprov'
+    rc, inst = prov_deprov_setup()
+    net = inst.net.value()
+    pnt = BreakableNetworkTask(net)
+    pnt.provision(rc)
+    pnt.do_deprov_fail = True
+    try: pnt.deprovision(rc)
+    except: pass
+    pnt.do_deprov_fail = False
+    pnt.deprovision(rc)
+    assert pnt.deprov_tries == 1
+    
+def test056():
+    'test056: no multiple deprov after prov'
+    rc, inst = prov_deprov_setup()
+    net = inst.net.value()
+    pnt = BreakableNetworkTask(net)
+    pnt.provision(rc)
+    pnt.deprovision(rc)
+    pnt.deprovision(rc)
+    assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
+    
+class ResumeNetwork(Network):
+    def __init__(self, *args, **kwargs):
+        self.do_raise = False
+        super(ResumeNetwork, self).__init__(*args, **kwargs)
+        self.__admin_state_up = None
+        
+    def set_raise(self, do_raise):
+        self.do_raise = do_raise
+    
+    def get_as(self):
+        if self.do_raise:
+            self.do_raise = False
+            raise Exception("SUMMAT BAD DONE HAPPENED")
+        return self.__admin_state_up
+    
+    def set_as(self, asu):
+        self.__admin_state_up = asu
+    admin_state_up = property(get_as, set_as)
+    
+class CaptureTries(object):
+    def __init__(self):
+        self.prov_count = 0
+        self.tasks_seen = set()
+    def cb(self, t):
+        self.prov_count = t.prov_tries
+        self.tasks_seen.add(t)
+
+def test057():
+    'test057: resume provisioning an infra'
+    from actuator.provisioners.openstack.resource_tasks import _rt_domain
+    from actuator.utils import capture_mapping
+    
+    ct = CaptureTries()
+                    
+    capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+    class ResumeInfra(InfraModel):
+        net = ResumeNetwork("resume")
+    inst = ResumeInfra('resume')
+    assert inst.net.name.value() is 'resume'
+    prov = get_provisioner()
+    inst.net.set_raise(True)
+    BreakableNetworkTask.prov_cb = ct.cb
+    try:
+        prov.provision_infra_model(inst)
+        raise False, "the first provision didn't raise an exception; ERROR IN TEST"
+    except Exception, _:
+        pass
+    
+    inst.net.set_raise(False)
+    
+    try:
+        prov.provision_infra_model(inst)
+    except Exception, v:
+        import traceback, sys
+        et, ev, tb = sys.exc_info()
+        print "UNEXEPECTED abort:"
+        traceback.print_exception(et, ev, tb)
+        for t, et, ev, tb in  prov.agent.get_aborted_tasks():
+            print "Aborted task %s" % t.name
+            traceback.print_exception(et, ev, tb)
+        raise
+    assert ct.prov_count == 1
+    
+def test058():
+    'test058: resume provisioning an infra; complete just once'
+    from actuator.provisioners.openstack.resource_tasks import _rt_domain
+    from actuator.utils import capture_mapping
+     
+    ct = CaptureTries()
+                     
+    capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+    class ResumeInfra(InfraModel):
+        net = ResumeNetwork("resume")
+    inst = ResumeInfra('resume')
+    assert inst.net.name.value() is 'resume'
+    prov = get_provisioner()
+    inst.net.set_raise(True)
+    BreakableNetworkTask.prov_cb = ct.cb
+    try:
+        prov.provision_infra_model(inst)
+        raise False, "the first provision didn't raise an exception"
+    except Exception, _:
+        pass
+    inst.net.set_raise(False)
+    prov.provision_infra_model(inst)
+    prov.provision_infra_model(inst)
+    assert ct.prov_count == 1 and len(ct.tasks_seen) == 1
     
 def do_all():
     for k, v in globals().items():

@@ -462,6 +462,24 @@ class _ConfigTask(Orable, ModelComponent):
         """
         raise TypeError("Derived class must implement")
     
+    def reverse(self):
+        """
+        Undo whatever was done during the perform() method.
+        
+        This allows the task author to provide a means to undo the work that
+        was done during perform. This is so that when a system is being
+        de-provisioned/decomissioned, any cleanup or wrap-up tasks can be
+        performed before the system goes away. It also can provide the means to
+        define tasks that only do work during wrap-up; by not defining any
+        activity in perform, but defining work in wrap-up, a model can then
+        contain nodes that only do meaningful work during the deco lifecycle
+        phase of a system.
+        
+        Unlike perform(), the default implementation silently does nothing.
+        """
+        return
+        
+    
     
 class StructuralTask(object):
     """
