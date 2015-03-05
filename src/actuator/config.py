@@ -479,8 +479,7 @@ class _ConfigTask(Orable, ModelComponent):
         """
         return
         
-    
-    
+
 class StructuralTask(object):
     """
     Flag mixin class to indicate a task that that is only for structuring
