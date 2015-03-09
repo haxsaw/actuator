@@ -28,7 +28,8 @@ import threading
 import time
 import traceback
 
-from actuator import ActuatorException, root_logger, LOG_INFO
+from actuator import ActuatorException
+from actuator.utils import root_logger, LOG_INFO
 from actuator.modeling import ModelComponent
 
 class TaskException(ActuatorException): pass
@@ -332,18 +333,6 @@ class _Dependency(Orable, _Cloneable, _Unpackable):
         return deps
     
     
-class NullTask(Task):
-    """
-    Non-functional task that's mostly good for testing
-    """
-    def __init__(self, name, path="", **kwargs):
-        super(NullTask, self).__init__(name, **kwargs)
-        self.path = path
-        
-    def perform(self):
-        return
-    
-    
 class GraphableModelMixin(object):
     """
     This mixin class provides a way to flag models that contain graphable
@@ -385,7 +374,8 @@ class TaskEngine(object):
     """
     exception_class = TaskException
     exec_agent = "task_engine"
-    def __init__(self, name, model, num_threads=5, do_log=False, no_delay=False, log_level=LOG_INFO):
+    def __init__(self, name, model, num_threads=5, do_log=False, no_delay=False,
+                 log_level=LOG_INFO):
         """
         Make a new TaskEngine
         
@@ -494,6 +484,8 @@ class TaskEngine(object):
             time.sleep(random.uniform(0.2, 2.5))
         try_count = 0
         success = False
+        if not task.fixed:
+            task.fix_arguments()
         while try_count < task.repeat_count and not success:
             try_count += 1
             if self.do_log:
@@ -504,6 +496,7 @@ class TaskEngine(object):
             try:
                 logger.info(fmtmsg("start performing task"))
                 self._perform_task(task, logfile=logfile)
+                task.status = task.PERFORMED
                 logger.info(fmtmsg("task successfully performed"))
                 success = True
             except Exception, e:
@@ -529,7 +522,10 @@ class TaskEngine(object):
                 logfile.flush()
                 logfile.close()
                 del logfile
-        if not success and try_count >= task.repeat_count:
+#         if not success and try_count >= task.repeat_count:
+        if not success:
+            logger.error(fmtmsg("Could not be performed; "
+                         "aborting further task processing"))
             self.abort_process_tasks()
         
     def process_perform_task_queue(self):
@@ -546,6 +542,8 @@ class TaskEngine(object):
                     if task.status == task.PERFORMED:
                         with self.node_lock:
                             self.num_tasks_to_perform -= 1
+                            logger.debug("Remaining tasks to perform: %s" %
+                                         self.num_tasks_to_perform)
                             if self.num_tasks_to_perform == 0:
                                 self.stop = True
                             else:
@@ -576,7 +574,7 @@ class TaskEngine(object):
             except Queue.Empty, _:
                 pass
             
-    def perform_tasks(self, completion_record):
+    def perform_tasks(self, completion_record=None):
         fmtmsg = lambda msg: "Task engine %s: %s" % (self.name, msg)
         logger = root_logger.getChild(self.exec_agent)
         logger.info(fmtmsg("starting task processing"))
@@ -607,47 +605,6 @@ class TaskEngine(object):
             raise self.exception_class("Task(s) aborted causing engine to abort; "
                                        "see the engine's aborted_tasks list for details")
 
-        
-    def perform_config(self, completion_record=None):
-        """
-        Start the agent working on the configuration tasks. This is the method
-        the outside world calls when it wants the agent to start the config
-        processing process.
-        
-        @keyword completion_record: currently unused
-        """
-        logger = root_logger.getChild(self.exec_agent)
-        logger.info("Agent starting task processing")
-        if self.namespace_mi and self.config_mi:
-            self.aborted_tasks = []
-            self.config_mi.update_nexus(self.namespace_mi.nexus)
-            if self.graph is None:
-                self.graph = self.config_mi.get_graph(with_fix=True)
-            self.num_tasks_to_perform = len(self.graph.nodes())
-            for n in self.graph.nodes():
-                self.graph.node[n]["ins_traversed"] = 0
-#                 n.fix_arguments()
-            self.stop = False
-            #start the workers
-            logger.info("Starting workers...")
-            for _ in range(self.num_threads):
-                worker = threading.Thread(target=self.process_perform_task_queue)
-                worker.start()
-            logger.info("...workers started")
-            #queue the initial tasks
-            for task in (t for t in self.graph.nodes() if self.graph.in_degree(t) == 0):
-                logger.debug("Queueing up %s named %s id %s for performance" %
-                             (task.__class__.__name__, task.name, str(task._id)))
-                self.task_queue.put((self.graph, task))
-            logger.info("Initial tasks queued; waiting for completion")
-            #now wait to be signaled it finished
-            while not self.stop:
-                time.sleep(0.2)
-            logger.info("Agent task processing complete")
-            if self.aborted_tasks:
-                raise self.exception_class("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
-        else:
-            raise TaskException("either namespace_model_instance or config_model_instance weren't specified")
         
     def perform_reverse(self, completion_record=None):
         """

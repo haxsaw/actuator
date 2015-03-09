@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.modeling import AbstractModelReference
 
 '''
 Internal to Actuator; responsible for processing Openstack resource objects
@@ -27,10 +26,10 @@ import time
 import threading
 import uuid
 import string
-import logging
-import threading
 
+from actuator.modeling import AbstractModelReference
 from actuator.namespace import NamespaceModel
+from actuator.task import TaskEngine
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 NovaClient = ocf.get_nova_client_class()
 NeutronClient = ocf.get_neutron_client_class()
@@ -38,10 +37,9 @@ from actuator.provisioners.core import ProvisionerException, BaseProvisioner
 from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.openstack.support import (_OSMaps,
                                                      OpenstackProvisioningRecord)
-from actuator.config import _ConfigTask, ConfigModel, with_dependencies
+from actuator.config import ConfigTask, ConfigModel, with_dependencies
 from actuator.exec_agents.core import ExecutionAgent
-from actuator.utils import (capture_mapping, get_mapper, root_logger, LOG_INFO,
-                            LOG_WARN)
+from actuator.utils import (capture_mapping, get_mapper, root_logger, LOG_INFO)
 
 _rt_domain = "resource_task_domain"
 
@@ -68,7 +66,7 @@ class RunContext(object):
     nvclient = property(_nvclient)
 
 
-class _ProvisioningTask(_ConfigTask):
+class ProvisioningTask(ConfigTask):
     clone_attrs = False
     _rsrc_by_id = {}
     UNSTARTED = 1
@@ -76,7 +74,7 @@ class _ProvisioningTask(_ConfigTask):
     DEPROVISIONED = 3
     
     def __init__(self, rsrc, repeat_count=1):
-        super(_ProvisioningTask, self).__init__("{}_provisioning_{}_task"
+        super(ProvisioningTask, self).__init__("{}_provisioning_{}_task"
                                                 .format(rsrc.name,
                                                         rsrc.__class__.__name__),
                                                 repeat_count=1)
@@ -151,7 +149,7 @@ class _ProvisioningTask(_ConfigTask):
 
 
 @capture_mapping(_rt_domain, Network)
-class ProvisionNetworkTask(_ProvisioningTask):
+class ProvisionNetworkTask(ProvisioningTask):
     def _provision(self, run_context):
         msg = {u'network': {u'name':self.rsrc.name,
                             u'admin_state_up':self.rsrc.admin_state_up}}
@@ -165,7 +163,7 @@ class ProvisionNetworkTask(_ProvisioningTask):
         
         
 @capture_mapping(_rt_domain, Subnet)
-class ProvisionSubnetTask(_ProvisioningTask):
+class ProvisionSubnetTask(ProvisioningTask):
     def depends_on_list(self):
         return ([self.rsrc.network]
                 if isinstance(self.rsrc.network, Network)
@@ -192,7 +190,7 @@ class ProvisionSubnetTask(_ProvisioningTask):
 
 
 @capture_mapping(_rt_domain, SecGroup)
-class ProvisionSecGroupTask(_ProvisioningTask):
+class ProvisionSecGroupTask(ProvisioningTask):
     "depends on nothing"
     #@FIXME: this lock and its use are due to an apparent thread-safety issue
     #down in the novaclient. It would seem that even if there are different
@@ -220,7 +218,7 @@ class ProvisionSecGroupTask(_ProvisioningTask):
 
 
 @capture_mapping(_rt_domain, SecGroupRule)
-class ProvisionSecGroupRuleTask(_ProvisioningTask):
+class ProvisionSecGroupRuleTask(ProvisioningTask):
     def depends_on_list(self):
         return ([self.rsrc.slave_secgroup]
                 if isinstance(self.rsrc.slave_secgroup, SecGroup)
@@ -242,7 +240,7 @@ class ProvisionSecGroupRuleTask(_ProvisioningTask):
 
 
 @capture_mapping(_rt_domain, Server)
-class ProvisionServerTask(_ProvisioningTask):
+class ProvisionServerTask(ProvisioningTask):
     def depends_on_list(self):
         return ([i for i in self.rsrc.security_groups
                 if isinstance(i, SecGroup)] +
@@ -298,7 +296,7 @@ class ProvisionServerTask(_ProvisioningTask):
             kwargs['nics'] = nics_list
             
         if isinstance(kwargs["key_name"], KeyPair):
-            kwargs = kwargs["key_name"].get_key_name()
+            kwargs["key_name"] = kwargs["key_name"].get_key_name()
             
         srvr = run_context.nvclient.servers.create(name, image, flavor, **kwargs)
         self.rsrc.set_osid(srvr.id)
@@ -315,7 +313,7 @@ class ProvisionServerTask(_ProvisioningTask):
 
                 
 @capture_mapping(_rt_domain, Router)
-class ProvisionRouterTask(_ProvisioningTask):
+class ProvisionRouterTask(ProvisioningTask):
     "depends on nothing"
     def _provision(self, run_context):
         msg = {u'router': {u'admin_state_up':self.rsrc.admin_state_up,
@@ -330,7 +328,7 @@ class ProvisionRouterTask(_ProvisioningTask):
 
 
 @capture_mapping(_rt_domain, RouterGateway)
-class ProvisionRouterGatewayTask(_ProvisioningTask):
+class ProvisionRouterGatewayTask(ProvisioningTask):
     def depends_on_list(self):
         return ([self.rsrc.router]
                 if isinstance(self.rsrc.router, Router)
@@ -347,7 +345,7 @@ class ProvisionRouterGatewayTask(_ProvisioningTask):
 
 
 @capture_mapping(_rt_domain, RouterInterface)
-class ProvisionRouterInterfaceTask(_ProvisioningTask):
+class ProvisionRouterInterfaceTask(ProvisioningTask):
     def depends_on_list(self):
         deps = []
         if isinstance(self.rsrc.router, Router):
@@ -370,7 +368,7 @@ class ProvisionRouterInterfaceTask(_ProvisioningTask):
 
 
 @capture_mapping(_rt_domain, FloatingIP)
-class ProvisionFloatingIPTask(_ProvisioningTask):
+class ProvisionFloatingIPTask(ProvisioningTask):
     def depends_on_list(self):
         return [self.rsrc.server] if isinstance(self.rsrc.server, Server) else []
         
@@ -399,7 +397,7 @@ class ProvisionFloatingIPTask(_ProvisioningTask):
             
             
 @capture_mapping(_rt_domain, KeyPair)
-class ProvisionKeyPairTask(_ProvisioningTask):
+class ProvisionKeyPairTask(ProvisioningTask):
     "KeyPairs depend on nothing"
     def _provision(self, run_context):
         name = self.rsrc.get_key_name()
@@ -433,6 +431,7 @@ class OpenstackCredentials(object):
         self.auth_url = auth_url
 
 
+# class ResourceTaskSequencerAgent(ExecutionAgent):
 class ResourceTaskSequencerAgent(ExecutionAgent):
     no_punc = string.maketrans(string.punctuation, "_"*len(string.punctuation))
     exception_class = ProvisionerException

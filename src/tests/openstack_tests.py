@@ -569,7 +569,7 @@ def test042():
     "test042: Check for basic operation of deprovision proto"
     from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
     from actuator.provisioners.openstack.resource_tasks import RunContext
-    from actuator.provisioners.openstack.resource_tasks import _ProvisioningTask
+    from actuator.provisioners.openstack.resource_tasks import ProvisioningTask
     
     rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
     
@@ -577,7 +577,7 @@ def test042():
         net = Network("deprov_net", admin_state_up=True)
     inst = NetTest("net")
     net = inst.net.value()
-    pvt = _ProvisioningTask(net)
+    pvt = ProvisioningTask(net)
     result = pvt.deprovision(rc)
     assert result is None
     
