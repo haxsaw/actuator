@@ -125,12 +125,11 @@ class Task(Orable, ModelComponent):
         
     def perform(self, engine):
         """
-        Perform the task. Must be overridden to actually work. Typically,
-        tasks have helper objects that actually do the work; they don't do
-        the work themselves.
+        Perform the task.
         
-        Don't override this method; instead, override _perform(engine)
-        
+        Do no override this method! Instead, override
+        L{Task._perform); this is the method for specializing functionality.
+                
         @param engine: an instance of a L{TaskEngine}; this will get passed as the
             sole argument to self._perform()
         """
@@ -139,7 +138,17 @@ class Task(Orable, ModelComponent):
             self.status = self.PERFORMED
             
     def _perform(self, engine):
-        #actual task performance method; override this or raise an error
+        """
+        Does the actual work in performing the task.
+        
+        Specific task classes must override this method (and not call super())
+        and in their implemention perform the work needed for the task.
+        
+        The default implementation just raises TypeError
+        
+        @raise TypeError: Raised by the default implementation; method must
+            be overridden.
+        """
         raise TypeError("Derived class must implement")
     
     def reverse(self, engine):
@@ -155,7 +164,7 @@ class Task(Orable, ModelComponent):
         contain nodes that only do meaningful work during the deco lifecycle
         phase of a system.
         
-        Don't override this method; instead, override _reverse(engine)
+        Don't override this method; instead, override L{Task._reverse}
         
         @param engine: an instance of L{TaskEngine}. this will passed as the sole
             argument to self._reverse()
@@ -165,9 +174,13 @@ class Task(Orable, ModelComponent):
             self.status = self.REVERSED
             
     def _reverse(self, engine):
-        #"undo" whatever was done in perform
-        #perform may be a one-way trip, in which case there's nothing to do
-        #here, so default is to silently return
+        """
+        "undo" whatever was done in perform.
+        
+        Subclasses should override this method to provide a way to "undo" what
+        was done in perform. If there is no need to "undo", this method may
+        be ignored. The default implementation does nothing.
+        """
         return
         
     def _embedded_exittask_attrnames(self):
@@ -363,6 +376,33 @@ class GraphableModelMixin(object):
         graph.add_nodes_from(nodes)
         graph.add_edges_from( [d.edge() for d in deps] )
         return graph
+    
+    def get_tasks(self):
+        """
+        Returns an iterable of Task objects that will be nodes in the graph
+        
+        This method should return an iterable of Tasks (derived classes fine)
+        that will be the nodes in the graph. Classes that use this mixin need
+        to provide their own implementation; the default raises a TypeError.
+        
+        @raise TypeError: Derived class must override this method
+        """
+        raise TypeError("Derived class must implement get_tasks()")
+    
+    def get_dependencies(self):
+        """
+        Returns an iterable of _Dependency objects for the tasks
+        
+        This method returns an iterable of _Dependency objects for the tasks
+        involved named in get_tasks(). Note that while it is allowable for a
+        Task not to appear in a _Dependency, all Tasks that are part of
+        _Dependencies must be be in the set of things returned by get_tasks().
+        Classes that use this mixin need to provide their own implementation;
+        the default raises a TypeError.
+        
+        @raise TypeError: Derived class must override this method
+        """
+        raise TypeError("Derived class must implement get_tasks()")
 
         
 class TaskEngine(object):
