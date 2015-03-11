@@ -40,8 +40,9 @@ from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Router, FloatingIP,
                                                         Subnet, SecGroup,
-                                                        SecGroupRule, KeyPair)
-from actuator.utils import LOG_WARN, LOG_INFO, find_file
+                                                        SecGroupRule, KeyPair,
+                                                        RouterInterface)
+from actuator.utils import LOG_INFO, find_file
 
 
 def get_provisioner():
@@ -68,7 +69,7 @@ def test002():
     assert model.fip.get_ip() is None and model.fip.osid.value() is None
     try:
         provisioner.provision_infra_model(model)
-    except Exception, e:
+    except Exception, _:
         print "provision failed; here are the exceptions"
         import traceback
         for t, et, ev, tb in provisioner.agent.get_aborted_tasks():
@@ -153,7 +154,7 @@ def test009():
     try:
         provisioner.provision_infra_model(model)
         assert False, "failed to raise an exception on a bogus image name"
-    except ProvisionerException, e:
+    except ProvisionerException, _:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
         assert "image" in evalues
 
@@ -165,7 +166,7 @@ def test010():
     try:
         provisioner.provision_infra_model(model)
         assert False, "failed to raise an exception on a bogus flavor name"
-    except ProvisionerException, e:
+    except ProvisionerException, _:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
         assert "flavor" in evalues
         
@@ -235,7 +236,7 @@ def test014():
     for i in range(3):
         for j in range(5):
             _ = model.collective[i].workers[j]
-    rec = provisioner.provision_infra_model(model)
+    _ = provisioner.provision_infra_model(model)
     assert len(model.components()) == 22
     
 def test015():
@@ -261,7 +262,7 @@ def test016():
     try:
         provisioner.provision_infra_model(model)
         assert False, "We should have gotten an error about the network arg"
-    except ProvisionerException, e:
+    except ProvisionerException, _:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
         assert "network" in evalues
         
@@ -565,47 +566,49 @@ def test041():
     except ProvisionerException, _:
         assert True
         
+class FauxEngine(object):
+    def get_context(self):
+        from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
+        from actuator.provisioners.openstack.resource_tasks import RunContext
+        return RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    
+    
 def test042():
     "test042: Check for basic operation of deprovision proto"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import RunContext
-    from actuator.provisioners.openstack.resource_tasks import _ProvisioningTask
-    
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    from actuator.provisioners.openstack.resource_tasks import ProvisioningTask
+ 
+    engine = FauxEngine()
     
     class NetTest(InfraModel):
         net = Network("deprov_net", admin_state_up=True)
     inst = NetTest("net")
     net = inst.net.value()
-    pvt = _ProvisioningTask(net)
-    result = pvt.deprovision(rc)
+    pvt = ProvisioningTask(net)
+    result = pvt.reverse(engine)
     assert result is None
+    
     
 def test043():
     "test043: provision/deprovision a network"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import RunContext
     from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
     
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    engine = FauxEngine()
     
     class NetTest(InfraModel):
         net = Network("deprov_net", admin_state_up=True)
     inst = NetTest("net")
     net = inst.net.value()
     pvt = ProvisionNetworkTask(net)
-    pvt.provision(rc)
-    result = pvt.deprovision(rc)
+    pvt.perform(engine)
+    result = pvt.reverse(engine)
     assert result is None
 
 def test044():
     "test044: provision/deprovision a subnet"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import RunContext
     from actuator.provisioners.openstack.resource_tasks import (ProvisionNetworkTask,
                                                                 ProvisionSubnetTask)
     
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    engine = FauxEngine()
     
     class NetTest(InfraModel):
         net = Network("deprov_net", admin_state_up=True)
@@ -616,35 +619,31 @@ def test044():
     pvt = ProvisionNetworkTask(net)
     inst.subnet.fix_arguments()
     psnt = ProvisionSubnetTask(sub)
-    pvt.provision(rc)
-    psnt.provision(rc)
-    result = psnt.deprovision(rc)
+    pvt.perform(engine)
+    psnt.perform(engine)
+    result = psnt.reverse(engine)
     assert result is None
 
 def test045():
     "test045: provision/deprovision a security group"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import RunContext
     from actuator.provisioners.openstack.resource_tasks import ProvisionSecGroupTask
     
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    engine = FauxEngine()
     
     class SGTest(InfraModel):
         sg = SecGroup("deprov_sg", description="test secgroup")
     inst = SGTest("net")
     net = inst.sg.value()
     psgt = ProvisionSecGroupTask(net)
-    psgt.provision(rc)
-    result = psgt.deprovision(rc)
+    psgt.perform(engine)
+    result = psgt.reverse(engine)
     assert result is None
     
 def test046():
     "test046: provision/deprovision a server"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import RunContext
     from actuator.provisioners.openstack.resource_tasks import ProvisionServerTask
     
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    engine = FauxEngine()
     
     class ServerTest(InfraModel):
         srvr = Server("deprov_server", u"Ubuntu 13.10", "m1.small",
@@ -653,39 +652,33 @@ def test046():
     inst.srvr.fix_arguments()
     srvr = inst.srvr.value()
     pst = ProvisionServerTask(srvr)
-    pst.provision(rc)
-    result = pst.deprovision(rc)
+    pst.perform(engine)
+    result = pst.reverse(engine)
     assert result is None
     
 def test047():
     "test047: provision/deprovision a router"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import RunContext
     from actuator.provisioners.openstack.resource_tasks import ProvisionRouterTask
     
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    engine = FauxEngine()
     
     class RouterTest(InfraModel):
         router = Router("deprov_router")
     inst = RouterTest("router")
     router = inst.router.value()
     prt = ProvisionRouterTask(router)
-    prt.provision(rc)
-    result = prt.deprovision(rc)
+    prt.perform(engine)
+    result = prt.reverse(engine)
     assert result is None
     
 def test048():
     "test048: provision/deprovision a router interface"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import (RunContext,
-                                                                ProvisionNetworkTask,
+    from actuator.provisioners.openstack.resource_tasks import (ProvisionNetworkTask,
                                                                 ProvisionSubnetTask,
                                                                 ProvisionRouterTask,
                                                                 ProvisionRouterInterfaceTask)
-    from actuator.provisioners.openstack.resources import (Router, Subnet,
-                                                           Network,
-                                                           RouterInterface)
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+
+    engine = FauxEngine()
     
     class RITest(InfraModel):
         router = Router("deprov_ri")
@@ -704,22 +697,19 @@ def test048():
     psnt = ProvisionSubnetTask(subnet)
     pnt = ProvisionNetworkTask(network)
     prit = ProvisionRouterInterfaceTask(ri)
-    prt.provision(rc)
-    pnt.provision(rc)
-    psnt.provision(rc)
+    prt.perform(engine)
+    pnt.perform(engine)
+    psnt.perform(engine)
     inst.ri.fix_arguments()
-    prit.provision(rc)
-    result = prit.deprovision(rc)
+    prit.perform(engine)
+    result = prit.reverse(engine)
     assert result is None
     
 def test049():
     "test049: provision/deprovision a floating ip"
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import (RunContext,
-                                                                ProvisionFloatingIPTask,
+    from actuator.provisioners.openstack.resource_tasks import (ProvisionFloatingIPTask,
                                                                 ProvisionServerTask)
-    from actuator.provisioners.openstack.resources import Server, FloatingIP
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    engine = FauxEngine()
     
     class FIPTest(InfraModel):
         srvr = Server("deprov_server", u"Ubuntu 13.10", "m1.small",
@@ -733,10 +723,10 @@ def test049():
     pst = ProvisionServerTask(srvr)
     pfipt = ProvisionFloatingIPTask(fip)
     inst.srvr.fix_arguments()
-    pst.provision(rc)
+    pst.perform(engine)
     inst.fip.fix_arguments()
-    pfipt.provision(rc)
-    result = pfipt.deprovision(rc)
+    pfipt.perform(engine)
+    result = pfipt.reverse(engine)
     assert result is None
 
 from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
@@ -754,102 +744,99 @@ class BreakableNetworkTask(ProvisionNetworkTask):
         self.deprov_tries = 0
         self.do_deprov_fail = False
         
-    def _provision(self, rc):
+    def _perform(self, engine):
         if self.do_prov_fail:
             raise ProvisionerException("Nope!")
-        super(BreakableNetworkTask, self)._provision(rc)
+        super(BreakableNetworkTask, self)._perform(engine)
         self.prov_tries += 1
         if self.prov_cb is not None:
             self.prov_cb(self)
         
-    def _deprovision(self, rc):
+    def _reverse(self, engine):
         if self.do_deprov_fail:
             raise ProvisionerException("Nope!")
-        super(BreakableNetworkTask, self)._deprovision(rc)
+        super(BreakableNetworkTask, self)._reverse(engine)
         self.deprov_tries += 1
         if self.deprov_cb is not None:
             self.deprov_cb(self)
         
 def prov_deprov_setup():
-    from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-    from actuator.provisioners.openstack.resource_tasks import RunContext
-    from actuator.provisioners.openstack.resources import Network
-    rc = RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+    engine = FauxEngine()
 
     class Test(InfraModel):
         net = Network("wibble")
     inst = Test("wibble")
-    return rc, inst
+    return engine, inst
             
 def test050():
     'test050: test no multiple provisioning'
-    rc, inst = prov_deprov_setup()
+    engine, inst = prov_deprov_setup()
     net = inst.net.value()
     pnt = BreakableNetworkTask(net)
-    pnt.provision(rc)
-    pnt.provision(rc)
+    pnt.perform(engine)
+    pnt.perform(engine)
     assert pnt.prov_tries == 1
     
 def test051():
     'test051: test provision after fail'
-    rc, inst = prov_deprov_setup()
+    engine, inst = prov_deprov_setup()
     net = inst.net.value()
     pnt = BreakableNetworkTask(net)
     pnt.do_prov_fail = True
-    try: pnt.provision(rc)
+    try: pnt.perform(engine)
     except: pass
     pnt.do_prov_fail = False
-    pnt.provision(rc)
+    pnt.perform(engine)
     assert pnt.prov_tries == 1
     
 def test052():
     'test052: test no deprov before prov'
-    rc, inst = prov_deprov_setup()
+    engine, inst = prov_deprov_setup()
     net = inst.net.value()
     pnt = BreakableNetworkTask(net)
-    pnt.deprovision(rc)
+    pnt.reverse(engine)
     assert pnt.prov_tries == 0 and pnt.deprov_tries == 0
     
 def test053():
     'test053: test deprov after prov'
-    rc, inst = prov_deprov_setup()
+    engine, inst = prov_deprov_setup()
     net = inst.net.value()
     pnt = BreakableNetworkTask(net)
-    pnt.provision(rc)
-    pnt.deprovision(rc)
+    pnt.perform(engine)
+    pnt.reverse(engine)
     assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
     
 def test054():
     'test054: test no prov after deprov'
-    rc, inst = prov_deprov_setup()
+    engine, inst = prov_deprov_setup()
     net = inst.net.value()
     pnt = BreakableNetworkTask(net)
-    pnt.provision(rc)
-    pnt.deprovision(rc)
-    pnt.provision(rc)
+    pnt.perform(engine)
+    pnt.reverse(engine)
+    pnt.perform(engine)
     assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
     
 def test055():
     'test055: test deprov after one failed deprov'
-    rc, inst = prov_deprov_setup()
+    engine, inst = prov_deprov_setup()
     net = inst.net.value()
     pnt = BreakableNetworkTask(net)
-    pnt.provision(rc)
+    pnt.perform(engine)
     pnt.do_deprov_fail = True
-    try: pnt.deprovision(rc)
+    try: pnt.reverse(engine)
     except: pass
     pnt.do_deprov_fail = False
-    pnt.deprovision(rc)
+    pnt.reverse(engine)
     assert pnt.deprov_tries == 1
     
 def test056():
     'test056: no multiple deprov after prov'
-    rc, inst = prov_deprov_setup()
+    engine, inst = prov_deprov_setup()
     net = inst.net.value()
     pnt = BreakableNetworkTask(net)
-    pnt.provision(rc)
-    pnt.deprovision(rc)
-    pnt.deprovision(rc)
+    pnt.perform(engine)
+    pnt.reverse(engine)
+    pnt.reverse(engine)
     assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
     
 class ResumeNetwork(Network):
@@ -904,7 +891,7 @@ def test057():
     
     try:
         prov.provision_infra_model(inst)
-    except Exception, v:
+    except Exception, _:
         import traceback, sys
         et, ev, tb = sys.exc_info()
         print "UNEXEPECTED abort:"
@@ -1022,9 +1009,15 @@ def test062():
     assert result1 and result2 and ct.prov_count == 1
     
 def do_all():
-    for k, v in globals().items():
+    globs = globals()
+    tests = []
+    for k, v in globs.items():
         if k.startswith("test") and callable(v):
-            v()
+            tests.append(k)
+    tests.sort()
+    for k in tests:
+        print "Doing ", k
+        globs[k]()
             
 if __name__ == "__main__":
     do_all()

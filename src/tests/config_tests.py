@@ -26,7 +26,7 @@ Created on 13 Jul 2014
 import threading
 
 from actuator import *
-from actuator.config import _Dependency, _ConfigTask, StructuralTask,\
+from actuator.config import _Dependency, ConfigTask, StructuralTask,\
     with_config_options
 from actuator.infra import IPAddressable
 
@@ -353,7 +353,7 @@ class Capture(object):
         return self.performed.index((name, task))
         
     
-class ReportingTask(_ConfigTask, StructuralTask):
+class ReportingTask(ConfigTask, StructuralTask):
     def __init__(self, name, target=None, report=lambda n, o: (n, o), **kwargs):
         super(ReportingTask, self).__init__(name, task_role=target, **kwargs)
         self.target = target
@@ -369,7 +369,7 @@ class ReportingTask(_ConfigTask, StructuralTask):
         kwargs["report"] = self.report
         return args, kwargs
         
-    def perform(self):
+    def _perform(self, engine):
         comp = self.get_task_role()
         if not isinstance(comp, basestring):
             if isinstance(comp.name, basestring):
@@ -417,7 +417,16 @@ def test28():
     cfg = PingConfig()
     ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    try:
+        ea.perform_config()
+    except Exception, e:
+        print "Unexpected performance failure with: %s" % e.message
+        print "problems:"
+        import traceback
+        for t, et, ev, tb in ea.get_aborted_tasks():
+            print ">>>Task %s" % t.name
+            traceback.print_exception(et, ev, tb)
+        assert False
     assert (cap.pos("ping_target", PingConfig.t1.name) <
             cap.pos("ping_target", PingConfig.t2.name) <
             cap.pos("ping_target", PingConfig.t3.name) )
@@ -474,12 +483,12 @@ def test30():
             len(ns.pong_targets) == 0)
             
 def test31():
-    class VarCapture(_ConfigTask):
+    class VarCapture(ConfigTask):
         def __init__(self, name, task_role, **kwargs):
             super(VarCapture, self).__init__(name, task_role=task_role, **kwargs)
             self.vars = {}
             
-        def perform(self):
+        def _perform(self, engine):
             vv = self._model_instance.namespace_model_instance.comp.get_visible_vars()
             self.vars.update({v.name:v.get_value(self.get_task_role())
                               for v in vv.values()})
@@ -506,12 +515,12 @@ def test31():
             cfg.comp_task.vars["TWO"] == "2")
     
 def test32():
-    class VarCapture(_ConfigTask):
+    class VarCapture(ConfigTask):
         def __init__(self, name, task_role, **kwargs):
             super(VarCapture, self).__init__(name, task_role=task_role, **kwargs)
             self.vars = {}
             
-        def perform(self):
+        def _perform(self, engine):
             vv = self._model_instance.namespace_model_instance.get_visible_vars()
             self.vars.update({v.name:v.get_value(self.get_task_role())
                               for v in vv.values()})
@@ -682,7 +691,16 @@ def test40():
     
     ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    try:
+        ea.perform_config()
+    except Exception, e:
+        print "Unexpected exception: %s" % e.message
+        print "Aborted tasks:"
+        import traceback
+        for t, et, ev, tb in ea.get_aborted_tasks():
+            print ">>>Task %s" % t.name
+            traceback.print_exception(et, ev, tb)
+        assert False
     assert (len(cfg.grid_prep.instances) == 3 and
             len(cap.performed) == 5 and
             (cap.pos("static", "before") < cap.pos("grid_0", "rt-grid_0") and
@@ -940,6 +958,7 @@ def test47():
             print
         assert False, e.message
 
+    cap.performed.sort(lambda x,y: cmp(x[0], y[0]))
     assert len(cap.performed) == 9
 
 def test48():

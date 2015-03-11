@@ -25,14 +25,10 @@ Base classes for bindings to execution agents.
 import Queue
 import threading
 import time
-import sys
-import traceback
-import random
-import six
 
 from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
 from actuator.utils import LOG_INFO, root_logger
-from actuator.modeling import AbstractModelReference
+from actuator.task import TaskEngine
 
 
 class ExecutionException(ActuatorException):
@@ -66,7 +62,7 @@ class ConfigRecord(object):
         return task in set([r[0] for r in self.completed_tasks])
 
 
-class ExecutionAgent(object):
+class ExecutionAgent(TaskEngine):
     """
     Base class for execution agents. The mechanics of actually executing a task
     are left to the derived class; this class takes care of all the business of
@@ -118,146 +114,22 @@ class ExecutionAgent(object):
             raise ExecutionException("infra_model_instance isn't an instance of InfraModel")
         self.infra_mi = infra_model_instance
         
-        root_logger.setLevel(log_level)
+        super(ExecutionAgent, self).__init__("NO_NAME", self.config_mi,
+                                             num_threads=num_threads,
+                                             do_log=do_log,
+                                             no_delay=no_delay,
+                                             log_level=log_level)
+        
         self.task_queue = Queue.Queue()
         self.node_lock = threading.Lock()
         self.stop = False
         self.aborted_tasks = []
         self.num_tasks_to_perform = None
         self.config_record = None
-        self.num_threads = num_threads
-        self.do_log = do_log
-        self.no_delay = no_delay
         self.graph = None
         
-    def record_aborted_task(self, task, etype, value, tb):
-        """
-        Internal; used by a worker thread to report that it is giving up on
-        performing a task.
-        
-        @param task: The task that is aborting
-        @param etype: The aborting exception type
-        @param value: The exception value
-        @param tb: The exception traceback object, as returned by sys.exc_info()
-        """
-        self.aborted_tasks.append( (task, etype, value, tb) )
-        
-    def has_aborted_tasks(self):
-        """
-        Test to see if there are any aborted tasks
-        """
-        return len(self.aborted_tasks) > 0
-    
-    def get_aborted_tasks(self):
-        """
-        Returns a list of 4-tuples: the task that aborted, the exception type, the exception
-        value, and the traceback.
-        """
-        return list(self.aborted_tasks)
-    
     def reverse_task(self, graph, task):
         pass
-        
-    def perform_task(self, graph, task):
-        """
-        Internal, used to perform a task in graph. Derived classes implement
-        _perform_task() to supply the actual mechanics of for the underlying
-        task execution system.
-        
-        @param graph: an NetworkX DiGraph; needed to find the next tasks
-            to queue when the current one is done
-        @param task: The actual task to perform
-        
-        LOGGING FORMAT:
-        Some logging in this method embeds a sub-message in the log message. The
-        fields in the sub message a separated by '|', and are as follows:
-        - task type name
-        - task name
-        - task path in the model (or CAN'T.DETERMINE if a path can't be computed)
-        - task id
-        - name of the role the task is for (or NO_ROLE if there isn't a role)
-        - id of the role (or empty if there is no role)
-        - free-form text message
-        """
-
-        try:
-            role_name = task.get_task_role().name
-            if isinstance(role_name, AbstractModelReference):
-                role_name = role_name.value()
-            role_id = task.get_task_role()._id
-        except Exception, _:
-            role_name = "NO_ROLE"
-            role_id = ""
-            
-        def fmtmsg(sfx):
-            ref = task.get_ref()
-            path = ".".join(ref.get_path()) if ref is not None else "CAN'T.DETERMINE"
-            return "|".join([task.__class__.__name__, task.name, path,
-                             str(task._id), role_name, str(role_id), sfx])
-            
-        logger = root_logger.getChild(self.exec_agent)
-        logger.info(fmtmsg("processing started"))
-        if not self.no_delay:
-            time.sleep(random.uniform(0.2, 2.5))
-        try_count = 0
-        success = False
-        while try_count < task.repeat_count and not success:
-            try_count += 1
-            if self.do_log:
-                logfile=open("{}.{}-try{}.txt".format(task.name, str(task._id)[-4:], try_count), "w")
-            else:
-                logfile=None
-            try:
-                logger.info(fmtmsg("start performing task"))
-                self._perform_task(task, logfile=logfile)
-                logger.info(fmtmsg("task successfully performed"))
-                success = True
-            except Exception, e:
-                logger.warning(fmtmsg("task performance failed"))
-                msg = ">>>Task Exception for {}!".format(task.name)
-                if logfile:
-                    logfile.write("{}\n".format(msg))
-                tb = sys.exc_info()[2]
-                if try_count < task.repeat_count:
-                    retry_wait = try_count * task.repeat_interval
-                    logger.warning(fmtmsg("retrying after %d secs" % retry_wait))
-                    msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
-                    if logfile:
-                        logfile.write("{}\n".format(msg))
-                        traceback.print_exception(type(e), e, tb, file=logfile)
-                    time.sleep(retry_wait)
-                else:
-                    logger.error(fmtmsg("max tries exceeded; task aborting"))
-                    self.record_aborted_task(task, type(e), e, tb)
-                del tb
-                sys.exc_clear()
-            else:
-                self.node_lock.acquire()
-                self.num_tasks_to_perform -= 1
-                if self.num_tasks_to_perform == 0:
-                    self.stop = True
-                else:
-                    for successor in graph.successors_iter(task):
-                        graph.node[successor]["ins_traversed"] += 1
-                        if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
-                            logger.debug(fmtmsg("queueing up %s for performance"
-                                                % successor.name))
-                            self.task_queue.put((graph, successor))
-                self.node_lock.release()
-            if logfile:
-                logfile.flush()
-                logfile.close()
-                del logfile
-        if not success:
-#             print "ABORTING"
-            self.abort_process_tasks()
-        
-    def _perform_task(self, task, logfile=None):
-        """
-        Actually do the task; the default asks the task to perform itself,
-        which usually means that it does nothing.
-        """
-        task.perform()
         
     def abort_process_tasks(self):
         """
@@ -265,19 +137,6 @@ class ExecutionAgent(object):
         """
         self.stop = True
         
-    def process_tasks(self):
-        """
-        Tell the agent to start performing tasks; results in calls to
-        self.perform_task()
-        """
-        while not self.stop:
-            try:
-                graph, task = self.task_queue.get(block=True, timeout=0.2)
-                if not self.stop:
-                    self.perform_task(graph, task)
-            except Queue.Empty, _:
-                pass
-            
     def reverse_process_tasks(self):
         """
         Tell the agent to start reverse processing tasks; re
@@ -301,33 +160,8 @@ class ExecutionAgent(object):
         logger = root_logger.getChild(self.exec_agent)
         logger.info("Agent starting task processing")
         if self.namespace_mi and self.config_mi:
-            self.aborted_tasks = []
             self.config_mi.update_nexus(self.namespace_mi.nexus)
-            if self.graph is None:
-                self.graph = self.config_mi.get_graph(with_fix=True)
-            self.num_tasks_to_perform = len(self.graph.nodes())
-            for n in self.graph.nodes():
-                self.graph.node[n]["ins_traversed"] = 0
-#                 n.fix_arguments()
-            self.stop = False
-            #start the workers
-            logger.info("Starting workers...")
-            for _ in range(self.num_threads):
-                worker = threading.Thread(target=self.process_tasks)
-                worker.start()
-            logger.info("...workers started")
-            #queue the initial tasks
-            for task in (t for t in self.graph.nodes() if self.graph.in_degree(t) == 0):
-                logger.debug("Queueing up %s named %s id %s for performance" %
-                             (task.__class__.__name__, task.name, str(task._id)))
-                self.task_queue.put((self.graph, task))
-            logger.info("Initial tasks queued; waiting for completion")
-            #now wait to be signaled it finished
-            while not self.stop:
-                time.sleep(0.2)
-            logger.info("Agent task processing complete")
-            if self.aborted_tasks:
-                raise self.exception_class("Tasks aborted causing config to abort; see the execution agent's aborted_tasks list for details")
+            self.perform_tasks(completion_record)
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
         

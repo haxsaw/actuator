@@ -21,17 +21,17 @@
 Configuration tasks modeled after Ansible modules
 '''
 
-from actuator.config import _ConfigTask, ConfigException
+from actuator.config import ConfigTask, ConfigException
 from actuator.exec_agents.core import ExecutionException
 
-class PingTask(_ConfigTask):
+class PingTask(ConfigTask):
     """
     Checks to see if a remote machine is alive by ssh'ing into it.
     """
     pass
 
 
-class ScriptTask(_ConfigTask):
+class ScriptTask(ConfigTask):
     """
     Transfers a script *as is* to the remote host and executes it. The script
     is run in a shell environment. This task will process Var replacement 
@@ -55,7 +55,7 @@ class ScriptTask(_ConfigTask):
             the script will remove. If it isn't there, then the script will
             not be run. If not supplied then no removal test will be performed.
         @keyword **kwargs: the other available keyword arguments for
-            L{_ConfigTask}
+            L{ConfigTask}
         """
         super(ScriptTask, self).__init__(name, **kwargs)
         self.free_form = None
@@ -66,7 +66,7 @@ class ScriptTask(_ConfigTask):
         self._removes = removes
         
     def get_init_args(self):
-        __doc__ = _ConfigTask.get_init_args.__doc__
+        __doc__ = ConfigTask.get_init_args.__doc__
         args, kwargs = super(ScriptTask, self).get_init_args()
         args = args + (self._free_form,)
         kwargs["creates"] = self._creates
@@ -112,7 +112,7 @@ class CommandTask(ScriptTask):
             the script will remove. If it isn't there, then the script will
             not be run. If not supplied then no removal test will be performed.
         @keyword **kwargs: the other available keyword arguments for
-            L{_ConfigTask}
+            L{ConfigTask}
         """
 
         super(CommandTask, self).__init__(name, free_form, creates=creates,
@@ -150,7 +150,7 @@ class ShellTask(CommandTask):
     pass
 
 
-class CopyFileTask(_ConfigTask):
+class CopyFileTask(ConfigTask):
     """
     Copies a file from the local system to the remote system.
     
@@ -210,7 +210,7 @@ class CopyFileTask(_ConfigTask):
             passed securely so shell features like expansion and pipes won't
             work.
         @keyword **kwargs: the other available keyword arguments for
-            L{_ConfigTask}
+            L{ConfigTask}
         """
         super(CopyFileTask, self).__init__(name, **kwargs)
         if content is None and src is None:

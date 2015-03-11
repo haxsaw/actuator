@@ -295,7 +295,7 @@ class AnsibleExecutionAgent(ExecutionAgent):
     def _perform_task(self, task, logfile=None):
         task.fix_arguments()
         if isinstance(task, (NullTask, StructuralTask)):
-            task.perform()
+            task.perform(self)
         else:
             cmapper = get_mapper(_agent_domain)
             processor = cmapper[task.__class__]()
