@@ -165,7 +165,7 @@ class ExecutionAgent(TaskEngine):
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
         
-    def perform_reverse(self, completion_record=None):
+    def perform_reverses(self, completion_record=None):
         """
         Traverses the graph in reverse to "unperform" the tasks.
         

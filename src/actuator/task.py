@@ -476,9 +476,6 @@ class TaskEngine(object):
         """
         return list(self.aborted_tasks)
     
-    def reverse_task(self, graph, task):
-        pass
-    
     def make_format_func(self, task):
         ref = task.get_ref()
         path = ".".join(ref.get_path()) if ref is not None else "CAN'T.DETERMINE"
@@ -487,11 +484,35 @@ class TaskEngine(object):
                              str(task._id), msg])
         return fmtmsg
         
+    def _reverse_task(self, task, logfile=None):
+        #Actually reverse the task; the default asks the task to reverse itself
+        task.reverse(self)
+        
+    def reverse_task(self, graph, task):
+        """
+        Internal, used to reverse a task in graph. Derived classes implement
+        _reverse_task() to supply the actual mechanics for the underlying
+        task execution system.
+        
+        @param graph: an NetworkX DiGraph; needed to find the next tasks
+            to queue when the current one is done
+        @param task: The actual task to perform
+        
+        LOGGING FORMAT:
+        Some logging in this method embeds a sub-message in the log message. The
+        fields in the sub message a separated by '|', and are as follows:
+        - task type name
+        - task name
+        - task path in the model (or CAN'T.DETERMINE if a path can't be computed)
+        - task id
+        - name of the role the task is for (or NO_ROLE if there isn't a role)
+        - id of the role (or empty if there is no role)
+        - free-form text message
+        """
+        self._task_runner(task, "reverse", task.REVERSED)
+    
     def _perform_task(self, task, logfile=None):
-        """
-        Actually do the task; the default asks the task to perform itself,
-        which usually means that it does nothing.
-        """
+        #Actually do the task; the default asks the task to perform itself.
         task.perform(self)
         
     def perform_task(self, graph, task):
@@ -515,8 +536,11 @@ class TaskEngine(object):
         - id of the role (or empty if there is no role)
         - free-form text message
         """
-
+        self._task_runner(task, "perform", task.PERFORMED)
+        
+    def _task_runner(self, task, direction, success_status):
         fmtmsg = self.make_format_func(task)
+        meth = getattr(self, "".join(["_", direction, "_task"]))
             
         logger = root_logger.getChild(self.exec_agent)
         logger.info(fmtmsg("processing started"))
@@ -534,14 +558,16 @@ class TaskEngine(object):
             else:
                 logfile=None
             try:
-                logger.info(fmtmsg("start performing task"))
-                self._perform_task(task, logfile=logfile)
-                task.status = task.PERFORMED
-                logger.info(fmtmsg("task successfully performed"))
+                logger.info(fmtmsg("start %s-ing task" % direction))
+#                 self._perform_task(task, logfile=logfile)
+                meth(task, logfile=logfile)
+#                 task.status = task.PERFORMED
+                task.status = success_status
+                logger.info(fmtmsg("task successfully %s-ed" % direction))
                 success = True
             except Exception, e:
-                logger.warning(fmtmsg("task performance failed"))
-                msg = ">>>Task Exception for {}!".format(task.name)
+                logger.warning(fmtmsg("task %s failed" % direction))
+                msg = ">>>Task {} Exception for {}!".format(direction, task.name)
                 if logfile:
                     logfile.write("{}\n".format(msg))
                 tb = sys.exc_info()[2]
@@ -564,9 +590,15 @@ class TaskEngine(object):
                 del logfile
 #         if not success and try_count >= task.repeat_count:
         if not success:
-            logger.error(fmtmsg("Could not be performed; "
-                         "aborting further task processing"))
+            logger.error(fmtmsg("Could not be %s-ed; "
+                         "aborting further task processing" % direction))
             self.abort_process_tasks()
+    
+    def abort_process_tasks(self):
+        """
+        The the agent to abort performing any further tasks.
+        """
+        self.stop = True
         
     def process_perform_task_queue(self):
         """
@@ -596,21 +628,30 @@ class TaskEngine(object):
             except Queue.Empty, _:
                 pass
             
-    def abort_process_tasks(self):
-        """
-        The the agent to abort performing any further tasks.
-        """
-        self.stop = True
-        
     def process_reverse_task_queue(self):
         """
         Tell the agent to start reverse processing tasks; re
         """
+        logger = root_logger.getChild("%s.process_reverse_tasks" % self.exec_agent)
         while not self.stop:
             try:
                 graph, task = self.task_queue.get(block=True, timeout=0.2)
                 if not self.stop:
                     self.reverse_task(graph, task)
+                    if task.status == task.REVERSED:
+                        with self.node_lock:
+                            self.num_tasks_to_perform -= 1
+                            logger.debug("Remaining tasks to reverse: %s" %
+                                         self.num_tasks_to_perform)
+                            if self.num_tasks_to_perform == 0:
+                                self.stop = True
+                            else:
+                                for predecessor in graph.predecessors_iter(task):
+                                    graph.node[predecessor]["outs_traversed"] += 1
+                                    if graph.out_degree(predecessor) == graph.node[predecessor]["outs_traversed"]:
+                                        logger.debug("queuing up %s for performance" %
+                                                     predecessor.name)
+                                        self.task_queue.put((graph, predecessor))
             except Queue.Empty, _:
                 pass
             
@@ -645,8 +686,7 @@ class TaskEngine(object):
             raise self.exception_class("Task(s) aborted causing engine to abort; "
                                        "see the engine's aborted_tasks list for details")
 
-        
-    def perform_reverse(self, completion_record=None):
+    def perform_reverses(self, completion_record=None):
         """
         Traverses the graph in reverse to "unperform" the tasks.
         
@@ -659,32 +699,31 @@ class TaskEngine(object):
         
         @keyword completion_record: currently unused
         """
+        del self.aborted_tasks[:]
         logger = root_logger.getChild(self.exec_agent)
         logger.info("Agent starting reverse processing of tasks")
-        if self.namespace_mi and self.config_mi:
-            graph = self.config_mi.get_graph(with_fix=False)
-            self.num_tasks_to_perform = len(graph.nodes())
-            for n in graph.nodes():
-                graph.node[n]["outs_traversed"] = 0
-            self.stop = False
-            #start the workers
-            logger.info("Starting workers...")
-            for _ in range(self.num_threads):
-                worker = threading.Thread(target=self.process_reverse_task_queue)
-                worker.start()
-            logger.info("...workers started")
-            #queue the initial tasks
-            for task in (t for t in graph.nodes() if graph.out_degree(t) == 0):
-                logger.debug("Queueing up %s named %s id %s for reversing" %
-                             (task.__class__.__name__, task.name, str(task._id)))
-                self.task_queue.put((graph, task))
-            logger.info("Initial tasks queued; waiting for completion")
-            #now wait to be signaled it finished
-            while not self.stop:
-                time.sleep(0.2)
-            logger.info("Agent task reversing complete")
-            if self.aborted_tasks:
-                raise self.exception_class("Tasks aborted causing reverse to abort; see the execution agent's aborted_tasks list for details")
-        else:
-            raise TaskException("either namespace_model_instance or config_model_instance weren't specified")
+        if self.graph is None:
+            self.graph = self.model.get_graph(with_fix=True)
+        self.num_tasks_to_perform = len(self.graph.nodes())
+        for n in self.graph.nodes():
+            self.graph.node[n]["outs_traversed"] = 0
+        self.stop = False
+        #start the workers
+        logger.info("Starting workers...")
+        for _ in range(self.num_threads):
+            worker = threading.Thread(target=self.process_reverse_task_queue)
+            worker.start()
+        logger.info("...workers started")
+        #queue the initial tasks
+        for task in (t for t in self.graph.nodes() if self.graph.out_degree(t) == 0):
+            logger.debug("Queueing up %s named %s id %s for reversing" %
+                         (task.__class__.__name__, task.name, str(task._id)))
+            self.task_queue.put((self.graph, task))
+        logger.info("Initial tasks queued; waiting for completion")
+        #now wait to be signaled it finished
+        while not self.stop:
+            time.sleep(0.2)
+        logger.info("Agent task reversing complete")
+        if self.aborted_tasks:
+            raise self.exception_class("Tasks aborted causing reverse to abort; see the execution agent's aborted_tasks list for details")
 
