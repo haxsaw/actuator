@@ -440,16 +440,39 @@ class TaskEngine(object):
         root_logger.setLevel(log_level)
         self.model = model
         self.name = name
-        self.task_queue = Queue.Queue()
-        self.node_lock = threading.Lock()
-        self.stop = False
-        self.aborted_tasks = []
-        self.num_tasks_to_perform = None
-        self.config_record = None
         self.num_threads = num_threads
+        self.node_lock = threading.Lock()
+        self.config_record = None
         self.do_log = do_log
         self.no_delay = no_delay
         self.graph = None
+        
+        self.task_queue = Queue.Queue()
+        self.stop = False
+        self.aborted_tasks = []
+        self.num_tasks_to_perform = None
+        self.threads = set()
+        self._reset()
+        
+    def _reset(self):
+        #used to reset the processing state of the system so resumes/reverses
+        #don't get weird results
+        while not self.task_queue.empty():
+            try:
+                self.task_queue.get(False)
+            except Queue.Empty, _:
+                break
+        self.aborted_tasks = []
+        self.num_tasks_to_perform = None
+        #just to ensure no threads continue to work while we reset
+        self.stop = True
+        self._reap_threads()
+        self.stop = False
+        
+    def _reap_threads(self):
+        for t in list(self.threads):
+            t.join()
+            self.threads.remove(t)
         
     def record_aborted_task(self, task, etype, value, tb):
         """
@@ -559,9 +582,7 @@ class TaskEngine(object):
                 logfile=None
             try:
                 logger.info(fmtmsg("start %s-ing task" % direction))
-#                 self._perform_task(task, logfile=logfile)
                 meth(task, logfile=logfile)
-#                 task.status = task.PERFORMED
                 task.status = success_status
                 logger.info(fmtmsg("task successfully %s-ed" % direction))
                 success = True
@@ -656,21 +677,21 @@ class TaskEngine(object):
                 pass
             
     def perform_tasks(self, completion_record=None):
+        self._reset()
         fmtmsg = lambda msg: "Task engine %s: %s" % (self.name, msg)
         logger = root_logger.getChild(self.exec_agent)
         logger.info(fmtmsg("starting task processing"))
-        self.aborted_tasks = []
         if self.graph is None:
             self.graph = self.model.get_graph(with_fix=True)
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
             self.graph.node[n]["ins_traversed"] = 0
-        self.stop = False
         #start the workers
         logger.info(fmtmsg("Starting workers..."))
         for _ in range(self.num_threads):
             worker = threading.Thread(target=self.process_perform_task_queue)
             worker.start()
+            self.threads.add(worker)
         logger.info(fmtmsg("...workers started"))
         #queue the initial tasks
         for task in (t for t in self.graph.nodes() if self.graph.in_degree(t) == 0):
@@ -681,6 +702,7 @@ class TaskEngine(object):
         #now wait to be signaled it finished
         while not self.stop:
             time.sleep(0.2)
+        self._reap_threads()
         logger.info(fmtmsg("Agent task processing complete"))
         if self.aborted_tasks:
             raise self.exception_class("Task(s) aborted causing engine to abort; "
@@ -699,31 +721,33 @@ class TaskEngine(object):
         
         @keyword completion_record: currently unused
         """
-        del self.aborted_tasks[:]
+        self._reset()
+        fmtmsg = lambda msg: "Task engine %s: %s" % (self.name, msg)
         logger = root_logger.getChild(self.exec_agent)
-        logger.info("Agent starting reverse processing of tasks")
+        logger.info(fmtmsg("Agent starting reverse processing of tasks"))
         if self.graph is None:
             self.graph = self.model.get_graph(with_fix=True)
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
             self.graph.node[n]["outs_traversed"] = 0
-        self.stop = False
         #start the workers
-        logger.info("Starting workers...")
+        logger.info(fmtmsg("Starting workers..."))
         for _ in range(self.num_threads):
             worker = threading.Thread(target=self.process_reverse_task_queue)
             worker.start()
-        logger.info("...workers started")
+            self.threads.add(worker)
+        logger.info(fmtmsg("...workers started"))
         #queue the initial tasks
         for task in (t for t in self.graph.nodes() if self.graph.out_degree(t) == 0):
-            logger.debug("Queueing up %s named %s id %s for reversing" %
-                         (task.__class__.__name__, task.name, str(task._id)))
+            logger.debug(fmtmsg("Queueing up %s named %s id %s for reversing" %
+                         (task.__class__.__name__, task.name, str(task._id))))
             self.task_queue.put((self.graph, task))
-        logger.info("Initial tasks queued; waiting for completion")
+        logger.info(fmtmsg("Initial tasks queued; waiting for completion"))
         #now wait to be signaled it finished
         while not self.stop:
             time.sleep(0.2)
-        logger.info("Agent task reversing complete")
+        self._reap_threads()
+        logger.info(fmtmsg("Agent task reversing complete"))
         if self.aborted_tasks:
             raise self.exception_class("Tasks aborted causing reverse to abort; see the execution agent's aborted_tasks list for details")
 
