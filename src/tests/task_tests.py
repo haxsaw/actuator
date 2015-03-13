@@ -33,16 +33,22 @@ class TestTask(Task):
         self.rev_count = 0
         self.pass_perf = True
         self.pass_rev = True
+        self.perf_cb = None
+        self.rev_cb = None
         
     def _perform(self, engine):
         if self.pass_perf:
             self.perf_count += 1
+            if self.perf_cb:
+                self.perf_cb(self)
         else:
             raise Exception("Perform failed as planned")
     
     def _reverse(self, engine):
         if self.pass_rev:
             self.rev_count += 1
+            if self.rev_cb:
+                self.rev_cb(self)
         else:
             raise Exception("Reverse failed as planned")
         
@@ -121,6 +127,81 @@ def test003():
             and tt2.perf_count == 0 and tt2.rev_count == 0),   \
             "t1-pc=%d t1-rc=%d t2-pc=%d p2-rc=%d" %   \
             (tt1.perf_count, tt1.rev_count, tt2.perf_count, tt2.rev_count)
+            
+def test004():
+    """
+    test004: check dependencies between tasks
+    """
+    rev_order = []
+    def order_check(task):
+        rev_order.append(task.name)
+    fm = FauxModel()
+    tt1 = TestTask("test004a")
+    tt1.rev_cb = order_check
+    fm.add_task(tt1)
+    tt2 = TestTask("test004b")
+    tt2.rev_cb = order_check
+    fm.add_task(tt2)
+    fm.add_dependency(tt1 | tt2)
+    te = TaskEngine("te4", fm, no_delay=True)
+    te.perform_tasks()
+    te.perform_reverses()
+    assert rev_order == [tt2.name, tt1.name], str(rev_order)
+    
+def test005():
+    "test005: check long dep chain in reversing"
+    rev_order = []
+    def order_check(task):
+        rev_order.append(task.name)
+    fm = FauxModel()
+    tasks = []
+    pt = None
+    for i in range(5):
+        tt = TestTask("test005-%d" % i)
+        tt.rev_cb = order_check
+        fm.add_task(tt)
+        tasks.append(tt)
+        if pt is not None:
+            fm.add_dependency(pt | tt)
+        pt = tt
+
+    te = TaskEngine("te5", fm, no_delay=True)
+    te.perform_tasks()
+    te.perform_reverses()
+    tasks.reverse()
+    names = [t.name for t in tasks]
+    assert rev_order == names
+    
+def test006():
+    "test006: check more complex reverse graph"
+    rev_order = []
+    def order_check(task):
+        rev_order.append(task.name)
+    fm = FauxModel()
+    tasks = []
+    for i in range(6):
+        tt = TestTask("t006-%d" % i)
+        tt.rev_cb = order_check
+        fm.add_task(tt)
+        tasks.append(tt)
+    fm.add_dependency(tasks[0] | tasks[1])
+    fm.add_dependency(tasks[1] | tasks[2])
+    fm.add_dependency(tasks[1] | tasks[3])
+    fm.add_dependency(tasks[1] | tasks[4])
+    fm.add_dependency(tasks[2] | tasks[4])
+    fm.add_dependency(tasks[3] | tasks[4])
+    fm.add_dependency(tasks[4] | tasks[5])
+    
+    te = TaskEngine("te6", fm, no_delay=True)
+    te.perform_tasks()
+    te.perform_reverses()
+    tasks.reverse()
+    assert (rev_order[0] == "t006-5" and rev_order[5] == "t006-0" and
+            rev_order.index("t006-1") > rev_order.index("t006-2") and
+            rev_order.index("t006-1") > rev_order.index("t006-3") and
+            rev_order.index("t006-2") > rev_order.index("t006-4") and
+            rev_order.index("t006-3") > rev_order.index("t006-4") and
+            rev_order.index("t006-4") < 5), str(rev_order)
 
 def do_all():
     globs = globals()

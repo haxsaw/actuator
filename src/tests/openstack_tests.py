@@ -1008,6 +1008,36 @@ def test062():
     result2 = orch.initiate_system()
     assert result1 and result2 and ct.prov_count == 1
     
+def test063():
+    "test063: deprovision infra"
+    class DecoInfra(InfraModel):
+        net = Network("deco")
+    deco = DecoInfra("deco")
+    prov = get_provisioner()
+    prov.provision_infra_model(deco)
+    prov.deprovision_infra_model(deco)
+    assert True
+    
+def test064():
+    'test064: run the teardown after initiation'
+    from actuator.provisioners.openstack.resource_tasks import _rt_domain
+    from actuator.utils import capture_mapping
+    from actuator import ActuatorOrchestration
+    
+    ct = CaptureTries()
+                    
+    capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+    class ResumeInfra(InfraModel):
+        net = ResumeNetwork("resume")
+    inst = ResumeInfra('resume')
+    assert inst.net.name.value() is 'resume'
+    prov = get_provisioner()
+    BreakableNetworkTask.prov_cb = ct.cb
+    orch = ActuatorOrchestration(infra_model_inst=inst, provisioner=prov)
+    result1 = orch.initiate_system()
+    result2 = orch.teardown_system()
+    assert result1 and result2 and ct.prov_count == 1
+    
 def do_all():
     globs = globals()
     tests = []

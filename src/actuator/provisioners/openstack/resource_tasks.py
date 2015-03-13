@@ -553,3 +553,13 @@ class OpenstackProvisioner(BaseProvisioner):
         self.logger.info("...provisioning complete.")
         return self.agent.record
     
+    def _deprovision(self, inframodel_instance, record=None):
+        self.logger.info("Starting to deprovision...")
+        if self.agent is None:
+            self.agent = ResourceTaskSequencerAgent(inframodel_instance,
+                                                    self.os_creds,
+                                                    num_threads=self.num_threads)
+        self.agent.perform_reverses()
+        self.logger.info("Deprovisioning complete.")
+        return self.agent.record
+    

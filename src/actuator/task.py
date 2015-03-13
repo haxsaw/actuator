@@ -702,6 +702,7 @@ class TaskEngine(object):
         #now wait to be signaled it finished
         while not self.stop:
             time.sleep(0.2)
+        logger.info(fmtmsg("Reaping threads; this may take a minute"))
         self._reap_threads()
         logger.info(fmtmsg("Agent task processing complete"))
         if self.aborted_tasks:
@@ -746,6 +747,7 @@ class TaskEngine(object):
         #now wait to be signaled it finished
         while not self.stop:
             time.sleep(0.2)
+        logger.info(fmtmsg("Reaping threads; this may take a minute"))
         self._reap_threads()
         logger.info(fmtmsg("Agent task reversing complete"))
         if self.aborted_tasks:

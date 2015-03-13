@@ -58,7 +58,14 @@ class BaseProvisioner(object):
             raise ProvisionerException("Record must be a kind of BaseProvisioningRecord")
         self._deprovision(record)
         
-    def _deprovision(self, record):
+    def deprovision_infra_model(self, inframodel_instance):
+        if not isinstance(inframodel_instance, InfraModel):
+            raise ProvisionerException("Deprovision must be supplied an InfraModel"
+                                       " instance, not %s" % str(inframodel_instance))
+        _ = inframodel_instance.refs_for_components()
+        return self._deprovision(inframodel_instance)
+        
+    def _deprovision(self, inframodel_instance, record=None):
         raise TypeError("Derived class must implement _deprovision()")
     
     
