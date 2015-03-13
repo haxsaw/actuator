@@ -925,9 +925,9 @@ def test149():
     inst.compute_provisioning_from_refs([Test.app_server])
     try:
         inst.compute_provisioning_from_refs([Test.app_server])
-        assert False, "was allowed to compute provisioning twice"
+        assert True
     except InfraException, e:
-        assert "has already been" in e.message
+        assert False, "This should be ok to do twice"
         
 def test150():
     from actuator.infra import IPAddressable

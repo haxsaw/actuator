@@ -70,7 +70,7 @@ class DevNamespace(NamespaceModel):
 
 class HadoopNodeConfig(ConfigModel):
     #first describe all the tasks; order isn't important
-    ping = PingTask("ping_to_check_alive", repeat_count=20)
+    ping = PingTask("ping_to_check_alive", repeat_count=5)
     send_priv_key = CopyFileTask("send_priv_key", "!{HADOOP_PREP}/!{PRIV_KEY_NAME}",
                                  src=find_file(pkn, "."),
                                  mode="0600"

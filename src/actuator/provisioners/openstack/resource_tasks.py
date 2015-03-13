@@ -71,7 +71,7 @@ class ProvisioningTask(Task):
         super(ProvisioningTask, self).__init__("{}_provisioning_{}_task"
                                                 .format(rsrc.name,
                                                         rsrc.__class__.__name__),
-                                                repeat_count=1)
+                                                repeat_count=repeat_count)
         self._rsrc_by_id[rsrc._id] = rsrc
         self.rsrc_id = rsrc._id
         #self.rsrc has been turned into a property
@@ -325,12 +325,14 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
         response = run_context.nuclient.add_interface_router(router_id,
                                                       {u'subnet_id':subnet,
                                                        u'name':self.rsrc.name})
-        run_context.record.add_router_iface_id(self.rsrc._id, response[u'id'])
+        self.rsrc.set_osid(response[u'port_id'])
+        run_context.record.add_router_iface_id(self.rsrc._id, response[u'port_id'])
         
     def _reverse(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
-        run_context.nuclient.remove_interface_router(router_id)
+        run_context.nuclient.remove_interface_router(router_id,
+                                                     {u'port_id':self.rsrc.osid})
 
 
 @capture_mapping(_rt_domain, FloatingIP)
@@ -447,7 +449,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
                                            "%s named %s at path %s" %
                                            (rsrc.__class__.__name__,
                                             rsrc.name, path))
-            task = task_class(rsrc, repeat_count=1)
+            task = task_class(rsrc, repeat_count=3)
             tasks.append(task)
             self.rsrc_task_map[rsrc] = task
         return tasks

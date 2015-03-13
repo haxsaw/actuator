@@ -112,17 +112,17 @@ def test003():
         raise False, "A mock task should have raised an exception"
     except Exception, _:
         pass
-#     te.perform_reverses()
+    te.perform_reverses()
     #only need the following to debug the above if it fails
-    try:
-        te.perform_reverses()
-    except Exception, e:
-        print e.message
-        import traceback
-        for t, et, ev, tb in te.get_aborted_tasks():
-            print ">>>Task ", t.name
-            traceback.print_exception(et, ev, tb, limit=10)
-        assert False, "aborting-- reversing task raised"
+#     try:
+#         te.perform_reverses()
+#     except Exception, e:
+#         print e.message
+#         import traceback
+#         for t, et, ev, tb in te.get_aborted_tasks():
+#             print ">>>Task ", t.name
+#             traceback.print_exception(et, ev, tb, limit=10)
+#         assert False, "aborting-- reversing task raised"
     assert (tt1.perf_count == 1 and tt1.rev_count == 1  \
             and tt2.perf_count == 0 and tt2.rev_count == 0),   \
             "t1-pc=%d t1-rc=%d t2-pc=%d p2-rc=%d" %   \
