@@ -406,6 +406,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
     no_punc = string.maketrans(string.punctuation, "_"*len(string.punctuation))
     exception_class = ProvisionerException
     exec_agent = "rsrc_provisioner"
+    repeat_count = 3
     def __init__(self, infra_model, os_creds, num_threads=5, log_level=LOG_INFO,
                  no_delay=True):
         self.logger = root_logger.getChild("os_prov_agent")
@@ -449,7 +450,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
                                            "%s named %s at path %s" %
                                            (rsrc.__class__.__name__,
                                             rsrc.name, path))
-            task = task_class(rsrc, repeat_count=3)
+            task = task_class(rsrc, repeat_count=self.repeat_count)
             tasks.append(task)
             self.rsrc_task_map[rsrc] = task
         return tasks

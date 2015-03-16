@@ -36,7 +36,9 @@ ocf.set_nova_client_class(ost_support.MockNovaClient)
 
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
                       MultiResource, ctxt, Var, ResourceGroup)
-from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+from actuator.provisioners.openstack.resource_tasks import (OpenstackProvisioner,
+                                                            ResourceTaskSequencerAgent)
+ResourceTaskSequencerAgent.repeat_count = 1
 from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Router, FloatingIP,
                                                         Subnet, SecGroup,

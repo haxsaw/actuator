@@ -950,6 +950,13 @@ def test151():
     inst = Test("test")
     assert len(inst.components()) == 3
     
+# def test152():
+#     class IM(InfraModel):
+#         with_infra_options(long_names=True)
+#         s = Server("here", mem="8GB")
+#     inst = IM("I'm")
+    
+    
     
 def do_all():
     setup()

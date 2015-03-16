@@ -32,7 +32,7 @@ import pprint
 # import json_runner
 
 from actuator.exec_agents.core import ExecutionAgent, ExecutionException
-from actuator.config import StructuralTask, NullTask
+from actuator.config import StructuralTask, NullTask, ConfigTask
 from actuator.config_tasks import *
 from actuator.utils import capture_mapping, get_mapper
 from actuator.namespace import _ComputableValue
@@ -293,7 +293,6 @@ class AnsibleExecutionAgent(ExecutionAgent):
         return run_host
         
     def _perform_task(self, task, logfile=None):
-        assert isinstance(task, ConfigTask)
         #@FIXME: this is kind of crap. Because there's a separation between config
         #tasks and their performance by Ansible, we can't take advantage of the
         #in-built task.perform() and task.reverse()'s management of the task.status
