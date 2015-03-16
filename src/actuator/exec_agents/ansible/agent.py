@@ -293,14 +293,19 @@ class AnsibleExecutionAgent(ExecutionAgent):
         return run_host
         
     def _perform_task(self, task, logfile=None):
+        assert isinstance(task, ConfigTask)
+        #@FIXME: this is kind of crap. Because there's a separation between config
+        #tasks and their performance by Ansible, we can't take advantage of the
+        #in-built task.perform() and task.reverse()'s management of the task.status
+        #attribute. this means we have to do it oursevles, and that's crap
+        if task.status != task.UNSTARTED:
+            return
         task.fix_arguments()
         if isinstance(task, (NullTask, StructuralTask)):
-            task.perform()
+            task.perform(self)
         else:
             cmapper = get_mapper(_agent_domain)
             processor = cmapper[task.__class__]()
-#             task.get_task_role().fix_arguments()
-#             task_host = task.get_task_host()
             task_host = self._get_run_host(task)
             if task_host is not None:
                 msg = "Task {} being run on {}".format(task.name, task_host)
@@ -336,5 +341,9 @@ class AnsibleExecutionAgent(ExecutionAgent):
             
             if logfile:
                 logfile.write(">>>Result:\n{}\n".format(json.dumps(result)))
-            processor.result_check(task, result, logfile=logfile)
+            try:
+                processor.result_check(task, result, logfile=logfile)
+                task.status = task.PERFORMED
+            except ExecutionException, _:
+                raise
         return

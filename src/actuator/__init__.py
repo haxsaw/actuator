@@ -61,8 +61,9 @@ from infra import (InfraModel, InfraException, with_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup)
 from namespace import (Var, NamespaceModel, with_variables, NamespaceException,
                        Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup)
+from task import (TaskGroup)
 from config import (ConfigModel, with_searchpath, with_dependencies,
-                    ConfigException, TaskGroup, NullTask, MultiTask,
+                    ConfigException, MultiTask, NullTask,
                     ConfigClassTask, with_config_options)
 from provisioners.core import ProvisionerException, BaseProvisioner
 from exec_agents.core import ExecutionAgent, ExecutionException
@@ -95,6 +96,9 @@ class ActuatorOrchestration(object):
     ABORT_PROVISION = 5
     ABORT_CONFIG = 6
     ABORT_EXEC = 7
+    PERFORMING_DEPROV = 8
+    ABORT_DEPROV = 9
+    DEPROV_COMPLETE = 10
     def __init__(self, infra_model_inst=None, provisioner=None,
                  namespace_model_inst=None, config_model_inst=None,
                  log_level=LOG_INFO, no_delay=False, num_threads=5,
@@ -297,4 +301,34 @@ class ActuatorOrchestration(object):
         self.status = self.COMPLETE
         return True
     
+    def teardown_system(self):
+        self.logger.info("Teardown orchestration starting")
+        did_teardown = False
+        if self.infra_model_inst is not None and self.provisioner is not None:
+            try:
+                self.status = self.PERFORMING_DEPROV
+                self.logger.info("Starting de-provisioning phase")
+                if self.namespace_model_inst:
+                    self.namespace_model_inst.set_infra_model(self.infra_model_inst)
+                    self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
+                _ = self.infra_model_inst.refs_for_components()
+                self.provisioner.deprovision_infra_model(self.infra_model_inst)
+                self.logger.info("De-provisioning phase complete")
+                did_teardown = True
+            except ProvisionerException, e:
+                self.status = self.ABORT_PROVISION
+                self.logger.critical(">>> De-provisioning failed "
+                                     "with '%s'; failed resources shown below" % e.message)
+                if self.provisioner.agent is not None:
+                    for t, et, ev, tb in self.provisioner.agent.get_aborted_tasks():
+                        self.logger.critical("Task %s named %s id %s" %
+                                             (t.__class__.__name__, t.name, str(t._id)),
+                                             exc_info=(et, ev, tb))
+                else:
+                    self.logger.critical("No further information")
+                self.logger.critical("Aborting deprovisioning orchestration")
+                return False
+        else:
+            self.logger.info("No infra model or provisioner; skipping de-provisioning step")
+        return did_teardown
                 

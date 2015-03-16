@@ -56,7 +56,7 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
                                namespace_model_inst=ns,
                                config_model_inst=cfg)
     success = ao.initiate_system()
-    return success, infra, ns, cfg
+    return success, infra, ns, cfg, ao
     
 
 if __name__ == "__main__":
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     tenant = os.environ.get(tenant_env, user_env)
     url = os.environ.get(auth_env)
     
-    success, infra, ns, cfg = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
+    success, infra, ns, cfg, ao = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
     if success:
         print "\n...done! You can reach the reach the assets at the following IPs:"
         print ">>>namenode: %s" % infra.name_node_fip.get_ip()
@@ -94,5 +94,39 @@ if __name__ == "__main__":
             print "\t%s" % s.slave_fip.get_ip()
     else:
         print "Orchestration failed; see the log for error messages"
-        
+    
+    cmd = ""
+    while cmd != 'q':
+        print "Now what? r=re-run initiate, t=teardown system, q=quit"
+        print "(r/t/q): "
+        cmd = sys.stdin.readline()
+        cmd = cmd.strip().lower()
+        cmd = cmd[0] if len(cmd) else ""
+        if cmd == "r":
+            print "Re-running initiate"
+            success = ao.initiate_system()
+            if success:
+                print "\n...done! You can reach the reach the assets at the following IPs:"
+                print ">>>namenode: %s" % infra.name_node_fip.get_ip()
+                print ">>>slaves:"
+                for s in infra.slaves.values():
+                    print "\t%s" % s.slave_fip.get_ip()
+            else:
+                print "Orchestration failed; see the log for error messages"
+        elif cmd == "t":
+            print "Tearing down; won't be able to re-run later"
+            success = ao.teardown_system()
+            if success:
+                print "\n...done! Your system has been de-commissioned"
+                print "quitting now"
+                break
+            else:
+                print "Orchestration failed; see the log for error messages"
+        elif cmd == "q":
+            print "goodbye"
+            break
+        elif cmd == "":
+            continue
+        else:
+            print "Unrecognized command '%s'" % cmd
 

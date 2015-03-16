@@ -38,6 +38,8 @@ class Create(object):
     def create(self, *args, **kwargs):
         return self.get_result(*args, **kwargs)
     
+    def get(self, server_id):
+        return self.get_result(server_id)
 
 class CreateAndList(Create):
     def __init__(self, get_result, list_result):
@@ -63,6 +65,12 @@ class ServerCreate(Create):
     def add_floating_ip(self, *args, **kwargs):
         return
     
+    def remove_floating_ip(self, server, fip):
+        return
+    
+    def delete(self, srvr):
+        return
+    
     def get(self, server_id):
         return FakeOSServer()
     
@@ -84,7 +92,9 @@ class MockNovaClient(object):
         self.servers = ServerCreate(self.server_create_result)
         self.images = CreateAndList(self.image_create_result, self.image_list_result)
         self.flavors = CreateAndList(self.flavor_create_result, self.flavor_list_result)
-        self.security_groups = CreateAndList(self.secgroup_create_result, self.secgroup_list_result)
+        self.security_groups = CreateListDelete(self.secgroup_create_result,
+                                                self.secgroup_list_result,
+                                                self.secgroup_delete_result)
         self.networks = CreateAndList(None, self.network_list_result)
         self.security_group_rules = Create(self.secgroup_rule_create_result)
         self.keypairs = CreateListDelete(self.keypair_create_result,
@@ -150,7 +160,9 @@ class MockNovaClient(object):
     def secgroup_list_result(self):
         return list(itertools.chain(self._secgroup_list,
                                     [MockNovaClient.SecGroupResult(sgr.id) for sgr in self._secgroup_list]))
-    
+        
+    def secgroup_delete_result(self, key):
+        return    
             
     def secgroup_rule_create_result(self, *args, **kwargs):
         class SecGroupRuleResult(object):
@@ -163,6 +175,9 @@ class MockNovaClient(object):
             def __init__(self):
                 self.ip = fake.ipv4()
                 self.id = fake.md5()
+                
+            def delete(self):
+                return
             
         return FIPResult()
     
@@ -196,14 +211,23 @@ class MockNeutronClient(object):
 #         result = {"network": {"id":fake.md5()}}
         result = {"network": {"id":MockNovaClient._networks_list[0].id}}
         return result
+    
+    def delete_network(self, network_id):
+        return
         
     def create_subnet(self, body=None):
         result = {'subnets':[{'id':fake.md5()}]}
         return result
     
+    def delete_subnet(self, subnet_id):
+        return
+    
     def create_router(self, body=None):
         result = {'router': {'id':fake.md5()}}
         return result
+    
+    def delete_router(self, router_id):
+        return
     
     def list_routers(self, *args, **kwargs):
         """{d['name']:d['id'] for d in response["routers"]}"""
@@ -214,5 +238,9 @@ class MockNeutronClient(object):
     
     def add_interface_router(self, *args, **kwargs):
         return {u'id':uuid.uuid4()}
+    
+    def remove_interface_router(self, router_id, args_dict):
+        return
+    
     
     

@@ -193,7 +193,7 @@ class InfraModel(ModelBase):
             be considered when computing Provisionables (this will be skipped)
         """
         if self.provisioning_computed:
-            raise InfraException("The provisioning for this instance has already been computed")
+            return
         self.provisioning_computed = True
         if exclude_refs is None:
             exclude_refs = set()
