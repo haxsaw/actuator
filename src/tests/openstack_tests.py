@@ -35,7 +35,7 @@ ocf.set_neutron_client_class(ost_support.MockNeutronClient)
 ocf.set_nova_client_class(ost_support.MockNovaClient)
 
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
-                      MultiResource, ctxt, Var, ResourceGroup)
+                      MultiResource, ctxt, Var, ResourceGroup, with_infra_options)
 from actuator.provisioners.openstack.resource_tasks import (OpenstackProvisioner,
                                                             ResourceTaskSequencerAgent)
 ResourceTaskSequencerAgent.repeat_count = 1

@@ -106,23 +106,24 @@ def test003():
     tt2 = TestTask("test003b")
     tt2.pass_perf = False
     fm.add_task(tt2)
+    fm.add_dependency(tt1 | tt2)
     te = TaskEngine("te3", fm, no_delay=True)
     try:
         te.perform_tasks()
         raise False, "A mock task should have raised an exception"
     except Exception, _:
         pass
-    te.perform_reverses()
-    #only need the following to debug the above if it fails
-#     try:
-#         te.perform_reverses()
-#     except Exception, e:
-#         print e.message
-#         import traceback
-#         for t, et, ev, tb in te.get_aborted_tasks():
-#             print ">>>Task ", t.name
-#             traceback.print_exception(et, ev, tb, limit=10)
-#         assert False, "aborting-- reversing task raised"
+#     te.perform_reverses()
+#     only need the following to debug the above if it fails
+    try:
+        te.perform_reverses()
+    except Exception, e:
+        print e.message
+        import traceback
+        for t, et, ev, tb in te.get_aborted_tasks():
+            print ">>>Task ", t.name
+            traceback.print_exception(et, ev, tb, limit=10)
+        assert False, "aborting-- reversing task raised"
     assert (tt1.perf_count == 1 and tt1.rev_count == 1  \
             and tt2.perf_count == 0 and tt2.rev_count == 0),   \
             "t1-pc=%d t1-rc=%d t2-pc=%d p2-rc=%d" %   \

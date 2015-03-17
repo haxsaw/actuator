@@ -73,6 +73,7 @@ common_kwargs = {"key_name":ctxt.model.kp}
 
 
 class HadoopInfra(InfraModel):
+    with_infra_options(long_names=True)
     fip_pool = "external"  #attributes that aren't resources are ignored
     #add the standard slave_secgroup and connectivity components
     slave_secgroup = make_std_secgroup("slave", desc="For Hadoop slaves")

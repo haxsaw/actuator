@@ -105,7 +105,7 @@ class ProvisioningTask(Task):
 class ProvisionNetworkTask(ProvisioningTask):
     def _perform(self, engine):
         run_context = engine.get_context()
-        msg = {u'network': {u'name':self.rsrc.name,
+        msg = {u'network': {u'name':self.rsrc.get_display_name(),
                             u'admin_state_up':self.rsrc.admin_state_up}}
         response = run_context.nuclient.create_network(body=msg)
         self.rsrc.set_osid(response['network']['id'])
@@ -133,7 +133,7 @@ class ProvisionSubnetTask(ProvisioningTask):
                                                                       "osid",
                                                                       "network"),
                             'dns_nameservers':self.rsrc.dns_nameservers,
-                            'name':self.rsrc.name}]}
+                            'name':self.rsrc.get_display_name()}]}
         sn = run_context.nuclient.create_subnet(body=msg)
         self.rsrc.set_osid(sn["subnets"][0]["id"])
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
@@ -162,7 +162,7 @@ class ProvisionSecGroupTask(ProvisioningTask):
             #@FIXME: this lock is because nova isn't threadsafe for this
             #call, and until it is we have to single-thread through it
             self._sg_create_lock.acquire()
-            response = run_context.nvclient.security_groups.create(name=self.rsrc.name,
+            response = run_context.nvclient.security_groups.create(name=self.rsrc.get_display_name(),
                                                                    description=self.rsrc.description)
         finally:
             self._sg_create_lock.release()
@@ -223,7 +223,8 @@ class ProvisionServerTask(ProvisioningTask):
         run_context.maps.refresh_flavors()
         run_context.maps.refresh_networks()
         args, kwargs = self.rsrc.get_fixed_args()
-        name, image_name, flavor_name = args
+        _, image_name, flavor_name = args
+        name = self.rsrc.get_display_name()
         image = run_context.maps.image_map.get(image_name)
         if image is None:
             raise ProvisionerException("Image %s doesn't seem to exist" % image_name,
@@ -279,7 +280,7 @@ class ProvisionRouterTask(ProvisioningTask):
     def _perform(self, engine):
         run_context = engine.get_context()
         msg = {u'router': {u'admin_state_up':self.rsrc.admin_state_up,
-                           u'name':self.rsrc.name}}
+                           u'name':self.rsrc.get_display_name()}}
         reply = run_context.nuclient.create_router(body=msg)
         self.rsrc.set_osid(reply["router"]["id"])
         run_context.record.add_router_id(self.rsrc._id, self.rsrc.osid)
@@ -324,7 +325,7 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
         subnet = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
         response = run_context.nuclient.add_interface_router(router_id,
                                                       {u'subnet_id':subnet,
-                                                       u'name':self.rsrc.name})
+                                                       u'name':self.rsrc.get_display_name()})
         self.rsrc.set_osid(response[u'port_id'])
         run_context.record.add_router_iface_id(self.rsrc._id, response[u'port_id'])
         

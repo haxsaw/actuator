@@ -26,7 +26,7 @@ from actuator import (InfraModel, MultiResourceGroup, ComponentGroup, ctxt)
 from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,
                                AbstractModelingEntity, MultiComponent)
 from actuator.infra import (with_resources, InfraException, ResourceGroup,
-                            MultiResource, MultiResourceGroup)
+                            MultiResource, MultiResourceGroup, with_infra_options)
 from actuator.provisioners.example_resources import Server, Database
 
 MyInfra = None
@@ -950,12 +950,79 @@ def test151():
     inst = Test("test")
     assert len(inst.components()) == 3
     
-# def test152():
-#     class IM(InfraModel):
-#         with_infra_options(long_names=True)
-#         s = Server("here", mem="8GB")
-#     inst = IM("I'm")
+def test152():
+    class IM(InfraModel):
+        s = Server("here", mem="8GB")
+    inst = IM("I_m")
+    assert inst.s.longname.value() == "I_m.s.here"
     
+def test153():
+    class IM(InfraModel):
+        slaves = MultiResource(Server("slave", mem="8GB"))
+    inst = IM("153")
+    for i in range(5):
+        _ = inst.slaves[i]
+    assert inst.slaves[3].longname.value() == "153.slaves.3.slave_3"
+    
+def test154():
+    class IM(InfraModel):
+        group = ResourceGroup("Group",
+                              foreman = Server("Foreman", mem="8GB"),
+                              slaves = MultiResource(Server("slave", mem="8GB")))
+    inst = IM("154")
+    for i in range(5):
+        _ = inst.group.slaves[i]
+    assert inst.group.foreman.longname.value() == "154.group.foreman.Foreman", \
+        inst.group.foreman.longname.value()
+    assert inst.group.slaves[3].longname.value() == "154.group.slaves.3.slave_3", \
+        inst.group.slaves[3].longname.value()
+    
+def test155():
+    class IM(InfraModel):
+        mg = MultiResource(ResourceGroup("multi_group",
+                                         foreman = Server("Foreman", mem="8GB"),
+                                         slaves = MultiResource(Server("slave",mem="8GB"))))
+    inst = IM("155")
+    for i in range(2):
+        group_name = "group_%d" % i
+        _ = inst.mg[group_name]
+        for j in range(5):
+            _ = inst.mg[group_name].slaves[j]
+            
+    assert inst.mg["group_0"].foreman.longname.value() == "155.mg.group_0.foreman.Foreman", \
+        inst.mg["group_0"].foreman.longname.value()
+    assert inst.mg["group_1"].slaves[3].longname.value() == "155.mg.group_1.slaves.3.slave_3", \
+        inst.mg["group_1"].slaves[3].longname.value()
+    assert inst.mg["NY"].slaves[20].longname.value() == "155.mg.NY.slaves.20.slave_20", \
+        inst.mg["NY"].slaves[20].longname.value()
+    
+def test156():
+    """
+    Check that we use the longname for the items in an infra
+    """
+    class LNI(InfraModel):
+        with_infra_options(long_names=True)
+        group = ResourceGroup("Group",
+                              foreman=Server("Foreman",
+                                             key_name="perseverance_dev_key"),
+                              slaves=MultiResource(Server("slave",
+                                                          key_name="perseverance_dev_key")))
+    inst = LNI("156")
+    assert inst.group.foreman.get_display_name() == "156.group.foreman.Foreman"
+    
+def test157():
+    """
+    Check that we use shortnames when appropriate
+    """
+    class LNI(InfraModel):
+        with_infra_options(long_names=False)
+        group = ResourceGroup("Group",
+                              foreman=Server("Foreman",
+                                             key_name="perseverance_dev_key"),
+                              slaves=MultiResource(Server("slave",
+                                                          key_name="perseverance_dev_key")))
+    inst = LNI("157")
+    assert inst.group.foreman.get_display_name() == "Foreman"
     
     
 def do_all():

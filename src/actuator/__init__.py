@@ -58,7 +58,8 @@ import time
 from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
                       ctxt, ActuatorException)
 from infra import (InfraModel, InfraException, with_resources, StaticServer,
-                   ResourceGroup, MultiResource, MultiResourceGroup)
+                   ResourceGroup, MultiResource, MultiResourceGroup,
+                   with_infra_options)
 from namespace import (Var, NamespaceModel, with_variables, NamespaceException,
                        Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup)
 from task import (TaskGroup)
