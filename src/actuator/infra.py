@@ -29,28 +29,39 @@ from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                ModelInstanceReference, KeyAsAttr,
                                _ComputeModelComponents, ModelReference,
                                ComponentGroup, MultiComponent,
-                               MultiComponentGroup)
+                               MultiComponentGroup, AbstractModelReference)
 
 
 class InfraException(ActuatorException): pass
 
 
 _infra_options = "__infra_options__"
-_recognized_options = set(["long_names"])
-# @ClassModifier
-# def with_infra_options(cls, *args, **kwargs):
-#     """
-#     Available options:
-#     default_provisioner=None
-#     """
-#     opts_dict = cls.__dict__.get(_infra_options)
-#     if opts_dict is None:
-#         opts_dict = {}
-#         setattr(cls, _infra_options, opts_dict)
-#     for k, v in kwargs.items():
-#         if k not in _recognized_options:
-#             raise InfraException("Unrecognized InfraModel option: %s" % k)
-#         opts_dict[k] = v
+_long_names = "long_names"
+_recognized_options = set([_long_names])
+@ClassModifier
+def with_infra_options(cls, *args, **kwargs):
+    """
+    Available options:
+    @keyword long_names: boolean, defaults to False. This option provides info
+        to resources as to what "display name" to use when asked by the
+        provisioner. By default, a "short" name is used, specifically the name
+        given to the resource. However, there are cases where more than one
+        instance of a resource with the same name may get generated, making it
+        hard to determine which is which in various reports from cloud systems.
+        Use long_names=True will use a name that starts with the name of the
+        infra model, continues with the 'path' to the resource, and terminates
+        with the short name for the resource. If infra model instances are
+        uniquely named, this will result in unique display names for every
+        resource provisioned.
+    """
+    opts_dict = cls.__dict__.get(_infra_options)
+    if opts_dict is None:
+        opts_dict = {}
+        setattr(cls, _infra_options, opts_dict)
+    for k, v in kwargs.items():
+        if k not in _recognized_options:
+            raise InfraException("Unrecognized InfraModel option: %s" % k)
+        opts_dict[k] = v
 
 
 @ClassModifier
@@ -74,22 +85,35 @@ def with_resources(cls, *args, **kwargs):
         components[k] = v
     return
 
+class _LongnameProp(object):
+    def __get__(self, inst, owner):
+        mi = inst.get_model_instance()
+        ref = AbstractModelReference.find_ref_for_obj(inst)
+        ln = ".".join(([mi.name] if mi else ["NONE"]) +
+                      (ref.get_path() if ref else []) +
+                      [inst.name])
+        return ln
+    
 
-class ResourceGroup(ComponentGroup):
+class _LNMixin(object):
+    longname = _LongnameProp()
+
+
+class ResourceGroup(_LNMixin, ComponentGroup):
     """
     A specialization of the L{ComponentGroup} class
     """
     pass
 
 
-class MultiResource(MultiComponent):
+class MultiResource(_LNMixin, MultiComponent):
     """
     A specialization of the L{MultiComponent} class
     """
     pass
 
 
-class MultiResourceGroup(MultiComponentGroup):
+class MultiResourceGroup(_LNMixin, MultiComponentGroup):
     """
     A specialization of the L{MultiComponentGroup} class
     """
@@ -98,12 +122,21 @@ class MultiResourceGroup(MultiComponentGroup):
         return MultiResource(group)
 
 
-class Provisionable(ModelComponent):
+class Provisionable(_LNMixin, ModelComponent):
     """
     This class serves as a marker class for any L{ModelComponent} derived
     class as something that can actually be provisioned.
     """
-    pass
+    def get_display_name(self):
+        """
+        Returns the name to use in reports and displays.
+        
+        This method returns either the resource name or resource longname,
+        depending on whether or not the long_names option was set on the
+        infra model the resource is attached to.
+        """
+        mi = self.get_model_instance()
+        return self.longname if (mi and mi._long_names) else self.name
         
 
 class InfraModelMeta(ModelBaseMeta):
@@ -140,6 +173,14 @@ class InfraModel(ModelBase):
         """
         super(InfraModel, self).__init__()
         self.name = name
+        #set option defaults
+        self._long_names = False
+        #process options
+        opts = self.__class__.__dict__.get(_infra_options)
+        if opts:
+            for k, v in opts.items():
+                if k == _long_names:
+                    self._long_names = v
         ga = super(InfraModel, self).__getattribute__
         attrdict = self.__dict__
         for k, v in ga(InfraModelMeta._COMPONENTS).items():

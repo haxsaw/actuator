@@ -323,6 +323,7 @@ class AbstractModelingEntity(object):
                       for k, v in kwargs.items()}
         clone_class = self.get_class() if clone_into_class is None else clone_into_class
         clone = clone_class(*new_args, **new_kwargs)
+        clone._set_model_instance(self.get_model_instance())
         return clone
     
     
@@ -414,10 +415,17 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         super(ComponentGroup, self).__init__(name)
         for k, v in kwargs.items():
             if isinstance(v, AbstractModelingEntity):
-                setattr(self, k, v.clone())
+                clone = v.clone()
+                clone._set_model_instance(self.get_model_instance())
+                setattr(self, k, clone)
             else:
                 raise TypeError("arg %s has a value that isn't a kind of AbstractModelingEntity: %s" % (k, str(v)))
         self._kwargs = kwargs
+        
+    def _set_model_instance(self, inst):
+        super(ComponentGroup, self)._set_model_instance(inst)
+        for v in self._comp_source().values():
+            v._set_model_instance(inst)
         
     def _comp_source(self):
         return {k:getattr(self, k) for k in self._kwargs}
@@ -578,6 +586,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
             logicalName = "%s_%s" % (args[0], str(key))
             inst = prototype.get_class()(logicalName, *args[1:], **kwargs)
             self._instances[key] = inst
+            inst._set_model_instance(self.get_model_instance())
         return inst
     
     def instances(self):
