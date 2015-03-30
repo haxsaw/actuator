@@ -29,7 +29,8 @@ from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                ModelInstanceReference, KeyAsAttr,
                                _ComputeModelComponents, ModelReference,
                                ComponentGroup, MultiComponent,
-                               MultiComponentGroup, AbstractModelReference)
+                               MultiComponentGroup, AbstractModelReference,
+                               _Nexus)
 
 
 class InfraException(ActuatorException): pass
@@ -146,6 +147,7 @@ class InfraModelMeta(ModelBaseMeta):
         new_class = super(InfraModelMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(new_class)
         new_class._class_refs_for_resources()
+        _Nexus._add_model_desc("inf", new_class)
         #
         #@FIXME: The validation here has been suspended as there are some deeper
         #design problems that have to be sorted out to fix it

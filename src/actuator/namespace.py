@@ -27,7 +27,7 @@ from actuator.utils import ClassModifier, process_modifiers, capture_mapping, ge
 from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase,
                                ModelReference, ModelInstanceReference, ModelBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
-                               CallContext)
+                               CallContext, _Nexus, _ValueAccessMixin)
 from actuator.infra import InfraModel
 
 
@@ -216,7 +216,7 @@ class Var(_ModelRefSetAcquireable):
         return self.value
     
     
-class VarFuture(object):
+class VarFuture(_ValueAccessMixin):
     """
     A wrapper that allows a Var to be treated like reference into a model. Supports
     a value() method that allows deferring the computation of the variable until
@@ -248,25 +248,29 @@ class VarFuture(object):
         """
         return self.var.get_value(self.context, allow_unexpanded=allow_unexpanded)
     
-# SAVE THIS FOR NEXT TIME    
-#     
-# class VarReference(object):
-#     def __init__(self, var_name=None):
-#         self.var_name = var_name
-#           
-#     def __getattr__(self, attrname):
-#         return VarReference(self.var_cont, var_name=attrname)
-#       
-#     def __call__(self, context=None):
-#         if context.comp:
-#             val = context.comp.var_value(self.var_name)
-#         elif context.model:
-#             val = context.model.var_value(self.var_name)
-#         else:
-#             raise NamespaceException("Could not determine an object"
-#                                      " to query for the value of %s" %
-#                                      self.var_name)
-#         return val
+
+class VarReference(_ValueAccessMixin):
+    def __init__(self, var_cont, var_name):
+        self.var_cont = var_cont
+        self.var_name = var_name
+            
+    def __call__(self, allow_unexpanded=False):
+        #@FIXME: we probably should have a check here if the container
+        #has a var called var_name and raise a more useful exeception at
+        #this point
+        return self.var_cont.var_value(self.var_name,
+                                       allow_unexpanded=allow_unexpanded)
+    
+    def value(self, allow_unexpanded=False):
+        return self(allow_unexpanded=allow_unexpanded)
+    
+    
+class VarValueAccessor(object):
+    def __init__(self, var_cont):
+        self.var_cont = var_cont
+        
+    def __getattr__(self, varname):
+        return VarReference(self.var_cont, varname)
         
 
 class VariableContainer(_ModelRefSetAcquireable):
@@ -297,6 +301,7 @@ class VariableContainer(_ModelRefSetAcquireable):
             to be visible once again.
         """
         super(VariableContainer, self).__init__()
+        self.v = VarValueAccessor(self)
         self.variables = {}
         self.overrides = {}
         self.parent_container = parent
@@ -717,6 +722,7 @@ class NamespaceModelMeta(ModelBaseMeta):
                 attr_dict[k] = v.clone(clone_into_class=mapped_class)
         newbie = super(NamespaceModelMeta, cls).__new__(cls, name, bases, attr_dict)
         process_modifiers(newbie)
+        _Nexus._add_model_desc("ns", newbie)
         return newbie
     
 
@@ -805,6 +811,8 @@ class NamespaceModel(VariableContainer, ModelBase):
                                          .format(str(infra_model)))
         elif self.infra is not infra_model:
             raise NamespaceException("A different infra model has already been supplied")
+        infra_model.nexus.merge_from(self.nexus)
+        self.nexus = infra_model.nexus
     
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):
         """

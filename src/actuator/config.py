@@ -29,7 +29,7 @@ from collections import Iterable
 import networkx as nx
 from actuator.modeling import (ModelComponent, ModelReference,
                                AbstractModelReference, ModelInstanceReference,
-                               ModelBase, ModelBaseMeta)
+                               ModelBase, ModelBaseMeta, _Nexus)
 from actuator.namespace import _ComputableValue, NamespaceModel
 from actuator.task import (TaskException, Task, _Dependency, _Cloneable,
                            _Unpackable, GraphableModelMixin)
@@ -460,6 +460,7 @@ class ConfigModelMeta(ModelBaseMeta):
                 _ = nx.topological_sort(graph)
             except nx.NetworkXUnfeasible, _:
                 raise ConfigException("Task dependency graph contains a cycle")
+        _Nexus._add_model_desc("cfg", newbie)
         return newbie
     
 
@@ -729,6 +730,9 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             raise ConfigException("given an object that is not "
                                   "a kind of NamespaceModel: %s" % str(namespace))
         self.namespace_model_instance = namespace
+        self.namespace_model_instance.nexus.merge_from(self.nexus)
+        self.nexus = self.namespace_model_instance.nexus
+        
         
     def get_namespace(self):
         """

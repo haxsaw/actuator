@@ -25,9 +25,11 @@ Created on 4 Jun 2014
 from actuator import (InfraModel, MultiResourceGroup, ComponentGroup, ctxt)
 from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,
                                AbstractModelingEntity, MultiComponent)
+from actuator.namespace import NamespaceModel
 from actuator.infra import (with_resources, InfraException, ResourceGroup,
                             MultiResource, MultiResourceGroup, with_infra_options)
 from actuator.provisioners.example_resources import Server, Database
+from actuator.config import ConfigModel
 
 MyInfra = None
 
@@ -1023,6 +1025,77 @@ def test157():
                                                           key_name="perseverance_dev_key")))
     inst = LNI("157")
     assert inst.group.foreman.get_display_name() == "Foreman"
+    
+def test158():
+    """
+    Check nexus finding model instances
+    """
+    class T(InfraModel):
+        server = Server("server", mem="8GB")
+    t = T("t")
+    assert t is t.nexus.inf
+    
+def test159():
+    """
+    Check for independent nexus
+    """
+    class T1(InfraModel):
+        server = Server("server", mem="8GB")
+    class T2(InfraModel):
+        server = Server("server", mem="8GB")
+    t1 = T1("t1")
+    t2 = T2("t2")
+    assert t1.nexus.inf is not t2.nexus.inf
+    
+def test160():
+    """
+    test160: Check for cross-model nexus access
+    """
+    class T1(InfraModel):
+        server = Server("server", mem="8GB")
+    class NS(NamespaceModel):
+        pass
+    t1 = T1("t1")
+    ns = NS()
+    ns.set_infra_model(t1)
+    assert t1.nexus.ns is ns
+    
+def test161():
+    """
+    test161: Check config addition to nexus
+    """
+    class I1(InfraModel):
+        server = Server("server", mem="8GB")
+    class NS(NamespaceModel):
+        pass
+    class CF(ConfigModel):
+        pass
+    
+    i1 = I1("i1")
+    ns = NS()
+    cfg = CF()
+    ns.set_infra_model(i1)
+    cfg.set_namespace(ns)
+    assert (cfg.nexus.ns is ns and cfg.nexus.inf is i1 and
+            i1.nexus.cfg is cfg and ns.nexus.cfg is cfg)
+    
+def test162():
+    """
+    test162: Check config access to objects in another model via nexus
+    """
+    class I1(InfraModel):
+        server = Server("server", mem="8GB")
+    class NS(NamespaceModel):
+        pass
+    class CF(ConfigModel):
+        pass
+    
+    i1 = I1("i1")
+    ns = NS()
+    cfg = CF()
+    ns.set_infra_model(i1)
+    cfg.set_namespace(ns)
+    assert (cfg.nexus.inf.server is i1.server)
     
     
 def do_all():

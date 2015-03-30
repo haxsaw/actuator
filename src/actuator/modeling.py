@@ -38,12 +38,33 @@ class KeyAsAttr(str):
     pass
 
 
-class KeyItem(object):
+class _ValueAccessMixin(object):
+    def value(self, **kwargs):
+        """
+        Basic protocol for acquiring the value for an object. Keyword args
+        relevant to the object may be supplied, but unknown ones may be
+        rejected by users of this mixin. So it only kinda-sorta defines
+        a polymorphic interface. 
+        """
+        raise TypeError("derived class must implement")
+    
+    
+class KeyItem(_ValueAccessMixin):
     #internal
     def __init__(self, key):
         self.key = key if callable(key) else KeyAsAttr(key)
         
-    def value(self, ctx):
+    def value(self, ctx=None):
+        """
+        Returns the value of self.key. If key is a callable, then its return
+        value is returned instead of the key itself.
+        
+        @param ctx: A CallContext object. Although the signature treats it as
+            optional, it should be considered required (although the method 
+            *will* work right without it as long as self.key isn't callable.
+            Generally, this is called internally when needed and the context
+            is always provided.
+        """
         if callable(self.key):
             value = self.key(ctx)
         else:
@@ -107,6 +128,7 @@ class CallContext(object):
     """
     def __init__(self, model_inst, component):
         self.model = model_inst
+        self.nexus = model_inst.nexus if model_inst is not None else None
         self.comp = component
         self.name = component._name if component else None
         
@@ -470,6 +492,10 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         self.template_component = template_component.clone()
         self._instances = {}
         
+    def _set_model_instance(self, inst):
+        super(MultiComponent, self)._set_model_instance(inst)
+        self.template_component._set_model_instance(inst)
+        
     def _fix_arguments(self):
         for i in self._instances.values():
             i.fix_arguments()
@@ -624,7 +650,7 @@ class MultiComponentGroup(MultiComponent):
         return MultiComponent(group)
         
 
-class AbstractModelReference(object):
+class AbstractModelReference(_ValueAccessMixin):
     """
     Base for all model reference classes.
     
@@ -799,7 +825,7 @@ class AbstractModelReference(object):
             raise TypeError("%s object doesn't support keyed access" % self.__class__)
         return value
     
-    def value(self):
+    def value(self, **kwargs):
         """
         Returns the value that underlies the reference. This may or may not
         return something then None, depending on the reference and where the
@@ -810,6 +836,8 @@ class AbstractModelReference(object):
         There are no "blocking" semantics here; the method returns the value
         that currently exists, and if the value changes later, retrieving the
         value() of this reference again will yield the new value.
+        
+        @param kwargs: ignored
         """
         ga = super(AbstractModelReference, self).__getattribute__
         name = ga("_name")
@@ -1021,6 +1049,14 @@ class RefSelectUnion(object):
         return set(itertools.chain(*[e(ctxt) for e in self.exprs]))
     
     
+class _ModelLookup(object):
+    def __init__(self, klass):
+        self.klass = klass
+    
+    def __get__(self, inst, owner):
+        return inst.find_instance(self.klass)
+    
+    
 class _Nexus(object):
     """
     Internal to Actuator
@@ -1035,6 +1071,11 @@ class _Nexus(object):
     """
     def __init__(self):
         self.mapper = ClassMapper()
+        
+    @classmethod
+    def _add_model_desc(cls, attrname, klass):
+        if not hasattr(cls, attrname):
+            setattr(cls, attrname, _ModelLookup(klass))
         
     def capture_model_to_instance(self, model_class, instance):
         """

@@ -35,7 +35,7 @@ def setup():
     pass
 
 
-def test01():
+def test001():
     from actuator.modeling import _ComputeModelComponents
     class NoCompSource(_ComputeModelComponents):
         pass
@@ -46,24 +46,24 @@ def test01():
     except TypeError, e:
         assert "Derived class must implement" in e.message
         
-def test02():
+def test002():
     try:
         _ = ComponentGroup("oopsGroup", server=Server("server", mem="8GB"), oops="not me")
         assert False, "Bad arg to ComponentGroup not caught"
     except TypeError, e:
         assert "isn't a kind of AbstractModelingEntity".lower() in e.message.lower()
 
-def test03():
+def test003():
     ce = ctxt.one.two.three
     assert list(ce._path) == ["three", "two", "one"]
     
-def test04():
+def test004():
     ce = ctxt.model.infra.grid[0]
     path = list(ce._path[1:])
     ki = ce._path[0]
     assert [ki.key] + path == ["0", "grid", "infra", "model"]
     
-def test05():
+def test005():
     class Infra(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
@@ -71,7 +71,7 @@ def test05():
         _ = inst.grid[i]
     assert set(inst.grid) == set(["0", "1", "2"])
 
-def test06():
+def test006():
     class Infra(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
@@ -80,7 +80,7 @@ def test06():
     nada = "nada"
     assert inst.grid.get("10", default=nada) == nada
     
-def test07():
+def test007():
     class Infra(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
     inst = Infra("iter")
@@ -97,7 +97,7 @@ class FakeReference(object):
         self._name = name
         
 
-def test08():
+def test008():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -112,7 +112,7 @@ def test08():
     result = qexp(ctxt)
     assert len(result) == 20
     
-def test09():
+def test009():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -127,7 +127,7 @@ def test09():
     result = qexp(ctxt)
     assert len(result) == 10
 
-def test10():
+def test010():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -142,7 +142,7 @@ def test10():
     result = qexp(ctxt)
     assert len(result) == 20
 
-def test11():
+def test011():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -157,7 +157,7 @@ def test11():
     result = qexp(ctxt)
     assert len(result) == 30
 
-def test12():
+def test012():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -176,7 +176,7 @@ def test12():
     result = qexp(ctxt)
     assert len(result) == 25
 
-def test13():
+def test013():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -195,7 +195,7 @@ def test13():
     result = qexp(ctxt)
     assert len(result) == 10
 
-def test14():
+def test014():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -218,7 +218,7 @@ def test14():
     result = qexp(ctxt)
     assert len(result) == 10
 
-def test15():
+def test015():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -234,7 +234,7 @@ def test15():
     result = qexp(ctxt)
     assert len(result) == 21
 
-def test16():
+def test016():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -257,7 +257,7 @@ def test16():
     result = qexp(ctxt)
     assert len(result) == 20
 
-def test17():
+def test017():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -268,7 +268,7 @@ def test17():
     except AttributeError, e:
         assert "cluster" in e.message.lower()
         
-def test18():
+def test018():
     class Infra(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
@@ -276,7 +276,7 @@ def test18():
     infra = Infra("infra")
     assert infra.nexus
     
-def test19():
+def test019():
     class InfraIPTest(InfraModel):
         s = StaticServer("sommat", "127.0.0.1")
         
@@ -303,7 +303,7 @@ def host_list(ctx_exp, sep_char=" "):
         return sep_char.join(ip_list)
     return host_list_inner
 
-def test20():
+def test020():
     class IPFactory(object):
         def __init__(self):
             self.host = 0
@@ -320,6 +320,7 @@ def test20():
         with_variables(Var("EXPR", host_list(ctxt.model.q.s)))
         s = MultiRole(Role("dude", host_ref=Infra20.slaves[ctxt.name]))
     ns = Namespace20()
+    ns.set_infra_model(infra)
     for i in range(5):
         ns.s[i].fix_arguments()
     
@@ -329,7 +330,6 @@ def test20():
 
 def do_all():
     setup()
-    test19()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

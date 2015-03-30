@@ -18,8 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.config import with_dependencies, MultiTask, ConfigClassTask
-from actuator.namespace import MultiRole
+# from actuator.config import with_dependencies, MultiTask, ConfigClassTask
 
 '''
 Created on Oct 21, 2014
@@ -35,9 +34,10 @@ from actuator import (NamespaceModel, Var, Role, ConfigModel, PingTask,
                       with_variables, ExecutionException, CommandTask,
                       ScriptTask, CopyFileTask, InfraModel, StaticServer,
                       ProcessCopyFileTask, ctxt, with_config_options,
-                      NullTask, TaskGroup)
+                      NullTask, with_dependencies, MultiTask,
+                      ConfigClassTask, MultiRole)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
-from actuator.utils import find_file
+from actuator.utils import find_file, LOG_DEBUG
 
 
 def setup():
@@ -471,7 +471,7 @@ def test014():
     
     ea = AnsibleExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
-                               num_threads=5, no_delay=True)
+                               num_threads=5, no_delay=True, log_level=LOG_DEBUG)
     try:
         ea.perform_config()
     except ExecutionException, e:
