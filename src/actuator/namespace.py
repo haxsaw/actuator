@@ -736,6 +736,8 @@ class NamespaceModel(VariableContainer, ModelBase):
     
     See the base classes L{VariableContainer} and L{ModelBase} for info on
     other methods.
+    
+    @ivar ivar: infra. DEPRECATED-- use self.nexus.inf instead
     """
     __metaclass__ = NamespaceModelMeta
     ref_class = ModelInstanceReference
@@ -827,12 +829,14 @@ class NamespaceModel(VariableContainer, ModelBase):
         for inspecting how a namespace model instance impacts an infra
         instance.
         
+        This method sets the infra instance to use with this model
+        
         @param infra_instance: An instance of an InfraModel derived class.
         @keyword exclude_refs: An iterable of references to exclude from the
             resulting set of provisionable resources. These can be either
             model or instance references.
         """
-        self.infra = infra_instance
+        self.set_infra_model(infra_instance)
         if exclude_refs is None:
             exclude_refs = set()
         exclude_refs = set([infra_instance.get_inst_ref(ref) for ref in exclude_refs])

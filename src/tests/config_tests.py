@@ -925,7 +925,7 @@ def test47():
     
     class NS(NamespaceModel):
         task_role = MultiRole(Role("tp",
-                                                    host_ref=ctxt.model.infra.setup_server[ctxt.name]))
+                                   host_ref=ctxt.nexus.inf.setup_server[ctxt.name]))
     ns = NS()
     ns.set_infra_model(infra)
     for i in range(3):
@@ -1083,7 +1083,7 @@ def test50():
     
     class NS(NamespaceModel):
         task_role = MultiRole(Role("tp",
-                                                    host_ref=ctxt.model.infra.setup_server[ctxt.name]))
+                                   host_ref=ctxt.nexus.inf.setup_server[ctxt.name]))
         default = Role("default", "127.0.1.1")
     ns = NS()
     ns.set_infra_model(infra)

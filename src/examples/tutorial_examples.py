@@ -200,7 +200,7 @@ class GridNamespace(NamespaceModel):
     foreman = Role("foreman", host_ref=MultipleServers.foreman)
     
     grid = MultiRole(Role("node",
-                          host_ref=ctxt.model.infra.workers[ctxt.name]))  # @UndefinedVariable
+                          host_ref=ctxt.nexus.inf.workers[ctxt.name]))  # @UndefinedVariable
 
 
 # Var examples

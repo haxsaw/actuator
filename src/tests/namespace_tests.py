@@ -597,8 +597,10 @@ def test052():
           
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = MultiRoleGroup("pod", foreman=Role("foreman", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].foreman),
-                                     worker=Role("grid-node", host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRoleGroup("pod", foreman=Role("foreman",
+                                                  host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
+                                     worker=Role("grid-node",
+                                                 host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("mcg")
     ns = NS()
     for i in range(5):
@@ -616,9 +618,9 @@ def test053():
         with_variables(Var("MYSTERY", "WRONG!"))
         grid = MultiRoleGroup("pod",
                                      foreman=Role("foreman",
-                                                       host_ref=ctxt.model.infra.grid[ctxt.comp.container._name].foreman),
+                                                  host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
                                      workers=MultiRole(Role("grid-node",
-                                                                        host_ref=ctxt.model.infra.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
+                                                            host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("mcg")
     ns = NS()
     for i in [2,4]:
@@ -634,7 +636,8 @@ def test054():
           
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
-        grid = MultiRole(Role("foreman", host_ref=ctxt.model.infra.grid[0])).add_variable(Var("MYSTERY", "RIGHT!"))
+        grid = MultiRole(Role("foreman",
+                              host_ref=ctxt.nexus.inf.grid[0])).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra("mcg")
     ns = NS()
     for i in [2,4]:

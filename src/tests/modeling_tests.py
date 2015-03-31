@@ -58,10 +58,10 @@ def test003():
     assert list(ce._path) == ["three", "two", "one"]
     
 def test004():
-    ce = ctxt.model.infra.grid[0]
+    ce = ctxt.nexus.inf.grid[0]
     path = list(ce._path[1:])
     ki = ce._path[0]
-    assert [ki.key] + path == ["0", "grid", "infra", "model"]
+    assert [ki.key] + path == ["0", "grid", "inf", "nexus"]
     
 def test005():
     class Infra(InfraModel):
@@ -284,7 +284,7 @@ def test019():
     infra.s.fix_arguments()
     
     class IPTest(NamespaceModel):
-        with_variables(Var("ADDY", ctxt.model.infra.s.get_ip))
+        with_variables(Var("ADDY", ctxt.nexus.inf.s.get_ip))
         r = Role("bogus")
         
     ns = IPTest()

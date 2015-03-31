@@ -103,7 +103,7 @@ def test001():
         with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)))
         
         slaves = MultiRole(Role("slave",
-                                host_ref=ctxt.model.infra.slaves[ctxt.name].slave_fip,
+                                host_ref=ctxt.nexus.inf.slaves[ctxt.name].slave_fip,
                                 variables=[Var("COMP_NAME", "slave_!{COMP_KEY}"),
                                            Var("COMP_KEY", ctxt.name)]))
     ns = Namespace()

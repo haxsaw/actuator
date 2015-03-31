@@ -148,7 +148,7 @@ class HadoopNamespace(NamespaceModel):
     name_node = Role("name_node",
                      host_ref=HadoopInfra.name_node_fip)
     slaves = MultiRole(Role("slave",
-                            host_ref=ctxt.model.infra.slaves[ctxt.name].slave_fip,
+                            host_ref=ctxt.nexus.inf.slaves[ctxt.name].slave_fip,
                             variables=[Var("COMP_NAME", "slave_!{COMP_KEY}"),
                                        Var("COMP_KEY", ctxt.name)]))
     
