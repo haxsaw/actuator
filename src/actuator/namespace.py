@@ -483,8 +483,9 @@ class ModelInstanceFinderMixin(object):
         Locate the Namespace model instance that self is a part of.
         """
         result = None
-        if self._model_instance:
-            result = self._model_instance
+        mi = super(ModelInstanceFinderMixin, self).get_model_instance()
+        if mi:
+            result = mi
         elif self.parent_container is not None:
             if isinstance(self.parent_container, NamespaceModel):
                 result = self.parent_container
@@ -539,7 +540,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         @keyword clone_into_class: internal
         """
         clone = super(Role, self).clone(clone_into_class=clone_into_class)
-        clone._set_model_instance(self._model_instance)
+        clone._set_model_instance(self.get_model_instance())
         return clone
     
     def _get_arg_value(self, arg):
@@ -609,7 +610,7 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
         @keyword clone_into_class: internal
         """
         clone = super(RoleGroup, self).clone(clone_into_class=clone_into_class)
-        clone._set_model_instance(self._model_instance)
+        clone._set_model_instance(self.get_model_instance())
         clone._set_parent(self.parent_container)
         for c in (v for k, v in clone.__dict__.items() if k in self._kwargs):
             c._set_parent(clone)
@@ -666,7 +667,7 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
             child._set_parent(clone)
             clone._instances[k] = child
         clone._set_parent(self.parent_container)
-        clone._set_model_instance(self._model_instance)
+        clone._set_model_instance(self.get_model_instance())
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())
         return clone
@@ -684,7 +685,7 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
         """
         inst = super(MultiRole, self).get_instance(key)
         inst._set_parent(self)
-        inst._set_model_instance(self._model_instance)
+        inst._set_model_instance(self.get_model_instance())
         return inst
     
     def _get_model_refs(self):

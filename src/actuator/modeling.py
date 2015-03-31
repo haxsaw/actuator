@@ -125,6 +125,10 @@ class CallContext(object):
         attribute's name. If comp was accessed using a key, for example:
         'thing[1]', the name will be the key used, here '1'. If comp is None
         then this will likewise be None.
+    @ivar nexus: an object that provides access to other models in the model
+        set: nexus.inf is the infra model, nexus.ns the namespace model, and
+        nexus.cfg is the config model. This allows logical navigation to other
+        models in context expressions.
     """
     def __init__(self, model_inst, component):
         self.model = model_inst

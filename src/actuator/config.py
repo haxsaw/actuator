@@ -324,13 +324,15 @@ class ConfigTask(Task):
         self.fix_arguments()
         if self.task_role is not None:
             comp = self.task_role
-        elif self._model_instance:
-            #fetch the default task role for the entire model
-            #this can raise an exception if there isn't a
-            #default task role defined for the model
-            comp = self._model_instance.get_task_role()
         else:
-            raise ConfigException("Can't find a task role for task {}".format(self.name))
+            mi = self.get_model_instance()
+            if mi is not None:
+                #fetch the default task role for the entire model
+                #this can raise an exception if there isn't a
+                #default task role defined for the model
+                comp = mi.get_task_role()
+            else:
+                raise ConfigException("Can't find a task role for task {}".format(self.name))
         return comp
     
     def get_run_from(self):
@@ -340,10 +342,9 @@ class ConfigTask(Task):
         self.fix_arguments()
         if self.run_from is not None:
             comp = self.run_from
-        elif self._model_instance:
-            comp = self._model_instance.get_run_from()
         else:
-            comp = None
+            mi = self.get_model_instance()
+            comp = mi.get_run_from() if mi is not None else None
         return comp
     
     def get_run_host(self):
@@ -385,9 +386,9 @@ class ConfigTask(Task):
                 if var_context is None:
                     raise ConfigException("Can't find a namespace to use as a var context")
             val = cv.expand(var_context)
-#             val = cv.expand(self.get_task_role())
-        elif isinstance(val, ModelReference) and self._model_instance:
-            val = self._model_instance.get_namespace().get_inst_ref(val)
+        elif isinstance(val, ModelReference):
+            mi = self.get_model_instance()
+            val = mi.get_namespace().get_inst_ref(val) if mi is not None else val
         return val
             
     def _fix_arguments(self):
@@ -857,7 +858,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         super(ConfigClassTask, self)._fix_arguments()
         self.init_args = self._get_arg_value(self._init_args)
         init_args = self.init_args if self.init_args else ()
-        model = self._model_instance
+        model = self.get_model_instance()
         self.instance = self.cfg_class(*init_args,
                                        namespace_model_instance=model.get_namespace(),
                                        nexus=model.nexus)
@@ -972,7 +973,7 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
             clone._set_delegate(self)
             clone.name = "{}-{}".format(clone.name, ref.name.value())
             clone._task_role = ref
-            clone._set_model_instance(self._model_instance)
+            clone._set_model_instance(self.get_model_instance())
             clone.fix_arguments()
             self.instances.append(clone)
         self.dependencies = list(itertools.chain([_Dependency(self, c)

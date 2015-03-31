@@ -489,7 +489,7 @@ def test31():
             self.vars = {}
             
         def _perform(self, engine):
-            vv = self._model_instance.namespace_model_instance.comp.get_visible_vars()
+            vv = self.get_model_instance().namespace_model_instance.comp.get_visible_vars()
             self.vars.update({v.name:v.get_value(self.get_task_role())
                               for v in vv.values()})
         
@@ -521,7 +521,7 @@ def test32():
             self.vars = {}
             
         def _perform(self, engine):
-            vv = self._model_instance.namespace_model_instance.get_visible_vars()
+            vv = self.get_model_instance().namespace_model_instance.get_visible_vars()
             self.vars.update({v.name:v.get_value(self.get_task_role())
                               for v in vv.values()})
         
