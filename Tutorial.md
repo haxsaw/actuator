@@ -18,6 +18,8 @@ Actuator allows you to use Python to declaratively describe system infra, config
   1. [An example](#simplensexample)
   2. [Dynamic Namespaces](#dynamicns)
   3. [Var objects](#varobjs)
+  4. [Variable setting and overrides](#overrides)
+  5. [Variable references](#varrefs)
 5. [Configuration models](#configmodels)
   1. [Declaring tasks](#taskdec)
   2. [Declaring dependencies](#taskdeps)
@@ -598,12 +600,51 @@ At the most global level, the NODE_NAME Var is defined with a value that contain
 
 It's also worth noting in the two different methods used to set Vars on namespace model roles or containers. In the first method, Vars can be set using the keyword argument "variables"; the value must be an iterable (list) of Var objects to set on the role. In the second method, Vars are added to a role container with the add_variable() method, which takes an arbitrary number of Var objects when called, separated by ','. The add_variable() method has a return value of the role the method was invoked on, and hence the value of VarExample.grid is still the MultiRole instance.
 
-### Variable setting and overrides
+### <a name="overrides">Variable setting and overrides</a>
 Vars don't have to be defined when the namespace model class is defined; they can specified as having an empty value (*None* in Python), and that value can be provided later.
 
 There are two ways to supply a missing Var value:
 - The add_variables() method can be used to supply a Var to a role, role container, or model instance after the model has been defined. This is a "destructive" call in that if another Var with the same name (same first parameter value) already exists on the object, it will be replaced with the Var object in the add_variables() call.
 - The add_override() method is similar to add_variables() in that it allows a new Var to be supplied after a model instance has been created, but unlike add_variables(), it saves the Var in an "override" area which is searched first when a variable name is required, leaving the original Var in tact. The override can be subsequently cleared out and any original Var values will then be visible.
+
+### <a name="varrefs">Variable references</a>
+Sometimes it's useful to acquire a variable value in other contexts, say in the infra model. Actuator provides a way to create a reference to a Var's value, and the reference will be evaluated when it is needed to acquire the value in the Var.
+
+This is accomplished with the 'v' attribute. Any variable-containing object (namespace model, Role, MultiRole, etc) has a special attribute named 'v'. You can supply the name of a Var after the 'v', and this will generate a variable reference. To illustrate, let's look at a namespce model with a few different parts:
+
+```python
+class GridNamespace(NamespaceModel):
+  with_variables(Var("FOREMAN_EXTERNAL_IP", ctxt.nexus.inf.fip.ip),
+                 Var("FOREMAN_INTERNAL_IP", "192.168.1.1"),
+                 Var("FOREMAN_EXTERNAL_PORT", "3000"),
+                 Var("FOREMAN_WORKER_PORT", "3001"))
+                  
+  foreman = Role("foreman", host_ref=ctxt.nexus.inf.foreman,
+                 variables=[Var("MYVAR", "mine!")])
+  
+  grid = MultiRole(Role("node", host_ref=ctxt.nexus.inf.workers[ctxt.name]))
+ns = GridNamespace()
+```
+  
+Each of ns, ns.foreman, ns.grid, and ns.grid[<somekey>] have a 'v' attribute, after which we can use a Var name directly to get a Var reference, like so:
+
+```python
+>>> ns.v.FOREMAN_INTERNAL_IP
+<actuator.namespace.VarReference object at 0x7fadee647a10>
+>>> ns.foreman.v.MYVAR
+<actuator.namespace.VarReference object at 0x7fadee63f810>
+```
+
+These objects can be used in other parts of a model where a Var value is required. The actual value can be fetched using the 'value()' method or the shortcut '()':
+
+```python
+>>> ns.v.FOREMAN_INTERNAL_IP.value()
+'192.168.1.1'
+>>> ns.v.FOREMAN_INTERNAL_IP()
+'192.168.1.1'
+```
+
+One place these are particularly useful is in 
 
 ## <a name="configmodels">Configuration models</a>
 
