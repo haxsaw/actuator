@@ -545,7 +545,7 @@ class GridNamespace(NamespaceModel):
                   
   foreman = Role("foreman", host_ref=MultipleServers.foreman)
   
-  grid = MultiRole(Role("node", host_ref=ctxt.model.infra.workers[ctxt.name]))
+  grid = MultiRole(Role("node", host_ref=ctxt.nexus.inf.workers[ctxt.name]))
 ```
 
 This approach doesn't use a factory; instead, it uses MultiRole to define a "template" Role object to create instances from each new key supplied to the "grid" attribute of the namespace model. After defining a namespace class this way, one simply creates instances of the class and then, in a manner similar to creating new resources on an infra model, uses new keys to create new Roles on the namespace instance. These new role instances will in turn create new worker instances on a MultiServers model instance:
