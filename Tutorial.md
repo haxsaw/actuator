@@ -111,7 +111,7 @@ provisioner = OpenstackProvisioner(uid, pwd, uid, url)
 provisioner.provision_infra_model(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll recast the above example using with_resources():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll first recast the above example using with_resources():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -193,7 +193,7 @@ worker_4
 
 ### <a name="resource_groups">Resource Groups</a>
 
-If you require a group of different resources to be provisioned as a unit, the ResourceGroup() wrapper provides a way to define a template of multiple resources that will be provisioned as a whole. The following example shows how the boilerplate gateway resources could be expressed using a ResourceGroup().
+If you require a group of different resources to be provisioned as a unit, the ResourceGroup() wrapper provides a way to define a set of resources that will be provisioned as a whole. The following example shows how the boilerplate gateway resources could be expressed using a ResourceGroup().
 
 ```python
 gateway_component = ResourceGroup("gateway", net=Network("actuator_ex1_net"),
@@ -275,12 +275,14 @@ The keyword args used in creating the ResourceGroup become the attributes of the
 This model will behave similarly to the MultiServer model above; that is, the *cluster* attribute can be treated like a dictionary and keys will cause a new instance of the MultiResourceGroup to be created. Note also that you can nest MultiResources in MultiResourceGroups, and vice versa.
 
 
-### <a name="modrefs_ctxtexprs">Model References and Context Expressions</a>
+### <a name="modrefs_ctxtexprs">Model References, Context Expressions, and the Nexus</a>
 A few of the examples above have shown that accessing model attributes results in a reference object of some sort. These objects are the key to declaratively relating aspects of various models to one another. For instance, a reference to the attribute that stores the IP address of a provisioned server can be used as the value of a variable in the namespace model, and once the IP address is known, the variable will have a meaningful value.
 
-There are two different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between memebers is required in the middle of a model class definition, model references aren't yet available, and hence can't be used.
+There are three different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between memebers is required in the middle of a model class definition, model references aren't yet available, and hence can't be used.
 
 The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference. Additionally, context expressions provide a way to express references that include keyed lookups into Multi* wrappers, but will defer the lookup until needed. These two attributes allow context expressions to be used in a number of ways that a direct model or instance reference can't.
+
+The third is via the _nexus_. The nexus is a concentration point for all of the models in a particular model set, and provides a way for one model to logically access a related model without actually knowing its name. This is useful when one model needs to generate a context expression to another model that may rely on context information such as the current component's name. All models contain a nexus, and the context object also contains a reference to the nexus that makes it easy to reach any other model in a model set in a context expression.
 
 #### Model References
 
@@ -403,6 +405,36 @@ ctxt.model.server.iface.addr0
 ```
 
 As mentioned previously, context expressions provide a way to express relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
+
+#### The Nexus
+While context expressions provide a convenient way to logically refer to components of the current model, sometimes what's needed is a reference to sibling model that still relies on data from the current context. Such references can often be made using a model reference as discussed above, but if any data from the current context is required these references can't be used. Or it might be convenient to not explicitly name a related model class, as there may be several polymophic models that can be used where a cross-model reference is required. It is such circumstances that the _nexus_ is useful.
+
+Each model contains an attribute named 'nexus', and the nexus attribute serves as an access point for a model to find any of its siblings. If we had a model named "model", then:
+
+- accessing 'model.nexus.inf' would provide a reference to the infra model for the model set
+- accessing 'model.nexus.ns' would provide a reference to the namespace model for the model set
+- accessing 'model.nexus.cfg' would provide a reference to the config model for the model set
+- accessing 'model.nexus.exe' would provide a reference to the executable model for the model set
+
+Similarly, the nexus can be accessed via the model attribute of the 'ctxt' context object, like:
+
+```python
+ctxt.model.nexus.inf  #the infra model
+```
+
+Or more briefly, the nexus can be accessed directly on the context object like so:
+
+```python
+ctxt.nexus.inf is ctxt.model.nexus.inf  #yields the same reference
+```
+
+Once you have model reference via the nexus, references to any other member of the model can be carried out identically. For example, in the section above on the [ResourceGroup](#resource_group) container, an external ResourceGroup was created. If you needed a reference to the Network resource in the group inside the infra model, you could write:
+
+```python
+ctxt.nexus.inf.gateway.net
+```
+
+We'll see more direct uses of the nexus in the following section.
 
 ## <a name="nsmodels">Namespace models</a>
 The namespace model provides the means for joining the other Actuator models together. It does this by declaring the logical roles of a system, relating these roles to the infrastructure elements where the roles are to execute, and providing the means to identify what configuration task is to be carried out for each role as well as what executables are involved with making the role function.
