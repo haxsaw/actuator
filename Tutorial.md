@@ -13,7 +13,7 @@ Actuator allows you to use Python to declaratively describe system infra, config
   1. [A simple Openstack example](#simple_openstack_example)
   2. [Multiple Resources](#multi_resources)
   3. [Resource Groups](#resource_groups)
-  4. [Model References and Context Expressions](#modrefs_ctxtexprs)
+  4. [Model References, Context Expressions, and the Nexus](#modrefs_ctxtexprs)
 4. [Namespace models](#nsmodels)
   1. [An example](#simplensexample)
   2. [Dynamic Namespaces](#dynamicns)
