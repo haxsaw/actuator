@@ -59,7 +59,7 @@ class KeyItem(_ValueAccessMixin):
         Returns the value of self.key. If key is a callable, then its return
         value is returned instead of the key itself.
         
-        @param ctx: A CallContext object. Although the signature treats it as
+        @param ctx: A L{CallContext} object. Although the signature treats it as
             optional, it should be considered required (although the method 
             *will* work right without it as long as self.key isn't callable.
             Generally, this is called internally when needed and the context
@@ -732,7 +732,7 @@ class AbstractModelReference(_ValueAccessMixin):
         NOTE: this may not always give you the result you wish. It's possible
         that the same object has had more than one reference navigate to it,
         in which case you could get an unexpected reference to the object
-        you provide. It isn't clear that this is a bit deal, since at the end
+        you provide. It isn't clear that this is a big deal, since at the end
         of the day the underlying object is the same, but paths to the object
         may be confused.
         """

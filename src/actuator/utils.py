@@ -26,7 +26,6 @@ import os, os.path
 import logging
 import pdb
 
-
 base_logger_name = "actuator"
 logging.basicConfig(format="%(levelname)s::%(asctime)s::%(name)s:: %(message)s")
 root_logger = logging.getLogger()
@@ -183,3 +182,117 @@ def adb(arg, brk=True):
         result = context.comp._get_arg_value(arg)
         return result
     return inner_adb
+
+        
+class _Persistable(object):
+    """
+    Internal utility mixin that defines the persist/restore protocol
+    """
+    _persistable = "_ACTUATOR_PERSISTABLE_"
+    _class_name = "__CLASS__"
+    _module_name = "__MODULE__"
+    _obj = "__OBJECT__"
+    _version = "__VERSION__"
+    _path = "__PATH__"
+    _vernum = 1
+    def get_attrs_dict(self):
+        ad = self._get_attrs_dict()
+        for k, v in ad.items():
+            if isinstance(v, _Persistable):
+                ad[k] = v.get_attrs_dict()
+        return {self._class_name:self.__class__.__name__,
+                self._module_name:self.__class__.__module__,
+                self._version:self._vernum,
+                self._persistable:"yes",
+#                 self._path:()
+                self._obj:ad}
+        
+    def persisted_persistable(self, o):
+        return isinstance(o, dict) and self._persistable in o
+        
+    def _get_attrs_dict(self):
+        """
+        Return a dict of single-valued attributes, NO COLLECTIONS!
+        
+        The derived class must implement this to return the single valued attrs.
+        
+        Keys are attr names, values are the corresponding attr values.
+        If a value of 'attr' is some kind of _Persistable, return the value of
+        self.attr.get_attrs_dict() as the value of attr.
+        
+        NOTE: Since callables can't be persisted, only the values returned by
+        the callable can be in the returned dict. That means only processed
+        arguments are allowed to be returned. You only want these frozen values
+        anyway.
+        """
+        return {}
+    
+    def recover_attr_value(self, k, v):
+        """
+        Allows derived classes to customize reanimation.
+        
+        This method is given the name of an attribute and it's corresponding
+        value from persistence, and should return the re-animated version of
+        that value. The default implementation simply returns the value, but
+        a derived class may override this method to provide assistance to
+        _Persistable in the case where the attribute value is something a bit
+        odd, for instance a list of _Persistables, which otherwise wouldn't be
+        restored properly. The notion is for the derived class to look at the
+        key 'k' and only do the required work for the specific key, and other-
+        wise should just call super(DerivedClassName, self).recover_attr_value(k, v)
+        and return that value for everything else.
+        
+        @param k: The name of the attribute to set on 'self'
+        @param v: The value as retrieved from persistence. If nothing needs to
+            be done with this value simply return it, otherwise return the 
+            properly re-animated value instead (may entail a call to
+            _reanimator()).
+        @return: The reanimated value for k such that setattr(self, k, v) will
+            yield self in a proper reanimated state.
+        """
+        return v
+    
+    def set_attrs_from_dict(self, d):
+        for k, v in d.items():
+            setattr(self, k, self.recover_attr_value(k, v))
+        return
+        
+
+#stolen from pickle.Unpickler
+def _find_class(module, name):
+    # Subclasses may override this
+    __import__(module)
+    mod = sys.modules[module]
+    klass = getattr(mod, name)
+    return klass
+
+
+class _Dummy(object): pass
+    
+    
+def _reanimator(d):
+    """
+    Takes a dict that serves as the persisted state of an object and re-creates
+    the object from the details it contains.
+    """
+    modname = d[_Persistable._module_name]
+    klassname = d[_Persistable._class_name]
+    version = d[_Persistable._version]
+    obj_dict = d[_Persistable._obj]
+    klass = _find_class(modname, klassname)
+    o = _Dummy()
+    o.__class__ = klass
+    o.set_attrs_from_dict(obj_dict)
+    return o
+
+
+def persist_orchestrator(orch):
+    d = {}
+    d["ORCH_SIG"] = id(orch)
+    d["VERSION"] = 1
+    d["SYS_PATH"] = sys.path[:]
+    inf = orch.infra_model_inst or None
+    ns = orch.namespace_model_instance or None
+    cfg = orch.config_model_inst or None
+    
+    

@@ -23,6 +23,7 @@ import sys
 import subprocess
 
 from actuator.utils import *
+from actuator.utils import _Persistable, _reanimator
 
 #class mapping tests setup
 
@@ -157,3 +158,115 @@ def test13():
     sp.stdin.write("c\n")
     returncode = sp.wait()
     assert returncode == 0, "flagger failed!"
+    
+def test14():
+    """
+    test14: check the basic operation of the _Persistable class
+    """
+    p = _Persistable()
+    d = p.get_attrs_dict()
+    assert _Persistable._class_name in d and _Persistable._class_name in d
+    
+#for test15
+class Mock(_Persistable):
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        
+    def _get_attrs_dict(self):
+        d = super(Mock, self)._get_attrs_dict()
+        d.update( {'x':self.x, 'y':self.y} )
+        return d
+    
+def test15():
+    """
+    test15: check that deriving a _Persistable class works properly
+    """
+    m = Mock(22, 33)
+    d = m.get_attrs_dict()
+    assert (d[Mock._obj]['x'] == 22 and d[Mock._obj]['y'] == 33 and
+            d[Mock._class_name] == "Mock" and
+            d[Mock._module_name] == Mock.__module__)
+    
+def test16():
+    """
+    test16: check that we can recreate an instance that was persisted
+    """
+    m = Mock(1, 2)
+    d = m.get_attrs_dict()
+    mprime = _reanimator(d)
+    assert m.x == mprime.x and m.y == mprime.y
+    
+class Mock2(_Persistable):
+    def __init__(self, some_str, obj):
+        self.some_str = some_str
+        self.obj = obj
+    
+    def _get_attrs_dict(self):
+        d = super(Mock2, self)._get_attrs_dict()
+        d.update( {"some_str":self.some_str,
+                "obj":self.obj} )
+        return d
+    
+    def recover_attr_value(self, k, v):
+        return (_reanimator(v)
+                if self.persisted_persistable(v)
+                else v)
+    
+def test17():
+    m = Mock2("wibble", Mock(1,2))
+    d = m.get_attrs_dict()
+    mp = _reanimator(d)
+    assert isinstance(mp.obj, Mock) and mp.obj.x == 1
+    
+class Mock3(_Persistable):
+    def __init__(self, some_str, obj_list):
+        self.some_str = some_str
+        self.obj_list = list(obj_list)
+        
+    def _get_attrs_dict(self):
+        d = super(Mock3, self)._get_attrs_dict()
+        d.update({"some_str":self.some_str,
+                  "obj_list":[(o.get_attrs_dict()
+                               if isinstance(o, _Persistable)
+                               else o) for o in self.obj_list]})
+        return d
+    
+    def recover_attr_value(self, k, v):
+        if k == "obj_list":
+            return [(_reanimator(d)
+                     if self.persisted_persistable(d)
+                     else d) for d in v]
+        else:
+            return v
+    
+def test18():
+    m = Mock3("M3", [Mock(1,2), Mock(3,4), Mock(5, 6)])
+    d = m.get_attrs_dict()
+    mp = _reanimator(d)
+    assert (mp.some_str == "M3" and
+            len(mp.obj_list) == 3 and
+            mp.obj_list[1].x == 3)
+    
+def test19():
+    m = Mock3("M3", [Mock(1,2), Mock2("m2", Mock(3,4))])
+    d = m.get_attrs_dict()
+    mp = _reanimator(d)
+    assert (mp.some_str == "M3" and
+            len(mp.obj_list) == 2 and
+            mp.obj_list[1].obj.y == 4)
+    
+#modeling.KeyAsAttr is going to not come back properly unless
+#something is done to flag that these are objects and not just
+#numeric strings.
+    
+    
+def do_all():
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
+    
+if __name__ == "__main__":
+    do_all()
+
+    

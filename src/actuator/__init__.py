@@ -103,7 +103,7 @@ class ActuatorOrchestration(object):
     def __init__(self, infra_model_inst=None, provisioner=None,
                  namespace_model_inst=None, config_model_inst=None,
                  log_level=LOG_INFO, no_delay=False, num_threads=5,
-                 post_prov_pause=60):
+                 post_prov_pause=60, tags=None):
         """
         Create an instance of the orchestrator to operate on the supplied models/provisioner
         
@@ -152,6 +152,10 @@ class ActuatorOrchestration(object):
             virtual/cloud systems a chance to stabilize before starting on
             configuration tasks. If no provisioning was done (a static infra model
             or simply no infra/provisioner), then the pause is skipped.
+        @keyword tags: optional list of strings. These are just text strings that
+            get associated with the orchestrator instance. These are generally
+            useful when the orchestrator has been persisted as the tags can be
+            used to identify orchestrators with particular tag values.
             
         @raise ExecutionException: In the following circumstances this method
         will raise actuator.ExecutionException:
@@ -187,6 +191,7 @@ class ActuatorOrchestration(object):
         self.logger = root_logger.getChild("orchestrator")
         self.post_prov_pause = post_prov_pause
         self.status = self.NOT_STARTED
+        self.tags = list(tags) if tags is not None else []
         
         if self.config_model_inst is not None:
             self.config_ea = AnsibleExecutionAgent(config_model_instance=self.config_model_inst,
@@ -194,6 +199,11 @@ class ActuatorOrchestration(object):
                                                    num_threads=num_threads,
                                                    no_delay=no_delay,
                                                    log_level=log_level)
+            
+    def set_provisioner(self, provisioner):
+        if not isinstance(provisioner, BaseProvisioner):
+            raise ExecutionException("provisioner is not an instance of BaseProvisioner")        
+        self.provisioner = provisioner
             
     def is_running(self):
         """
