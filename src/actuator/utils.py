@@ -197,9 +197,9 @@ class _Persistable(object):
     _vernum = 1
     def get_attrs_dict(self):
         ad = self._get_attrs_dict()
-        for k, v in ad.items():
-            if isinstance(v, _Persistable):
-                ad[k] = v.get_attrs_dict()
+#         for k, v in ad.items():
+#             if isinstance(v, _Persistable):
+#                 ad[k] = v.get_attrs_dict()
         return {self._class_name:self.__class__.__name__,
                 self._module_name:self.__class__.__module__,
                 self._version:self._vernum,

@@ -21,6 +21,7 @@
 
 import sys
 import subprocess
+import json
 
 from actuator.utils import *
 from actuator.utils import _Persistable, _reanimator
@@ -184,6 +185,8 @@ def test15():
     """
     m = Mock(22, 33)
     d = m.get_attrs_dict()
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
     assert (d[Mock._obj]['x'] == 22 and d[Mock._obj]['y'] == 33 and
             d[Mock._class_name] == "Mock" and
             d[Mock._module_name] == Mock.__module__)
@@ -194,6 +197,8 @@ def test16():
     """
     m = Mock(1, 2)
     d = m.get_attrs_dict()
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
     mprime = _reanimator(d)
     assert m.x == mprime.x and m.y == mprime.y
     
@@ -205,7 +210,7 @@ class Mock2(_Persistable):
     def _get_attrs_dict(self):
         d = super(Mock2, self)._get_attrs_dict()
         d.update( {"some_str":self.some_str,
-                "obj":self.obj} )
+                "obj":self.obj.get_attrs_dict()} )
         return d
     
     def recover_attr_value(self, k, v):
@@ -216,6 +221,8 @@ class Mock2(_Persistable):
 def test17():
     m = Mock2("wibble", Mock(1,2))
     d = m.get_attrs_dict()
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
     mp = _reanimator(d)
     assert isinstance(mp.obj, Mock) and mp.obj.x == 1
     
@@ -243,6 +250,8 @@ class Mock3(_Persistable):
 def test18():
     m = Mock3("M3", [Mock(1,2), Mock(3,4), Mock(5, 6)])
     d = m.get_attrs_dict()
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
     mp = _reanimator(d)
     assert (mp.some_str == "M3" and
             len(mp.obj_list) == 3 and
@@ -251,6 +260,8 @@ def test18():
 def test19():
     m = Mock3("M3", [Mock(1,2), Mock2("m2", Mock(3,4))])
     d = m.get_attrs_dict()
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
     mp = _reanimator(d)
     assert (mp.some_str == "M3" and
             len(mp.obj_list) == 2 and

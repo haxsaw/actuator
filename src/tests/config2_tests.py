@@ -80,7 +80,7 @@ def host_list(ctx_exp, sep_char=" "):
 
 
 def test001():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         fip_pool = "external"
         #add the standard secgroup and connectivity components
         gateway = external_connection
@@ -97,7 +97,7 @@ def test001():
                                                           ctxt.comp.container.slave,
                                                           ctxt.comp.container.slave.iface0.addr0,
                                                           pool=fip_pool))
-    infra = Infra("infra")
+    infra = Infra1("infra")
     
     class Namespace(NamespaceModel):
         with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)))

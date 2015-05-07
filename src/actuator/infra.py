@@ -23,7 +23,7 @@
 Support for creating Actuator infrastructure models
 '''
 
-from actuator.utils import ClassModifier, process_modifiers
+from actuator.utils import ClassModifier, process_modifiers, _Persistable
 from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                ModelComponent, AbstractModelingEntity,
                                ModelInstanceReference, KeyAsAttr,
@@ -156,7 +156,7 @@ class InfraModelMeta(ModelBaseMeta):
         return new_class
             
 
-class InfraModel(ModelBase):
+class InfraModel(ModelBase, _Persistable):
     """
     This is the base class to use for any infrastructure model. Derive a class
     from this class to make your own infra models.
@@ -184,11 +184,19 @@ class InfraModel(ModelBase):
                 if k == _long_names:
                     self._long_names = v
         ga = super(InfraModel, self).__getattribute__
+        #update self.__dict__ with clones of the model's components
         attrdict = self.__dict__
         for k, v in ga(InfraModelMeta._COMPONENTS).items():
             attrdict[k] = clone = v.clone()
             clone._set_model_instance(self)
         self.provisioning_computed = False
+        
+    def _get_attrs_dict(self):
+        d = {}
+        for k, v in self.__dict__.items():
+            d[k] = v.get_attrs_dict() if isinstance(v, _Persistable) else v
+        d.update(super(InfraModel, self)._get_attrs_dict())
+        return d
         
     def validate_args(self):
         """

@@ -590,7 +590,7 @@ def test049():
     assert var.get_value(ns.kids[0].value()) == "maybe..." 
 
 def test052():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         controller = Server("controller", mem="16GB")
         grid = MultiResourceGroup("pod", foreman=Server("foreman", mem="8GB"),
                                    worker=Server("grid-node", mem="8GB"))
@@ -601,7 +601,7 @@ def test052():
                                                   host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
                                      worker=Role("grid-node",
                                                  host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
-    infra = Infra("mcg")
+    infra = Infra1("mcg")
     ns = NS()
     for i in range(5):
         _ = ns.grid[i]
@@ -609,7 +609,7 @@ def test052():
     assert len(infra.grid) == 5 and len(infra.components()) == 11
      
 def test053():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         grid = MultiResourceGroup("grid",
                                    foreman=Server("foreman", mem="8GB"),
                                    workers=MultiResource(Server("grid-node", mem="8GB")))
@@ -621,7 +621,7 @@ def test053():
                                                   host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
                                      workers=MultiRole(Role("grid-node",
                                                             host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
-    infra = Infra("mcg")
+    infra = Infra1("mcg")
     ns = NS()
     for i in [2,4]:
         grid = ns.grid[i]
@@ -631,14 +631,14 @@ def test053():
     assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.components()) == 8
      
 def test054():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         grid = MultiResource(Server("foreman", mem="8GB"))
           
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
         grid = MultiRole(Role("foreman",
                               host_ref=ctxt.nexus.inf.grid[0])).add_variable(Var("MYSTERY", "RIGHT!"))
-    infra = Infra("mcg")
+    infra = Infra1("mcg")
     ns = NS()
     for i in [2,4]:
         _ = ns.grid[i]
@@ -646,7 +646,7 @@ def test054():
     assert len(infra.grid) == 1 and len(infra.components()) == 1
 
 def test056():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         grid = MultiResource(Server("node", mem="8GB"))
         
     def bad_comp(ctxt):
@@ -657,7 +657,7 @@ def test056():
         with_variables(Var("MYSTERY", "WRONG!"))
         grid = MultiRole(Role("foreman", host_ref=bad_comp)).add_variable(Var("MYSTERY", "RIGHT!"))
 
-    infra = Infra("mcg")
+    infra = Infra1("mcg")
     ns = NS()
     for i in [2,4]:
         _ = ns.grid[i]
@@ -729,7 +729,7 @@ def test065():
     assert value and value == "Grid-5"
 
 def test066():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         grid_i = MultiResource(StaticServer("node", "127.0.0.1"))
         
     class NS(NamespaceModel):
@@ -737,7 +737,7 @@ def test066():
         grid = (MultiRole(Role("worker",
                                variables=[Var("NODE_ID", ctxt.name)]))
                 .add_variable(Var("BASE_NAME", "Grid")))
-    infra = Infra("66")
+    infra = Infra1("66")
     ns = NS()
     ns.compute_provisioning_for_environ(infra)
     _ = infra.refs_for_components()

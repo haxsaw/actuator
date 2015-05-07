@@ -28,7 +28,7 @@ import re
 import itertools
 import weakref
 
-from actuator.utils import ClassMapper
+from actuator.utils import ClassMapper, _Persistable
 
 class ActuatorException(Exception): pass
 
@@ -1125,15 +1125,24 @@ class ModelBaseMeta(type):
         return value
     
     
-class _NexusMember(object):
+class _NexusMember(_Persistable):
     def __init__(self, nexus=None):
         super(_NexusMember, self).__init__()
+        self.set_nexus(nexus)
+        
+    def _get_attrs_dict(self):
+        d = super(_NexusMember, self)._get_attrs_dict()
+        d['nexus'] = None
+        return d
+                
+    def set_nexus(self, nexus):
         self.nexus = nexus if nexus else _Nexus()
         self.nexus.capture_model_to_instance(self.__class__, self)
         
     def update_nexus(self, new_nexus):
-        new_nexus.merge_from(self.nexus)
-        self.nexus = new_nexus
+        if self.nexus and new_nexus:
+            new_nexus.merge_from(self.nexus)
+        self.set_nexus(new_nexus)
 
 
 class ModelBase(_NexusMember, _ComputeModelComponents):

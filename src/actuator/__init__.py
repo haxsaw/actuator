@@ -56,7 +56,7 @@ import time
 
 
 from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
-                      ctxt, ActuatorException)
+                      ctxt, ActuatorException, _Nexus)
 from infra import (InfraModel, InfraException, with_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup,
                    with_infra_options)
@@ -72,12 +72,12 @@ from exec_agents.ansible.agent import AnsibleExecutionAgent
 from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                           CopyFileTask, ProcessCopyFileTask)
 from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
-                   root_logger, adb)
+                   root_logger, adb, _Persistable, _reanimator)
 
 
 __version__ = "0.2.a2"
 
-class ActuatorOrchestration(object):
+class ActuatorOrchestration(_Persistable):
     """
     Processes Actuator models to stand up the system being model (initiate a system).
     
@@ -199,6 +199,36 @@ class ActuatorOrchestration(object):
                                                    num_threads=num_threads,
                                                    no_delay=no_delay,
                                                    log_level=log_level)
+            
+    def _get_attrs_dict(self):
+        d = super(ActuatorOrchestration, self)._get_attrs_dict()
+        d.update( {"log_level":self.log_level,
+                   "post_prov_pause":self.post_prov_pause,
+                   "status":self.status,
+                   "tags":self.tags,
+                   "infra_model_inst":self.infra_model_inst.get_attrs_dict()
+                                      if self.infra_model_inst is not None
+                                      else None} )
+        return d
+    
+    def recover_attr_value(self, k, v):
+        if k == "infra_model_inst" and v is not None:
+            return _reanimator(v)
+        elif k == "nexus":
+            return _Nexus()
+        else:
+            return v
+        
+    def set_attrs_from_dict(self, d):
+        super(ActuatorOrchestration, self).set_attrs_from_dict(d)
+#         models = [self.infra_model_inst, self.config_model_inst, self.namespace_model_inst]
+        models = [self.infra_model_inst]
+        prev_model_nexus = _Nexus()
+        for m in models:
+            if m is not None:
+                m.update_nexus(prev_model_nexus)
+                prev_model_nexus = m.nexus
+                
             
     def set_provisioner(self, provisioner):
         if not isinstance(provisioner, BaseProvisioner):

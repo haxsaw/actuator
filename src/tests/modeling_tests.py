@@ -64,26 +64,26 @@ def test004():
     assert [ki.key] + path == ["0", "grid", "inf", "nexus"]
     
 def test005():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
-    inst = Infra("iter")
+    inst = Infra1("iter")
     for i in range(3):
         _ = inst.grid[i]
     assert set(inst.grid) == set(["0", "1", "2"])
 
 def test006():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
-    inst = Infra("iter")
+    inst = Infra1("iter")
     for i in range(3):
         _ = inst.grid[i]
     nada = "nada"
     assert inst.grid.get("10", default=nada) == nada
     
 def test007():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
-    inst = Infra("iter")
+    inst = Infra1("iter")
     assert not inst.grid
     
     
@@ -98,12 +98,12 @@ class FakeReference(object):
         
 
 def test008():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
-    qexp = Infra.q.clusters.all().workers
+    infra = Infra1("infra")
+    qexp = Infra1.q.clusters.all().workers
     for i in range(2):
         cluster = infra.clusters[i]
         for j in range(10):
@@ -113,12 +113,12 @@ def test008():
     assert len(result) == 20
     
 def test009():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
-    qexp = Infra.q.clusters.all().workers.keyin([0, 1, 2, 3, 4])
+    infra = Infra1("infra")
+    qexp = Infra1.q.clusters.all().workers.keyin([0, 1, 2, 3, 4])
     for i in range(2):
         cluster = infra.clusters[i]
         for j in range(10):
@@ -128,12 +128,12 @@ def test009():
     assert len(result) == 10
 
 def test010():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
-    qexp = Infra.q.clusters.match("(NY|LN)").workers
+    infra = Infra1("infra")
+    qexp = Infra1.q.clusters.match("(NY|LN)").workers
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
         for j in range(10):
@@ -143,12 +143,12 @@ def test010():
     assert len(result) == 20
 
 def test011():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
-    qexp = Infra.q.clusters.no_match("(NY|LN)").workers
+    infra = Infra1("infra")
+    qexp = Infra1.q.clusters.no_match("(NY|LN)").workers
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
         for j in range(10):
@@ -158,16 +158,16 @@ def test011():
     assert len(result) == 30
 
 def test012():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
+    infra = Infra1("infra")
     
     def evens_only(key):
         return int(key) % 2 == 0
     
-    qexp = Infra.q.clusters.workers.pred(evens_only)
+    qexp = Infra1.q.clusters.workers.pred(evens_only)
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
         for j in range(10):
@@ -177,16 +177,16 @@ def test012():
     assert len(result) == 25
 
 def test013():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
+    infra = Infra1("infra")
     
     def evens_only(key):
         return int(key) % 2 == 0
     
-    qexp = Infra.q.clusters.match("(LN|NY)").workers.pred(evens_only)
+    qexp = Infra1.q.clusters.match("(LN|NY)").workers.pred(evens_only)
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
         for j in range(10):
@@ -196,7 +196,7 @@ def test013():
     assert len(result) == 10
 
 def test014():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        cell=ComponentGroup("cell",
@@ -204,12 +204,12 @@ def test014():
                                                            workers=MultiComponent(Server("worker", mem="8GB"))
                                                            )
                                        )
-    infra = Infra("infra")
+    infra = Infra1("infra")
     
     def evens_only(key):
         return int(key) % 2 == 0
     
-    qexp = Infra.q.clusters.match("(LN|NY)").cell.workers.pred(evens_only)
+    qexp = Infra1.q.clusters.match("(LN|NY)").cell.workers.pred(evens_only)
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
         for j in range(10):
@@ -219,13 +219,13 @@ def test014():
     assert len(result) == 10
 
 def test015():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
-    qexp = Infra.q.union(Infra.q.clusters.match("(NY|LN)").workers,
-                         Infra.q.clusters.key("SG").leader)
+    infra = Infra1("infra")
+    qexp = Infra1.q.union(Infra1.q.clusters.match("(NY|LN)").workers,
+                         Infra1.q.clusters.key("SG").leader)
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
         for j in range(10):
@@ -235,11 +235,11 @@ def test015():
     assert len(result) == 21
 
 def test016():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
+    infra = Infra1("infra")
     
     def evens_only(key):
         return int(key) % 2 == 0
@@ -247,7 +247,7 @@ def test016():
     def lt_seven(key):
         return int(key) < 7
     
-    qexp = Infra.q.clusters.workers.pred(evens_only).pred(lt_seven)
+    qexp = Infra1.q.clusters.workers.pred(evens_only).pred(lt_seven)
     
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
@@ -258,22 +258,22 @@ def test016():
     assert len(result) == 20
 
 def test017():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
     try:
-        _ = Infra.q.cluster.workers
+        _ = Infra1.q.cluster.workers
         assert False, "This should have complained about 'cluster' not being an attribute"
     except AttributeError, e:
         assert "cluster" in e.message.lower()
         
 def test018():
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
                                        leader=Server("leader", mem="8GB"),
                                        workers=MultiComponent(Server("worker", mem="8GB")))
-    infra = Infra("infra")
+    infra = Infra1("infra")
     assert infra.nexus
     
 def test019():

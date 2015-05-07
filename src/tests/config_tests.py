@@ -780,12 +780,12 @@ def test44():
     infra model
     """
     cap = Capture()
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
-    infra = Infra("helper")
+    infra = Infra1("helper")
       
     class NS(NamespaceModel):
-        task_performer = Role("tp", host_ref=Infra.setup_server)
+        task_performer = Role("tp", host_ref=Infra1.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
           
@@ -803,13 +803,13 @@ def test44a():
     it via the default for the config model
     """
     cap = Capture()
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
-    infra = Infra("helper")
+    infra = Infra1("helper")
     infra.setup_server.fix_arguments()
       
     class NS(NamespaceModel):
-        task_performer = Role("tp", host_ref=Infra.setup_server)
+        task_performer = Role("tp", host_ref=Infra1.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
     ns.task_performer.fix_arguments()
@@ -826,13 +826,13 @@ def test45():
     """
     test45: check if you drive config tasks from a nested config class
     """
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
-    infra = Infra("helper")
+    infra = Infra1("helper")
     infra.setup_server.fix_arguments()
     
     class NS(NamespaceModel):
-        task_performer = Role("tp", host_ref=Infra.setup_server)
+        task_performer = Role("tp", host_ref=Infra1.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
     ns.task_performer.fix_arguments()
@@ -866,12 +866,12 @@ def test46():
     test46: wrap a config class with a sequence of tasks in ConfigClassTask
     wrapper and ensure they all get performed in order
     """
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
-    infra = Infra("helper")
+    infra = Infra1("helper")
     
     class NS(NamespaceModel):
-        task_performer = Role("tp", host_ref=Infra.setup_server)
+        task_performer = Role("tp", host_ref=Infra1.setup_server)
     ns = NS()
     ns.set_infra_model(infra)
     
@@ -919,9 +919,9 @@ def test47():
             return "127.0.0.{}".format(self.host_part)
     ipgen = IPGen()
         
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = MultiResource(StaticServer("setup_helper", ipgen))
-    infra = Infra("helper")
+    infra = Infra1("helper")
     
     class NS(NamespaceModel):
         task_role = MultiRole(Role("tp",
@@ -967,12 +967,12 @@ def test48():
     wrapper and ensure they all get performed in order, and the set up a final
     task in the outer config class and ensure that is is performed last
     """
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
-    infra = Infra("helper")
+    infra = Infra1("helper")
     
     class NS(NamespaceModel):
-        task_performer = Role("tp", host_ref=Infra.setup_server)
+        task_performer = Role("tp", host_ref=Infra1.setup_server)
         default = Role("default", host_ref="127.0.1.1")
     ns = NS()
     ns.set_infra_model(infra)
@@ -1016,12 +1016,12 @@ def test49():
     initial and final tasks in the outer config and make sure everything is
     happening in the right order
     """
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = StaticServer("setup_helper", "127.0.0.1")
-    infra = Infra("helper")
+    infra = Infra1("helper")
     
     class NS(NamespaceModel):
-        task_performer = Role("tp", host_ref=Infra.setup_server)
+        task_performer = Role("tp", host_ref=Infra1.setup_server)
         default = Role("default", host_ref="127.0.1.1")
     ns = NS()
     ns.set_infra_model(infra)
@@ -1077,9 +1077,9 @@ def test50():
             return "127.0.0.{}".format(self.host_part)
     ipgen = IPGen()
         
-    class Infra(InfraModel):
+    class Infra1(InfraModel):
         setup_server = MultiResource(StaticServer("setup_helper", ipgen))
-    infra = Infra("helper")
+    infra = Infra1("helper")
     
     class NS(NamespaceModel):
         task_role = MultiRole(Role("tp",
