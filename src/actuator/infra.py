@@ -156,7 +156,7 @@ class InfraModelMeta(ModelBaseMeta):
         return new_class
             
 
-class InfraModel(ModelBase, _Persistable):
+class InfraModel(ModelBase):
     """
     This is the base class to use for any infrastructure model. Derive a class
     from this class to make your own infra models.
@@ -192,11 +192,15 @@ class InfraModel(ModelBase, _Persistable):
         self.provisioning_computed = False
         
     def _get_attrs_dict(self):
-        d = {}
-        for k, v in self.__dict__.items():
-            d[k] = v.get_attrs_dict() if isinstance(v, _Persistable) else v
+        d = dict(self.__dict__)
         d.update(super(InfraModel, self)._get_attrs_dict())
         return d
+    
+    def _find_persistables(self):
+        for p in self.__dict__.values():
+            if isinstance(p, _Persistable):
+                for q in p.find_persistables():
+                    yield q
         
     def validate_args(self):
         """

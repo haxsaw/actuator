@@ -137,7 +137,8 @@ class CallContext(object):
         self.name = component._name if component else None
         
         
-class AbstractModelingEntity(object):
+# class AbstractModelingEntity(object):
+class AbstractModelingEntity(_Persistable):
     """
     Base class for all modeling entities
     """
@@ -175,6 +176,14 @@ class AbstractModelingEntity(object):
         """@ivar: public, read only. Indicates if the value of this entity
             has had its final computation (all refs resolved, callable args
             all called). Once fixed, callables won't be called again"""
+            
+    def _get_attrs_dict(self):
+        d = super(AbstractModelingEntity, self)._get_attrs_dict()
+        #@FixMe: this is going to be missing self._model_instance for the time being 
+        d.update( {"name":self.name,
+                   "_id":str(self._id),
+                   "fixed":self.fixed} )
+        return d
             
     def get_ref(self):
         return AbstractModelReference.find_ref_for_obj(self)

@@ -36,8 +36,16 @@ class Server(ProvisionableWithFixer):
     def __init__(self, name, **kwargs):
         super(Server, self).__init__(name)
         self.provisionedName = None
-        object.__getattribute__(self, "__dict__").update(kwargs)
+        self.__dict__.update(kwargs)
         self.kwargs = kwargs
+        
+    def _get_attrs_dict(self):
+        d = super(Server, self)._get_attrs_dict()
+        d.update( {"provisionedName":self.provisionedName,
+                   "kwargs":None} )
+        for k in self.kwargs.keys():
+            d[k] = getattr(self, k)
+        return d
         
     def get_init_args(self):
         return ((self.name,), self.kwargs)

@@ -25,6 +25,8 @@ import sys
 import os, os.path
 import logging
 import pdb
+import datetime
+import collections
 
 base_logger_name = "actuator"
 logging.basicConfig(format="%(levelname)s::%(asctime)s::%(name)s:: %(message)s")
@@ -184,6 +186,52 @@ def adb(arg, brk=True):
     return inner_adb
 
         
+class _SigDictMeta(type):
+    _sigmap = {}
+    _SIG_ = "_SIGNATURE_"
+    def __new__(cls, name, bases, attr_dict):
+        newbie = super(_SigDictMeta, cls).__new__(cls, name, bases, attr_dict)
+        cls._sigmap[newbie._KIND_] = newbie
+        return newbie
+    
+    @classmethod
+    def get_kind(cls, o):   #  @NoSelf
+        return o[cls._SIG_] if cls.is_sigdict(o) else None
+    
+    @classmethod
+    def find_class(cls, o):  #  @NoSelf
+        return cls._sigmap.get(cls.get_kind(o))
+    
+    @classmethod
+    def is_sigdict(cls, o):  #  @NoSelf
+        return isinstance(o, dict) and cls._SIG_ in o
+    
+    
+class _SignatureDict(dict):
+    _KIND_ = "SignatureDict"
+    __metaclass__ = _SigDictMeta
+    def __init__(self):
+        super(_SignatureDict, self).__init__()
+        self[_SigDictMeta._SIG_] = self._KIND_
+        
+    def from_dict(self, d):
+        self.update(d)
+        return self
+    
+    
+class _PersistableRef(_SignatureDict):
+    _KIND_ = "_PersistableRef"
+    _REFID_ = "_REFID_"
+    def __init__(self, o=None):
+        super(_PersistableRef, self).__init__()
+        if o is not None:
+            self[self._REFID_] = id(o)
+        
+    def _id(self):
+        return self[self._REFID_]
+    id = property(fget=_id)
+        
+    
 class _Persistable(object):
     """
     Internal utility mixin that defines the persist/restore protocol
@@ -197,15 +245,112 @@ class _Persistable(object):
     _vernum = 1
     def get_attrs_dict(self):
         ad = self._get_attrs_dict()
-#         for k, v in ad.items():
-#             if isinstance(v, _Persistable):
-#                 ad[k] = v.get_attrs_dict()
+        for k, v in ad.items():
+            ad[k] = self.encode_attr(k, v)
+        sig = self.obj_sig_dict()
+        sig.update({self._version:self._vernum,
+                    self._persistable:"yes",
+                    self._obj:ad})
+        return sig
+    
+    def finalize_reanimate(self):
+        """
+        Called after all attrs have been set on all persistables to do final recovery
+        """
+        return
+    
+    def recover_attr_value(self, k, v, catalog):
+        """
+        Allows derived classes to customize reanimation.
+        
+        This method is given the name of an attribute and it's corresponding
+        value from persistence, and should return the re-animated version of
+        that value. The default implementation simply returns the value, but
+        a derived class may override this method to provide assistance to
+        _Persistable in the case where the attribute value is something a bit
+        odd, for instance a list of _Persistables, which otherwise wouldn't be
+        restored properly. The notion is for the derived class to look at the
+        key 'k' and only do the required work for the specific key, and other-
+        wise should just call super(DerivedClassName, self).recover_attr_value(k, v)
+        and return that value for everything else.
+        
+        @param k: The name of the attribute to set on 'self'
+        @param v: The value as retrieved from persistence. If nothing needs to
+            be done with this value simply return it, otherwise return the 
+            properly re-animated value instead (may entail a call to
+            _reanimator()).
+        @param catalog: an instance of L{_Catalog}, a flat dictionary of all
+            _Persistables currently being processed. If a _PersistableRef is
+            re-created, the actual _Persistable can be located using the
+            catalog
+        @return: The reanimated value for k such that setattr(self, k, v) will
+            yield self in a proper reanimated state.
+        """
+        retval = v
+        if isinstance(v, collections.Iterable):
+            if _SigDictMeta.is_sigdict(v):
+                klass = _SigDictMeta.find_class(v)
+                if not klass:
+                    raise Exception("Couldn't find a class for kind %s" %
+                                    _SigDictMeta.get_kind(v))
+                retval = klass().from_dict(v)
+                if isinstance(retval, _PersistableRef):
+                    retval = catalog.find_entry(retval.id).get_reanimated()
+            elif isinstance(v, dict):
+                for vk, vv in v.items():
+                    if _SigDictMeta.is_sigdict(vv):
+                        klass = _SigDictMeta.find_class(vv)
+                        if not klass:
+                            raise Exception("Couldn't find a class for kind %s"
+                                            % _SigDictMeta.get_kind(vv))
+                        v[vk] = klass().from_dict(vv)
+                        if _SigDictMeta.is_sigdict(v[vk]):
+                            #this is most likely a _PersistableRef
+                            ref = _SigDictMeta.find_class(v[vk])().from_dict(v[vk])
+                            v[vk] = catalog.find_entry(ref.id).get_reanimated()
+            elif isinstance(v, (list, tuple)):
+                retval = [(_SigDictMeta.find_class(o)().from_dict(o)
+                           if _SigDictMeta.is_sigdict(o)
+                           else o) for o in v]
+                retval = [(catalog.find_entry(o.id).get_reanimated()
+                           if isinstance(o, _PersistableRef)
+                           else o) for o in retval]
+        return retval
+    
+    def encode_attr(self, k, v):
+        """
+        Encodes an attr into something that can be turned into json.
+        
+        Derived classes may override this method to provide custom encodings
+        for complex objects (such as dicts with objects as keys), but should
+        always return super() if they don't process an attribute themselves.
+        
+        Objects properly encoded include:
+        ints, longs, floats, strings, references to _Persistables, dicts with
+        keys that are ints, longs floats and strings and values that are these
+        types or _Persistables, and lists and tuples of the simple types or
+        _Persistables.
+        
+        @param k: string; name of the attribute in the containing object
+        @param v: object: the value of the attribute named 'k'
+        @return: a JSON-safe encoding of the attribute
+        """
+        retval = v
+        if isinstance(v, _Persistable):
+            retval = _PersistableRef(v)
+        elif isinstance(v, collections.Iterable):
+            if isinstance(v, dict):
+                for vk, vv in v.items():
+                    if isinstance(vv, _Persistable):
+                        v[vk] = _PersistableRef(vv)
+            elif isinstance(v, (list, tuple)):
+                retval = [(_PersistableRef(i) if isinstance(i, _Persistable) else i)
+                          for i in v]
+        return retval
+        
+    def obj_sig_dict(self):
         return {self._class_name:self.__class__.__name__,
-                self._module_name:self.__class__.__module__,
-                self._version:self._vernum,
-                self._persistable:"yes",
-#                 self._path:()
-                self._obj:ad}
+                self._module_name:self.__class__.__module__}
         
     def persisted_persistable(self, o):
         return isinstance(o, dict) and self._persistable in o
@@ -227,34 +372,37 @@ class _Persistable(object):
         """
         return {}
     
-    def recover_attr_value(self, k, v):
+    def find_persistables(self):
+        yield self
+        for p in self._find_persistables():
+            yield p
+            
+    def _find_persistables(self):
         """
-        Allows derived classes to customize reanimation.
+        Returns a series of contained _Persistables; a generator is expected
         
-        This method is given the name of an attribute and it's corresponding
-        value from persistence, and should return the re-animated version of
-        that value. The default implementation simply returns the value, but
-        a derived class may override this method to provide assistance to
-        _Persistable in the case where the attribute value is something a bit
-        odd, for instance a list of _Persistables, which otherwise wouldn't be
-        restored properly. The notion is for the derived class to look at the
-        key 'k' and only do the required work for the specific key, and other-
-        wise should just call super(DerivedClassName, self).recover_attr_value(k, v)
-        and return that value for everything else.
+        This method is a generator that yields contained _Persistables. By
+        "contained" we mean _Persistables that this _Persistable manages directly,
+        as opposed to _Persistables that this _Persistable doesn't  manage but
+        simply holds a reference to (_Persistable due to context expressions are
+        a good example). A derived class should implement a generator that yields
+        each _Persistable one at a time. This should be accomplished by calling
+        find_persistables() on each contained _Persistable and yielding the
+        values provided. For example, suppose self.wibble is a contained _Persistable
+        for this object. This method could then be implemented like so:
         
-        @param k: The name of the attribute to set on 'self'
-        @param v: The value as retrieved from persistence. If nothing needs to
-            be done with this value simply return it, otherwise return the 
-            properly re-animated value instead (may entail a call to
-            _reanimator()).
-        @return: The reanimated value for k such that setattr(self, k, v) will
-            yield self in a proper reanimated state.
+        for p in self.wibble.find_persistables():
+            yield p
+            
+        Notice that you never have to yield 'self'. The default implementation
+        simply ends the iteration.
         """
-        return v
+        raise StopIteration()
     
-    def set_attrs_from_dict(self, d):
+    def set_attrs_from_dict(self, d, catalog):
         for k, v in d.items():
-            setattr(self, k, self.recover_attr_value(k, v))
+            v = self.recover_attr_value(k, v, catalog)
+            setattr(self, k, v)
         return
         
 
@@ -268,31 +416,88 @@ def _find_class(module, name):
 
 
 class _Dummy(object): pass
-    
-    
-def _reanimator(d):
-    """
-    Takes a dict that serves as the persisted state of an object and re-creates
-    the object from the details it contains.
-    """
-    modname = d[_Persistable._module_name]
-    klassname = d[_Persistable._class_name]
-    version = d[_Persistable._version]
-    obj_dict = d[_Persistable._obj]
-    klass = _find_class(modname, klassname)
-    o = _Dummy()
-    o.__class__ = klass
-    o.set_attrs_from_dict(obj_dict)
-    return o
 
 
-def persist_orchestrator(orch):
+class _CatalogEntry(_SignatureDict):
+    ORIG_ID = "_ORIG_ID_"
+    ORIG_TYPE = "_ORIG_TYPE_"
+    ATTRS_DICT = "_ATTR_DICT_"
+    REANIM_OBJ = "_REANIM_OBJ_"
+    _KIND_ = "_CatalogEntry"
+    def __init__(self, o=None):
+        super(_CatalogEntry, self).__init__()
+        self[self.ORIG_ID] = id(o) if o is not None else None
+        self[self.ORIG_TYPE] = o.obj_sig_dict() if o is not None else None
+        self[self.ATTRS_DICT] = o.get_attrs_dict() if o is not None else None
+        self[self.REANIM_OBJ] = None
+        
+    def _id(self):
+        return self[self.ORIG_ID]
+    id = property(fget=_id)
+        
+    def from_dict(self, d):
+        super(_CatalogEntry, self).from_dict(d)
+        o = _Dummy()
+        tinfo = self[self.ORIG_TYPE]
+        module, name = (tinfo[_Persistable._module_name],
+                        tinfo[_Persistable._class_name])
+        klass = _find_class(module, name)
+        o.__class__ = klass
+        self[self.REANIM_OBJ] = o
+        return self
+    
+    def get_reanimated(self):
+        return self[self.REANIM_OBJ]
+    
+    def apply_attributes(self, catalog):
+        o = self[self.REANIM_OBJ]
+        o.set_attrs_from_dict(self[self.ATTRS_DICT][_Persistable._obj], catalog)
+        return self
+        
+    
+class _Catalog(_SignatureDict):
+    _KIND_ = "_Catalog"
+    def add_entry(self, persistable):
+        ce = _CatalogEntry(o=persistable)
+        self[ce.id] = ce
+        
+    def find_entry(self, eid):
+        return self[eid]
+    
+    def to_dict(self):
+        return self
+    
+    def from_dict(self, aDict):
+        for k, v in aDict.items():
+            if _SigDictMeta.is_sigdict(v):
+                self[int(k)] = _CatalogEntry().from_dict(v)
+        for ce in self.values():
+            if isinstance(ce, _CatalogEntry):
+                ce.apply_attributes(self)
+        for ce in self.values():
+            if isinstance(ce, _CatalogEntry):
+                ce.get_reanimated().finalize_reanimate()
+        return self
+    
+    
+def reanimate_from_dict(d):
+    catalog = _Catalog()
+    catalog.from_dict(d["CATALOG"])
+    root = catalog.find_entry(_PersistableRef().from_dict(d["ROOT_OBJ"]).id)
+    return root.get_reanimated()
+    
+    
+def persist_to_dict(o, name=None):
+    if not isinstance(o, _Persistable):
+        raise TypeError("the parameter must be a kind of _Persistable")
+    catalog = _Catalog()
+    for p in o.find_persistables():
+        catalog.add_entry(p)
     d = {}
-    d["ORCH_SIG"] = id(orch)
-    d["VERSION"] = 1
+    d["PERSIST_TIMESTAMP"] = str(datetime.datetime.now())
+    d["NAME"] = name
     d["SYS_PATH"] = sys.path[:]
-    inf = orch.infra_model_inst or None
-    ns = orch.namespace_model_instance or None
-    cfg = orch.config_model_inst or None
-    
-    
+    d["VERSION"] = 1
+    d["CATALOG"] = catalog.to_dict()
+    d["ROOT_OBJ"] = _PersistableRef(o)
+    return d

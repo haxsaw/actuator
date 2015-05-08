@@ -20,17 +20,18 @@
 # SOFTWARE.
 
 import json
-from actuator.utils import _reanimator
-from actuator import ActuatorException, ActuatorOrchestration
+from actuator import ActuatorOrchestration
 from actuator import InfraModel
+from actuator.provisioners.example_resources import Server
+from actuator.utils import persist_to_dict, reanimate_from_dict
 
 
 def test01():
     orch = ActuatorOrchestration()
-    d = orch.get_attrs_dict()
+    d = persist_to_dict(orch)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    op = _reanimator(d)
+    op = reanimate_from_dict(d)
     assert op
     
     
@@ -40,17 +41,33 @@ class Infra1(InfraModel):
     
 def test02():
     orch = ActuatorOrchestration(infra_model_inst=Infra1("t2"))
-    d = orch.get_attrs_dict()
+    d = persist_to_dict(orch)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    op = _reanimator(d)
+    op = reanimate_from_dict(d)
     assert (hasattr(op, "infra_model_inst") and
             orch.infra_model_inst.name == op.infra_model_inst.name and
             orch.infra_model_inst.nexus is not op.infra_model_inst.nexus and 
             op.infra_model_inst.nexus is not None and
             op.infra_model_inst.nexus.find_instance(Infra1) is op.infra_model_inst)
+    
+class Infra2(InfraModel):
+    s = Server("s1", mem="8GB")
+    
+def test03():
+    i0 = Infra2("test3")
+    orch = ActuatorOrchestration(infra_model_inst=i0)
+    d = persist_to_dict(orch)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    op = reanimate_from_dict(d)
+    assert (hasattr(op.infra_model_inst, "s") and
+            op.infra_model_inst.s.name.value() == i0.s.name.value() and
+            op.infra_model_inst.s.mem.value() == i0.s.mem.value())
+    
 
 def do_all():
+    test02()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

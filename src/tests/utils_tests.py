@@ -24,7 +24,7 @@ import subprocess
 import json
 
 from actuator.utils import *
-from actuator.utils import _Persistable, _reanimator
+from actuator.utils import _Persistable, persist_to_dict, reanimate_from_dict
 
 #class mapping tests setup
 
@@ -196,35 +196,35 @@ def test16():
     test16: check that we can recreate an instance that was persisted
     """
     m = Mock(1, 2)
-    d = m.get_attrs_dict()
+    d = persist_to_dict(m)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    mprime = _reanimator(d)
+    mprime = reanimate_from_dict(d)
     assert m.x == mprime.x and m.y == mprime.y
     
 class Mock2(_Persistable):
     def __init__(self, some_str, obj):
         self.some_str = some_str
         self.obj = obj
+        
+    def _find_persistables(self):
+        yield self.obj
     
     def _get_attrs_dict(self):
         d = super(Mock2, self)._get_attrs_dict()
         d.update( {"some_str":self.some_str,
-                "obj":self.obj.get_attrs_dict()} )
+                   "obj":self.obj} )
         return d
     
-    def recover_attr_value(self, k, v):
-        return (_reanimator(v)
-                if self.persisted_persistable(v)
-                else v)
     
 def test17():
     m = Mock2("wibble", Mock(1,2))
-    d = m.get_attrs_dict()
+    d = persist_to_dict(m)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    mp = _reanimator(d)
+    mp = reanimate_from_dict(d)
     assert isinstance(mp.obj, Mock) and mp.obj.x == 1
+    
     
 class Mock3(_Persistable):
     def __init__(self, some_str, obj_list):
@@ -234,38 +234,38 @@ class Mock3(_Persistable):
     def _get_attrs_dict(self):
         d = super(Mock3, self)._get_attrs_dict()
         d.update({"some_str":self.some_str,
-                  "obj_list":[(o.get_attrs_dict()
-                               if isinstance(o, _Persistable)
-                               else o) for o in self.obj_list]})
+                  "obj_list":self.obj_list})
         return d
     
-    def recover_attr_value(self, k, v):
-        if k == "obj_list":
-            return [(_reanimator(d)
-                     if self.persisted_persistable(d)
-                     else d) for d in v]
-        else:
-            return v
+    def _find_persistables(self):
+        for p in [o for o in self.obj_list if isinstance(o, _Persistable)]:
+            for q in p.find_persistables():
+                yield q
     
+        
 def test18():
     m = Mock3("M3", [Mock(1,2), Mock(3,4), Mock(5, 6)])
-    d = m.get_attrs_dict()
+    d = persist_to_dict(m)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    mp = _reanimator(d)
+    mp = reanimate_from_dict(d)
     assert (mp.some_str == "M3" and
             len(mp.obj_list) == 3 and
             mp.obj_list[1].x == 3)
     
 def test19():
     m = Mock3("M3", [Mock(1,2), Mock2("m2", Mock(3,4))])
-    d = m.get_attrs_dict()
+    d = persist_to_dict(m)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    mp = _reanimator(d)
+    mp = reanimate_from_dict(d)
     assert (mp.some_str == "M3" and
             len(mp.obj_list) == 2 and
             mp.obj_list[1].obj.y == 4)
+    
+#
+# We need a test that puts persistables as values in dicts
+#
     
 #modeling.KeyAsAttr is going to not come back properly unless
 #something is done to flag that these are objects and not just
