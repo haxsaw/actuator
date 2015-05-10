@@ -20,9 +20,9 @@
 # SOFTWARE.
 
 import json
-from actuator import ActuatorOrchestration
+from actuator import ActuatorOrchestration, ctxt
 from actuator import InfraModel
-from actuator.provisioners.example_resources import Server
+from actuator.provisioners.example_resources import Server, Network
 from actuator.utils import persist_to_dict, reanimate_from_dict
 
 
@@ -66,8 +66,41 @@ def test03():
             op.infra_model_inst.s.mem.value() == i0.s.mem.value())
     
 
+class Infra3(InfraModel):
+    n = Network("net", cidr="192.168.6.0/24")
+    
+    
+def test04():
+    i0 = Infra3("i3")
+    orch = ActuatorOrchestration(infra_model_inst=i0)
+    d = persist_to_dict(orch, "test04")
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    op = reanimate_from_dict(d)
+    assert (hasattr(op.infra_model_inst, "n") and
+            op.infra_model_inst.n.name.value() == i0.n.name.value() and
+            op.infra_model_inst.n.cidr.value() == i0.n.cidr.value())
+    
+    
+class Infra4(InfraModel):
+    n = Network("net", cidr="192.168.6.0/24")
+    s = Server("server", network=ctxt.model.n)
+    
+
+def test05():
+    i0 = Infra4("test05")
+    for c in i0.components():
+        c.fix_arguments()
+    orch = ActuatorOrchestration(infra_model_inst=i0)
+    d = persist_to_dict(orch, "t5")
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    op = reanimate_from_dict(d)
+    assert (op.infra_model_inst.n.value() is op.infra_model_inst.s.network.value())
+    
+    
+
 def do_all():
-    test02()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

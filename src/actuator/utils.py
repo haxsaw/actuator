@@ -39,6 +39,9 @@ LOG_ERROR = logging.ERROR
 LOG_CRIT = logging.CRITICAL
 
 
+class UtilsException(Exception): pass
+
+
 class ClassMapper(dict):
     """
     Internal; used to map a class, and its derived classes, to some other object.
@@ -291,8 +294,8 @@ class _Persistable(object):
             if _SigDictMeta.is_sigdict(v):
                 klass = _SigDictMeta.find_class(v)
                 if not klass:
-                    raise Exception("Couldn't find a class for kind %s" %
-                                    _SigDictMeta.get_kind(v))
+                    raise UtilsException("Couldn't find a class for kind %s" %
+                                         _SigDictMeta.get_kind(v))
                 retval = klass().from_dict(v)
                 if isinstance(retval, _PersistableRef):
                     retval = catalog.find_entry(retval.id).get_reanimated()
@@ -301,7 +304,7 @@ class _Persistable(object):
                     if _SigDictMeta.is_sigdict(vv):
                         klass = _SigDictMeta.find_class(vv)
                         if not klass:
-                            raise Exception("Couldn't find a class for kind %s"
+                            raise UtilsException("Couldn't find a class for kind %s"
                                             % _SigDictMeta.get_kind(vv))
                         v[vk] = klass().from_dict(vv)
                         if _SigDictMeta.is_sigdict(v[vk]):
@@ -340,9 +343,10 @@ class _Persistable(object):
             retval = _PersistableRef(v)
         elif isinstance(v, collections.Iterable):
             if isinstance(v, dict):
+                retval = {}
                 for vk, vv in v.items():
                     if isinstance(vv, _Persistable):
-                        v[vk] = _PersistableRef(vv)
+                        retval[vk] = _PersistableRef(vv)
             elif isinstance(v, (list, tuple)):
                 retval = [(_PersistableRef(i) if isinstance(i, _Persistable) else i)
                           for i in v]
@@ -426,7 +430,7 @@ class _CatalogEntry(_SignatureDict):
     _KIND_ = "_CatalogEntry"
     def __init__(self, o=None):
         super(_CatalogEntry, self).__init__()
-        self[self.ORIG_ID] = id(o) if o is not None else None
+        self[self.ORIG_ID] = id(o)
         self[self.ORIG_TYPE] = o.obj_sig_dict() if o is not None else None
         self[self.ATTRS_DICT] = o.get_attrs_dict() if o is not None else None
         self[self.REANIM_OBJ] = None
@@ -437,12 +441,15 @@ class _CatalogEntry(_SignatureDict):
         
     def from_dict(self, d):
         super(_CatalogEntry, self).from_dict(d)
-        o = _Dummy()
         tinfo = self[self.ORIG_TYPE]
-        module, name = (tinfo[_Persistable._module_name],
-                        tinfo[_Persistable._class_name])
-        klass = _find_class(module, name)
-        o.__class__ = klass
+        if tinfo is None:
+            o = None
+        else:
+            o = _Dummy()
+            module, name = (tinfo[_Persistable._module_name],
+                            tinfo[_Persistable._class_name])
+            klass = _find_class(module, name)
+            o.__class__ = klass
         self[self.REANIM_OBJ] = o
         return self
     
@@ -451,18 +458,28 @@ class _CatalogEntry(_SignatureDict):
     
     def apply_attributes(self, catalog):
         o = self[self.REANIM_OBJ]
-        o.set_attrs_from_dict(self[self.ATTRS_DICT][_Persistable._obj], catalog)
+        if o is not None:
+            o.set_attrs_from_dict(self[self.ATTRS_DICT][_Persistable._obj], catalog)
         return self
         
     
 class _Catalog(_SignatureDict):
     _KIND_ = "_Catalog"
+    
     def add_entry(self, persistable):
         ce = _CatalogEntry(o=persistable)
+        if ce.id in self:
+            raise UtilsException("We've already catalogued item %s, a %s" %
+                                 (ce.id, str(persistable)))
         self[ce.id] = ce
         
     def find_entry(self, eid):
-        return self[eid]
+        try:
+            return self[eid]
+        except KeyError, _:
+            raise UtilsException("Can't find catalog entry for key %s; have you "
+                                 "ensured that every ref to a _Persistable has been "
+                                 "reported via _find_persistables() ?" % str(eid))
     
     def to_dict(self):
         return self
@@ -476,7 +493,9 @@ class _Catalog(_SignatureDict):
                 ce.apply_attributes(self)
         for ce in self.values():
             if isinstance(ce, _CatalogEntry):
-                ce.get_reanimated().finalize_reanimate()
+                o = ce.get_reanimated()
+                if o is not None:
+                    o.finalize_reanimate()
         return self
     
     

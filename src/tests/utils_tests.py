@@ -25,6 +25,8 @@ import json
 
 from actuator.utils import *
 from actuator.utils import _Persistable, persist_to_dict, reanimate_from_dict
+from actuator.infra import InfraModel
+from keystoneclient.utils import arg
 
 #class mapping tests setup
 
@@ -208,7 +210,9 @@ class Mock2(_Persistable):
         self.obj = obj
         
     def _find_persistables(self):
-        yield self.obj
+        if self.obj:
+            for p in self.obj.find_persistables():
+                yield p
     
     def _get_attrs_dict(self):
         d = super(Mock2, self)._get_attrs_dict()
@@ -218,6 +222,9 @@ class Mock2(_Persistable):
     
     
 def test17():
+    """
+    test17: test a persistable which contains another persistable
+    """
     m = Mock2("wibble", Mock(1,2))
     d = persist_to_dict(m)
     d_json = json.dumps(d)
@@ -244,6 +251,9 @@ class Mock3(_Persistable):
     
         
 def test18():
+    """
+    test18: test a persistable which contains a list of persistables
+    """
     m = Mock3("M3", [Mock(1,2), Mock(3,4), Mock(5, 6)])
     d = persist_to_dict(m)
     d_json = json.dumps(d)
@@ -254,6 +264,9 @@ def test18():
             mp.obj_list[1].x == 3)
     
 def test19():
+    """
+    test19: persistable with a list of persistables, which contain other persistables
+    """
     m = Mock3("M3", [Mock(1,2), Mock2("m2", Mock(3,4))])
     d = persist_to_dict(m)
     d_json = json.dumps(d)
@@ -263,9 +276,156 @@ def test19():
             len(mp.obj_list) == 2 and
             mp.obj_list[1].obj.y == 4)
     
-#
-# We need a test that puts persistables as values in dicts
-#
+    
+class Mock4(_Persistable):
+    def __init__(self, num_mocks=None, mock_list=None):
+        if num_mocks is not None:
+            self.mocks = {i:Mock(i, i+1) for i in range(num_mocks)}
+        elif mock_list is not None:
+            self.mocks = {i:m for i, m in enumerate(mock_list)}
+        
+    def _get_attrs_dict(self):
+        d = super(Mock4, self)._get_attrs_dict()
+        d.update( {"mocks":self.mocks} )
+        return d
+        
+    def _find_persistables(self):
+        for m in self.mocks.values():
+            for p in m.find_persistables():
+                yield p
+                
+    def finalize_reanimate(self):
+        for k in list(self.mocks.keys()):
+            self.mocks[int(k)] = self.mocks[k]
+            del self.mocks[k]
+                
+
+def test20():
+    """
+    test20: persistable with a dict of persistables
+    """
+    m = Mock4(num_mocks=10)
+    d = persist_to_dict(m)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    mp = reanimate_from_dict(d)
+    assert (len(mp.mocks) == 10 and
+            mp.mocks[0].x == 0 and
+            mp.mocks[9].x == 9)
+    
+def test21():
+    """
+    test21: persistable with a dict of persisteables with other nested persistables
+    """
+    m = Mock4(mock_list=[Mock2("m2", Mock(99, 100)),
+                         Mock3("m3", [Mock2("innerm2", Mock(2, 3))])])
+    d = persist_to_dict(m, "mock4")
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    mp = reanimate_from_dict(d)
+    assert (isinstance(mp, Mock4) and
+            len(mp.mocks) == 2 and
+            mp.mocks[0].obj.x == 99
+            and mp.mocks[1].obj_list[0].obj.y == 3)
+    
+    
+class Mock5(_Persistable):
+    def __init__(self, arg):
+        self.my_obj = Mock(99, 100)
+        self.arg = arg
+        
+    def set_arg(self, arg):
+        self.arg = arg
+    
+    def _find_persistables(self):
+        if self.my_obj:
+            for p in self.my_obj.find_persistables():
+                yield p
+        
+    def _get_attrs_dict(self):
+        d = super(Mock5, self)._get_attrs_dict()
+        d.update( {"arg":self.arg,
+                   "my_obj":self.my_obj} )
+        return d
+        
+        
+def test22():
+    """
+    test22: ensure ref to an arg that is persisted ties back out
+    """
+    m = Mock5(None)
+    m.set_arg(m.my_obj)
+    d = persist_to_dict(m)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    mp = reanimate_from_dict(d)
+    assert mp.my_obj is mp.arg
+     
+def test23():
+    """
+    test23: ensure that a ref arg that is None reanimates to None
+    """
+    m = Mock5(None)
+    d = persist_to_dict(m)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    mp = reanimate_from_dict(d)
+    assert mp.arg is None
+     
+def test24():
+    """
+    test24: ensure that a missing persistable arg doesn't cause a problem
+    """
+    m = Mock5(Mock(1,2))
+    m2 = Mock3("m2 in t24", [m, m.arg])
+    m.my_obj = None
+    d = persist_to_dict(m2)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    m2p = reanimate_from_dict(d)
+    assert (m2p.obj_list[0].my_obj is None and
+            m2p.obj_list[0].arg is m2p.obj_list[1])
+     
+def test25():
+    """
+    test25: ensure that cycles of persistables from find_persistables() don't cause a problem
+    """
+    m3 = Mock3("m3-cycle", [])
+    m2 = Mock2("m2-cycle", m3)
+    m3.obj_list.append(m2)
+    try:
+        d = persist_to_dict(m3)
+        assert False, "Should not have been able to persist due to a cycle"
+    except Exception, _:
+        pass
+    #the following will be useful once proper handling of cycles is in,
+    #not just detection
+#     d_json = json.dumps(d)
+#     d = json.loads(d_json)
+#     m3p = reanimate_from_dict(d)
+#     assert m3p.obj_list[0].obj is m3p
+     
+def test26():
+    """
+    test26: a different cycle test
+    """
+    m1 = Mock2("m1", None)
+    m2 = Mock2("m2", m1)
+    m3 = Mock2("m3", m2)
+    m1.obj = m3
+    try:
+        d = persist_to_dict(m1)
+        assert False, "This should have raised a cycle detection exception"
+    except Exception, _:
+        pass
+    #this remaining code will be useful once cycle handling is in place
+#     d_json = json.dumps(d)
+#     d = json.loads(d_json)
+#     m1p = reanimate_from_dict(d)
+#     assert m1.obj.obj.obj is m1
+    
+#once cycle detection is in, need to test two None persistables in one object
+    
     
 #modeling.KeyAsAttr is going to not come back properly unless
 #something is done to flag that these are objects and not just

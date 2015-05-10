@@ -30,6 +30,23 @@ class ProvisionableWithFixer(Provisionable):
     def _fix_arguments(self, provisioner=None):
         for k, v in self.__dict__.items():
             setattr(self, k, self._get_arg_value(v))
+            
+            
+class Network(ProvisionableWithFixer):
+    def __init__(self, name, ipv6=False, cidr=None):
+        super(Network, self).__init__(name)
+        self.ipv6 = ipv6
+        self.cidr = cidr
+        
+    def _get_attrs_dict(self):
+        d = super(Network, self)._get_attrs_dict()
+        d.update( {"ipv6":self.ipv6,
+                   "cidr":self.cidr} )
+        return d
+    
+    def get_init_args(self):
+        return ((self.name,), {"ipv6":self.ipv6,
+                               "cidr":self.cidr})
 
 
 class Server(ProvisionableWithFixer):

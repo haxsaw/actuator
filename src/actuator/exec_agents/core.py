@@ -37,29 +37,29 @@ class ExecutionException(ActuatorException):
         self.response = response
 
 
-class ConfigRecord(object):
-    """
-    Returned by the execution agent; a record of the tasks that have been
-    performed as part of the orchestration.
-    """
-    def __init__(self):
-        """
-        Sets up a record container for tasks as they complete. The attribute
-        completed_tasks is a public list of the tasks that have successfully
-        completed during orchestration. It is a list of 2-tuples,
-        (task, completion time.ctime).
-        """
-        self.completed_tasks = []
-        
-    def record_completed_task(self, task):
-        """
-        Captures the completion of a single task. Adds the 2-tuple
-        (task, time.ctime()) to the completed_tasks list.
-        """
-        self.completed_tasks.append((task, time.ctime()))
-        
-    def is_completed(self, task):
-        return task in set([r[0] for r in self.completed_tasks])
+# class ConfigRecord(object):
+#     """
+#     Returned by the execution agent; a record of the tasks that have been
+#     performed as part of the orchestration.
+#     """
+#     def __init__(self):
+#         """
+#         Sets up a record container for tasks as they complete. The attribute
+#         completed_tasks is a public list of the tasks that have successfully
+#         completed during orchestration. It is a list of 2-tuples,
+#         (task, completion time.ctime).
+#         """
+#         self.completed_tasks = []
+#         
+#     def record_completed_task(self, task):
+#         """
+#         Captures the completion of a single task. Adds the 2-tuple
+#         (task, time.ctime()) to the completed_tasks list.
+#         """
+#         self.completed_tasks.append((task, time.ctime()))
+#         
+#     def is_completed(self, task):
+#         return task in set([r[0] for r in self.completed_tasks])
 
 
 class ExecutionAgent(TaskEngine):
