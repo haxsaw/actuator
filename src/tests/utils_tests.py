@@ -393,17 +393,11 @@ def test25():
     m3 = Mock3("m3-cycle", [])
     m2 = Mock2("m2-cycle", m3)
     m3.obj_list.append(m2)
-    try:
-        d = persist_to_dict(m3)
-        assert False, "Should not have been able to persist due to a cycle"
-    except Exception, _:
-        pass
-    #the following will be useful once proper handling of cycles is in,
-    #not just detection
-#     d_json = json.dumps(d)
-#     d = json.loads(d_json)
-#     m3p = reanimate_from_dict(d)
-#     assert m3p.obj_list[0].obj is m3p
+    d = persist_to_dict(m3)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    m3p = reanimate_from_dict(d)
+    assert m3p.obj_list[0].obj is m3p
      
 def test26():
     """
@@ -413,19 +407,25 @@ def test26():
     m2 = Mock2("m2", m1)
     m3 = Mock2("m3", m2)
     m1.obj = m3
-    try:
-        d = persist_to_dict(m1)
-        assert False, "This should have raised a cycle detection exception"
-    except Exception, _:
-        pass
-    #this remaining code will be useful once cycle handling is in place
-#     d_json = json.dumps(d)
-#     d = json.loads(d_json)
-#     m1p = reanimate_from_dict(d)
-#     assert m1.obj.obj.obj is m1
+    d = persist_to_dict(m1)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    m1p = reanimate_from_dict(d)
+    assert m1.obj.obj.obj is m1
     
-#once cycle detection is in, need to test two None persistables in one object
-    
+def test27():
+    """
+    test27: ensuring that duplicated objects don't signal a cycle
+    """
+    m1 = Mock(5, 6)
+    m3 = Mock3("m3", [m1, m1])
+    d = persist_to_dict(m3)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    m3p = reanimate_from_dict(d)
+    assert (m3p.obj_list[0] is m3p.obj_list[1] and
+            m3p.obj_list[0].x == 5)
+        
     
 #modeling.KeyAsAttr is going to not come back properly unless
 #something is done to flag that these are objects and not just

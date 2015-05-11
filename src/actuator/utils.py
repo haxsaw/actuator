@@ -27,6 +27,7 @@ import logging
 import pdb
 import datetime
 import collections
+import threading
 
 base_logger_name = "actuator"
 logging.basicConfig(format="%(levelname)s::%(asctime)s::%(name)s:: %(message)s")
@@ -233,6 +234,28 @@ class _PersistableRef(_SignatureDict):
     def _id(self):
         return self[self._REFID_]
     id = property(fget=_id)
+    
+    
+class _PersistablesCyclesDeco(object):
+    def __init__(self):
+        self.local = threading.local()
+        self.m = None
+        
+    def __call__(self, m):
+        self.m = m
+        def cycle_checker(persistable):
+            if not hasattr(self.local, "visitation_set"):
+                self.local.visitation_set = set()
+            if persistable in self.local.visitation_set:
+                raise StopIteration
+            else:
+                self.local.visitation_set.add(persistable)
+                for p in self.m(persistable):
+                    yield p
+                self.local.visitation_set.remove(persistable)
+        cycle_checker.__name__ = self.m.__name__
+        cycle_checker.__doc__ = self.m.__doc__
+        return cycle_checker
         
     
 class _Persistable(object):
@@ -376,6 +399,7 @@ class _Persistable(object):
         """
         return {}
     
+    @_PersistablesCyclesDeco()
     def find_persistables(self):
         yield self
         for p in self._find_persistables():
@@ -468,9 +492,6 @@ class _Catalog(_SignatureDict):
     
     def add_entry(self, persistable):
         ce = _CatalogEntry(o=persistable)
-        if ce.id in self:
-            raise UtilsException("We've already catalogued item %s, a %s" %
-                                 (ce.id, str(persistable)))
         self[ce.id] = ce
         
     def find_entry(self, eid):
