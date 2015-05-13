@@ -102,7 +102,7 @@ class ContextExpr(object):
                 if callable(ref):
                     ref = ref(ctx)
         return ref
-    
+        
         
 ctxt = ContextExpr()
 
@@ -182,7 +182,8 @@ class AbstractModelingEntity(_Persistable):
         #@FixMe: this is going to be missing self._model_instance for the time being 
         d.update( {"name":self.name,
                    "_id":str(self._id),
-                   "fixed":self.fixed} )
+                   "fixed":self.fixed,
+                   "_model_instance":self._model_instance} )
         return d
             
     def get_ref(self):
@@ -457,6 +458,20 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
                 raise TypeError("arg %s has a value that isn't a kind of AbstractModelingEntity: %s" % (k, str(v)))
         self._kwargs = kwargs
         
+    def _find_persistables(self):
+        for p in super(ComponentGroup, self)._find_persistables():
+            yield p
+        for k in self._kwargs:
+            for p in getattr(self, k).find_persistables():
+                yield p
+                
+    def _get_attrs_dict(self):
+        d = super(ComponentGroup, self)._get_attrs_dict()
+        d["_kwargs"] = {}
+        for k in self._kwargs:
+            d[k] = getattr(self, k)
+        return d
+        
     def _set_model_instance(self, inst):
         super(ComponentGroup, self)._set_model_instance(inst)
         for v in self._comp_source().values():
@@ -504,6 +519,19 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         super(MultiComponent, self).__init__("")
         self.template_component = template_component.clone()
         self._instances = {}
+        
+    def _find_persistables(self):
+        for p in super(MultiComponent, self)._find_persistables():
+            yield p
+        for i in self._instances.values():
+            for p in i.find_persistables():
+                yield p
+                
+    def _get_attrs_dict(self):
+        d = super(MultiComponent, self)._get_attrs_dict()
+        d.update( {"_instances":self._instances,
+                   "template_component":None} )
+        return d
         
     def _set_model_instance(self, inst):
         super(MultiComponent, self)._set_model_instance(inst)
@@ -615,6 +643,8 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         
         @param key: immutable key value; coerced to string
         """
+        if key == "None":
+            _ = 1
         inst = self._instances.get(key)
         if not inst:
             prototype = self.get_prototype()

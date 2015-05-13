@@ -425,12 +425,50 @@ def test27():
     m3p = reanimate_from_dict(d)
     assert (m3p.obj_list[0] is m3p.obj_list[1] and
             m3p.obj_list[0].x == 5)
+    
+class Mock6(Mock3):
+    def __init__(self, some_str, obj_list, anudder_obj):
+        super(Mock6, self).__init__(some_str, obj_list)
+        self.anudder_obj = anudder_obj
         
+    def _find_persistables(self):
+        for p in super(Mock6, self)._find_persistables():
+            yield p
+        if self.anudder_obj:
+            for p in self.anudder_obj.find_persistables():
+                yield p
+                
+    def _get_attrs_dict(self):
+        d = super(Mock6, self)._get_attrs_dict()
+        d.update( {"anudder_obj":self.anudder_obj} )
+        return d
     
-#modeling.KeyAsAttr is going to not come back properly unless
-#something is done to flag that these are objects and not just
-#numeric strings.
+def test28():
+    """
+    test28: testing proper behaviour with _Persistable inheritance
+    """
+    m2 = Mock2("m2", Mock(33, 44))
+    m6 = Mock6("m6", [Mock(1,2), Mock(2,3), m2], Mock5(m2))
     
+    d = persist_to_dict(m6)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    m6p = reanimate_from_dict(d)
+    assert (isinstance(m6p, Mock6) and
+            isinstance(m6p.anudder_obj, Mock5) and
+            isinstance(m6p.obj_list[0], Mock) and
+            isinstance(m6p.anudder_obj.arg, Mock2))
+    
+    
+#need to be able to detect that we have a persistable dict that won't reload
+#need to add a generator on _CatalogEntry() that yields each contained
+#_PersistableRef, and then in persist_to_dict() we need to iterate over the
+#catalog and use the iterator on _CatalogEntry to check that every _PersistableRef
+#is in the catalog. Perhaps the action to take can be selectable, and perhaps
+#we can also make selectable the action to take if we can't find an id in the
+#catalog that there's a ref to
+    
+        
     
 def do_all():
     for k, v in globals().items():

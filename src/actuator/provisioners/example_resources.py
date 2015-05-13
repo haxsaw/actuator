@@ -23,7 +23,6 @@
 Example classes mainly used in testing.
 '''
 from actuator.infra import Provisionable
-from actuator.modeling import ContextExpr
 
 
 class ProvisionableWithFixer(Provisionable):
@@ -78,6 +77,15 @@ class Database(ProvisionableWithFixer):
         object.__getattribute__(self, "__dict__").update(kwargs)
         self.kwargs = kwargs
         
+    def _get_attrs_dict(self):
+        d = super(Database, self)._get_attrs_dict()
+        d.update( {"provisionedName":self.provisionedName,
+                   "port":self.port,
+                   "adminUser":self.adminUser,
+                   "adminPassword":self.adminPassword,
+                   "kwargs":None})
+        return d
+        
     def get_init_args(self):
         return ((self.name,), self.kwargs)
     
@@ -91,6 +99,15 @@ class Queue(ProvisionableWithFixer):
         self.port = None
         object.__getattribute__(self, "__dict__").update(kwargs)
         self.kwargs = kwargs
+        
+    def _get_attrs_dict(self):
+        d = super(Queue, self)._get_attrs_dict()
+        d.update( {"provisionedName":self.provisionedName,
+                   "qmanager":self.qmanager,
+                   "host":self.host,
+                   "port":self.port,
+                   "kwargs":None} )
+        return d
 
     def get_init_args(self):
         return((self.name,), self.kwargs)

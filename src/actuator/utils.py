@@ -226,14 +226,20 @@ class _SignatureDict(dict):
 class _PersistableRef(_SignatureDict):
     _KIND_ = "_PersistableRef"
     _REFID_ = "_REFID_"
+    _OBJ_INFO_ = "_OBJINFO_"
     def __init__(self, o=None):
         super(_PersistableRef, self).__init__()
         if o is not None:
             self[self._REFID_] = id(o)
+            self[self._OBJ_INFO_] = str(o)
         
     def _id(self):
         return self[self._REFID_]
     id = property(fget=_id)
+    
+    def _info(self):
+        return self[self._OBJ_INFO_]
+    info = property(fget=_info)
     
     
 class _PersistablesCyclesDeco(object):
@@ -425,7 +431,11 @@ class _Persistable(object):
         Notice that you never have to yield 'self'. The default implementation
         simply ends the iteration.
         """
-        raise StopIteration()
+        #the following is just an oddity of Python; it needs to see a 'yield'
+        #in the method to make it a generator, but we don't actually ever
+        #need it to execute. So we protect it with the impossible test
+        if 1 == 0:
+            yield
     
     def set_attrs_from_dict(self, d, catalog):
         for k, v in d.items():
@@ -454,10 +464,14 @@ class _CatalogEntry(_SignatureDict):
     _KIND_ = "_CatalogEntry"
     def __init__(self, o=None):
         super(_CatalogEntry, self).__init__()
-        self[self.ORIG_ID] = id(o)
+        self[self.ORIG_ID] = self.compute_id(o)
         self[self.ORIG_TYPE] = o.obj_sig_dict() if o is not None else None
         self[self.ATTRS_DICT] = o.get_attrs_dict() if o is not None else None
         self[self.REANIM_OBJ] = None
+        
+    @classmethod
+    def compute_id(cls, o):
+        return id(o)
         
     def _id(self):
         return self[self.ORIG_ID]
@@ -491,8 +505,9 @@ class _Catalog(_SignatureDict):
     _KIND_ = "_Catalog"
     
     def add_entry(self, persistable):
-        ce = _CatalogEntry(o=persistable)
-        self[ce.id] = ce
+        if _CatalogEntry.compute_id(persistable) not in self:
+            ce = _CatalogEntry(o=persistable)
+            self[ce.id] = ce
         
     def find_entry(self, eid):
         try:
@@ -500,7 +515,7 @@ class _Catalog(_SignatureDict):
         except KeyError, _:
             raise UtilsException("Can't find catalog entry for key %s; have you "
                                  "ensured that every ref to a _Persistable has been "
-                                 "reported via _find_persistables() ?" % str(eid))
+                                 "reported via _find_persistables()?" % str(eid))
     
     def to_dict(self):
         return self
