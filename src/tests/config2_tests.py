@@ -18,10 +18,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from actuator.exec_agents.core import ExecutionAgent
 
 '''
 Created on Jan 15, 2015
 '''
+import time
+import threading
 
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
@@ -32,7 +35,7 @@ ocf.set_nova_client_class(ost_support.MockNovaClient)
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
                       MultiResource, ctxt, Var, ResourceGroup, Role,
                       MultiRole, NullTask, LOG_DEBUG, LOG_INFO, ConfigModel,
-                      MultiTask, ConfigClassTask)
+                      MultiTask, ConfigClassTask, ExecutionException)
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Router, FloatingIP,
@@ -41,6 +44,7 @@ from actuator.provisioners.openstack.resources import (Server, Network,
                                                         RouterInterface)
 from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
 from actuator.modeling import AbstractModelReference
+from actuator.exec_agents.core import ExecutionAgent
 
 
 external_connection = ResourceGroup("route_out",
@@ -154,6 +158,94 @@ def test001():
             cfg.do_it.value().instances[0].instance.task.get_task_host() is not None and
             isinstance(cfg.do_it.value().instances[0].instance.task.get_task_host(),
                            basestring))
+    
+def test002():
+    """
+    test002: check that we properly catch the wrong type for the config model
+    """
+    class Infra2(InfraModel): pass
+    
+    try:
+        aea = AnsibleExecutionAgent(config_model_instance=Infra2("i2"))
+        assert False, "should have complained about wrong type for config_model_instance"
+    except ExecutionException, _:
+        assert True
+    except Exception, e:
+        assert False, "Wrong exception raised: %s" % e.message
+        
+def test003():
+    """
+    test003: check that we raise the right exception when given the wrong type for namespacce
+    """
+    class Infra3(InfraModel): pass
+    
+    try:
+        aea = AnsibleExecutionAgent(namespace_model_instance=Infra3("i3"))
+        assert False, "should have complained about wrong type for namespace_model_instance"
+    except ExecutionException, _:
+        assert True
+    except Exception, e:
+        assert False, "Wrong exception raised: %s" % e.message
+
+def test004():
+    """
+    test004: check that we raise the right exception when given the wrong type for infra model
+    """
+    class NS4(NamespaceModel): pass
+    
+    try:
+        aea = AnsibleExecutionAgent(infra_model_instance=NS4())
+        assert False, "should have complained about wrong type for infra_model_instance"
+    except ExecutionException, _:
+        assert True
+    except Exception, e:
+        assert False, "Wrong exception raised: %s" % e.message
+        
+def test005():
+    """
+    test005: check that we can initiate reversing config tasks
+    """
+    class Config5(ConfigModel): pass
+    class NS5(NamespaceModel): pass
+    ea = ExecutionAgent(config_model_instance=Config5(),
+                        namespace_model_instance=NS5())
+    try:
+        ea.reverse_task({}, {})
+        assert True
+    except Exception, e:
+        assert False, "Failed with: %s" % e.message
+        
+def test006():
+    """
+    test006: invoke the abort processing method
+    """
+    class Config6(ConfigModel): pass
+    class NS6(NamespaceModel): pass
+    ea = ExecutionAgent(config_model_instance=Config6(),
+                        namespace_model_instance=NS6())
+    ea.abort_process_tasks()
+    assert ea.stop, "Processing state not set to stop"
+
+def test007():
+    """
+    test007: affirm that we can stop the processing loop; this can block forever if broken
+    """
+    class Config7(ConfigModel): pass
+    class NS7(NamespaceModel): pass
+    ea = ExecutionAgent(config_model_instance=Config7(),
+                        namespace_model_instance=NS7())
+    def wait_and_abort(ea):
+        time.sleep(0.5)
+        ea.abort_process_tasks()
+    
+    ea.task_queue.put(({}, {}))
+    
+    t = threading.Thread(target=wait_and_abort, args=(ea,))
+    t.start()
+    ea.reverse_process_tasks()
+    assert ea.stop, "We stopped processing without signaling abort"
+    
+
 
 
 def do_all():

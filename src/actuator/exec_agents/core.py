@@ -163,6 +163,7 @@ class ExecutionAgent(TaskEngine):
             self.config_mi.update_nexus(self.namespace_mi.nexus)
             self.perform_tasks(completion_record)
         else:
+            #currently unreachable as is either is missing the object can't be created
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
         
     def perform_reverses(self, completion_record=None):
