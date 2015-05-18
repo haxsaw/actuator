@@ -412,6 +412,11 @@ class SecGroup(_OpenstackProvisionableInfraResource):
         self._description = description
         self.description = None
         
+    def _get_attrs_dict(self):
+        d = super(SecGroup, self)._get_attrs_dict()
+        d["description"] = self.description
+        return d
+        
     def get_init_args(self):
         return ((self.name,),
                 {"description":self._description})
@@ -508,6 +513,14 @@ class Subnet(_OpenstackProvisionableInfraResource):
         self._dns_nameservers = dns_nameservers
         self.dns_nameservers = None
         
+    def _get_attrs_dict(self):
+        d = super(Subnet, self)._get_attrs_dict()
+        d.update( {"network":self.network,
+                   "cidr":self.cidr,
+                   "ip_version":self.ip_version,
+                   "dns_nameservers":self.dns_nameservers} )
+        return d
+        
     def _fix_arguments(self, provisioner=None):
         self.network = self._get_arg_value(self._network)
         self.cidr = unicode(self._get_arg_value(self._cidr))
@@ -571,6 +584,14 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         self.pool = None
         self.ip = None
         
+    def _get_attrs_dict(self):
+        d = super(FloatingIP, self)._get_attrs_dict()
+        d.update( {"server":self.server,
+                   "associated_ip":self.associated_ip,
+                   "pool":self.pool,
+                   "ip":self.ip} )
+        return d
+        
     def get_ip(self, context=None):
         """
         Return the IP for this floating ip resource.
@@ -613,6 +634,11 @@ class Router(_OpenstackProvisionableInfraResource):
         self._admin_state_up = admin_state_up
         self.admin_state_up = None
         
+    def _get_attrs_dict(self):
+        d = super(Router, self)._get_attrs_dict()
+        d["admin_state_up"] = self.admin_state_up
+        return d
+        
     def _fix_arguments(self, provisioner=None):
         self.admin_state_up = self._get_arg_value(self._admin_state_up)
         
@@ -647,6 +673,12 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         self.router = None
         self._external_network_name = external_network_name
         self.external_network_name = None
+        
+    def _get_attrs_dict(self):
+        d = super(RouterGateway, self)._get_attrs_dict()
+        d.update( {"router":self.router,
+                   "external_network_name":self.external_network_name} )
+        return d
         
     def _fix_arguments(self, provisioner=None):
         self.router = self._get_arg_value(self._router)
@@ -697,7 +729,12 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         self._subnet = subnet
         self.subnet = None
         
-#     def fix_arguments(self, provisioner=None):
+    def _get_attrs_dict(self):
+        d = super(RouterInterface, self)._get_attrs_dict()
+        d["router"] = self.router
+        d["subnet"] = self.subnet
+        return d
+        
     def _fix_arguments(self, provisioner=None):
         self.router = self._get_arg_value(self._router)
         self.subnet = self._get_arg_value(self._subnet)

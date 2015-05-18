@@ -46,7 +46,8 @@ from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Router, FloatingIP,
                                                         Subnet, SecGroup,
                                                         SecGroupRule, KeyPair,
-                                                        RouterInterface)
+                                                        RouterInterface,
+                                                        RouterGateway)
 from actuator.utils import (LOG_INFO, find_file, persist_to_dict,
                             reanimate_from_dict)
 
@@ -1114,6 +1115,9 @@ class Infra69(InfraModel):
     srvr = Server("node", u"Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
     
 def test069():
+    """
+    test069: check if a Server referencing a Network reanimates properly
+    """
     i69 = Infra69("69")
     i69p = persistence_helper(i69)
     assert (i69p.srvr.nics.value()[0] is i69p.net.value())
@@ -1125,6 +1129,9 @@ class Infra70(InfraModel):
                                     nics=[ctxt.comp.container.net]))
     
 def test070():
+    """
+    test070: Persist/reanimate a ResourceGroup with inter-relating resources
+    """
     i70 = Infra70("70")
     i70p = persistence_helper(i70)
     assert (i70p.g.net.value() is i70p.g.srvr.nics.value()[0])
@@ -1137,12 +1144,128 @@ class Infra71(InfraModel):
                                                 nics=[ctxt.comp.container.container.net])))
     
 def test071():
+    """
+    test071: Persist/reanimate a ResourceGroup with embedded, interrelated resources in a MultiResource
+    """
     i71 = Infra71("71")
     for i in range(5):
         _ = i71.g.grid[i]
     i71p = persistence_helper(i71)
     assert (len(i71p.g.grid) == 5 and
             i71p.g.net.value() is i71p.g.grid[4].nics.value()[0])
+    
+class Infra72(InfraModel):
+    net = Network("main")
+    cells = MultiResourceGroup("cell",
+                               slaves=MultiResource(Server("slave",
+                                                           u"Ubuntu 13.10",
+                                                           "m1.small",
+                                                           nics=[ctxt.comp.container.container.subnet])),
+                               subnet=Network("sn"),
+                               boss=Server("boss", u"Ubuntu 13.10",
+                                           "m1.small",
+                                           nics=[ctxt.model.net,
+                                                 ctxt.comp.container.subnet]))
+    
+def test072():
+    """
+    test072: Persist/reanimate MultiResouce inside a MultiResourceGroup with related resources
+    """
+    i72 = Infra72("72")
+    for i in range(5):
+        cell = i72.cells[i]
+        for j in range(20):
+            _ = cell.slaves[j]
+    i72p = persistence_helper(i72)
+    assert (len(i72p.cells) == 5 and
+            len(i72p.cells[0].slaves) == 20 and
+            i72p.cells[0].subnet.value() is i72p.cells[0].slaves[10].nics.value()[0] and
+            i72p.net.value() is i72p.cells[1].boss.nics.value()[0] and
+            i72p.cells[1].subnet.value() is i72p.cells[1].boss.nics.value()[1])
+    
+class Infra73(InfraModel):
+    router = Router("r", admin_state_up=False)
+    
+def test073():
+    """
+    test073: persist/reanimate Router
+    """
+    i73 = Infra73("73")
+    i73p = persistence_helper(i73)
+    assert i73.router.admin_state_up.value() == i73p.router.admin_state_up.value()
+    
+class Infra74(InfraModel):
+    net = Network("net")
+    sn = Subnet("sn", ctxt.model.net, "192.168.6.0/24",
+                dns_nameservers=["8.8.8.8"])
+    
+def test074():
+    """
+    test074: persist/reanimate Subnet related to a network
+    """
+    i74 = Infra74("74")
+    i74p = persistence_helper(i74)
+    assert (i74p.net.value() is i74p.sn.network.value() and
+            i74p.sn.cidr.value() == "192.168.6.0/24" and
+            u"8.8.8.8" in i74p.sn.dns_nameservers.value())
+    
+class Infra75(InfraModel):
+    rg = RouterGateway("argee", ctxt.model.router, "external")
+    router = Router("rotter")
+    
+def test075():
+    """
+    test075: persist/reanimate a RouterGateway related to a Router
+    """
+    i75 = Infra75("75")
+    i75p = persistence_helper(i75)
+    assert (i75p.rg.name.value() == "argee" and
+            i75p.rg.router.value() is i75p.router.value())
+    
+class Infra76(InfraModel):
+    router = Router("rotter")
+    net = Network("knitwork")
+    sn = Subnet("subknit", ctxt.model.net, "192.168.6.0/24",
+                dns_nameservers=["8.8.8.8"])
+    ri = RouterInterface("rhodie", ctxt.model.router, ctxt.model.sn)
+    
+def test076():
+    """
+    test076: persist/reanimate Router/RouterInterface/Network/Subnet
+    """
+    i76 = Infra76("76")
+    i76p = persistence_helper(i76)
+    assert (i76p.ri.router.value() is i76p.router.value() and
+            i76p.ri.subnet.value() is i76p.sn.value() and
+            i76p.sn.network.value() is i76p.net.value())
+    
+class Infra77(InfraModel):
+    s = Server("wibble", u"Ubuntu 13.10", "m1.small")
+    fip = FloatingIP("wibble_fip", ctxt.model.s,
+                     ctxt.model.s.iface0.addr0)
+    
+def test077():
+    """
+    test077: persist/reanimate FloatingIP related to a Server
+    """
+    i77 = Infra77("77")
+    i77p = persistence_helper(i77)
+    assert i77p.fip.server.value() is i77p.s.value()
+    
+class Infra78(InfraModel):
+    sg = SecGroup("essgee", "The king of groups")
+    s = Server("s", u"Ubuntu 13.10", "m1.small",
+               security_groups=[ctxt.model.sg])
+    
+def test078():
+    """
+    test078: persist/reanimate a SecGroup related to a Server
+    """
+    i78 = Infra78("78")
+    i78p = persistence_helper(i78)
+    assert (i78p.sg.value() in i78p.s.security_groups.value() and
+            "king" in i78p.sg.description.value())
+    
     
 def do_all():
     globs = globals()
