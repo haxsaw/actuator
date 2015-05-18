@@ -25,8 +25,10 @@ This module contains resource classes for provisioning Openstack resources.
 import collections
 import ipaddress
 
+from actuator.modeling import ContextExpr
 from actuator.infra import Provisionable, IPAddressable
 from actuator.provisioners.core import ProvisionerException
+from actuator.utils import _Persistable
 from __builtin__ import int
 
 
@@ -41,6 +43,11 @@ class _OpenstackProvisionableInfraResource(Provisionable):
         """
         super(_OpenstackProvisionableInfraResource, self).__init__(*args, **kwargs)
         self.osid = None
+        
+    def _get_attrs_dict(self):
+        d = super(_OpenstackProvisionableInfraResource, self)._get_attrs_dict()
+        d["osdi"] = str(self.osid)
+        return d
         
     def set_osid(self, id):
         """
@@ -62,7 +69,7 @@ class _OpenstackProvisionableInfraResource(Provisionable):
             
 
 
-class NetworkInterface(object):
+class NetworkInterface(_Persistable):
     """
     This class provides a place to store broken-out address fields into discrete
     attributes that can successfully have model references built on top of them.
@@ -78,6 +85,19 @@ class NetworkInterface(object):
         self.addr5 = None
         self.addr6 = None
         self.addr7 = None
+        
+    def _get_attrs_dict(self):
+        d = super(NetworkInterface, self)._get_attrs_dict()
+        d.update( {"name":self.name,
+                   "addr0":self.addr0,
+                   "addr1":self.addr1,
+                   "addr2":self.addr2,
+                   "addr3":self.addr3,
+                   "addr4":self.addr4,
+                   "addr5":self.addr5,
+                   "addr6":self.addr6,
+                   "addr7":self.addr7} )
+        return d
 
 
 class Server(_OpenstackProvisionableInfraResource, IPAddressable):
@@ -197,6 +217,33 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.iface1 = NetworkInterface()
         self.iface2 = NetworkInterface()
         self.iface3 = NetworkInterface()
+        
+    def _find_persistables(self):
+        for p in super(Server, self)._find_persistables():
+            yield p
+        for ni in (self.iface0, self.iface1, self.iface2, self.iface3):
+            for p in ni.find_persistables():
+                yield p
+        
+    def _get_attrs_dict(self):
+        d = super(Server, self)._get_attrs_dict()
+        _, kwargs = self.get_fixed_args()
+        d.update( {"name":self.name,
+                   "imageName":self.imageName,
+                   "flavorName":self.flavorName} )
+        d.update(kwargs)
+        return d
+    
+    def encode_attr(self, k, v):
+        if k == "userdata":
+            retval = ({vk:(self._get_arg_value(vv)
+                          if isinstance(vv, ContextExpr)
+                          else vv) for vk, vv in v.items()}
+                      if v is not None
+                      else v)
+            return retval 
+        else:
+            return super(Server, self).encode_attr(k, v)
         
     def _fix_arguments(self, provisioner=None):
         self.imageName = self._get_arg_value(self._imageName)
@@ -333,6 +380,11 @@ class Network(_OpenstackProvisionableInfraResource):
         self.admin_state_up = None
         self._admin_state_up = admin_state_up
         
+    def _get_attrs_dict(self):
+        d = super(Network, self)._get_attrs_dict()
+        d["admin_state_up"] = self.admin_state_up
+        return d
+    
     def _fix_arguments(self, provisioner=None):
         self.admin_state_up = self._get_arg_value(self._admin_state_up)
         

@@ -372,10 +372,9 @@ class _Persistable(object):
             retval = _PersistableRef(v)
         elif isinstance(v, collections.Iterable):
             if isinstance(v, dict):
-                retval = {}
-                for vk, vv in v.items():
-                    if isinstance(vv, _Persistable):
-                        retval[vk] = _PersistableRef(vv)
+                retval = {vk:(_PersistableRef(vv)
+                              if isinstance(vv, _Persistable)
+                              else vv) for vk, vv in v.items()}
             elif isinstance(v, (list, tuple)):
                 retval = [(_PersistableRef(i) if isinstance(i, _Persistable) else i)
                           for i in v]

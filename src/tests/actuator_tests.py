@@ -192,7 +192,10 @@ def test08():
     d = json.loads(d_json)
     op = reanimate_from_dict(d)
     i1 = op.infra_model_inst
-    assert (len(i1.clusters[2].slaves) == Infra7.num_slaves)
+    assert (len(i1.clusters[2].slaves) == Infra7.num_slaves and
+            i1.clusters[2].value() is not i1.clusters[1].value() and
+            i1.clusters[0].slaves[0] is not i1.clusters[1].slaves[0] and
+            i1.clusters[1].name.value() == "cell_1")
     
     
 #modeling.KeyAsAttr is going to not come back properly unless

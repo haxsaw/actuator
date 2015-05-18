@@ -28,6 +28,8 @@ won't be generated. The lesson here is that as tests are added, they should alwa
 end of the list of tests, and never inserted in between existing tests.
 '''
 
+import json
+
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
@@ -35,7 +37,8 @@ ocf.set_neutron_client_class(ost_support.MockNeutronClient)
 ocf.set_nova_client_class(ost_support.MockNovaClient)
 
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
-                      MultiResource, ctxt, Var, ResourceGroup, with_infra_options)
+                      MultiResource, ctxt, Var, ResourceGroup, with_infra_options,
+    ActuatorOrchestration)
 from actuator.provisioners.openstack.resource_tasks import (OpenstackProvisioner,
                                                             ResourceTaskSequencerAgent)
 ResourceTaskSequencerAgent.repeat_count = 1
@@ -44,7 +47,8 @@ from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Subnet, SecGroup,
                                                         SecGroupRule, KeyPair,
                                                         RouterInterface)
-from actuator.utils import LOG_INFO, find_file
+from actuator.utils import (LOG_INFO, find_file, persist_to_dict,
+                            reanimate_from_dict)
 
 
 def get_provisioner():
@@ -1039,6 +1043,106 @@ def test064():
     result1 = orch.initiate_system()
     result2 = orch.teardown_system()
     assert result1 and result2 and ct.prov_count == 1
+    
+#these next tests are looking at integration with persistence, so the classes
+#need to be at the global module level
+
+def persistence_helper(inst):
+    prov = get_provisioner()
+    orch = ActuatorOrchestration(infra_model_inst=inst, provisioner=prov)
+    _ = orch.initiate_system()
+    d = persist_to_dict(orch)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    op = reanimate_from_dict(d)
+    return op.infra_model_inst
+
+class Infra65(InfraModel):
+    s = Server("s", u"Ubuntu 13.10", "m1.small")
+    
+def test065():
+    """
+    test065: check persistence of a model with a single server
+    """
+    i65 = Infra65("65")
+    i65p = persistence_helper(i65)
+    assert (i65p.s.imageName.value() == u"Ubuntu 13.10" and
+            i65p.s.flavorName.value() == "m1.small")
+    
+class Infra66(InfraModel):
+    s = Server("s", u"Ubuntu 13.10", "m1.small", userdata={"k1":1, "k2":2})
+    
+def test066():
+    """
+    test066: another single server persistence test, check more args
+    """
+    i66 = Infra66("66")
+    i66p = persistence_helper(i66)
+    assert i66p.s.userdata.value()["k1"] == 1
+
+def udfunc(context):
+    return {"compname":ctxt.name(context)}
+
+class Infra67(InfraModel):
+    grid = MultiResource(Server("node", u"Ubuntu 13.10", "m1.small",
+                         userdata=udfunc))
+    
+def test067():
+    """
+    test067: persistence test: infra model with a MultiResource wrapping a server
+    """
+    i67 = Infra67("67")
+    for i in range(5):
+        _ = i67.grid[i]    
+    i67p = persistence_helper(i67)
+    assert (len(i67p.grid) == 5 and
+            i67p.grid[1].userdata["compname"] == "1")
+
+class Infra68(InfraModel):
+    net = Network("net")
+
+def test068():
+    """
+    test068: persistence test for Network
+    """
+    i68 = Infra68("68")
+    i68p = persistence_helper(i68)
+    assert (i68p.net.name.value() == "net")
+    
+class Infra69(InfraModel):
+    net = Network("net")
+    srvr = Server("node", u"Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
+    
+def test069():
+    i69 = Infra69("69")
+    i69p = persistence_helper(i69)
+    assert (i69p.srvr.nics.value()[0] is i69p.net.value())
+    
+class Infra70(InfraModel):
+    g = ResourceGroup("g",
+                      net=Network("net"),
+                      srvr = Server("node", u"Ubuntu 13.10", "m1.small",
+                                    nics=[ctxt.comp.container.net]))
+    
+def test070():
+    i70 = Infra70("70")
+    i70p = persistence_helper(i70)
+    assert (i70p.g.net.value() is i70p.g.srvr.nics.value()[0])
+    
+class Infra71(InfraModel):
+    g = ResourceGroup("g",
+                      net=Network("net"),
+                      grid=MultiResource(Server("node", u"Ubuntu 13.10",
+                                                "m1.small",
+                                                nics=[ctxt.comp.container.container.net])))
+    
+def test071():
+    i71 = Infra71("71")
+    for i in range(5):
+        _ = i71.g.grid[i]
+    i71p = persistence_helper(i71)
+    assert (len(i71p.g.grid) == 5 and
+            i71p.g.net.value() is i71p.g.grid[4].nics.value()[0])
     
 def do_all():
     globs = globals()
