@@ -1266,8 +1266,67 @@ def test078():
     assert (i78p.sg.value() in i78p.s.security_groups.value() and
             "king" in i78p.sg.description.value())
     
+class Infra79(InfraModel):
+    sg = SecGroup("79ner", description="wibble")
+    sgr1 = SecGroupRule("rule1", secgroup=ctxt.model.sg, ip_protocol="tcp",
+                        from_port=8000, to_port=8001, cidr="192.168.6.1")
+    sgr2 = SecGroupRule("rule2", secgroup=ctxt.model.sg, ip_protocol="tcp",
+                        from_port=80, to_port=80, cidr="192.168.6.1")
+    
+def test079():
+    """
+    test079: persist/reanimate SecGroupRules related to a SecGroup
+    """
+    i79 = Infra79("79")
+    i79p = persistence_helper(i79)
+    assert (i79p.sgr1.slave_secgroup.value() is i79p.sg.value() and
+            i79p.sgr2.slave_secgroup.value() is i79p.sg.value() and
+            i79p.sgr1.ip_protocol.value() == "tcp" and
+            i79p.sgr2.from_port.value() == 80 and
+            i79p.sgr1.to_port.value() == 8001 and
+            i79p.sgr2.cidr.value() == "192.168.6.1")
+    
+class Infra80(InfraModel):
+    kp = KeyPair("kp1", "kpalias", os_name="kpalias",
+                 pub_key_file=find_file("actuator-dev-key.pub"),
+                 force=True)
+    s = Server("keyeater",  u"Ubuntu 13.10",
+               "m1.small", key_name=ctxt.model.kp)
+    
+def test080():
+    """
+    test080: persist/reanimate KeyPair related to a Server
+    """
+    i80 = Infra80('80')
+    i80p = persistence_helper(i80)
+    assert (i80p.kp.value() is i80p.s.key_name.value() and
+            i80p.kp.os_name.value() == "kpalias" and
+            i80p.kp.priv_key_name.value() == "kpalias" and
+            "actuator-dev-key.pub" in i80p.kp.pub_key_file.value() and
+            i80p.kp.force.value() == True)
+    
+class Infra81(InfraModel):
+    kp = KeyPair("kp1", "kpalias", os_name="kpalias",
+                 pub_key="gobbledegook",
+                 force=True)
+    s = Server("keyeater",  u"Ubuntu 13.10",
+               "m1.small", key_name=ctxt.model.kp)
+    
+def test081():
+    """
+    test081: persist/reanimate KeyPair related to a Server; specify pub key contents
+    """
+    i81 = Infra81('81')
+    i81p = persistence_helper(i81)
+    assert (i81p.kp.value() is i81p.s.key_name.value() and
+            i81p.kp.os_name.value() == "kpalias" and
+            i81p.kp.priv_key_name.value() == "kpalias" and
+            i81p.kp.pub_key.value() == "gobbledegook" and
+            i81p.kp.force.value() == True)
+    
     
 def do_all():
+    test079()
     globs = globals()
     tests = []
     for k, v in globs.items():

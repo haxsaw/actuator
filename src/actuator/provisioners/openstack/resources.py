@@ -469,6 +469,15 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
                  "from_port":self._from_port,
                  "to_port":self._to_port,
                  "cidr":self._cidr})
+        
+    def _get_attrs_dict(self):
+        d = super(SecGroupRule, self)._get_attrs_dict()
+        d.update( {"slave_secgroup":self.slave_secgroup,
+                   "ip_protocol":self.ip_protocol,
+                   "from_port":self.from_port,
+                   "to_port":self.to_port,
+                   "cidr":self.cidr} )
+        return d
     
     def _fix_arguments(self, provisioner=None):
         self.slave_secgroup = self._get_arg_value(self._secgroup)
@@ -834,6 +843,15 @@ class KeyPair(_OpenstackProvisionableInfraResource):
             
     def get_key_name(self):
         return self.name if self.os_name is None else self.os_name
+    
+    def _get_attrs_dict(self):
+        d = super(KeyPair, self)._get_attrs_dict()
+        d.update( {"priv_key_name":self.priv_key_name,
+                   "os_name":self.os_name,
+                   "pub_key_file":self.pub_key_file,
+                   "pub_key":self.pub_key,
+                   "force":self.force} )
+        return d
         
     def _fix_arguments(self, provisioner=None):
         self.priv_key_name = self._get_arg_value(self._priv_key_name)
