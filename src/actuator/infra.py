@@ -316,6 +316,11 @@ class StaticServer(IPAddressable, Provisionable):
         self.hostname_or_ip = None
         self._hostname_or_ip = hostname_or_ip
         
+    def _get_attrs_dict(self):
+        d = super(StaticServer, self)._get_attrs_dict()
+        d["hostname_or_ip"] = self.hostname_or_ip
+        return d
+        
     def _fix_arguments(self):
         self.hostname_or_ip = self._get_arg_value(self._hostname_or_ip)
         

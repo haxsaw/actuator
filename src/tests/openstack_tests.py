@@ -38,7 +38,7 @@ ocf.set_nova_client_class(ost_support.MockNovaClient)
 
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
                       MultiResource, ctxt, Var, ResourceGroup, with_infra_options,
-    ActuatorOrchestration)
+                      ActuatorOrchestration)
 from actuator.provisioners.openstack.resource_tasks import (OpenstackProvisioner,
                                                             ResourceTaskSequencerAgent)
 ResourceTaskSequencerAgent.repeat_count = 1
@@ -50,6 +50,7 @@ from actuator.provisioners.openstack.resources import (Server, Network,
                                                         RouterGateway)
 from actuator.utils import (LOG_INFO, find_file, persist_to_dict,
                             reanimate_from_dict)
+from actuator.infra import StaticServer
 
 
 def get_provisioner():
@@ -1323,6 +1324,18 @@ def test081():
             i81p.kp.priv_key_name.value() == "kpalias" and
             i81p.kp.pub_key.value() == "gobbledegook" and
             i81p.kp.force.value() == True)
+    
+class Infra82(InfraModel):
+    s1 = StaticServer("static", "192.168.6.2")
+    
+def test082():
+    """
+    test082: persist/reanimate a StaticServer
+    """
+    i82 = Infra82("82")
+    i82p = persistence_helper(i82)
+    assert (i82p.s1.name.value() == "static" and
+            i82p.s1.hostname_or_ip.value() == "192.168.6.2")
     
     
 def do_all():
