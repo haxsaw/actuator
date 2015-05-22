@@ -691,9 +691,12 @@ class MultiComponentGroup(MultiComponent):
         """
         group = ComponentGroup(name, **kwargs)
         return MultiComponent(group)
-        
 
-class AbstractModelReference(_ValueAccessMixin):
+
+class _Dummy(object): pass
+
+
+class AbstractModelReference(_ValueAccessMixin, _Persistable):
     """
     Base for all model reference classes.
     
@@ -713,9 +716,11 @@ class AbstractModelReference(_ValueAccessMixin):
     """
     _inst_cache = {}
     _inv_cache = {}
-    _as_is = frozenset(["__getattribute__", "__class__", "value", "_name", "_obj",
+    _as_is = (frozenset(["__getattribute__", "__class__", "value", "_name", "_obj",
                         "_parent", "get_path", "_get_item_ref_obj",
-                        "get_containing_component", "get_containing_component_ref"])
+                        "get_containing_component",
+                        "get_containing_component_ref"])
+              .union( frozenset(dir(_Persistable)).difference(frozenset(dir(_Dummy))) ))
     def __init__(self, name, obj=None, parent=None):
         """
         Initialize a new reference object.
@@ -744,10 +749,12 @@ class AbstractModelReference(_ValueAccessMixin):
         @keyword parent: parent reference to this reference; in other words, the
             reference to 'obj'
         """
-        inst = AbstractModelReference._inst_cache.get( (cls, name, obj, parent) )
+        key = AbstractModelReference._cache_key(name, obj, parent)
+        
+        inst = AbstractModelReference._inst_cache.get(key)
         if inst is None:
             inst = super(AbstractModelReference, cls).__new__(cls, name, obj, parent)
-            AbstractModelReference._inst_cache[(cls, name, obj, parent)] = inst
+            AbstractModelReference._inst_cache[key] = inst
             
         if obj is not None:
             if isinstance(name, KeyAsAttr):
@@ -758,9 +765,36 @@ class AbstractModelReference(_ValueAccessMixin):
                     _ = hash(target)
                 except TypeError, _:
                     target = obj
-            AbstractModelReference._inv_cache[target] = inst
+            if target is not None:
+                #We can *never* store a single ref to None; too many things
+                #share this value
+                AbstractModelReference._inv_cache[target] = inst
             
         return inst
+    
+    @classmethod
+    def _cache_key(cls, name, obj, parent):
+        return (cls, name, obj, parent)
+    
+    def _get_attrs_dict(self):
+        d = super(AbstractModelReference, self)._get_attrs_dict()
+        d.update( {"_name":self._name,
+                   "_obj":self._obj,
+                   "_parent":self._parent} )
+        return d
+    
+    def _find_persistables(self):
+        for p in super(AbstractModelReference, self)._find_persistables():
+            yield p
+        if self._parent is not None:
+            for p in self._parent.find_persistables():
+                yield p
+    
+    def finalize_reanimate(self):
+        super(AbstractModelReference, self).finalize_reanimate()
+        AbstractModelReference._inst_cache[AbstractModelReference._cache_key(self._name,
+                                                                             self._obj,
+                                                                             self._parent)] = self
     
     @classmethod
     def find_ref_for_obj(cls, obj):
@@ -783,10 +817,11 @@ class AbstractModelReference(_ValueAccessMixin):
         reference.
         
         This allows discovery of the L{ModelComponent} that contains a reference
-        to a more basic data item, such as a string. For instance, you may need
-        to know the actual component that a reference to string attribute of
-        that component is part of in order to properly compute dependencies. This
-        method returns that reference. For example, suppose you have: ::
+        to a more basic data item, such as a string. For instance, if you have
+        a reference to a component's string attribute, you may need to find out
+        the component that owns that attribute in order to properly compute
+        dependencies. This method returns that reference. For example, suppose
+        you have:
         
             class Thing(ModelComponent):
                 def __init__(self, name):

@@ -23,7 +23,8 @@
 Support for creating Actuator namespace models
 '''
 import re
-from actuator.utils import ClassModifier, process_modifiers, capture_mapping, get_mapper
+from actuator.utils import (ClassModifier, process_modifiers, capture_mapping,
+                            get_mapper,  _Persistable)
 from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase,
                                ModelReference, ModelInstanceReference, ModelBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
@@ -142,7 +143,8 @@ class _ComputableValue(_ModelRefSetAcquireable):
         return value
     
 
-class Var(_ModelRefSetAcquireable):
+# class Var(_ModelRefSetAcquireable, _Persistable):
+class Var(_ModelRefSetAcquireable, _Persistable):
     """
     A container for a name-value pair in which the value is a L{_ComputableValue},
     and hence whose value can be a plain string, a string with replacement
@@ -176,6 +178,13 @@ class Var(_ModelRefSetAcquireable):
         
     def _get_model_refs(self):
         return self.value._get_model_refs()
+    
+#     def _get_attrs_dict(self):
+#         d = super(Var, self)._get_attrs_dict()
+#         d.update( {"name":self.name,
+#                    "value":self.value,
+#                    "in_env":self.in_env} )
+#         return d
 
     def get_value(self, context, allow_unexpanded=False):
         """
@@ -273,7 +282,7 @@ class VarValueAccessor(object):
         return VarReference(self.var_cont, varname)
         
 
-class VariableContainer(_ModelRefSetAcquireable):
+class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     """
     A base mixin class for other classes that allows the class to be a
     container for Var objects.
@@ -309,6 +318,35 @@ class VariableContainer(_ModelRefSetAcquireable):
             self.add_variable(*variables)
         if overrides is not None:
             self.add_override(*overrides)
+            
+    def _get_attrs_dict(self):
+        d = super(VariableContainer, self)._get_attrs_dict()
+        persistable_vars = {v.name:v.get_value(self, allow_unexpanded=True)
+                            for v in self.variables.values()}
+        persistable_overrides = {v.name:v.get_value(self, allow_unexpanded=True)
+                                 for v in self.overrides.values()}
+        d.update( {"variables":persistable_vars,
+                   "overrides":persistable_overrides,
+                   "parent_container":self.parent_container} )
+        return d
+    
+    def recover_attr_value(self, k, v, catalog):
+        if k in ["variables", "overrides"]:
+            retval = {name:Var(name, val)
+                      for name, val in v.items()}
+        else:
+            retval = super(VariableContainer, self).recover_attr_value(k, v, catalog)
+        return retval
+    
+    def _find_persistables(self):
+        for p in super(VariableContainer, self)._find_persistables():
+            yield p
+        for v in self.variables.values():
+            for p in v.find_persistables():
+                yield p
+        for v in self.overrides.values():
+            for p in v.find_persistables():
+                yield p
                     
     def _set_parent(self, parent):
         self.parent_container = parent
@@ -517,7 +555,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         @keyword host_ref: Optional; provides a way to identify an IPAddressable
             for this Role; this will indicate where Config tasks and software
             will execute for this role. This may be a string with a host name or
-            IP address, a model referencean to an IPAddressable, a context
+            IP address, a model reference to an IPAddressable, a context
             expression for an IPAddressable, or a callable that returns one
             of the above.
         @keyword variables: Optional; a sequence of Var objects that will be 
@@ -542,6 +580,18 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         clone = super(Role, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self.get_model_instance())
         return clone
+    
+    def _get_attrs_dict(self):
+        d = super(Role, self)._get_attrs_dict()
+        d["host_ref"] = self.host_ref
+        return d
+    
+    def _find_persistables(self):
+        for p in super(Role, self)._find_persistables():
+            yield p
+        if isinstance(self.host_ref, _Persistable):
+            for p in self.host_ref.find_persistables():
+                yield p
     
     def _get_arg_value(self, arg):
         #internal
@@ -774,6 +824,22 @@ class NamespaceModel(VariableContainer, ModelBase):
     def __new__(cls, *args, **kwargs):
         inst = super(NamespaceModel, cls).__new__(cls, *args, **kwargs)
         return inst
+    
+    def _find_persistables(self):
+        for p in super(NamespaceModel, self)._find_persistables():
+            yield p
+        for v in self._roles.values():
+            if isinstance(v, _Persistable):
+                for p in v.find_persistables():
+                    yield p
+    
+    def _get_attrs_dict(self):
+        d = super(NamespaceModel, self)._get_attrs_dict()
+        ga = super(NamespaceModel, self).__getattribute__
+        d.update( {"infra":ga("infra"),
+                   "_roles":ga("_roles")} )
+        d.update(self._roles)
+        return d
     
     def _comp_source(self):
         return self.get_roles()

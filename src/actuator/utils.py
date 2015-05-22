@@ -242,6 +242,21 @@ class _PersistableRef(_SignatureDict):
     info = property(fget=_info)
     
     
+class _ClassRef(_SignatureDict):
+    _KIND_ = "_ClassRef"
+    _CLASS_NAME_ = "_classname_"
+    _MODULE_NAME_ = "_moddulename_"
+    def __init__(self, o=None):
+        super(_ClassRef, self).__init__()
+        if o is not None:
+            self[self._CLASS_NAME_] = o.__name__
+            self[self._MODULE_NAME_] = o.__module__
+            
+    def get_class(self):
+        return _find_class(self[self._MODULE_NAME_],
+                           self[self._CLASS_NAME_])
+    
+    
 class _PersistablesCyclesDeco(object):
     def __init__(self):
         self.local = threading.local()
@@ -271,7 +286,7 @@ class _Persistable(object):
     _persistable = "_ACTUATOR_PERSISTABLE_"
     _class_name = "__CLASS__"
     _module_name = "__MODULE__"
-    _obj = "__OBJECT__"
+    _obj_ = "__OBJECT__"
     _version = "__VERSION__"
     _path = "__PATH__"
     _vernum = 1
@@ -282,7 +297,7 @@ class _Persistable(object):
         sig = self.obj_sig_dict()
         sig.update({self._version:self._vernum,
                     self._persistable:"yes",
-                    self._obj:ad})
+                    self._obj_:ad})
         return sig
     
     def finalize_reanimate(self):
@@ -327,7 +342,13 @@ class _Persistable(object):
                                          _SigDictMeta.get_kind(v))
                 retval = klass().from_dict(v)
                 if isinstance(retval, _PersistableRef):
-                    retval = catalog.find_entry(retval.id).get_reanimated()
+                    try:
+                        retval = catalog.find_entry(retval.id).get_reanimated()
+                    except UtilsException, e:
+                        raise UtilsException("Error recovering attribute %s; error: %s"
+                                             % (k, e.message))
+                elif isinstance(retval, _ClassRef):
+                    retval = retval.get_class()
             elif isinstance(v, dict):
                 for vk, vv in v.items():
                     if _SigDictMeta.is_sigdict(vv):
@@ -378,6 +399,8 @@ class _Persistable(object):
             elif isinstance(v, (list, tuple)):
                 retval = [(_PersistableRef(i) if isinstance(i, _Persistable) else i)
                           for i in v]
+        elif isinstance(v, type):
+            retval = _ClassRef(v)
         return retval
         
     def obj_sig_dict(self):
@@ -438,12 +461,16 @@ class _Persistable(object):
     
     def set_attrs_from_dict(self, d, catalog):
         for k, v in d.items():
-            v = self.recover_attr_value(k, v, catalog)
+            try:
+                v = self.recover_attr_value(k, v, catalog)
+            except UtilsException, e:
+                raise UtilsException("Got an exception trying to recover attribute %s: %s"
+                                     % (k, e.message))
             setattr(self, k, v)
         return
         
 
-#stolen from pickle.Unpickler
+#adapted from pickle.Unpickler
 def _find_class(module, name):
     # Subclasses may override this
     __import__(module)
@@ -496,7 +523,7 @@ class _CatalogEntry(_SignatureDict):
     def apply_attributes(self, catalog):
         o = self[self.REANIM_OBJ]
         if o is not None:
-            o.set_attrs_from_dict(self[self.ATTRS_DICT][_Persistable._obj], catalog)
+            o.set_attrs_from_dict(self[self.ATTRS_DICT][_Persistable._obj_], catalog)
         return self
         
     
@@ -512,9 +539,17 @@ class _Catalog(_SignatureDict):
         try:
             return self[eid]
         except KeyError, _:
-            raise UtilsException("Can't find catalog entry for key %s; have you "
+            raise UtilsException("Can't find catalog entry for reference %s; have you "
                                  "ensured that every ref to a _Persistable has been "
                                  "reported via _find_persistables()?" % str(eid))
+    
+    @classmethod
+    def print_it(cls, adict):
+        for k, v in adict.items():
+            print k
+            if _SigDictMeta.is_sigdict(v):
+                print "\tType info:", v[_CatalogEntry.ORIG_TYPE]
+                print "\tAttrs:", v[_CatalogEntry.ATTRS_DICT]
     
     def to_dict(self):
         return self

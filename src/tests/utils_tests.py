@@ -189,7 +189,7 @@ def test15():
     d = m.get_attrs_dict()
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    assert (d[Mock._obj]['x'] == 22 and d[Mock._obj]['y'] == 33 and
+    assert (d[Mock._obj_]['x'] == 22 and d[Mock._obj_]['y'] == 33 and
             d[Mock._class_name] == "Mock" and
             d[Mock._module_name] == Mock.__module__)
     
