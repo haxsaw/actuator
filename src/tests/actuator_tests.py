@@ -25,18 +25,18 @@ from actuator import (ActuatorOrchestration, ctxt, MultiResource, ResourceGroup,
 from actuator import InfraModel
 from actuator.provisioners.example_resources import Server, Network, Queue
 from actuator.utils import persist_to_dict, reanimate_from_dict, adb
-from actuator.namespace import NamespaceModel, Role, Var
+from actuator.namespace import NamespaceModel, Role, Var, with_variables
 
 
 def ns_persistence_helper(ns_model=None, infra_model=None):
     orch = ActuatorOrchestration(infra_model_inst=infra_model,
                                  namespace_model_inst=ns_model)
+    if infra_model is not None and ns_model is not None:
+        ns_model.set_infra_model(infra_model)
     if infra_model is not None:
         for c in infra_model.components():
             c.fix_arguments()
     if ns_model is not None:
-        if infra_model is not None:
-            ns_model.set_infra_model(infra_model)
         for c in ns_model.components():
             c.fix_arguments()
     d = persist_to_dict(orch)
@@ -222,6 +222,9 @@ class NS12(NamespaceModel):
     r = Role("role", variables=[Var("v1", "summat")])
     
 def test12():
+    """
+    test12: check if a namespace role with a variable can be reanimated
+    """
     ns12 = NS12()
     op = ns_persistence_helper(ns12, None)
     nsm = op.namespace_model_inst
@@ -235,6 +238,9 @@ class NS13(NamespaceModel):
     r = Role("role", host_ref=Infra13.s)
      
 def test13():
+    """
+    test13: check if a namespace role that has a host_ref to an inframodel server reanimates
+    """
     infra = Infra13("13")
     ns = NS13()
     op = ns_persistence_helper(ns, infra)
@@ -242,6 +248,58 @@ def test13():
     im = op.infra_model_inst
     assert (nsm.r.host_ref.value() is im.s.value())
     
+class Infra14(InfraModel):
+    s = Server("wibble")    
+     
+class NS14(NamespaceModel):
+    r = Role("role", variables=[Var("server_name", Infra14.s.name)])
+    
+def test14():
+    """
+    test14: check if a role Var that get's it value from a model ref reanimates
+    """
+    infra = Infra14("14")
+    ns = NS14()
+    op = ns_persistence_helper(ns, infra)
+    nsm = op.namespace_model_inst
+    im = op.infra_model_inst
+    assert nsm.r.var_value("server_name") == "wibble"
+    
+class Infra15(InfraModel):
+    s = Server("wibble", ip=ctxt.nexus.ns.r.v.IP)
+    
+class NS15(NamespaceModel):
+    r = Role("role", variables=[Var("IP", "127.0.0.1")])
+    
+def test15():
+    """
+    test15: check if a server that get's its IP from a role's vars reanimates
+    """
+    infra = Infra15("15")
+    ns = NS15()
+    op = ns_persistence_helper(ns, infra)
+    im = op.infra_model_inst
+    assert im.s.ip.value() == "127.0.0.1"
+    
+    
+class Infra16(InfraModel):
+    s = Server("wibble", ip=ctxt.nexus.ns.r.v.IP)
+    
+     
+class NS16(NamespaceModel):
+    with_variables(Var("IP", "192.168.6.14"))
+    r = Role("headfake")
+     
+def test16():
+    """
+    test16: server gets IP from a role var but the var is declared globally; reanimate?
+    """
+    infra = Infra16("16")
+    ns = NS16()
+    op = ns_persistence_helper(ns, infra)
+    im = op.infra_model_inst
+    assert im.s.ip.value() == "192.168.6.14"
+     
     
 #need a test that puts a model ref into the value of a Var
     

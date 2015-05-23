@@ -137,7 +137,6 @@ class CallContext(object):
         self.name = component._name if component else None
         
         
-# class AbstractModelingEntity(object):
 class AbstractModelingEntity(_Persistable):
     """
     Base class for all modeling entities
@@ -1152,7 +1151,7 @@ class _Nexus(object):
         
     @classmethod
     def _add_model_desc(cls, attrname, klass):
-        if not hasattr(cls, attrname):
+        if attrname not in cls.__dict__:
             setattr(cls, attrname, _ModelLookup(klass))
         
     def capture_model_to_instance(self, model_class, instance):
