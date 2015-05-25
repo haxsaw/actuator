@@ -25,7 +25,8 @@ from actuator import (ActuatorOrchestration, ctxt, MultiResource, ResourceGroup,
 from actuator import InfraModel
 from actuator.provisioners.example_resources import Server, Network, Queue
 from actuator.utils import persist_to_dict, reanimate_from_dict, adb
-from actuator.namespace import NamespaceModel, Role, Var, with_variables
+from actuator.namespace import (NamespaceModel, Role, Var, with_variables,
+                                MultiRole)
 
 
 def ns_persistence_helper(ns_model=None, infra_model=None):
@@ -299,9 +300,57 @@ def test16():
     op = ns_persistence_helper(ns, infra)
     im = op.infra_model_inst
     assert im.s.ip.value() == "192.168.6.14"
-     
     
-#need a test that puts a model ref into the value of a Var
+class Infra17(InfraModel):
+    s = Server("wow", ip="192.168.6.22")
+    
+class NS17(NamespaceModel):
+    r = Role("wobble", host_ref=ctxt.nexus.inf.s.ip)
+    
+def test17():
+    """
+    test17: get a host ref from a context expression, persist/reanimate
+    """
+    infra = Infra17("17")
+    ns = NS17()
+    op = ns_persistence_helper(ns, infra)
+    nsm = op.namespace_model_inst
+    assert nsm.r.host_ref.value() == "192.168.6.22"
+    
+class Infra18(InfraModel):
+    s = Server("s18", ip="192.168.6.14")
+    
+class NS18(NamespaceModel):
+    r = Role("wob", variables=[Var("IP", ctxt.nexus.inf.s.ip)])
+    
+def test18():
+    """
+    test18: have a Var get its value for a ctxt expr; persist/reanimate
+    """
+    infra = Infra18("18")
+    ns = NS18()
+    op = ns_persistence_helper(ns, infra)
+    nsm = op.namespace_model_inst
+    assert nsm.r.v.IP.value() == "192.168.6.14"
+     
+class Infra19(InfraModel):
+    grid = MultiResource(Server("node", mem="8GB"))
+    
+class NS19(NamespaceModel):
+    nodes = MultiRole(Role("node", host_ref=ctxt.nexus.inf.grid[ctxt.name]))
+    
+def test19():
+    """
+    test19: multirole/resource persist save
+    """    
+    infra = Infra19("19")
+    ns = NS19()
+    for i in range(5):
+        _ = ns.nodes[i]
+    op = ns_persistence_helper(ns, infra)
+    nsm = op.namespace_model_inst
+    im = op.infra_model_inst
+    assert (len(nsm.nodes) == 5 and len(im.grid) == 5)
     
 #modeling.KeyAsAttr is going to not come back properly unless
 #something is done to flag that these are objects and not just

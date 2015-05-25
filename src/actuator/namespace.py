@@ -327,13 +327,16 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
                                  for v in self.overrides.values()}
         d.update( {"variables":persistable_vars,
                    "overrides":persistable_overrides,
-                   "parent_container":self.parent_container} )
+                   "parent_container":self.parent_container,
+                   "v":None} )
         return d
     
     def recover_attr_value(self, k, v, catalog):
         if k in ["variables", "overrides"]:
             retval = {name:Var(name, val)
                       for name, val in v.items()}
+        elif k == "v":
+            retval = VarValueAccessor(self)
         else:
             retval = super(VariableContainer, self).recover_attr_value(k, v, catalog)
         return retval
