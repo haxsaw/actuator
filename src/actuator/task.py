@@ -29,7 +29,7 @@ import time
 import traceback
 
 from actuator import ActuatorException
-from actuator.utils import root_logger, LOG_INFO
+from actuator.utils import root_logger, LOG_INFO, _Persistable
 from actuator.modeling import ModelComponent
 
 class TaskException(ActuatorException): pass
@@ -122,6 +122,14 @@ class Task(Orable, ModelComponent):
         self.repeat_interval = None
         self._repeat_interval = repeat_interval
         self.status = self.UNSTARTED
+        
+    def _get_attrs_dict(self):
+        d = super(Task, self)._get_attrs_dict()
+        d.update( {"repeat_til_success":self.repeat_til_success,
+                   "repeat_count":self.repeat_count,
+                   "repeat_interval":self.repeat_interval,
+                   "status":self.status} )
+        return d
         
     def perform(self, engine):
         """
@@ -293,7 +301,7 @@ class TaskGroup(Orable, _Cloneable, _Unpackable):
         return list(itertools.chain(*[arg.exit_nodes() for arg in self.args]))
     
 
-class _Dependency(Orable, _Cloneable, _Unpackable):
+class _Dependency(Orable, _Cloneable, _Unpackable, _Persistable):
     """
     Internal; represents a dependency between two tasks.
     """
@@ -304,6 +312,12 @@ class _Dependency(Orable, _Cloneable, _Unpackable):
             raise TaskException("to_task is not a kind of Task")
         self.from_task = from_task
         self.to_task = to_task
+        
+    def _get_attrs_dict(self):
+        d = super(_Dependency, self)._get_attrs_dict()
+        d["from_task"] = self.from_task
+        d["to_task"] = self.to_task
+        return d
         
     def clone(self, clone_dict):
         from_task = (clone_dict[self.from_task]

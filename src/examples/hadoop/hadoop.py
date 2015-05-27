@@ -124,17 +124,18 @@ class HadoopInfra(InfraModel):
 def host_list(ctx_exp, sep_char=" "):
     """
     This returns a callable that computes a list of ip addresses separated by
-    the indicated character. This is one approach to providing constructing
+    the indicated character. This is one approach to constructing
     callable arguments that Actuator will invoke when it is needed.
     
     In this case, the ctx_exp is expected to return a dict-like object when
     "called" with the Actuator-supplied CallContext (the 'ctx' argument to
-    host_list_inner()). We ask for the values() of that object to get the list
-    of roles in the dict.
+    host_list_inner()), in this case a MultiRole. We ask for the values() of
+    that object to get the list of roles in the dict.
     """
     def host_list_inner(ctx):
         return sep_char.join([role.host_ref.get_ip()
-                              for role in ctx_exp(ctx).values()])
+                              for role in ctx_exp(ctx).values()
+                              if role is not None])
     return host_list_inner
 
 

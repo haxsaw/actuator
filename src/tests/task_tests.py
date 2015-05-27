@@ -24,9 +24,18 @@ Test the basic Task stuff
 '''
 import json
 
-from actuator.task import Task, TaskEngine, GraphableModelMixin
+
+from actuator.task import Task, TaskEngine, GraphableModelMixin, TaskException
 from actuator.utils import reanimate_from_dict, persist_to_dict, _Persistable
 
+#the callback_cache is used to help out with persistence/reanimation tests
+#it provides a place to store callables which can't be persisted but can
+#be looked up again and restored after a reanimate. THIS IS NOT GOOD GENERAL
+#practice, but is put in place to support some of the odd test tests here
+#
+#keys are objects ids, values are 2-tuples of (perf_cb, rev_cb) from the
+#TestTask object
+callback_cache = {}
 
 class TestTask(Task):
     def __init__(self, *args, **kwargs):
@@ -37,6 +46,22 @@ class TestTask(Task):
         self.pass_rev = True
         self.perf_cb = None
         self.rev_cb = None
+        self._orig_id_ = None
+        
+    def _get_attrs_dict(self):
+        d = super(TestTask, self)._get_attrs_dict()
+        callback_cache[id(self)] = (self.perf_cb, self.rev_cb)
+        d.update( {"perf_count":self.perf_count,
+                   "rev_count":self.rev_count,
+                   "pass_perf":self.pass_perf,
+                   "pass_rev":self.pass_rev,
+                   "perf_cb":None,
+                   "rev_cb":None,
+                   "_orig_id_":id(self)} )
+        return d
+    
+    def finalize_reanimate(self):
+        self.perf_cb, self.rev_cb = callback_cache[self._orig_id_]
         
     def _perform(self, engine):
         if self.pass_perf:
@@ -62,8 +87,18 @@ class FauxModel(GraphableModelMixin, _Persistable):
         
     def _get_attrs_dict(self):
         d = super(FauxModel, self)._get_attrs_dict()
-        
-        
+        d["tasks"] = self.tasks
+        d["dependencies"] = self.dependencies
+        return d
+    
+    def _find_persistables(self):
+        for t in self.tasks:
+            for p in t.find_persistables():
+                yield p
+        for d in self.dependencies:
+            for p in d.find_persistables():
+                yield p
+            
     def get_tasks(self):
         return self.tasks
     
@@ -209,6 +244,8 @@ def test006():
             rev_order.index("t006-2") > rev_order.index("t006-4") and
             rev_order.index("t006-3") > rev_order.index("t006-4") and
             rev_order.index("t006-4") < 5), str(rev_order)
+            
+            
 
 def test007():
     "test007: check more complex reverse graph after reanimation"
@@ -218,7 +255,7 @@ def test007():
     fm = FauxModel()
     tasks = []
     for i in range(6):
-        tt = TestTask("t006-%d" % i)
+        tt = TestTask("t007-%d" % i)
         tt.rev_cb = order_check
         fm.add_task(tt)
         tasks.append(tt)
@@ -237,7 +274,14 @@ def test007():
     d = json.loads(d_json)
     fmp = reanimate_from_dict(d)
     tep = TaskEngine("te7p", fmp, no_delay=True)
-    tep.perform_reverses()
+    try:
+        tep.perform_reverses()
+    except TaskException, e:
+        print ">>>FAILED! tracebacks as follows:"
+        import traceback
+        for task, etype, value, tb in tep.get_aborted_tasks():
+            print "----TB for task %s" % task.name
+            traceback.print_exception(etype, value, tb)
     tasks.reverse()
     assert (rev_order[0] == "t007-5" and rev_order[5] == "t007-0" and
             rev_order.index("t007-1") > rev_order.index("t007-2") and
