@@ -150,8 +150,6 @@ def test008():
         srvr2 = Server("simple2", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
     model = Test8("test8")
     provisioner.provision_infra_model(model)
-#     provisioner.workflow_sorter.reset()
-#     assert len(provisioner.workflow_sorter.servers) == 0
     assert True
     
 def test009():
@@ -1336,8 +1334,28 @@ def test082():
     i82p = persistence_helper(i82)
     assert (i82p.s1.name.value() == "static" and
             i82p.s1.hostname_or_ip.value() == "192.168.6.2")
+
+#
+###################
+#
+class DecoInfra83(InfraModel):
+    net = Network("deco")
+
+def test083():  #reating test063 but with persistence/reanimation
+    "test083: deprovision infra after reanimation"
+    deco = DecoInfra83("deco")
+    prov = get_provisioner()
+    orch = ActuatorOrchestration(deco, prov)
+    orch.initiate_system()
+    d = persist_to_dict(orch, "t83")
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    orch2 = reanimate_from_dict(d)
+    orch2.set_provisioner(prov)
+    orch2.teardown_system()
+    assert True
     
-    
+
 def do_all():
     test079()
     globs = globals()

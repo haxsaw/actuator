@@ -438,7 +438,10 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
             with replacement patterns in the returned value.
         """
         v, _ = self.find_variable(name)
-        return v.get_value(self, allow_unexpanded=allow_unexpanded)
+        return v.get_value(self.get_context(), allow_unexpanded=allow_unexpanded)
+    
+    def get_context(self):
+        return self
     
     def future(self, name):
         """

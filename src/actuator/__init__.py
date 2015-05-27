@@ -208,7 +208,8 @@ class ActuatorOrchestration(_Persistable):
                    "tags":self.tags,
                    "infra_model_inst":self.infra_model_inst,
                    "namespace_model_inst":self.namespace_model_inst,
-                   "config_model_inst":self.config_model_inst} )
+                   "config_model_inst":self.config_model_inst,
+                   "logger":None} )
         return d
     
     def _find_persistables(self):
@@ -218,11 +219,11 @@ class ActuatorOrchestration(_Persistable):
                     yield q
                     
     def finalize_reanimate(self):
+        self.logger = root_logger.getChild("orchestrator")
         models = [mi for mi in (self.infra_model_inst,
                                 self.namespace_model_inst,
                                 self.config_model_inst)
                   if mi is not None]
-#         models = [self.infra_model_inst, self.namespace_model_inst]
         prev_model_nexus = _Nexus()
         for m in models:
             if m is not None:

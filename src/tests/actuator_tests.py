@@ -26,7 +26,7 @@ from actuator import InfraModel
 from actuator.provisioners.example_resources import Server, Network, Queue
 from actuator.utils import persist_to_dict, reanimate_from_dict, adb
 from actuator.namespace import (NamespaceModel, Role, Var, with_variables,
-                                MultiRole)
+                                MultiRole, RoleGroup)
 
 
 def ns_persistence_helper(ns_model=None, infra_model=None):
@@ -35,9 +35,11 @@ def ns_persistence_helper(ns_model=None, infra_model=None):
     if infra_model is not None and ns_model is not None:
         ns_model.set_infra_model(infra_model)
     if infra_model is not None:
+        _ = infra_model.refs_for_components()
         for c in infra_model.components():
             c.fix_arguments()
     if ns_model is not None:
+        _ = ns_model.refs_for_components()
         for c in ns_model.components():
             c.fix_arguments()
     d = persist_to_dict(orch)
@@ -350,15 +352,78 @@ def test19():
     op = ns_persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     im = op.infra_model_inst
-    assert (len(nsm.nodes) == 5 and len(im.grid) == 5)
+    node_keys = set(nsm.nodes.keys())
+    grid_keys = set(im.grid.keys())
+    assert (len(nsm.nodes) == 5 and len(im.grid) == 5 and
+            node_keys == grid_keys)
+
+class Infra20(InfraModel):
+    cluster = ResourceGroup("single",
+                            foreman=Server("foreman", mem="8GB"),
+                            slave=Server("slave", mem="8GB"))
+     
+class NS20(NamespaceModel):
+    cluster = RoleGroup("thingie",
+                        foreman=Role("foreman_role", host_ref=Infra20.cluster.foreman,
+                                     variables=[Var("foreman", ctxt.name)]),
+                        slave=Role("slave_role", host_ref=ctxt.nexus.inf.cluster.slave,
+                                   variables=[Var("slave", ctxt.name)]))
     
-#modeling.KeyAsAttr is going to not come back properly unless
-#something is done to flag that these are objects and not just
-#numeric strings.
+def test20():
+    """
+    test20: mode with RoleGroup; test persist/reanimate
+    """
+    infra = Infra20("20")
+    ns = NS20()
+    op = ns_persistence_helper(ns, infra)
+    im = op.infra_model_inst
+    nsm = op.namespace_model_inst
+    assert (nsm.cluster.foreman.host_ref.value() is im.cluster.foreman.value() and
+            nsm.cluster.slave.host_ref.value() is im.cluster.slave.value() and
+            nsm.cluster.foreman.name.value() == "foreman_role" and
+            nsm.cluster.slave.name.value() == "slave_role" and
+            nsm.cluster.foreman.v.foreman.value() == "foreman" and
+            nsm.cluster.slave.v.slave.value() == "slave")
     
     
+class Infra21(InfraModel):
+    cluster = ResourceGroup("single",
+                            foreman=Server("foreman", mem="8GB"),
+                            slaves=MultiResource(Server("slave", mem="4GB")))
+      
+class NS21(NamespaceModel):
+    cluster = RoleGroup("thingie",
+                        foreman=Role("foreman_role", host_ref=Infra21.cluster.foreman,
+                                     variables=[Var("COMPNAME", Infra21.cluster.foreman.name)]),
+                        slaves=MultiRole(Role("slave",
+                                              host_ref=ctxt.nexus.inf.cluster.slaves[ctxt.name],
+                                              variables=[Var("COMPNAME", ctxt.name)])))
+    
+def test21():
+    """
+    test21: test RoleGroup with MultiRole persists/reanimates properly
+    """
+    infra = Infra21("21")
+    ns = NS21()
+    num = 10
+    for i in range(num):
+        _ = ns.cluster.slaves[i]
+    op = ns_persistence_helper(ns, infra)
+    im = op.infra_model_inst
+    nsm = op.namespace_model_inst
+    ex_slave_comp_names = set(["slave_%s" % i for i in nsm.cluster.slaves.keys()])
+    act_slave_comp_names = set([s.name.value() for s in nsm.cluster.slaves.values()])
+    assert (len(im.cluster.slaves) == num and
+            len(nsm.cluster.slaves) == num and
+            reduce(lambda x,y: x and (im.cluster.slaves[y].value() is
+                                      nsm.cluster.slaves[y].host_ref.value()),
+                   im.cluster.slaves.keys(),
+                   True) and
+            ex_slave_comp_names == act_slave_comp_names)
+    
+
 def do_all():
-    test13()
+    test20()
     g = globals()
     keys = list(g.keys())
     keys.sort()

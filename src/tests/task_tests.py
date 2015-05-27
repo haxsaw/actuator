@@ -22,8 +22,10 @@
 '''
 Test the basic Task stuff
 '''
+import json
 
 from actuator.task import Task, TaskEngine, GraphableModelMixin
+from actuator.utils import reanimate_from_dict, persist_to_dict, _Persistable
 
 
 class TestTask(Task):
@@ -53,10 +55,14 @@ class TestTask(Task):
             raise Exception("Reverse failed as planned")
         
         
-class FauxModel(GraphableModelMixin):
+class FauxModel(GraphableModelMixin, _Persistable):
     def __init__(self):
         self.tasks = []
         self.dependencies = []
+        
+    def _get_attrs_dict(self):
+        d = super(FauxModel, self)._get_attrs_dict()
+        
         
     def get_tasks(self):
         return self.tasks
@@ -203,6 +209,42 @@ def test006():
             rev_order.index("t006-2") > rev_order.index("t006-4") and
             rev_order.index("t006-3") > rev_order.index("t006-4") and
             rev_order.index("t006-4") < 5), str(rev_order)
+
+def test007():
+    "test007: check more complex reverse graph after reanimation"
+    rev_order = []
+    def order_check(task):
+        rev_order.append(task.name)
+    fm = FauxModel()
+    tasks = []
+    for i in range(6):
+        tt = TestTask("t006-%d" % i)
+        tt.rev_cb = order_check
+        fm.add_task(tt)
+        tasks.append(tt)
+    fm.add_dependency(tasks[0] | tasks[1])
+    fm.add_dependency(tasks[1] | tasks[2])
+    fm.add_dependency(tasks[1] | tasks[3])
+    fm.add_dependency(tasks[1] | tasks[4])
+    fm.add_dependency(tasks[2] | tasks[4])
+    fm.add_dependency(tasks[3] | tasks[4])
+    fm.add_dependency(tasks[4] | tasks[5])
+    
+    te = TaskEngine("te7", fm, no_delay=True)
+    te.perform_tasks()
+    d = persist_to_dict(fm)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    fmp = reanimate_from_dict(d)
+    tep = TaskEngine("te7p", fmp, no_delay=True)
+    tep.perform_reverses()
+    tasks.reverse()
+    assert (rev_order[0] == "t007-5" and rev_order[5] == "t007-0" and
+            rev_order.index("t007-1") > rev_order.index("t007-2") and
+            rev_order.index("t007-1") > rev_order.index("t007-3") and
+            rev_order.index("t007-2") > rev_order.index("t007-4") and
+            rev_order.index("t007-3") > rev_order.index("t007-4") and
+            rev_order.index("t007-4") < 5), str(rev_order)
 
 def do_all():
     globs = globals()

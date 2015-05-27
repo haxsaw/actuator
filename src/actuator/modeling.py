@@ -136,8 +136,13 @@ class CallContext(object):
         self.comp = component
         self.name = component._name if component else None
         
+
+class _ArgumentProcessor(object):
+    def _get_arg_value(self, arg):
+        raise TypeError("Derived class must implement _get_arg_value()")
         
-class AbstractModelingEntity(_Persistable):
+        
+class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
     """
     Base class for all modeling entities
     """
@@ -151,7 +156,7 @@ class AbstractModelingEntity(_Persistable):
         """
         Create a new modeling entity
         
-        Set up the basic data for all modeling entities. The attribut
+        Set up the basic data for all modeling entities. The attribute
         @param name: Internal name for the entity. This is not guaranteed to
             unique or unmolested; container components may modify this name to
             suit its purposes, although they are to guarantee that the user supplied
@@ -1218,7 +1223,7 @@ class _NexusMember(_Persistable):
         self.set_nexus(new_nexus)
 
 
-class ModelBase(_NexusMember, _ComputeModelComponents):
+class ModelBase(_NexusMember, _ComputeModelComponents, _ArgumentProcessor):
     """
     This is the common base class for all models
     """
@@ -1249,4 +1254,7 @@ class ModelBase(_NexusMember, _ComputeModelComponents):
                  if attrname in ga(ModelBaseMeta._COMPONENTS)
                  else ga(attrname))
         return value
-    
+
+    def _get_arg_value(self, arg):
+        proc = AbstractModelingEntity("", model_instance=self)
+        return proc._get_arg_value(arg)

@@ -851,6 +851,15 @@ def test075():
         _ = ns.gnode[i]
     
     assert ns.gnode[0].name != "nope"
+    
+def test076():
+    """
+    test076: define a Var on a namespace model and get the value with 'v'
+    """
+    class NS(NamespaceModel):
+        with_variables(Var("avar", ctxt.model.v.anothervar), Var("anothervar", "hiya"))
+    ns = NS()
+    assert ns.v.avar() == "hiya"
         
 
 
