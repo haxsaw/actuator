@@ -350,6 +350,9 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         for v in self.overrides.values():
             for p in v.find_persistables():
                 yield p
+        if self.parent_container:
+            for p in self.parent_container.find_persistables():
+                yield p
                     
     def _set_parent(self, parent):
         self.parent_container = parent

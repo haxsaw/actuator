@@ -843,7 +843,8 @@ def test075():
     
     class NS(NamespaceModel):
         with_variables(Var("KEY", "nope"))
-        gnode = MultiRole(Role("grid_node", host_ref=ctxt.nexus.inf.grid[ctxt.comp.v.KEY],
+        gnode = MultiRole(Role("grid_node",
+                               host_ref=ctxt.nexus.inf.grid[ctxt.comp.v.KEY],
                                variables=[Var("KEY", ctxt.comp.name)]))
     ns = NS()
     ns.set_infra_model(inf)
@@ -857,7 +858,8 @@ def test076():
     test076: define a Var on a namespace model and get the value with 'v'
     """
     class NS(NamespaceModel):
-        with_variables(Var("avar", ctxt.model.v.anothervar), Var("anothervar", "hiya"))
+        with_variables(Var("avar", ctxt.model.v.anothervar),
+                       Var("anothervar", "hiya"))
     ns = NS()
     assert ns.v.avar() == "hiya"
         

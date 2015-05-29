@@ -34,8 +34,10 @@ class ActuatorException(Exception): pass
 
 
 class KeyAsAttr(str):
-    #internal
-    pass
+    def __init__(self, astr):
+        if not astr:
+            _ = 1
+        super(KeyAsAttr, self).__init__(astr)
 
 
 class _ValueAccessMixin(object):
@@ -67,6 +69,8 @@ class KeyItem(_ValueAccessMixin):
         """
         if callable(self.key):
             value = self.key(ctx)
+            if isinstance(value, AbstractModelReference):
+                value = value.value()
         else:
             value = self.key
         return value 
@@ -180,6 +184,34 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         """@ivar: public, read only. Indicates if the value of this entity
             has had its final computation (all refs resolved, callable args
             all called). Once fixed, callables won't be called again"""
+            
+    def index_of(self, other):
+        """
+        Returns the index of the supplied object or None if the object is not
+        
+        Also returns None if self doesn't have an indexed collection of objects.
+        Container entities should override this in order to provide the index of
+        entities they contain
+        """
+        return None
+            
+    def _idx(self):
+        """
+        Returns the index of self in a parent collection, or None if not in an indexed collection
+        """
+        myref = AbstractModelReference.find_ref_for_obj(self)
+        if myref is None:
+            raise ActuatorException("Can't find a reference to self for determining an index")
+        parent = myref._parent
+        if parent is not None:
+            index = parent.index_of(self)
+            if index is None:
+                index = parent.idx
+        else:
+            index = None
+        return index
+
+    idx = property(fget=_idx)
             
     def _get_attrs_dict(self):
         d = super(AbstractModelingEntity, self)._get_attrs_dict()
@@ -523,6 +555,9 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         super(MultiComponent, self).__init__("")
         self.template_component = template_component.clone()
         self._instances = {}
+        
+    def index_of(self, other):
+        return {v:k for k, v in self._instances.items()}.get(other)
         
     def _find_persistables(self):
         for p in super(MultiComponent, self)._find_persistables():

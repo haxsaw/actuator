@@ -26,7 +26,7 @@ from actuator import InfraModel
 from actuator.provisioners.example_resources import Server, Network, Queue
 from actuator.utils import persist_to_dict, reanimate_from_dict, adb
 from actuator.namespace import (NamespaceModel, Role, Var, with_variables,
-                                MultiRole, RoleGroup)
+                                MultiRole, RoleGroup, MultiRoleGroup)
 
 
 def ns_persistence_helper(ns_model=None, infra_model=None):
@@ -421,9 +421,43 @@ def test21():
                    True) and
             ex_slave_comp_names == act_slave_comp_names)
     
+class Infra22(InfraModel):
+    clusters = MultiResourceGroup("clusters",
+                                 foreman=Server("foreman", mem="8GB"),
+                                 slaves=MultiResource(Server("slave", mem="8GB")))
+    
+class NS22(NamespaceModel):
+    clusters = MultiRoleGroup("clusters_role",
+                              foreman=Role("foreman_role",
+                                           host_ref=ctxt.nexus.inf.clusters[ctxt.comp.container.idx].foreman),
+                              slaves=MultiRole(Role("slave",
+                                                    host_ref=ctxt.nexus.inf.clusters[ctxt.comp.container.idx].slaves[ctxt.comp.idx]))
+                              )
+    
+def test22():
+    """
+    test22: check that MultiRoleGroup persists/reanimates properly
+    """
+    infra = Infra22("22")
+    ns = NS22()
+    num = 2
+    for i in range(num):
+        cluster = ns.clusters[i]
+        for j in range(1+i):
+            _ = cluster.slaves[j]
+    op = ns_persistence_helper(ns, infra)
+    im = op.infra_model_inst
+    nsm = op.namespace_model_inst
+    summer = lambda m: sum([len(c.slaves) for c in m.clusters.values()])
+    right_sum = sum([i+1 for i in range(num)])
+    assert (len(im.clusters) == len(nsm.clusters) and
+            len(im.clusters) == num and
+            summer(im) == right_sum and
+            summer(nsm) == right_sum)
+    
 
 def do_all():
-    test20()
+    test22()
     g = globals()
     keys = list(g.keys())
     keys.sort()
