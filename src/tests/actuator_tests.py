@@ -440,7 +440,7 @@ def test22():
     """
     infra = Infra22("22")
     ns = NS22()
-    num = 2
+    num = 5
     for i in range(num):
         cluster = ns.clusters[i]
         for j in range(1+i):
@@ -455,9 +455,39 @@ def test22():
             summer(im) == right_sum and
             summer(nsm) == right_sum)
     
+class NS23(NamespaceModel):
+    clusters = MultiRoleGroup("clusters_role",
+                              foreman=Role("foreman_role",
+                                           variables=[Var("IDX", ctxt.comp.idx)]),
+                              slaves=MultiRole(Role("slave",
+                                                    variables=[Var("IDX", ctxt.comp.idx),
+                                                               Var("PIDX", ctxt.comp.container.idx)]))
+                              )
+    
+def test23():
+    """
+    test23: check that we determine indexes properly before persist and after reanimate
+    """
+    ns = NS23()
+    num = 2
+    for i in range(num):
+        cluster = ns.clusters[i]
+        for j in range(i+1):
+            _ = cluster.slaves[j]
+    end_idx = str(num-1)
+    assert ('0' == ns.clusters[0].foreman.v.IDX() and
+            end_idx == ns.clusters[num-1].foreman.v.IDX() and
+            '0' == ns.clusters[num-1].slaves[0].v.IDX() and
+            end_idx == ns.clusters[num-1].slaves[0].v.PIDX())
+    op = ns_persistence_helper(ns, None)
+    nsm = op.namespace_model_inst
+    assert ('0' == nsm.clusters[0].foreman.v.IDX() and
+            end_idx == nsm.clusters[num-1].foreman.v.IDX() and
+            '0' == nsm.clusters[num-1].slaves[0].v.IDX() and
+            end_idx == nsm.clusters[num-1].slaves[0].v.PIDX())
+
 
 def do_all():
-    test22()
     g = globals()
     keys = list(g.keys())
     keys.sort()

@@ -1357,7 +1357,6 @@ def test083():  #reating test063 but with persistence/reanimation
     
 
 def do_all():
-    test079()
     globs = globals()
     tests = []
     for k, v in globs.items():

@@ -658,6 +658,7 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
         super(RoleGroup, self)._set_model_instance(mi)
         for c in [v for k, v in self.__dict__.items() if k in self._kwargs]:
             c._set_model_instance(mi)
+            c._set_parent(self)
 
     def clone(self, clone_into_class=None):
         """
@@ -670,7 +671,6 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
         """
         clone = super(RoleGroup, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self.get_model_instance())
-        clone._set_parent(self.parent_container)
         for c in (v for k, v in clone.__dict__.items() if k in self._kwargs):
             c._set_parent(clone)
         clone.add_variable(*self.variables.values())
@@ -725,7 +725,6 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
             child = v.clone()
             child._set_parent(clone)
             clone._instances[k] = child
-        clone._set_parent(self.parent_container)
         clone._set_model_instance(self.get_model_instance())
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())

@@ -617,10 +617,10 @@ def test053():
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
         grid = MultiRoleGroup("pod",
-                                     foreman=Role("foreman",
-                                                  host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
-                                     workers=MultiRole(Role("grid-node",
-                                                            host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
+                              foreman=Role("foreman",
+                                           host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
+                              workers=MultiRole(Role("grid-node",
+                                                     host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra1("mcg")
     ns = NS()
     for i in [2,4]:
@@ -863,7 +863,34 @@ def test076():
     ns = NS()
     assert ns.v.avar() == "hiya"
         
-
+def test077():
+    class Infra1(InfraModel):
+        grid = MultiResourceGroup("grid",
+                                   foreman=Server("foreman", mem="8GB"),
+                                   workers=MultiResource(Server("grid-node", mem="8GB")))
+          
+    class NS(NamespaceModel):
+        with_variables(Var("MYSTERY", "WRONG!"),
+                       Var("FROM", "ABOVE"))
+        grid = MultiRoleGroup("pod",
+                              foreman=Role("foreman",
+                                           host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
+                              workers=MultiRole(Role("grid-node",
+                                                     host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name],
+                                                     variables=[Var("MYSTERY", "RIGHT!")])))
+    infra = Infra1("mcg")
+    ns = NS()
+    for i in [2,4]:
+        grid = ns.grid[i]
+        for j in range(i):
+            _ = grid.workers[j]
+    ns.compute_provisioning_for_environ(infra)
+    assert (len(infra.grid) == 2 and
+            len(infra.grid[2].workers) == 2 and
+            len(infra.grid[4].workers) == 4 and
+            len(infra.components()) == 8 and
+            ns.grid[2].workers[0].var_value("FROM") == "ABOVE")
+     
 
 def do_all():
     setup()

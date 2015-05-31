@@ -35,8 +35,6 @@ class ActuatorException(Exception): pass
 
 class KeyAsAttr(str):
     def __init__(self, astr):
-        if not astr:
-            _ = 1
         super(KeyAsAttr, self).__init__(astr)
 
 
@@ -215,7 +213,6 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             
     def _get_attrs_dict(self):
         d = super(AbstractModelingEntity, self)._get_attrs_dict()
-        #@FixMe: this is going to be missing self._model_instance for the time being 
         d.update( {"name":self.name,
                    "_id":str(self._id),
                    "fixed":self.fixed,
@@ -682,8 +679,6 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         
         @param key: immutable key value; coerced to string
         """
-        if key == "None":
-            _ = 1
         inst = self._instances.get(key)
         if not inst:
             prototype = self.get_prototype()
@@ -933,7 +928,6 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         ga = super(AbstractModelReference, self).__getattribute__
         theobj = object.__getattribute__(ga("_obj"), ga("_name"))
         key = KeyAsAttr(key)
-#         key = KeyAsAttr(self.value()._get_arg_value(key))
         if isinstance(theobj, MultiComponent):
             value = self.__class__(key, self._get_item_ref_obj(theobj, key), self)
         elif hasattr(theobj, "__getitem__"):
