@@ -469,6 +469,37 @@ def test23():
     test23: check that we determine indexes properly before persist and after reanimate
     """
     ns = NS23()
+    num = 5
+    for i in range(num):
+        cluster = ns.clusters[i]
+        for j in range(i+1):
+            _ = cluster.slaves[j]
+    end_idx = str(num-1)
+    assert ('0' == ns.clusters[0].foreman.v.IDX() and
+            end_idx == ns.clusters[num-1].foreman.v.IDX() and
+            '0' == ns.clusters[num-1].slaves[0].v.IDX() and
+            end_idx == ns.clusters[num-1].slaves[0].v.PIDX())
+    op = ns_persistence_helper(ns, None)
+    nsm = op.namespace_model_inst
+    assert ('0' == nsm.clusters[0].foreman.v.IDX() and
+            end_idx == nsm.clusters[num-1].foreman.v.IDX() and
+            '0' == nsm.clusters[num-1].slaves[0].v.IDX() and
+            end_idx == nsm.clusters[num-1].slaves[0].v.PIDX())
+    
+class NS24(NamespaceModel):
+    with_variables(Var("IDX", ctxt.comp.idx))
+    clusters = MultiRoleGroup("clusters_role",
+                              foreman=Role("foreman_role"),
+                              slaves=MultiRole(Role("slave",
+                                                    variables=[Var("PIDX", ctxt.comp.container.idx)]))
+                              )
+#                               ).add_variable(Var("IDX", ctxt.comp.idx))
+
+def test24():
+    """
+    test24: like test23, but move the IDX variable to the global level
+    """
+    ns = NS24()
     num = 2
     for i in range(num):
         cluster = ns.clusters[i]
@@ -485,9 +516,11 @@ def test23():
             end_idx == nsm.clusters[num-1].foreman.v.IDX() and
             '0' == nsm.clusters[num-1].slaves[0].v.IDX() and
             end_idx == nsm.clusters[num-1].slaves[0].v.PIDX())
+    
 
 
 def do_all():
+    test24()
     g = globals()
     keys = list(g.keys())
     keys.sort()

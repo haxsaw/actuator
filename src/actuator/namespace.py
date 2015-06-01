@@ -114,6 +114,8 @@ class _ComputableValue(_ModelRefSetAcquireable):
             return val
         elif callable(self.value):
             value = context._get_arg_value(self.value)
+            if value is None:
+                return None
         elif self.value is None:
             return None
         else:
@@ -322,7 +324,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     def _get_attrs_dict(self):
         d = super(VariableContainer, self)._get_attrs_dict()
         persistable_vars = {v.name:v.get_value(self, allow_unexpanded=True)
-                            for v in self.variables.values()}
+                            for v in self.get_visible_vars().values()}
         persistable_overrides = {v.name:v.get_value(self, allow_unexpanded=True)
                                  for v in self.overrides.values()}
         d.update( {"variables":persistable_vars,
