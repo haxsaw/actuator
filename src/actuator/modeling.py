@@ -74,7 +74,7 @@ class KeyItem(_ValueAccessMixin):
         return value 
 
 
-class ContextExpr(object):
+class ContextExpr(_Persistable):
     """
     Creates deferred references to object attrs
     
@@ -93,6 +93,11 @@ class ContextExpr(object):
         
     def __getitem__(self, key):
         return ContextExpr(KeyItem(key), *self._path)
+    
+    def _get_attrs_dict(self):
+        d = super(ContextExpr, self)._get_attrs_dict()
+        d["_path"] = self._path[:]
+        return d
         
     def __call__(self, ctx):
         ref = ctx
@@ -820,6 +825,9 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     def _find_persistables(self):
         for p in super(AbstractModelReference, self)._find_persistables():
             yield p
+        if self._obj is not None and isinstance(self._obj, _Persistable):
+            for p in self._obj.find_persistables():
+                yield p
         if self._parent is not None:
             for p in self._parent.find_persistables():
                 yield p

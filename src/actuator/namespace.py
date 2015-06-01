@@ -28,7 +28,8 @@ from actuator.utils import (ClassModifier, process_modifiers, capture_mapping,
 from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase,
                                ModelReference, ModelInstanceReference, ModelBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
-                               CallContext, _Nexus, _ValueAccessMixin)
+                               CallContext, _Nexus, _ValueAccessMixin,
+                               ContextExpr)
 from actuator.infra import InfraModel
 
 
@@ -44,7 +45,7 @@ class _ModelRefSetAcquireable(object):
         return set()
 
 
-class _ComputableValue(_ModelRefSetAcquireable):
+class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
     #Internal
     #
     #Mako-compatible replacement
@@ -66,6 +67,23 @@ class _ComputableValue(_ModelRefSetAcquireable):
             self.value = value
         else:
             raise NamespaceException("Unrecognized value type: %s" % str(type(value)))
+        
+    def _is_value_persistable(self):
+        return (isinstance(self.value, basestring) or
+                isinstance(self.value, (AbstractModelReference, ContextExpr)) or
+                self.value is None)
+        
+    def _find_persistables(self):
+        for p in super(_ComputableValue, self)._find_persistables():
+            yield p
+        if isinstance(self.value, (ContextExpr, AbstractModelReference)):
+            for p in self.value.find_persistables():
+                yield p
+                
+    def _get_attrs_dict(self):
+        d = super(_ComputableValue, self)._get_attrs_dict()
+        d["value"] = self.value
+        return d
         
     def _get_model_refs(self):
         s = set()
@@ -145,7 +163,6 @@ class _ComputableValue(_ModelRefSetAcquireable):
         return value
     
 
-# class Var(_ModelRefSetAcquireable, _Persistable):
 class Var(_ModelRefSetAcquireable, _Persistable):
     """
     A container for a name-value pair in which the value is a L{_ComputableValue},
@@ -181,12 +198,21 @@ class Var(_ModelRefSetAcquireable, _Persistable):
     def _get_model_refs(self):
         return self.value._get_model_refs()
     
-#     def _get_attrs_dict(self):
-#         d = super(Var, self)._get_attrs_dict()
-#         d.update( {"name":self.name,
-#                    "value":self.value,
-#                    "in_env":self.in_env} )
-#         return d
+    def _is_value_persistable(self):
+        return self.value._is_value_persistable()
+    
+    def _find_persistables(self):
+        for p in super(Var, self)._find_persistables():
+            yield p
+        for p in self.value.find_persistables():
+            yield p
+    
+    def _get_attrs_dict(self):
+        d = super(Var, self)._get_attrs_dict()
+        d.update( {"name":self.name,
+                   "value":self.value,
+                   "in_env":self.in_env} )
+        return d
 
     def get_value(self, context, allow_unexpanded=False):
         """
@@ -323,9 +349,11 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
             
     def _get_attrs_dict(self):
         d = super(VariableContainer, self)._get_attrs_dict()
-        persistable_vars = {v.name:v.get_value(self, allow_unexpanded=True)
-                            for v in self.get_visible_vars().values()}
-        persistable_overrides = {v.name:v.get_value(self, allow_unexpanded=True)
+        persistable_vars = {v.name:(v if v._is_value_persistable()
+                                    else v.get_value(self, allow_unexpanded=True))
+                            for v in self.variables.values()}
+        persistable_overrides = {v.name:(v if v._is_value_persistable()
+                                         else v.get_value(self, allow_unexpanded=True))
                                  for v in self.overrides.values()}
         d.update( {"variables":persistable_vars,
                    "overrides":persistable_overrides,
@@ -334,10 +362,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         return d
     
     def recover_attr_value(self, k, v, catalog):
-        if k in ["variables", "overrides"]:
-            retval = {name:Var(name, val)
-                      for name, val in v.items()}
-        elif k == "v":
+        if k == "v":
             retval = VarValueAccessor(self)
         else:
             retval = super(VariableContainer, self).recover_attr_value(k, v, catalog)

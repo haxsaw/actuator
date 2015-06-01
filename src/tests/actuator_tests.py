@@ -493,7 +493,6 @@ class NS24(NamespaceModel):
                               slaves=MultiRole(Role("slave",
                                                     variables=[Var("PIDX", ctxt.comp.container.idx)]))
                               )
-#                               ).add_variable(Var("IDX", ctxt.comp.idx))
 
 def test24():
     """
@@ -516,6 +515,9 @@ def test24():
             end_idx == nsm.clusters[num-1].foreman.v.IDX() and
             '0' == nsm.clusters[num-1].slaves[0].v.IDX() and
             end_idx == nsm.clusters[num-1].slaves[0].v.PIDX())
+    
+#need to test that a callable Var value gets called for persistence and the
+#result is returned when reanimated
     
 
 
