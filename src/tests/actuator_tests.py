@@ -516,13 +516,65 @@ def test24():
             '0' == nsm.clusters[num-1].slaves[0].v.IDX() and
             end_idx == nsm.clusters[num-1].slaves[0].v.PIDX())
     
-#need to test that a callable Var value gets called for persistence and the
-#result is returned when reanimated
+
+class ValFormatter(object):
+    def __init__(self, prefix):
+        self.value = "%s_in_bed" % prefix
+        
+    def __call__(self, *args, **kwargs):
+        return self.value
     
+class NS25(NamespaceModel):
+    tester = ValFormatter("coding")
+    r = Role("sleepy", variables=[Var("wut", tester)])
+    
+def test25():
+    """
+    test25: check that other callables are handled properly in persist/reanimate for Vars on roles
+    """
+    ns = NS25()
+    assert ns.r.v.wut() == ns.tester()
+    op = ns_persistence_helper(ns, None)
+    nsm = op.namespace_model_inst
+    assert nsm.r.v.wut() == nsm.tester()
+    
+class NS26(NamespaceModel):
+    tester = ValFormatter("wibble")
+    with_variables(Var("wut", tester))
+    r = Role("r")
+    
+def test26():
+    """
+    test26: check other callables are handled properly in persist/reanimate for Vars on models
+    """
+    ns = NS26()
+    assert (ns.v.wut() == ns.tester() and
+            ns.r.v.wut() ==  ns.tester())
+    op = ns_persistence_helper(ns, None)
+    nsm = op.namespace_model_inst
+    assert (nsm.v.wut() == ns.tester() and
+            nsm.r.v.wut() == ns.tester())
+    
+class Infra27(InfraModel):
+    s_name = "wibble"
+    s = Server(s_name, mem="8GB")
+    
+class NS27(NamespaceModel):
+    with_variables(Var("name", Infra27.s.name))
+    
+def test27():
+    """
+    test27: check Vars that use model refs persist/reanimate properly
+    """
+    infra = Infra27("27")
+    ns = NS27()
+    op = ns_persistence_helper(ns, infra)
+    nsm = op.namespace_model_inst
+    assert (nsm.v.name() == infra.s_name)
 
 
 def do_all():
-    test24()
+    test25()
     g = globals()
     keys = list(g.keys())
     keys.sort()
