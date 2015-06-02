@@ -1,40 +1,136 @@
-import json
-from actuator import (ActuatorOrchestration, InfraModel, ctxt)
-from actuator.utils import persist_to_dict, reanimate_from_dict
-from actuator.namespace import NamespaceModel, Role, Var
-from actuator.provisioners.example_resources import Server
+# 
+# Copyright (c) 2014 Tom Carroll
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 
-def persistence_helper(ns_model=None, infra_model=None):
-    if ns_model and infra_model:
-        infra_model.nexus.merge_from(ns_model.nexus)
-    if infra_model is not None:
-        for c in infra_model.components():
-            c.fix_arguments()
-    if ns_model is not None:
-        for c in ns_model.components():
-            c.fix_arguments()
-    orch = ActuatorOrchestration(infra_model_inst=infra_model,
-                                 namespace_model_inst=ns_model)
-    d = persist_to_dict(orch)
+import json
+from actuator import ctxt
+from actuator.utils import persist_to_dict, reanimate_from_dict
+from actuator.namespace import Role, Var
+from actuator.config import Task, TaskGroup
+from actuator.provisioners.example_resources import Server
+from pt_help import persistence_helper
+from actuator.task import _Dependency
+
+def test01():
+    """
+    test01: test that a base task can persist/reanimate
+    """
+    t = Task("test1", repeat_til_success=False, repeat_count=5, repeat_interval=2)
+    t.fix_arguments()
+    d = persist_to_dict(t)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    o2 = reanimate_from_dict(d)
-    return o2
+    tp = reanimate_from_dict(d)
+    assert (tp.name == "test1" and
+            tp.repeat_til_success == False and
+            tp.repeat_count == 5 and
+            tp.repeat_interval == 2)
+    
+def test02():
+    """
+    test02: check if TaskGroups persist/reanimate
+    """
+    t1 = Task("t1")
+    t2 = Task("t2")
+    tg = TaskGroup(t1, t2)
+    d = persist_to_dict(tg)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    tgp = reanimate_from_dict(d)
+    names = set([t.name for t in tgp.args])
+    assert (len(tgp.args) == 2 and
+            "t1" in names and
+            "t2" in names and
+            tgp.args[0].name == "t1")
+    
+def test03():
+    """
+    test03: check if TaskGroups with a dependency can persist/reanimate
+    """
+    t1 = Task("t1")
+    t2 = Task("t2")
+    tg = TaskGroup(t1 | t2)
+    d = persist_to_dict(tg)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    tgp = reanimate_from_dict(d)
+    assert (len(tgp.args) == 1 and
+            isinstance(tgp.args[0], _Dependency) and
+            tgp.args[0].from_task.name == "t1" and
+            tgp.args[0].to_task.name == "t2")
+    
+def test04():
+    """
+    test04: check more complex TaskGroups to ensure dependencies are reanimated
+    """
+    t1 = Task("t1")
+    t2 = Task("t2")
+    t3 = Task("t3")
+    tg = TaskGroup(t1, t2 | t3)
+    d = persist_to_dict(tg)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    tgp = reanimate_from_dict(d)
+    assert (len(tgp.args) == 2 and
+            len(tgp.unpack()) == 1 and
+            tgp.args[0].name == "t1" and
+            tgp.args[1].from_task.name == "t2" and
+            tgp.args[1].to_task.name == "t3")
+    
+def test05():
+    """
+    test05: more complex TaskGroup reanimations
+    """
+    t1 = Task("t1")
+    t2 = Task("t2")
+    t3 = Task("t3")
+    tg = TaskGroup(t1, t2 | t3, t1 | t3)
+    d = persist_to_dict(tg)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    tgp = reanimate_from_dict(d)
+    assert (len(tgp.args) == 3 and
+            len(tgp.unpack()) == 2 and
+            tgp.args[0].name == "t1" and
+            tgp.args[1].from_task.name == "t2" and
+            tgp.args[1].to_task.name == "t3" and
+            tgp.args[2].from_task.name == "t1" and
+            tgp.args[2].to_task.name == "t3")
+
 
 def test13():
     r = Role("wibble")
-    d = r.get_attrs_dict()
+    d = persist_to_dict(r)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    assert r.name == "wibble"
+    rp = reanimate_from_dict(d)
+    assert rp.name == "wibble"
     
 def test14():
     r = Role("wibble1", variables=[Var("v1", "summat")])
-    d = r.get_attrs_dict()
+    d = persist_to_dict(r)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    assert (r.name == "wibble1" and r.get_visible_vars() and
-            r.var_value("v1") == "summat")
+    rp = reanimate_from_dict(d)
+    assert (rp.name == "wibble1" and rp.get_visible_vars() and
+            rp.var_value("v1") == "summat")
     
 
 def do_all():

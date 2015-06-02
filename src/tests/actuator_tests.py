@@ -27,32 +27,14 @@ from actuator.provisioners.example_resources import Server, Network, Queue
 from actuator.utils import persist_to_dict, reanimate_from_dict, adb
 from actuator.namespace import (NamespaceModel, Role, Var, with_variables,
                                 MultiRole, RoleGroup, MultiRoleGroup)
+from pt_help import persistence_helper
 
-
-def ns_persistence_helper(ns_model=None, infra_model=None):
-    orch = ActuatorOrchestration(infra_model_inst=infra_model,
-                                 namespace_model_inst=ns_model)
-    if infra_model is not None and ns_model is not None:
-        ns_model.set_infra_model(infra_model)
-    if infra_model is not None:
-        _ = infra_model.refs_for_components()
-        for c in infra_model.components():
-            c.fix_arguments()
-    if ns_model is not None:
-        _ = ns_model.refs_for_components()
-        for c in ns_model.components():
-            c.fix_arguments()
-    d = persist_to_dict(orch)
-    d_json = json.dumps(d)
-    d = json.loads(d_json)
-    o2 = reanimate_from_dict(d)
-    return o2
 
 def test01():
     """
     test01: Check that orchestrators persist and reanimate themselves
     """
-    op = ns_persistence_helper(None, None)
+    op = persistence_helper(None, None)
     assert op
      
      
@@ -83,7 +65,7 @@ def test03():
     test03: save orchestrator with an infra with a single server
     """
     i0 = Infra2("test3")
-    op = ns_persistence_helper(None, i0)
+    op = persistence_helper(None, i0)
     assert (hasattr(op.infra_model_inst, "s") and
             op.infra_model_inst.s.name.value() == i0.s.name.value() and
             op.infra_model_inst.s.mem.value() == i0.s.mem.value())
@@ -98,7 +80,7 @@ def test04():
     test04: save orch with an infra with a single network
     """
     i0 = Infra3("i3")
-    op = ns_persistence_helper(None, i0)
+    op = persistence_helper(None, i0)
     assert (hasattr(op.infra_model_inst, "n") and
             op.infra_model_inst.n.name.value() == i0.n.name.value() and
             op.infra_model_inst.n.cidr.value() == i0.n.cidr.value())
@@ -114,7 +96,7 @@ def test05():
     test05: save infra with a network an server, with the server using ctxt to ref the network
     """
     i0 = Infra4("test05")
-    op = ns_persistence_helper(None, i0)
+    op = persistence_helper(None, i0)
     assert (op.infra_model_inst.n.value() is op.infra_model_inst.s.network.value())
      
  
@@ -128,7 +110,7 @@ def test06():
     i0 = Infra5("test06")
     for i in range(5):
         _ = i0.cluster[i]
-    op = ns_persistence_helper(None, i0)
+    op = persistence_helper(None, i0)
     assert (len(op.infra_model_inst.cluster) == 5 and
             op.infra_model_inst.cluster[0].mem.value() == "8GB" and
             op.infra_model_inst.cluster[0].name.value() == "node_0")
@@ -145,7 +127,7 @@ def test07():
     test07: check persistence with a ResourceGroup
     """
     i0 = Infra6("i6")
-    op = ns_persistence_helper(None, i0)
+    op = persistence_helper(None, i0)
     i1 = op.infra_model_inst
     assert (i1.group.server.net.value() is i1.group.network.value() and
             i1.group.queue.host.value() is i1.group.server.value() and
@@ -177,7 +159,7 @@ def test08():
     i0 = Infra7("i8")
     i0.size(5)
     _ = i0.refs_for_components()
-    op = ns_persistence_helper(None, i0)
+    op = persistence_helper(None, i0)
     i1 = op.infra_model_inst
     assert (len(i1.clusters[2].slaves) == Infra7.num_slaves and
             i1.clusters[2].value() is not i1.clusters[1].value() and
@@ -193,7 +175,7 @@ def test09():
     """
     i9 = Infra7("i9")
     ns9 = NS9()
-    ns9p = ns_persistence_helper(ns9, i9).namespace_model_inst
+    ns9p = persistence_helper(ns9, i9).namespace_model_inst
     assert ns9p
      
 def test10():
@@ -202,7 +184,7 @@ def test10():
     """
     i10 = Infra7("i10")
     ns10 = NS9()
-    op = ns_persistence_helper(ns10, i10)
+    op = persistence_helper(ns10, i10)
     assert op.namespace_model_inst.nexus is op.infra_model_inst.nexus
 
 class NS11(NamespaceModel):
@@ -213,7 +195,7 @@ def test11():
     test11: check if a simple Role can be reanimated
     """
     ns11 = NS11()
-    op = ns_persistence_helper(ns11, None)
+    op = persistence_helper(ns11, None)
     nsm = op.namespace_model_inst
     assert (nsm.r and
             nsm.r.name.value() == "ro1e1" and
@@ -229,7 +211,7 @@ def test12():
     test12: check if a namespace role with a variable can be reanimated
     """
     ns12 = NS12()
-    op = ns_persistence_helper(ns12, None)
+    op = persistence_helper(ns12, None)
     nsm = op.namespace_model_inst
     assert (nsm.r.get_visible_vars() and
             nsm.r.var_value("v1") == "summat")
@@ -246,7 +228,7 @@ def test13():
     """
     infra = Infra13("13")
     ns = NS13()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     im = op.infra_model_inst
     assert (nsm.r.host_ref.value() is im.s.value())
@@ -263,7 +245,7 @@ def test14():
     """
     infra = Infra14("14")
     ns = NS14()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     im = op.infra_model_inst
     assert nsm.r.var_value("server_name") == "wibble"
@@ -280,7 +262,7 @@ def test15():
     """
     infra = Infra15("15")
     ns = NS15()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     assert im.s.ip.value() == "127.0.0.1"
     
@@ -299,7 +281,7 @@ def test16():
     """
     infra = Infra16("16")
     ns = NS16()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     assert im.s.ip.value() == "192.168.6.14"
     
@@ -315,7 +297,7 @@ def test17():
     """
     infra = Infra17("17")
     ns = NS17()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     assert nsm.r.host_ref.value() == "192.168.6.22"
     
@@ -331,7 +313,7 @@ def test18():
     """
     infra = Infra18("18")
     ns = NS18()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     assert nsm.r.v.IP.value() == "192.168.6.14"
      
@@ -349,7 +331,7 @@ def test19():
     ns = NS19()
     for i in range(5):
         _ = ns.nodes[i]
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     im = op.infra_model_inst
     node_keys = set(nsm.nodes.keys())
@@ -375,7 +357,7 @@ def test20():
     """
     infra = Infra20("20")
     ns = NS20()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     nsm = op.namespace_model_inst
     assert (nsm.cluster.foreman.host_ref.value() is im.cluster.foreman.value() and
@@ -408,7 +390,7 @@ def test21():
     num = 10
     for i in range(num):
         _ = ns.cluster.slaves[i]
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     nsm = op.namespace_model_inst
     ex_slave_comp_names = set(["slave_%s" % i for i in nsm.cluster.slaves.keys()])
@@ -445,7 +427,7 @@ def test22():
         cluster = ns.clusters[i]
         for j in range(1+i):
             _ = cluster.slaves[j]
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     nsm = op.namespace_model_inst
     summer = lambda m: sum([len(c.slaves) for c in m.clusters.values()])
@@ -479,7 +461,7 @@ def test23():
             end_idx == ns.clusters[num-1].foreman.v.IDX() and
             '0' == ns.clusters[num-1].slaves[0].v.IDX() and
             end_idx == ns.clusters[num-1].slaves[0].v.PIDX())
-    op = ns_persistence_helper(ns, None)
+    op = persistence_helper(ns, None)
     nsm = op.namespace_model_inst
     assert ('0' == nsm.clusters[0].foreman.v.IDX() and
             end_idx == nsm.clusters[num-1].foreman.v.IDX() and
@@ -509,7 +491,7 @@ def test24():
             end_idx == ns.clusters[num-1].foreman.v.IDX() and
             '0' == ns.clusters[num-1].slaves[0].v.IDX() and
             end_idx == ns.clusters[num-1].slaves[0].v.PIDX())
-    op = ns_persistence_helper(ns, None)
+    op = persistence_helper(ns, None)
     nsm = op.namespace_model_inst
     assert ('0' == nsm.clusters[0].foreman.v.IDX() and
             end_idx == nsm.clusters[num-1].foreman.v.IDX() and
@@ -534,7 +516,7 @@ def test25():
     """
     ns = NS25()
     assert ns.r.v.wut() == ns.tester()
-    op = ns_persistence_helper(ns, None)
+    op = persistence_helper(ns, None)
     nsm = op.namespace_model_inst
     assert nsm.r.v.wut() == nsm.tester()
     
@@ -550,7 +532,7 @@ def test26():
     ns = NS26()
     assert (ns.v.wut() == ns.tester() and
             ns.r.v.wut() ==  ns.tester())
-    op = ns_persistence_helper(ns, None)
+    op = persistence_helper(ns, None)
     nsm = op.namespace_model_inst
     assert (nsm.v.wut() == ns.tester() and
             nsm.r.v.wut() == ns.tester())
@@ -568,7 +550,7 @@ def test27():
     """
     infra = Infra27("27")
     ns = NS27()
-    op = ns_persistence_helper(ns, infra)
+    op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     assert (nsm.v.name() == infra.s_name)
 

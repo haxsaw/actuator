@@ -32,7 +32,7 @@ from actuator.modeling import (ModelComponent, ModelReference,
                                ModelBase, ModelBaseMeta, _Nexus)
 from actuator.namespace import _ComputableValue, NamespaceModel
 from actuator.task import (TaskException, Task, _Dependency, _Cloneable,
-                           _Unpackable, GraphableModelMixin)
+                           _Unpackable, GraphableModelMixin, TaskGroup)
 from actuator.utils import ClassModifier, process_modifiers
 from actuator.infra import IPAddressable
 

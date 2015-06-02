@@ -223,7 +223,7 @@ class Task(Orable, ModelComponent):
         return [self]
     
         
-class TaskGroup(Orable, _Cloneable, _Unpackable):
+class TaskGroup(Orable, _Cloneable, _Unpackable, _Persistable):
     """
     This class supplies an alternative to the use of the '&' operator when
     defining dependencies. It allows an arbitrary number of tasks to be noted
@@ -251,6 +251,18 @@ class TaskGroup(Orable, _Cloneable, _Unpackable):
             if not isinstance(arg, Orable):
                 raise TaskException("argument %s is not a recognized TaskGroup arg type" % str(arg))
         self.args = list(args)
+        
+    def _get_attrs_dict(self):
+        d = super(TaskGroup, self)._get_attrs_dict()
+        d['args'] = self.args
+        return d
+    
+    def _find_persistables(self):
+        for p in super(TaskGroup, self)._find_persistables():
+            yield p
+        for t in self.args:
+            for p in t.find_persistables():
+                yield p
         
     def clone(self, clone_dict):
         """
@@ -318,6 +330,14 @@ class _Dependency(Orable, _Cloneable, _Unpackable, _Persistable):
         d["from_task"] = self.from_task
         d["to_task"] = self.to_task
         return d
+    
+    def _find_persistables(self):
+        for p in super(_Dependency, self)._find_persistables():
+            yield p
+        for p in self.from_task.find_persistables():
+            yield p
+        for p in self.to_task.find_persistables():
+            yield p
         
     def clone(self, clone_dict):
         from_task = (clone_dict[self.from_task]
