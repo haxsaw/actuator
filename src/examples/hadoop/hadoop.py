@@ -19,8 +19,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from actuator import *
-from actuator.provisioners.openstack.resources import *
+from actuator import *  # @UnusedWildImport
+from actuator.provisioners.openstack.resources import *  # @UnusedWildImport
 from hadoop_node import common_vars, HadoopNodeConfig, pkn
 from actuator.utils import find_file
 

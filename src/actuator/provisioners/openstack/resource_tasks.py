@@ -57,7 +57,7 @@ class RunContext(object):
     nuclient = property(_nuclient)
     
     def _nvclient(self):
-        return NovaClient("1.1", self.username, self.password,
+        return NovaClient('1.1', self.username, self.password,
                           self.tenant_name, self.auth_url)
         
     nvclient = property(_nvclient)
