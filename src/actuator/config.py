@@ -23,7 +23,6 @@
 Support for creating Actuator configuration models.
 '''
 
-import getpass
 import itertools
 from collections import Iterable
 import networkx as nx
@@ -32,8 +31,8 @@ from actuator.modeling import (ModelComponent, ModelReference,
                                ModelBase, ModelBaseMeta, _Nexus)
 from actuator.namespace import _ComputableValue, NamespaceModel
 from actuator.task import (TaskException, Task, _Dependency, _Cloneable,
-                           _Unpackable, GraphableModelMixin, TaskGroup)
-from actuator.utils import ClassModifier, process_modifiers
+                           _Unpackable, GraphableModelMixin)
+from actuator.utils import ClassModifier, process_modifiers, _Persistable
 from actuator.infra import IPAddressable
 
 class ConfigException(TaskException): pass
@@ -231,6 +230,29 @@ class ConfigTask(Task):
         self._private_key_file = private_key_file
         self.delegate = delegate
         
+    def _get_attrs_dict(self):
+        d = super(ConfigTask, self)._get_attrs_dict()
+        d.update( {"task_role":self.task_role,
+                   "run_from":self.run_from,
+                   "remote_user":self.remote_user,
+                   "remote_pass":self.remote_pass,
+                   "private_key_file":self.private_key_file,
+                   "delegate":self.delegate} )
+        return d
+        
+    def _find_persistables(self):
+        for p in super(ConfigTask, self)._find_persistables():
+            yield p
+        if self.task_role:
+            for p in self.task_role.find_persistables():
+                yield p
+        if self.run_from:
+            for p in self.run_from.find_persistables():
+                yield p
+        if self.delegate:
+            for p in self.delegate.find_persistables():
+                yield p
+        
     def task_variables(self, for_env=False):
         """
         Return a dict with all the Vars that apply to this task according to
@@ -361,7 +383,7 @@ class ConfigTask(Task):
         return host            
         
     def get_init_args(self):
-        __doc__ = ModelComponent.__doc__
+        __doc__ = ModelComponent.__doc__  # @ReservedAssignment
         args, kwargs = super(ConfigTask, self).get_init_args()
         kwargs.update( {"task_role":self._task_role,
                         "run_from":self._run_from,
@@ -565,8 +587,34 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             elif k == _default_run_from and self.default_run_from is None:
                 self.default_run_from = v
                 
+    def _get_attrs_dict(self):
+        d = super(ConfigModel, self)._get_attrs_dict()
+        d.update( namespace_model_instance=self.namespace_model_instance,
+                  remote_user=self.remote_user,
+                  remote_pass=self.remote_pass,
+                  private_key_file=self.private_key_file,
+                  default_task_role=self.default_task_role,
+                  default_run_from=self.default_run_from,
+                  delegate=self.delegate,
+                  dependencies=self.dependencies )
+        return d
+    
+    def _find_persistables(self):
+        for p in super(ConfigModel, self)._find_persistables():
+            yield p
+        for o in itertools.chain(self.dependencies, [self.namespace_model_instance,
+                                                     self.default_run_from,
+                                                     self.default_task_role,
+                                                     self.delegate]):
+            if isinstance(o, _Persistable):
+                for p in o.find_persistables():
+                    yield p
+                
     def _set_delegate(self, delegate):
         self.delegate = delegate
+        
+    def _comp_source(self):
+        return {v:k for k, v in self._node_dict.items()}
     
     def get_remote_user(self):
         """
@@ -847,7 +895,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         return _Dependency
     
     def get_init_args(self):
-        __doc__ = ConfigTask.get_init_args.__doc__
+        __doc__ = ConfigTask.get_init_args.__doc__  # @ReservedAssignment
         args, kwargs = super(ConfigClassTask, self).get_init_args()
         args = args + (self.cfg_class,)
         kwargs["init_args"] = self._init_args
@@ -947,7 +995,7 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
         return _Dependency
     
     def get_init_args(self):
-        __doc__ = ConfigTask.get_init_args.__doc__
+        __doc__ = ConfigTask.get_init_args.__doc__  # @ReservedAssignment
         args, kwargs = super(MultiTask, self).get_init_args()
         args = args + (self._template, self._task_role_list)
         return args, kwargs

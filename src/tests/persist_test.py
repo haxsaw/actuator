@@ -20,12 +20,10 @@
 # SOFTWARE.
 
 import json
-from actuator import ctxt
+from itertools import chain
 from actuator.utils import persist_to_dict, reanimate_from_dict
-from actuator.namespace import Role, Var
-from actuator.config import Task, TaskGroup
-from actuator.provisioners.example_resources import Server
-from pt_help import persistence_helper
+from actuator.namespace import Role, Var, NamespaceModel
+from actuator.config import Task, TaskGroup, ConfigTask, ConfigModel
 from actuator.task import _Dependency
 
 def test01():
@@ -132,9 +130,9 @@ def test06():
             tgp.args[1].name == "t2" and
             tgp.args[2].name == "t3")
 
-def test06():
+def test07():
     """
-    test06: TaskGroup with serial and parallel tasks
+    test07: TaskGroup with serial and parallel tasks
     """
     t1 = Task("t1")
     t2 = Task("t2")
@@ -152,9 +150,9 @@ def test06():
             unpacked[0].to_task.name == "t2" and
             unpacked[1].to_task.name == "t3")
 
-def test07():
+def test08():
     """
-    test07: TaskGroup with parallel and serial tasks
+    test08: TaskGroup with parallel and serial tasks
     """
     t1 = Task("t1")
     t2 = Task("t2")
@@ -172,9 +170,9 @@ def test07():
             tgp.args[0].args[0].name == "t1" and
             isinstance(tgp.args[0].args[1], _Dependency))
     
-def test08():
+def test09():
     """
-    test08: TaskGroup with repeated tasks
+    test09: TaskGroup with repeated tasks
     """
     t1 = Task("t1")
     t2 = Task("t2")
@@ -192,9 +190,9 @@ def test08():
             unpacked[0].to_task.name == "t2" and
             unpacked[1].to_task.name == "t3")
     
-def test09():
+def test10():
     """
-    test09: TaskGroup with dependency cycle; this shouldn't be possible
+    test10: TaskGroup with dependency cycle; this shouldn't be possible
     """
     t1 = Task("t1")
     t2 = Task("t2")
@@ -214,15 +212,15 @@ def test09():
             unpacked[2].from_task.name == "t3" and
             unpacked[2].to_task.name == "t1")
 
-def test10():
+def test11():
     """
-    test10: Complex task group with loads o' tasks
+    test11: Complex task group with loads o' tasks
     """
     for i in range(1, 11):
         exec "t%d = Task('t%d')" % (i, i)
-    tg = TaskGroup(t1 | (t2 & (t3 | t4)),
-                   t3 | ((t5 | t6) & t7),
-                   (t6 & t8) | (t9 & t10))
+    tg = TaskGroup(t1 | (t2 & (t3 | t4)),  # @UndefinedVariable
+                   t3 | ((t5 | t6) & t7),  # @UndefinedVariable
+                   (t6 & t8) | (t9 & t10))  # @UndefinedVariable
     d = persist_to_dict(tg)
     d_json = json.dumps(d)
     d = json.loads(d_json)
@@ -235,7 +233,58 @@ def test10():
                  ("t6", "t9"), ("t6", "t10"), ("t8", "t9"),
                  ("t8", "t10")]))
 
+class CTNamespace(NamespaceModel):
+    r1 = Role("r1")
+    r2 = Role("r2")
+
+def test12():
+    """
+    test12: try persisting/reanimating a ConfigTask
+    """
+    ct = ConfigTask("ct11", task_role=CTNamespace.r1, run_from=CTNamespace.r2,
+                    remote_user="willie", remote_pass="notonyourlife",
+                    private_key_file="somepath", repeat_til_success=False,
+                    repeat_count=5, repeat_interval=14)
+    ct.fix_arguments()
+    d = persist_to_dict(ct)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    ctp = reanimate_from_dict(d)
+    assert (ctp.remote_user == "willie" and
+            ctp.remote_pass == "notonyourlife" and
+            ctp.task_role == CTNamespace.r1 and
+            ctp.run_from == CTNamespace.r2 and
+            ctp.private_key_file == "somepath" and
+            ctp.repeat_til_success == False and
+            ctp.repeat_count == 5 and
+            ctp.repeat_interval == 14)
+    
+class CC12(ConfigModel):
+    ct = ConfigTask("ct12", task_role=CTNamespace.r1, run_from=CTNamespace.r2,
+                    remote_user="willie", remote_pass="notonyourlife",
+                    private_key_file="somepath", repeat_til_success=False,
+                    repeat_count=5, repeat_interval=14)
+    
 def test13():
+    """
+    test13: try persisting/reanimating a config class; initial test
+    """
+    conf = CC12()
+    ns = CTNamespace()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    assert (hasattr(cp, "ct") and
+            len(conf.get_tasks()) == len(cp.get_tasks()) and
+            hasattr(cp, "namespace_model_instance") and
+            len(conf.get_dependencies()) == len(cp.get_dependencies()) and
+            cp.ct.task_role.name.value() == "r1")
+
+def test14():
     r = Role("wibble")
     d = persist_to_dict(r)
     d_json = json.dumps(d)
@@ -243,7 +292,7 @@ def test13():
     rp = reanimate_from_dict(d)
     assert rp.name == "wibble"
     
-def test14():
+def test15():
     r = Role("wibble1", variables=[Var("v1", "summat")])
     d = persist_to_dict(r)
     d_json = json.dumps(d)
