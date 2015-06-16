@@ -243,13 +243,13 @@ class ConfigTask(Task):
     def _find_persistables(self):
         for p in super(ConfigTask, self)._find_persistables():
             yield p
-        if self.task_role:
+        if self.task_role and isinstance(self.task_role, _Persistable):
             for p in self.task_role.find_persistables():
                 yield p
-        if self.run_from:
+        if self.run_from and isinstance(self.run_from, _Persistable):
             for p in self.run_from.find_persistables():
                 yield p
-        if self.delegate:
+        if self.delegate and isinstance(self.delegate, _Persistable):
             for p in self.delegate.find_persistables():
                 yield p
         
@@ -561,7 +561,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         self.delegate = delegate
         clone_dict = {}
         #NOTE! _node_dict is an inverted dictionary (the string keys are
-        #stored as values
+        #stored as values; it is added in the metaclass
         for v, k in self._node_dict.items():
             if not isinstance(v, ConfigTask):
                 raise ConfigException("'%s' is not a task" % k)
@@ -597,15 +597,18 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                   default_run_from=self.default_run_from,
                   delegate=self.delegate,
                   dependencies=self.dependencies )
+        d.update( {k:v for k, v in self._comp_source().items()} )
         return d
     
     def _find_persistables(self):
         for p in super(ConfigModel, self)._find_persistables():
             yield p
-        for o in itertools.chain(self.dependencies, [self.namespace_model_instance,
-                                                     self.default_run_from,
-                                                     self.default_task_role,
-                                                     self.delegate]):
+        for o in itertools.chain(self.dependencies,
+                                 [self.namespace_model_instance,
+                                  self.default_run_from,
+                                  self.default_task_role,
+                                  self.delegate],
+                                 self._comp_source().values()):
             if isinstance(o, _Persistable):
                 for p in o.find_persistables():
                     yield p
@@ -614,7 +617,14 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         self.delegate = delegate
         
     def _comp_source(self):
-        return {v:k for k, v in self._node_dict.items()}
+        #remember, self._node_dict is an inverted dict
+        d = {}
+        for k in self._node_dict.values():
+            v = getattr(self, k)
+            if isinstance(v, AbstractModelReference):
+                v = v.value()
+            d[k] = v
+        return d
     
     def get_remote_user(self):
         """
@@ -977,6 +987,38 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
         self.dependencies = []
         self.instances = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
+        
+    def __len__(self):
+        return len(self.instances)
+        
+    def _get_attrs_dict(self):
+        d = super(MultiTask, self)._get_attrs_dict()
+        d.update(template=self.template,
+                task_role_list=list(self.task_role_list),
+                 dependencies=self.dependencies,
+                 instances=self.instances,
+                 rendezvous=self.rendezvous.name)
+        return d
+    
+    def _find_persistables(self):
+        for p in super(MultiTask, self)._find_persistables():
+            yield p
+        for p in self.template.find_persistables():
+            yield p
+        if self.task_role_list:
+            for tr in self.task_role_list:
+                for p in tr.find_persistables():
+                    yield p
+        for d in self.dependencies:
+            for p in d.find_persistables():
+                yield p
+        for i in self.instances:
+            for p in i.find_persistables():
+                yield p
+    
+    def finalize_reanimate(self):
+        self.rendezvous = RendezvousTask(self.rendezvous)
+        self.task_role_list = set(self.task_role_list)
         
     def _set_model_instance(self, mi):
         super(MultiTask, self)._set_model_instance(mi)

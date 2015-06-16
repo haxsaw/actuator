@@ -22,8 +22,9 @@
 import json
 from itertools import chain
 from actuator.utils import persist_to_dict, reanimate_from_dict
-from actuator.namespace import Role, Var, NamespaceModel
-from actuator.config import Task, TaskGroup, ConfigTask, ConfigModel
+from actuator.namespace import Role, Var, NamespaceModel, MultiRole
+from actuator.task import TaskGroup
+from actuator.config import Task, ConfigTask, ConfigModel, MultiTask
 from actuator.task import _Dependency
 
 def test01():
@@ -285,6 +286,9 @@ def test13():
             cp.ct.task_role.name.value() == "r1")
 
 def test14():
+    """
+    test14: try persisting a single Role
+    """
     r = Role("wibble")
     d = persist_to_dict(r)
     d_json = json.dumps(d)
@@ -293,6 +297,9 @@ def test14():
     assert rp.name == "wibble"
     
 def test15():
+    """
+    test15: persist a Role with Vars and make sure they come back properly
+    """
     r = Role("wibble1", variables=[Var("v1", "summat")])
     d = persist_to_dict(r)
     d_json = json.dumps(d)
@@ -300,9 +307,33 @@ def test15():
     rp = reanimate_from_dict(d)
     assert (rp.name == "wibble1" and rp.get_visible_vars() and
             rp.var_value("v1") == "summat")
+
+class NS16(NamespaceModel):
+    grid = MultiRole(Role("node"))
+    def gen_nodes(self, num):
+        return [self.grid[i] for i in range(num)]
     
+class CC16(ConfigModel):
+    conf = MultiTask("node_fixer",
+                     ConfigTask("fixer"),
+                     NS16.q.grid.all(),
+                     run_from="me")
+
+def test16():
+    conf = CC16()
+    ns = NS16()
+    ns.gen_nodes(5)
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    assert len(cp.conf) == 5
 
 def do_all():
+    test16()
     g = globals()
     keys = list(g.keys())
     keys.sort()
