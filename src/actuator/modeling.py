@@ -28,7 +28,7 @@ import re
 import itertools
 import weakref
 
-from actuator.utils import ClassMapper, _Persistable
+from actuator.utils import ClassMapper, _Persistable, _find_class
 
 class ActuatorException(Exception): pass
 
@@ -1176,7 +1176,7 @@ class _ModelLookup(object):
         return inst.find_instance(self.klass)
     
     
-class _Nexus(object):
+class _Nexus(_Persistable):
     """
     Internal to Actuator
     
@@ -1188,8 +1188,29 @@ class _Nexus(object):
     be used when processing reference selection expressions or context
     expressions.
     """
+    _sep = "+=+=+=+"
     def __init__(self):
         self.mapper = ClassMapper()
+        
+    def _get_attrs_dict(self):
+        d = super(_Nexus, self)._get_attrs_dict()
+        d["mapper"] = {"%s%s%s" % (c.__name__, self._sep, c.__module__):v
+                       for c, v in self.mapper.items()}
+        return d
+    
+    def _find_persistables(self):
+        for p in super(_Nexus, self)._find_persistables():
+            yield p
+        for v in self.mapper.values():
+            for p in v.find_persistables():
+                yield p
+                
+    def finalize_reanimate(self):
+        for k in list(self.mapper.keys()):
+            klassname, modname = k.split(self._sep)
+            klass = _find_class(modname, klassname)
+            self.mapper[klass] = self.mapper[k]
+            del self.mapper[k]
         
     @classmethod
     def _add_model_desc(cls, attrname, klass):
@@ -1247,8 +1268,14 @@ class _NexusMember(_Persistable):
         
     def _get_attrs_dict(self):
         d = super(_NexusMember, self)._get_attrs_dict()
-        d['nexus'] = None
+        d['nexus'] = self.nexus
         return d
+    
+    def _find_persistables(self):
+        for p in super(_NexusMember, self)._find_persistables():
+            yield p
+        for p in self.nexus.find_persistables():
+            yield p
                 
     def set_nexus(self, nexus):
         self.nexus = nexus if nexus else _Nexus()

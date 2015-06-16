@@ -220,15 +220,6 @@ class ActuatorOrchestration(_Persistable):
                     
     def finalize_reanimate(self):
         self.logger = root_logger.getChild("orchestrator")
-        models = [mi for mi in (self.infra_model_inst,
-                                self.namespace_model_inst,
-                                self.config_model_inst)
-                  if mi is not None]
-        prev_model_nexus = _Nexus()
-        for m in models:
-            if m is not None:
-                m.update_nexus(prev_model_nexus)
-                prev_model_nexus = m.nexus
             
     def set_provisioner(self, provisioner):
         if not isinstance(provisioner, BaseProvisioner):

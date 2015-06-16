@@ -330,7 +330,13 @@ def test16():
     d_json = json.dumps(d)
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
-    assert len(cp.conf) == 5
+    assert (len(cp.conf) == 5 and len(cp.conf.dependencies) == 10 and
+            cp.conf.value().instances[0] is not conf.conf.value().instances[0] and
+            len(conf.get_graph().nodes()) == len(cp.get_graph().nodes()) and
+            len(conf.get_graph().edges()) == len(cp.get_graph().edges()) and
+            len(conf.get_graph().nodes()) != 0 and len(conf.get_graph().edges()) != 0 and
+            cp.nexus.ns is not None)
+            
 
 def do_all():
     test16()

@@ -472,7 +472,6 @@ class _Persistable(object):
 
 #adapted from pickle.Unpickler
 def _find_class(module, name):
-    # Subclasses may override this
     __import__(module)
     mod = sys.modules[module]
     klass = getattr(mod, name)
