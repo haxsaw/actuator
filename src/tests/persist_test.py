@@ -24,8 +24,19 @@ from itertools import chain
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import Role, Var, NamespaceModel, MultiRole
 from actuator.task import TaskGroup
-from actuator.config import Task, ConfigTask, ConfigModel, MultiTask
+from actuator.config import (Task, ConfigTask, ConfigModel, MultiTask,
+                             with_dependencies, ConfigClassTask)
 from actuator.task import _Dependency
+
+def pdeps(deps):
+    """
+    Debug helper; prints out dependencies in a sane format
+    """
+    for d in deps:
+        print "%s:%s (%s) -> %s:%s (%s)" % (d.from_task.name, d.from_task.__class__.__name__,
+                                            str(d.from_task._id)[:4],
+                                            d.to_task.name, d.to_task.__class__.__name__,
+                                            str(d.to_task._id)[:4])
 
 def test01():
     """
@@ -320,6 +331,9 @@ class CC16(ConfigModel):
                      run_from="me")
 
 def test16():
+    """
+    test16: persist a config model with a MultiTask
+    """
     conf = CC16()
     ns = NS16()
     ns.gen_nodes(5)
@@ -336,10 +350,194 @@ def test16():
             len(conf.get_graph().edges()) == len(cp.get_graph().edges()) and
             len(conf.get_graph().nodes()) != 0 and len(conf.get_graph().edges()) != 0 and
             cp.nexus.ns is not None)
-            
+    
+class NS17(NamespaceModel):
+    r1 = Role("r1")
 
+class CC17(ConfigModel):
+    t1 = ConfigTask("t1", task_role=NS17.r1)
+    t2 = ConfigTask("t2", task_role=NS17.r1)
+    with_dependencies(t1 | t2)
+    
+def test17():
+    """
+    test17: persist a config model with dependencies & check they are correct upon reanimation
+    """
+    conf = CC17()
+    ns = NS17()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    assert (len(cp.dependencies) == 1 and
+            cp.dependencies[0].from_task is cp.t1.value() and
+            cp.dependencies[0].to_task is cp.t2.value())
+            
+class NS18(NamespaceModel):
+    r1 = Role("r1")
+    
+class CC18(ConfigModel):
+    t1 = ConfigTask("t1", task_role=NS18.r1)
+    t2 = ConfigTask("t2", task_role=NS18.r1)
+    t3 = ConfigTask("t3", task_role=NS18.r1)
+    with_dependencies(t1 | t2 | t3)
+    
+def test18():
+    """
+    test18: test reanimating more complex dependencies
+    """
+    conf = CC18()
+    ns = NS18()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    deps = cp.get_dependencies()
+    assert (len(deps) == 2 and
+            deps[0].from_task is cp.t1.value() and
+            deps[0].to_task is cp.t2.value() and
+            deps[1].from_task is cp.t2.value() and
+            deps[1].to_task is cp.t3.value())
+    
+class NS19(NamespaceModel):
+    r1 = Role("r1")
+    
+class CC19(ConfigModel):
+    t1 = ConfigTask("t1", task_role=NS19.r1)
+    t2 = ConfigTask("t2", task_role=NS19.r1)
+    t3 = ConfigTask("t3", task_role=NS19.r1)
+    with_dependencies(t1 | (t2 & t3))
+
+def test19():
+    """
+    test19: test reanimating more complex dependencies
+    """
+    conf = CC19()
+    ns = NS19()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    deps = cp.get_dependencies()
+    assert (len(deps) == 2 and
+            deps[0].from_task is cp.t1.value() and
+            deps[0].to_task is cp.t2.value() and
+            deps[1].from_task is cp.t1.value() and
+            deps[1].to_task is cp.t3.value())
+    
+class NS20(NamespaceModel):
+    r = Role("r")
+    
+class NodeConf20(ConfigModel):
+    t1 = ConfigTask("t1",)
+    t2 = ConfigTask("t2",)
+    t3 = ConfigTask("t3",)
+    with_dependencies(t1 | (t2 & t3))
+    
+class CC20(ConfigModel):
+    t0 = ConfigClassTask("t0", NodeConf20, task_role=NS20.r)
+    
+def test20():
+    """
+    test20: test ConfigClassTask reanimation where the inner model has dependencies
+    """
+    conf = CC20()
+    ns = NS20()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    deps = cp.get_dependencies()
+    assert len(deps) == 5
+    
+class NS21(NamespaceModel):
+    r = Role("r")
+    
+class NodeConf21(ConfigModel):
+    t1 = ConfigTask("t1",)
+    t2 = ConfigTask("t2",)
+    t3 = ConfigTask("t3",)
+    with_dependencies(t1 | t3, t2 | t3)
+    
+class CC21(ConfigModel):
+    t0 = ConfigClassTask("t0", NodeConf21, task_role=NS21.r)
+    
+def test21():
+    """
+    test21: test ConfigClassTask reanimation where there a multiple entry tasks
+    """
+    conf = CC21()
+    ns = NS21()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    deps = cp.get_dependencies()
+    deps.sort(lambda x, y: cmp((x.from_task.name, x.to_task.name), (y.from_task.name, y.to_task.name)))
+    assert (len(deps) == 5 and
+            deps[0].from_task is cp.t0.value() and
+            deps[0].to_task is cp.t0.instance.t1.value() and
+            deps[1].from_task is cp.t0.value() and
+            deps[1].to_task is cp.t0.instance.t2.value() and
+            deps[2].from_task is cp.t0.instance.t1.value() and
+            deps[2].to_task is cp.t0.instance.t3.value() and
+            deps[3].from_task is cp.t0.instance.t2.value() and
+            deps[3].to_task is cp.t0.instance.t3.value())
+    
+class NS22(NamespaceModel):
+    r = Role("r")
+    slaves = MultiRole(Role("slave"))
+    def grow_slaves(self, num):
+        return [self.slaves[i] for i in range(num)]
+    
+class SlaveConf22(ConfigModel):
+    t1 = ConfigTask("t1")
+    t2 = ConfigTask("t2")
+    t3 = ConfigTask("t3")
+    with_dependencies( (t1 & t2) | t3 )
+    
+class GridConf22(ConfigModel):
+    t01 = ConfigTask("t01", task_role=NS22.r)
+    t02 = MultiTask("t02", ConfigClassTask("t02-a", SlaveConf22),
+                    NS22.q.slaves.all())
+    t03 = ConfigTask("t03", task_role=NS22.r)
+    with_dependencies(t01 | t02 | t03)
+    
+def test22():
+    """
+    test22: test ConfigClassTask reanimation inside a MultiTask
+    """
+    conf = GridConf22()
+    ns = NS22()
+    conf.set_namespace(ns)
+    ns.grow_slaves(2)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    deps = cp.get_dependencies()
+    deps.sort(lambda x, y: cmp((x.from_task.name, x.to_task.name), (y.from_task.name, y.to_task.name)))
+    assert len(deps) == 16
+    
 def do_all():
-    test16()
+    test22()
     g = globals()
     keys = list(g.keys())
     keys.sort()

@@ -325,6 +325,12 @@ class _Dependency(Orable, _Cloneable, _Unpackable, _Persistable):
         self.from_task = from_task
         self.to_task = to_task
         
+    def __hash__(self):
+        return (id(self.from_task) << 2) ^ id(self.to_task)
+    
+    def __eq__(self, other):
+        return self.from_task is other.from_task and self.to_task is other.to_task
+        
     def _get_attrs_dict(self):
         d = super(_Dependency, self)._get_attrs_dict()
         d["from_task"] = self.from_task

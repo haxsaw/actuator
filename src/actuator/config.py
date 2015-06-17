@@ -32,7 +32,7 @@ from actuator.modeling import (ModelComponent, ModelReference,
 from actuator.namespace import _ComputableValue, NamespaceModel
 from actuator.task import (TaskException, Task, _Dependency, _Cloneable,
                            _Unpackable, GraphableModelMixin)
-from actuator.utils import ClassModifier, process_modifiers, _Persistable
+from actuator.utils import ClassModifier, process_modifiers, _Persistable, _find_class
 from actuator.infra import IPAddressable
 
 class ConfigException(TaskException): pass
@@ -807,10 +807,10 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         dependency pairs in the config model.
         """
         inst_nodes = [getattr(self, name).value() for name in self._node_dict.values()]
-        return list(itertools.chain(list(itertools.chain(*[n.unpack()
+        return list(set(itertools.chain(list(itertools.chain(*[n.unpack()
                                                            for n in inst_nodes
                                                            if isinstance(n, _Unpackable)])),
-                                    *[d.unpack() for d in self.dependencies]))
+                                    *[d.unpack() for d in self.dependencies])))
     
     @classmethod
     def get_class_dependencies(cls):
@@ -843,6 +843,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
     host, and then allows you to reuse that model, either in multiple contexts
     or as a common library of tasks to be performed on multiple Roles.
     """
+    _sep = "+=+=+=+"
     def __init__(self, name, cfg_class, init_args=None, **kwargs):
         """
         Create a new ConfigClassTask that wraps another config model
@@ -867,6 +868,38 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         self.dependencies = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
         self.graph = None
+        
+    def _get_attrs_dict(self):
+        d = super(ConfigClassTask, self)._get_attrs_dict()
+        d.update(cfg_class="%s%s%s" % (self.cfg_class.__name__, self._sep,
+                                       self.cfg_class.__module__),
+                 init_args=self.init_args,
+                 instance=self.instance,
+                 dependencies=self.dependencies,
+                 rendezvous=self.rendezvous.name,
+                 graph=None)
+        return d
+    
+    def _find_persistables(self):
+        for p in super(ConfigClassTask, self)._find_persistables():
+            yield p
+        if self.init_args:
+            for a in self.init_args:
+                if isinstance(a, _Persistable):
+                    for p in a.find_persistables():
+                        yield p
+        if self.instance:
+            for p in self.instance.find_persistables():
+                yield p
+        for d in self.dependencies:
+            for p in d.find_persistables():
+                yield p
+    
+    def finalize_reanimate(self):
+        super(ConfigClassTask, self).finalize_reanimate()
+        self.rendezvous = RendezvousTask(self.rendezvous)
+        klassname, modname = self.cfg_class.split(self._sep)
+        self.cfg_class = _find_class(modname, klassname)
         
     def get_graph(self, with_fix=False):
         """
@@ -925,9 +958,9 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         graph = self.get_graph(with_fix=True)
         entry_nodes = [n for n in graph.nodes() if graph.in_degree(n) == 0]
         exit_nodes = [n for n in graph.nodes() if graph.out_degree(n) == 0]
-        self.dependencies = itertools.chain(self.instance.get_dependencies(),
-                                            [_Dependency(self, c) for c in entry_nodes],
-                                            [_Dependency(c, self.rendezvous) for c in exit_nodes])
+        self.dependencies = list(itertools.chain(self.instance.get_dependencies(),
+                                                 [_Dependency(self, c) for c in entry_nodes],
+                                                 [_Dependency(c, self.rendezvous) for c in exit_nodes]))
 
     def exit_nodes(self):
         """
