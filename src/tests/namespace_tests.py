@@ -890,6 +890,34 @@ def test077():
             len(infra.grid[4].workers) == 4 and
             len(infra.components()) == 8 and
             ns.grid[2].workers[0].var_value("FROM") == "ABOVE")
+    
+def test078():
+    class Infra78(InfraModel):
+        s = Server("s78", mem=ctxt.nexus.ns.v.MEMSIZE)
+        
+    class NS78(NamespaceModel):
+        with_variables(Var("MEMSIZE", "8GB"))
+        
+    inf = Infra78("78")
+    ns = NS78()
+    ns.set_infra_model(inf)
+    for c in inf.components():
+        c.fix_arguments()
+    assert inf.s.mem.value() == "8GB"
+    
+def test079():
+    class Infra79(InfraModel):
+        s = Server("s78", mem=ctxt.nexus.ns.r.v.MEMSIZE)
+        
+    class NS79(NamespaceModel):
+        r = Role("r", variables=[Var("MEMSIZE", "16GB")])
+        
+    inf = Infra79("79")
+    ns = NS79()
+    ns.set_infra_model(inf)
+    for c in inf.components():
+        c.fix_arguments()
+    assert inf.s.mem.value() == "16GB"
      
 
 def do_all():

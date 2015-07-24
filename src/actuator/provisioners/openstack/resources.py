@@ -482,8 +482,8 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
     def _fix_arguments(self, provisioner=None):
         self.slave_secgroup = self._get_arg_value(self._secgroup)
         self.ip_protocol = self._get_arg_value(self._ip_protocol)
-        self.from_port = self._get_arg_value(self._from_port)
-        self.to_port = self._get_arg_value(self._to_port)
+        self.from_port = int(self._get_arg_value(self._from_port))
+        self.to_port = int(self._get_arg_value(self._to_port))
         self.cidr = self._get_arg_value(self._cidr)
         
         

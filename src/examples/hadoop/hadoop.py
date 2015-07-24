@@ -84,22 +84,29 @@ class HadoopInfra(InfraModel):
     #create an additional secgroup for the namenode
     namenode_secgroup = make_std_secgroup("namenode", desc="For Hadoop namenode")
     #add additional rules specific to the Hadoop namenode secgroup
+    #note that we pick up the port numbers from the namespace model via a context expression;
+    #they could be hard-coded here, but by taking them from the namespace they can be changed on
+    #an instance by instance basis
     jobtracker_webui_rule = SecGroupRule("jobtracker_webui_rule",
                                          ctxt.model.namenode_secgroup.group,
                                          ip_protocol="tcp",
-                                         from_port=50030, to_port=50030)
+                                         from_port=ctxt.nexus.ns.v.JOBTRACKER_WEBUI_PORT,
+                                         to_port=ctxt.nexus.ns.v.JOBTRACKER_WEBUI_PORT)
     namenode_webui_rule = SecGroupRule("namenode_webui_rule",
                                        ctxt.model.namenode_secgroup.group,
                                        ip_protocol="tcp",
-                                       from_port=50070, to_port=50070)
+                                       from_port=ctxt.nexus.ns.v.NAMENODE_WEBUI_PORT,
+                                       to_port=ctxt.nexus.ns.v.NAMENODE_WEBUI_PORT)
     jobtracker_rule = SecGroupRule("jobtracker_rule",
                                    ctxt.model.namenode_secgroup.group,
                                    ip_protocol="tcp",
-                                   from_port=50031, to_port=50031)
+                                   from_port=ctxt.nexus.ns.v.JOBTRACKER_PORT,
+                                   to_port=ctxt.nexus.ns.v.JOBTRACKER_PORT)
     namenode_rule = SecGroupRule("namenode_rule",
                                  ctxt.model.namenode_secgroup.group,
                                  ip_protocol="tcp",
-                                 from_port=50071, to_port=50071)
+                                 from_port=ctxt.nexus.ns.v.NAMENODE_PORT,
+                                 to_port=ctxt.nexus.ns.v.NAMENODE_PORT)
     
     #HADOOP name node
     name_node = Server("name_node", ubuntu_img, "m1.small",
@@ -142,9 +149,7 @@ def host_list(ctx_exp, sep_char=" "):
 class HadoopNamespace(NamespaceModel):
     with_variables(*common_vars)
     with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)),
-                   Var("NAMENODE_IP", HadoopInfra.name_node.iface0.addr0),
-                   Var("NAMENODE_PORT", HadoopInfra.namenode_rule.to_port),
-                   Var("JOBTRACKER_PORT", HadoopInfra.jobtracker_rule.to_port))
+                   Var("NAMENODE_IP", HadoopInfra.name_node.iface0.addr0))
     
     name_node = Role("name_node",
                      host_ref=HadoopInfra.name_node_fip)
@@ -158,8 +163,7 @@ class HadoopNamespace(NamespaceModel):
         This method takes care of the creating the references to additional
         slave Roles, which in turn creates more slave infra resources.
         """
-        for i in range(count):
-            _ = self.slaves[i]
+        return [self.slaves[i] for i in range(count)]
     
 
 class HadoopConfig(ConfigModel):

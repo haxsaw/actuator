@@ -53,12 +53,12 @@ common_vars = [Var("USER", "ubuntu"),
                #should redefine NODNAME_IP to be an ip from the
                #provisioned infra
                Var("NAMENODE_IP", "!{IP_ADDR}"),
-               #this next Var is a default value only for testing
-               #the value of the webport should ultimately come from the
-               #infra model which will be setting up the security group rule
-               #that explains how to reach the web server
+               #These Vars are also used by the infra model to specify the
+               #various ports used for Hadoop and its web interfaces
                Var("NAMENODE_PORT", "50071"),
+               Var("NAMENODE_WEBUI_PORT", "50070"),
                Var("JOBTRACKER_PORT", "50031"),
+               Var("JOBTRACKER_WEBUI_PORT", "50030"),
                Var("PRIV_KEY_NAME", pkn)]
 
 

@@ -209,7 +209,8 @@ class ActuatorOrchestration(_Persistable):
                    "infra_model_inst":self.infra_model_inst,
                    "namespace_model_inst":self.namespace_model_inst,
                    "config_model_inst":self.config_model_inst,
-                   "logger":None} )
+                   "logger":None,
+                   "provisioner":None} )
         return d
     
     def _find_persistables(self):
@@ -220,6 +221,8 @@ class ActuatorOrchestration(_Persistable):
                     
     def finalize_reanimate(self):
         self.logger = root_logger.getChild("orchestrator")
+        if not hasattr(self, "provisioner"):
+            self.provisioner = None
             
     def set_provisioner(self, provisioner):
         if not isinstance(provisioner, BaseProvisioner):
