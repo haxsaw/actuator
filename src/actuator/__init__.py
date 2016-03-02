@@ -301,6 +301,12 @@ class ActuatorOrchestration(_Persistable):
                     self.logger.critical("No further information")
                 self.logger.critical("Aborting orchestration")
                 return False
+        elif self.infra_model_inst is not None:
+            # we can at least fix up the args
+            if self.namespace_model_inst:
+                self.namespace_model_inst.set_infra_model(self.infra_model_inst)
+                self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
+            _ = self.infra_model_inst.refs_for_components()
         else:
             self.logger.info("No infra model or provisioner; skipping provisioning step")
             

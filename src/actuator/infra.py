@@ -23,10 +23,10 @@
 Support for creating Actuator infrastructure models
 '''
 
-from actuator.utils import ClassModifier, process_modifiers, _Persistable
+from actuator.utils import ClassModifier, process_modifiers, _Persistable, KeyAsAttr
 from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                ModelComponent, AbstractModelingEntity,
-                               ModelInstanceReference, KeyAsAttr,
+                               ModelInstanceReference,
                                _ComputeModelComponents, ModelReference,
                                ComponentGroup, MultiComponent,
                                MultiComponentGroup, AbstractModelReference,

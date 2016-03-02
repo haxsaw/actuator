@@ -271,8 +271,8 @@ def test12():
             ctp.repeat_count == 5 and
             ctp.repeat_interval == 14)
     
-class CC12(ConfigModel):
-    ct = ConfigTask("ct12", task_role=CTNamespace.r1, run_from=CTNamespace.r2,
+class CC13(ConfigModel):
+    ct = ConfigTask("ct13", task_role=CTNamespace.r1, run_from=CTNamespace.r2,
                     remote_user="willie", remote_pass="notonyourlife",
                     private_key_file="somepath", repeat_til_success=False,
                     repeat_count=5, repeat_interval=14)
@@ -281,7 +281,7 @@ def test13():
     """
     test13: try persisting/reanimating a config class; initial test
     """
-    conf = CC12()
+    conf = CC13()
     ns = CTNamespace()
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
@@ -536,8 +536,43 @@ def test22():
     deps.sort(lambda x, y: cmp((x.from_task.name, x.to_task.name), (y.from_task.name, y.to_task.name)))
     assert len(deps) == 16
     
+    
+class NS23(NamespaceModel):
+    slaves = MultiRole(Role("slave"))
+
+
+class Conf23(ConfigModel):
+    t1 = ConfigTask("t01", task_role=NS23.slaves["r1"])
+    
+    
+def test23():
+    """
+    test23: trying to break the use of of keyed references
+    """
+    conf = Conf23()
+    ns = NS23()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    obj = conf
+    for a in ["t1", "task_role", "value"]:
+        obj = getattr(obj, a)
+    assert obj()
+    assert conf.t1.task_role.name.value() == 'slave_r1'
+    assert isinstance(cp, ConfigModel)
+    obj = cp
+    for a in ["t1", "task_role", "value"]:
+        obj = getattr(obj, a)
+    assert obj()
+    assert cp.t1.task_role.name.value() == 'slave_r1'
+    
+    
 def do_all():
-    test22()
+    test23()
     g = globals()
     keys = list(g.keys())
     keys.sort()

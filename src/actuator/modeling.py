@@ -28,14 +28,9 @@ import re
 import itertools
 import weakref
 
-from actuator.utils import ClassMapper, _Persistable, _find_class
+from actuator.utils import ClassMapper, _Persistable, _find_class, KeyAsAttr
 
 class ActuatorException(Exception): pass
-
-
-class KeyAsAttr(str):
-    def __init__(self, astr):
-        super(KeyAsAttr, self).__init__(astr)
 
 
 class _ValueAccessMixin(object):
@@ -434,7 +429,7 @@ class _ComputeModelComponents(object):
         Returns a set of model references for all ModelComponents within self.
         
         The method computes model references for all the components it contains
-        or just has references to. It does this my performing attribute lookup
+        or just has references to. It does this by performing attribute lookup
         on the name of all components 'self' thinks it has, relative to the
         the reference to 'self' itself. This will ensure that all references
         to relevant model components will be generated properly.
@@ -1113,7 +1108,7 @@ class RefSelectBuilder(object):
         return key == test.test_arg
     
     def _keyin_test(self, key, test):
-        return key in [KeyAsAttr(k) for k in test.test_arg]
+        return key in {KeyAsAttr(k) for k in test.test_arg}
     
     def _pattern_test(self, key, test):
         return test.test_arg.search(key)

@@ -43,6 +43,10 @@ LOG_CRIT = logging.CRITICAL
 class UtilsException(Exception): pass
 
 
+class KeyAsAttr(str):
+    pass
+
+
 class ClassMapper(dict):
     """
     Internal; used to map a class, and its derived classes, to some other object.
@@ -255,6 +259,18 @@ class _ClassRef(_SignatureDict):
     def get_class(self):
         return _find_class(self[self._MODULE_NAME_],
                            self[self._CLASS_NAME_])
+        
+        
+class _PersistedKeyAsAttr(_SignatureDict):
+    _KIND_ = "_PersistedKeyAsAttr"
+    _VALUE_ = "_value_"
+    def __init__(self, kaa=None):
+        super(_PersistedKeyAsAttr, self).__init__()
+        if kaa is not None:
+            self[self._VALUE_] = kaa
+            
+    def get_kaa(self):
+        return KeyAsAttr(self[self._VALUE_])
     
     
 class _PersistablesCyclesDeco(object):
@@ -349,6 +365,10 @@ class _Persistable(object):
                                              % (k, e.message))
                 elif isinstance(retval, _ClassRef):
                     retval = retval.get_class()
+                elif isinstance(retval, _PersistedKeyAsAttr):
+                    retval = retval.get_kaa()
+                else:
+                    raise UtilsException("Unknown kind of SigDict: %s" % retval[_SignatureDict._KIND_])
             elif isinstance(v, dict):
                 for vk, vv in v.items():
                     if _SigDictMeta.is_sigdict(vv):
@@ -388,10 +408,13 @@ class _Persistable(object):
         @param v: object: the value of the attribute named 'k'
         @return: a JSON-safe encoding of the attribute
         """
+#         if k == "_name":
+#             import pdb
+#             pdb.set_trace()
         retval = v
         if isinstance(v, _Persistable):
             retval = _PersistableRef(v)
-        elif isinstance(v, collections.Iterable):
+        elif isinstance(v, collections.Iterable) and not isinstance(v, basestring):
             if isinstance(v, dict):
                 retval = {vk:(_PersistableRef(vv)
                               if isinstance(vv, _Persistable)
@@ -401,6 +424,8 @@ class _Persistable(object):
                           for i in v]
         elif isinstance(v, type):
             retval = _ClassRef(v)
+        elif isinstance(v, KeyAsAttr):
+            retval = _PersistedKeyAsAttr(v)
         return retval
         
     def obj_sig_dict(self):
