@@ -21,6 +21,7 @@
 
 import json
 from itertools import chain
+from actuator import ctxt
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import Role, Var, NamespaceModel, MultiRole
 from actuator.task import TaskGroup
@@ -571,8 +572,82 @@ def test23():
     assert cp.t1.task_role.name.value() == 'slave_r1'
     
     
+class NS24(NamespaceModel):
+    slaves = MultiRole(Role("slave"))
+    
+class Conf24(ConfigModel):
+    t1 = ConfigTask("t01", task_role=ctxt.nexus.ns.slaves["r1"])
+    
+    
+def test24():
+    """
+    test24: check to see that context expressions that turn into refs with keys persist/reanimate
+    """
+    conf = Conf24()
+    ns = NS24()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    obj = conf
+    for a in ["t1", "task_role", "value"]:
+        obj = getattr(obj, a)
+    assert obj()
+    assert conf.t1.task_role.name.value() == "slave_r1"
+    assert isinstance(cp, ConfigModel)
+    obj = cp
+    obj = conf
+    for a in ["t1", "task_role", "value"]:
+        obj = getattr(obj, a)
+    assert obj()
+    assert cp.t1.task_role.name.value() == "slave_r1"
+    
+    
+class NS25(NamespaceModel):
+    slaves = MultiRole(Role("slave"))
+
+    
+def refgen25(ctxt):
+    return NS25.slaves['r2']
+
+
+class Conf25(ConfigModel):
+    t1 = ConfigTask("t01", task_role=refgen25)
+    
+    
+def test25():
+    """
+    test25: see if we can persist/reanim a global callable
+    """
+    conf = Conf25()
+    ns = NS25()
+    conf.set_namespace(ns)
+    for c in chain(ns.components(), conf.components()):
+        c.fix_arguments()
+    d = persist_to_dict(conf)
+    d_json = json.dumps(d)
+    d = json.loads(d_json)
+    cp = reanimate_from_dict(d)
+    obj = conf
+    for a in ["t1", "task_role", "value"]:
+        obj = getattr(obj, a)
+    assert obj()
+    assert conf.t1.task_role.name.value() == "slave_r2"
+    assert isinstance(cp, ConfigModel)
+    obj = cp
+    obj = conf
+    for a in ["t1", "task_role", "value"]:
+        obj = getattr(obj, a)
+    assert obj()
+    assert cp.t1.task_role.name.value() == "slave_r2"
+
+
+    
 def do_all():
-    test23()
+    test25()
     g = globals()
     keys = list(g.keys())
     keys.sort()

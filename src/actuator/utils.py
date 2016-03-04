@@ -273,6 +273,12 @@ class _PersistedKeyAsAttr(_SignatureDict):
         return KeyAsAttr(self[self._VALUE_])
     
     
+class _CallableRef(_SignatureDict):
+    _KIND_ = "_CallableRef"
+    _CALLABLE_NAME_ = "_callable_name_"
+    _CALLABLE_MODULE_ = "_callable_module_"
+    
+    
 class _PersistablesCyclesDeco(object):
     def __init__(self):
         self.local = threading.local()
@@ -408,9 +414,6 @@ class _Persistable(object):
         @param v: object: the value of the attribute named 'k'
         @return: a JSON-safe encoding of the attribute
         """
-#         if k == "_name":
-#             import pdb
-#             pdb.set_trace()
         retval = v
         if isinstance(v, _Persistable):
             retval = _PersistableRef(v)
