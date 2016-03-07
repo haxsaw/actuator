@@ -773,7 +773,7 @@ class KeyPair(_OpenstackProvisionableInfraResource):
     the public side of a keypair.
     
     It allows you to put a public key on Openstack for subsequent use in other
-    resource.
+    resources.
     
     NOTE: Since KeyPairs have the semantic of not always overwriting existing
         public keys, they likewise won't de-provision them when the infra

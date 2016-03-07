@@ -30,19 +30,6 @@ contraindicated in your situation.
 SSH keys:
 Make sure the permissions on the private key (actuator-dev-key) are 600!
 
-The example uses an SSH key with the root name of "actuator-dev-key". This is
-the name of the public key on Openstack (and the lookup for the key is done by
-name), as well as the name of the private key that SSH will use to log into
-the provisioned servers. The example contains a keypair with this name, and you
-need to put the *public* half (actuator-dev-key.pub) on your Openstack site with
-the name "actuator-dev-key" (you can do this in the web interface). The example
-will look for the private "actuator-dev-key" in the example's directory for use
-with SSH. Feel free to generate a new keypair with this name, or alternatively
-replace it with one of your own naming. If you change the name, you need to update
-the global variable 'pkn' in hadoop_node.py to reflect the name of the private
-key (it's assumed this is the name of the public key on Openstack as well). In
-the future Actuator will take care of putting keys onto Openstack for you.
-
 User:
 Actuator was developed on an Openstack site where a default user named "ubuntu"
 was created for each server instance. You will probably need to change this

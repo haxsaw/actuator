@@ -36,7 +36,7 @@ external_connection = ResourceGroup("route_out",
                                     router=Router("ro_router"),
                                     gateway=RouterGateway("ro_gateway",
                                                           ctxt.comp.container.router,
-                                                          "external"),
+                                                          "public"),
                                     interface=RouterInterface("ro_inter",
                                                               ctxt.comp.container.router,
                                                               ctxt.comp.container.subnet))
@@ -65,7 +65,7 @@ def make_std_secgroup(name, desc="standard security group"):
 
 
 #name of the image we want to use
-ubuntu_img = "Ubuntu 14.04 amd64"
+ubuntu_img = "ubuntu14.04-LTS"
 
 
 #common keyword args used for servers
@@ -74,7 +74,7 @@ common_kwargs = {"key_name":ctxt.model.kp}
 
 class HadoopInfra(InfraModel):
     with_infra_options(long_names=True)
-    fip_pool = "external"  #attributes that aren't resources are ignored
+    fip_pool = "public"  #attributes that aren't resources are ignored
     #add the standard slave_secgroup and connectivity components
     slave_secgroup = make_std_secgroup("slave", desc="For Hadoop slaves")
     gateway = external_connection
