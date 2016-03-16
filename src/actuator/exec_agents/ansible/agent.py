@@ -35,8 +35,6 @@ from ansible.runner import Runner
 
 _ansible_domain = "ANSIBLE_AGENT"
 
-_class_module_map = {PingTask:"ping"}
-
 
 class TaskProcessor(AbstractTaskProcessor):
     """

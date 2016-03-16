@@ -61,6 +61,18 @@ class AbstractTaskProcessor(object):
         raise TypeError("Derived class must implement")
     
     def result_check(self, task, result, logfile=None):
+        """
+        Checks the result of an execution. If there is a problem,
+        raise ExecutionException with helpful data in the response.
+        
+        @param task: the Task that was performed
+        @param result: The result dict returned from the Runner
+        @param logfile: If present, a file-like object that log messages will
+            be written, regardless of the log level.
+        @raise ExecutionException: Raised if the result looks bad; the result
+            itself will be formatted and added to the exception in the 
+            exception's 'response' attribute.
+        """
         raise TypeError("derived class must implement")
     
 
