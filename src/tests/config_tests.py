@@ -483,7 +483,7 @@ def test30():
             len(ns.pong_targets) == 0)
             
 def test31():
-    class VarCapture(ConfigTask):
+    class VarCapture(ConfigTask, StructuralTask):
         def __init__(self, name, task_role, **kwargs):
             super(VarCapture, self).__init__(name, task_role=task_role, **kwargs)
             self.vars = {}
@@ -515,7 +515,7 @@ def test31():
             cfg.comp_task.vars["TWO"] == "2")
     
 def test32():
-    class VarCapture(ConfigTask):
+    class VarCapture(ConfigTask, StructuralTask):
         def __init__(self, name, task_role, **kwargs):
             super(VarCapture, self).__init__(name, task_role=task_role, **kwargs)
             self.vars = {}

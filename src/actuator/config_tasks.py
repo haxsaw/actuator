@@ -24,6 +24,7 @@ Configuration tasks modeled after Ansible modules
 from actuator.config import ConfigTask, ConfigException
 from actuator.exec_agents.core import ExecutionException
 
+
 class PingTask(ConfigTask):
     """
     Checks to see if a remote machine is alive by ssh'ing into it.
