@@ -203,7 +203,7 @@ class ExecutionAgent(TaskEngine):
                 raise ExecutionException("Can't determine a place to run task {}".format(task.name))
         return run_host
     
-    def _perform_with_args(self, task, args, kwargs):
+    def _perform_with_args(self, task, processor, args, kwargs):
         """
         Does the actual call into the specific execution system for the supplied task with args acquired from
         the make_args() method of the task processor
@@ -258,7 +258,7 @@ class ExecutionAgent(TaskEngine):
 #                 logfile.write(">>>Result:\n{}\n".format(reply))
 #             result = json.loads(reply)
 
-            result = self._perform_with_args(task, args, kwargs)
+            result = self._perform_with_args(task, processor, args, kwargs)
             
             if logfile:
                 logfile.write(">>>Result:\n{}\n".format(json.dumps(result)))

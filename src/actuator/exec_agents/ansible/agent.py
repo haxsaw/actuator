@@ -259,7 +259,7 @@ class AnsibleExecutionAgent(ExecutionAgent):
     def get_exec_domain(cls):
         return _ansible_domain
 
-    def _perform_with_args(self, task, _, kwargs):
+    def _perform_with_args(self, task, processor, args, kwargs):
         runner = Runner(**kwargs)
         result = runner.run()
         return result

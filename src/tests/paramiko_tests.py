@@ -18,7 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.namespace import NamespaceModel
+from actuator.namespace import NamespaceModel, with_variables
 '''
 Created on Mar 16, 2016
 
@@ -27,7 +27,9 @@ Created on Mar 16, 2016
 import socket
 from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file
-from actuator.config import ConfigModel
+from actuator.config import ConfigModel, with_config_options
+from actuator.config_tasks import PingTask
+from actuator.namespace import Var, Role
 
 
 def find_ip():
@@ -150,10 +152,39 @@ def test05():
     pea.return_connection(host, user, conn)
     new_conn = pea.get_connection(host, user, password=password, fresh=True)
     assert conn is not new_conn
-
     
+    
+def test06():
+    """
+    Test a simple ping using Paramiko
+    """
+    class NS06(NamespaceModel):
+        with_variables(Var("PING_TARGET", find_ip()))
+        target = Role('target', host_ref=find_ip())
+    ns = NS06()
+    
+    class C06(ConfigModel):
+        with_config_options(remote_user="lxle1",
+                            private_key_file=find_file("lxle1-dev-key"))
+        ping = PingTask("ping", task_role=NS06.target)
+    cfg = C06()
+    
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        assert False, e.message
+        import traceback
+        for task, et, ev, tb in pea.get_aborted_tasks():
+            print(">>>>Task: %s" % task.name)
+            traceback.print_exception(et, ev, tb)
+            print()
+
 def do_all():
     setup_module()
+    test06()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
