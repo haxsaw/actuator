@@ -18,18 +18,21 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.namespace import NamespaceModel, with_variables
 '''
 Created on Mar 16, 2016
 
 @author: Tom Carroll
 '''
 import socket
+import traceback
+import sys
+import os, os.path
+
 from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file
-from actuator.config import ConfigModel, with_config_options
-from actuator.config_tasks import PingTask
-from actuator.namespace import Var, Role
+from actuator.config import ConfigModel, with_config_options, with_dependencies
+from actuator.config_tasks import (PingTask, CommandTask)
+from actuator.namespace import Var, Role, NamespaceModel, with_variables
 
 
 def find_ip():
@@ -47,6 +50,9 @@ def find_ip():
 
 def setup_module():
     pass
+
+config_options = dict(remote_user="lxle1",
+                      private_key_file=find_file("lxle1-dev-key"))
 
 
 class TestConfigModel(ConfigModel):
@@ -131,13 +137,11 @@ def test04():
     conn = pea.get_connection(host, user, password=password)
     assert conn
     pea.return_connection(host, user, conn)
-    assert conn is pea.get_connection(host, user, password=password)
-    
-    
+    # Doesn't really do anything but get rid of the client
+#     assert conn is pea.get_connection(host, user, password=password)
+
+
 def test05():
-    """
-    Test forcing a new Paramiko connection even if one is available
-    """
     user = "lxle1"
     password = open("/home/lxle1/Documents/pass", "r").read().strip()
     host = find_ip()
@@ -148,10 +152,11 @@ def test05():
     pea = ParamikoExecutionAgent(config_model_instance=cm,
                                  namespace_model_instance=nm)
     conn = pea.get_connection(host, user, password=password)
-    assert conn
-    pea.return_connection(host, user, conn)
-    new_conn = pea.get_connection(host, user, password=password, fresh=True)
-    assert conn is not new_conn
+#     assert conn.invoke_shell() is not conn.invoke_shell()
+    
+    
+class SingleRoleNS(NamespaceModel):
+    target = Role("testTarget", host_ref=find_ip())
     
     
 def test06():
@@ -175,16 +180,135 @@ def test06():
     try:
         pea.perform_config()
     except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task message; need to find where it should be")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>Task: %s" % task.name)
+                traceback.print_exception(et, ev, tb)
+                print()
+            print("Traces done")
         assert False, e.message
-        import traceback
-        for task, et, ev, tb in pea.get_aborted_tasks():
-            print(">>>>Task: %s" % task.name)
-            traceback.print_exception(et, ev, tb)
-            print()
+                
+                
+def test07():
+    """
+    test07: Test a very simple command task using Paramiko
+    """
+    class C07(ConfigModel):
+        with_config_options(remote_user="lxle1",
+                            private_key_file=find_file("lxle1-dev-key"))
+        ls = CommandTask("list", "ls -l", task_role=SingleRoleNS.target)
+    ns = SingleRoleNS()
+    cfg = C07("list")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+        
+        
+def test08():
+    """
+    test08: Try running two similar commands at the same time
+    """
+    class C08(ConfigModel):
+        with_config_options(**config_options)
+        ls1 = CommandTask("list1", "ls -l", task_role=SingleRoleNS.target)
+        ls2 = CommandTask("list2", "ls -l /tmp", task_role=SingleRoleNS.target)
+
+    ns = SingleRoleNS()
+    cfg = C08("double list")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+        
+        
+def test09():
+    """
+    test09: do a chdir before running the command to create a file
+    """
+    class C09(ConfigModel):
+        with_config_options(**config_options)
+        rm1 = CommandTask("rm1", "rm -f asdf", task_role=SingleRoleNS.target,
+                          chdir="/tmp")
+        touch1 = CommandTask("touch1", "touch asdf",
+                             task_role=SingleRoleNS.target,
+                             chdir="/tmp")
+        with_dependencies(rm1 | touch1)
+
+    ns = SingleRoleNS()
+    cfg = C09("remove/create")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    else:
+        assert os.path.exists("/tmp/asdf")
+        
+        
+def test10():
+    """
+    test10: check that trying to chdir to a non-exitent directory causes an error
+    """
+    class C10(ConfigModel):
+        with_config_options(**config_options)
+        ls = CommandTask("ls", "ls -l", task_role=SingleRoleNS.target,
+                         chdir="/wibble")
+    
+    ns = SingleRoleNS()
+    cfg = C10("bad chdir")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    
+    try:
+        pea.perform_config()
+    except:
+        assert True
+    else:
+        assert False, "This should should have failed the cddir"
 
 def do_all():
     setup_module()
-    test06()
+    test10()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
