@@ -31,8 +31,11 @@ import os, os.path
 from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file
 from actuator.config import ConfigModel, with_config_options, with_dependencies
-from actuator.config_tasks import (PingTask, CommandTask)
+from actuator.config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask)
 from actuator.namespace import Var, Role, NamespaceModel, with_variables
+
+
+here, _ = os.path.split(__file__)
 
 
 def find_ip():
@@ -156,6 +159,8 @@ def test05():
     
     
 class SingleRoleNS(NamespaceModel):
+    with_variables(Var("CMD_TARGET", find_ip()),
+                   Var("WHERE", "/bin"))
     target = Role("testTarget", host_ref=find_ip())
     
     
@@ -305,10 +310,189 @@ def test10():
         assert True
     else:
         assert False, "This should should have failed the cddir"
+        
+        
+def test11():
+    """
+    test11: check that the 'creates' kwarg causes the task to be skipped
+    """
+    to_remove = "/tmp/xyz"
+    class C11(ConfigModel):
+        with_config_options(**config_options)
+        touch = CommandTask("touch", "touch /tmp/abc",
+                            task_role=SingleRoleNS.target,
+                            creates="/tmp/xyz")
+    ns = SingleRoleNS()
+    cfg = C11("create skip")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    
+    #now create the /tmp/xyz file
+    try:
+        os.remove("/tmp/xyz")
+    except:
+        pass
+    f = open("/tmp/xyz", "w")
+    f.close()
+    
+    try:
+        os.remove("/tmp/abc")
+    except:
+        pass
+    
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    else:
+        assert os.path.exists("/tmp/xyz")
+        assert not os.path.exists("/tmp/abc")
+        
+        
+def test11a():
+    """
+    test11a: check that a 'creates' where the test file doesn't exist does run
+    """
+    class C11a(ConfigModel):
+        with_config_options(**config_options)
+        touch = CommandTask("touch", "touch /tmp/def", task_role=SingleRoleNS.target,
+                            creates="/tmp/def")
+    ns = SingleRoleNS()
+    cfg = C11a("create doesn't exist")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+
+    try:
+        os.remove("/tp/def")
+    except:
+        pass
+    
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    else:
+        assert os.path.exists("/tmp/def")
+        
+        
+def test12():
+    """
+    test12: check that 'removes' kwarg causes the task to be skipped
+    """
+    class C12(ConfigModel):
+        with_config_options(**config_options)
+        touch = CommandTask("touch", "touch /tmp/mno",
+                         task_role=SingleRoleNS.target,
+                         removes="/tmp/jkl")
+        
+    ns = SingleRoleNS()
+    cfg = C12("remove skip")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+
+    try:
+        os.remove("/tmp/jkl")
+    except:
+        pass
+    
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    else:
+        assert not os.path.exists("/tmp/mno")
+
+
+def test13():
+    """
+    test13: run a simple script
+    """
+    class C13(ConfigModel):
+        with_config_options(**config_options)
+        script = ScriptTask("script13",
+                            os.path.join(here, "test013.sh"),
+                            task_role=SingleRoleNS.target)
+    ns = SingleRoleNS()
+    cfg = C13("run test13 script")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    else:
+        assert os.path.exists("/tmp/test013Out.txt")
+        assert not os.path.exists("/tmp/test013.sh")
+        
+        
+def test14():
+    """
+    test14: check the ShellTask (same as CommandTask)
+    """
+    class C14(ConfigModel):
+        with_config_options(**config_options)
+        task = ShellTask("shell ls", "ls -l",
+                         chdir="/tmp",
+                         task_role=SingleRoleNS.target)
+    
+    ns = SingleRoleNS()
+    cfg = C14("shell task")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+
 
 def do_all():
     setup_module()
-    test10()
+    test13()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

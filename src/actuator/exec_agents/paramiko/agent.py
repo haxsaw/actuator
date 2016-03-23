@@ -32,6 +32,8 @@ import base64
 from collections import deque
 from cStringIO import StringIO
 import time
+import shlex
+import os.path
 
 from paramiko import (SSHClient, SSHException, BadHostKeyException, AuthenticationException,
                       AutoAddPolicy, RSAKey)
@@ -40,7 +42,7 @@ from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
 from actuator.utils import capture_mapping
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
-                                   CommandTask)
+                                   CommandTask, ShellTask)
 
 
 _paramiko_domain = "PARAMIKO_AGENT"
@@ -56,10 +58,13 @@ class _Result(object):
 
 class PTaskProcessor(AbstractTaskProcessor):
     
+    ctrl_d = chr(4)
+    
     def __init__(self, *args, **kwargs):
         super(PTaskProcessor, self).__init__(*args, **kwargs)
         prompt = base64.b64encode(str(uuid.uuid4()))[-7:-1]
         self.prompt = "actuator-%s-ready$ " % prompt
+        self.output = []
         
     def make_args(self, task, hlist):
         """
@@ -137,6 +142,7 @@ class PTaskProcessor(AbstractTaskProcessor):
     def _get_shell(self, client, width=200):
         sh = client.invoke_shell(width=width)
         sh.send("PS1='%s'\n" % self.prompt)
+        time.sleep(0.2)
         return sh
     
     def _was_success(self, channel):
@@ -156,38 +162,139 @@ class PTaskProcessor(AbstractTaskProcessor):
         except:
             pass
         return success, ecode
+    
+    def _populate_environment(self, channel, task):
+        env_dict = task.task_variables(for_env=True)
+        for k, v in env_dict.items():
+            channel.sendall("export %s=%s\n" % (k, v))
+            self.output.append("".join(self._drain(channel)))
             
 
 @capture_mapping(_paramiko_domain, PingTask)
 class PingProcessor(PTaskProcessor):
     def _process_task(self, client, task, **kwargs):
+        sh = self._get_shell(client)
+        sh.close()
         result = _Result(True, 0, "", "")
         return result
     
     
-# @capture_mapping(_paramiko_domain, ScriptTask)
-# class ScriptProcessor(PTaskProcessor):
-#     def _process_task(self, client, task):
-#         assert isinstance(client, SSHClient)
-
-
-@capture_mapping(_paramiko_domain, CommandTask)
-class CommandTask(PTaskProcessor):
+@capture_mapping(_paramiko_domain, ScriptTask)
+class ScriptProcessor(PTaskProcessor):
     def _make_args(self, task):
         args = {"free_form": task.free_form,
                 "creates": task.creates,
-                "removes": task.removes,
-                "chdir": task.chdir,
-                "executable": task.executable,
-                "warn": task.warn}
+                "removes": task.removes}
         return args
+    
+    def _start_shell(self, client):
+        sh = self._get_shell(client)
+        welcome = self._drain(sh)
+        return sh
+    
+    def _test_creates(self, sh, creates):
+        sh.sendall("test -e %s\n" % creates)
+        self.output.append("".join(self._drain(sh)))
+        success, ecode = self._was_success(sh)
+        return success
+
+    def _test_removes(self, sh, removes):
+        sh.sendall("test ! -e %s\n" % removes)
+        self.output.append("".join(self._drain(sh)))
+        success, ecode = self._was_success(sh)
+        return success
         
+    def _process_task(self, client, task, free_form=None, creates=None, removes=None):
+        assert isinstance(client, SSHClient)
+        sh = self._start_shell(client)
+        skip = False
+        
+        if free_form is None:
+            raise ExecutionException("There is no text in the script task %s" % task.name)
+    
+        parts = shlex.split(free_form)
+        script = parts[0]
+        if not os.path.exists(script) or not os.path.isfile(script):
+            raise ExecutionException("Can't find the script '%s' on the local system" % script)
+        
+        try:
+            f = open(script, "rb")
+        except Exception as e:
+            raise ExecutionException("Can't open the script '%s' to copy it to the remote system:%s"
+                                     % (str(e), script))
+        
+        if creates is not None:
+            skip = self._test_creates(sh, creates)
+            
+        if not skip and removes is not None:
+            skip = self._test_removes(sh, removes)
+            
+        self._populate_environment(sh, task)
+            
+        if not skip:
+            script_path, sfile = os.path.split(script)
+            tmp_script = "/tmp/%s" % sfile
+            #make sure we can create the script
+            sh.send("touch %s\n" % tmp_script)
+            self.output.append("".join(self._drain(sh)))
+            success, ecode = self._was_success(sh)
+            if not success:
+                raise ExecutionException("Unable to create the remote script file %s: %s"
+                                         % (tmp_script, "error code %s" % ecode))
+                
+            #now transmit the script
+            sh.send("cat > %s\n" % tmp_script)
+            for l in f:
+                sh.sendall(l)
+            sh.sendall("\n")
+            sh.sendall(self.ctrl_d)
+            self.output.append("".join(self._drain(sh)))
+            success, ecode = self._was_success(sh)
+            if not success:
+                raise ExecutionException("Unable to transmit the script %s to the remote host: %s"
+                                         % (tmp_script, "error code %s" % ecode))
+            
+            #ensure the script is executable
+            sh.sendall("chmod 755 %s\n" % tmp_script)
+            self.output.append("".join(self._drain(sh)))
+            success, ecode = self._was_success(sh)
+            if not success:
+                raise ExecutionException("Could not make the remote script %s executable: %s"
+                                         % (tmp_script, "error code %s" % ecode))
+            
+            #execute the script
+            remote_command = "%s %s" % (tmp_script, " ".join(parts[1:]))
+            sh.sendall("%s\n" % remote_command)
+            self.output.append("".join(self._drain(sh)))
+            
+            #check exit status
+            success, ecode = self._was_success(sh)
+            
+            #remove the script
+            sh.sendall("rm %s\n" % tmp_script)
+            self.output.append("".join(self._drain(sh)))
+        else:
+            success = ecode = 0
+            
+        f.close()
+    
+        return _Result(success, ecode, "".join(self.output), "")
+        
+
+@capture_mapping(_paramiko_domain, CommandTask)
+class CommandProcessor(ScriptProcessor):
+    def _make_args(self, task):
+        args = super(CommandProcessor, self)._make_args(task)
+        args.update( {"chdir": task.chdir,
+                      "executable": task.executable,
+                      "warn": task.warn} )
+        return args
+    
     def _process_task(self, client, task, free_form=None, creates=None, removes=None,
                       chdir=None, executable=None, warn=None, **kwargs):
         output = []
         sh = self._get_shell(client)
-        time.sleep(0.2)
-        welcome = self._drain(sh)
+        _ = self._drain(sh)
         if chdir is not None:
             sh.sendall("cd %s\n" % chdir)
             output.append("".join(self._drain(sh)))
@@ -195,12 +302,28 @@ class CommandTask(PTaskProcessor):
             if not success:
                 raise ExecutionException("Unable to change to directory '%s': %s" %
                                          (chdir, "".join(output)))
-        sh.sendall("%s\n;" % free_form)
-        time.sleep(0.2)
-        output.append("".join(self._drain(sh)))
+                
+        skip_command = False
+        if creates is not None:
+            skip_command = self._test_creates(sh, creates)
+        
+        if removes is not None and not skip_command:
+            skip_command = self._test_removes(sh, removes)
+                
+        self._populate_environment(sh, task)
+        
+        if not skip_command:
+            sh.sendall("%s\n;" % free_form)
+            time.sleep(0.2)
+            output.append("".join(self._drain(sh)))
         success, ecode = self._was_success(sh)
         result = _Result(success, ecode, "".join(output), "")
         return result
+    
+    
+@capture_mapping(_paramiko_domain, ShellTask)
+class ShellProcessor(CommandProcessor):
+    pass
 
 
 class ParamikoExecutionAgent(ExecutionAgent):
