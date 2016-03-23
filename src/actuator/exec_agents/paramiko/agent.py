@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+from actuator.exec_agents.ansible.agent import TaskProcessor
 
 '''
 Created on Mar 15, 2016
@@ -42,7 +43,8 @@ from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
 from actuator.utils import capture_mapping
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
-                                   CommandTask, ShellTask)
+                                   CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask)
+from actuator.namespace import _ComputableValue
 
 
 _paramiko_domain = "PARAMIKO_AGENT"
@@ -184,7 +186,8 @@ class ScriptProcessor(PTaskProcessor):
     def _make_args(self, task):
         args = {"free_form": task.free_form,
                 "creates": task.creates,
-                "removes": task.removes}
+                "removes": task.removes,
+                "proc_ns": task.proc_ns}
         return args
     
     def _start_shell(self, client):
@@ -204,7 +207,8 @@ class ScriptProcessor(PTaskProcessor):
         success, ecode = self._was_success(sh)
         return success
         
-    def _process_task(self, client, task, free_form=None, creates=None, removes=None):
+    def _process_task(self, client, task, free_form=None, creates=None, removes=None,
+                      proc_ns=False):
         assert isinstance(client, SSHClient)
         sh = self._start_shell(client)
         skip = False
@@ -244,7 +248,11 @@ class ScriptProcessor(PTaskProcessor):
                 
             #now transmit the script
             sh.send("cat > %s\n" % tmp_script)
+            task_role = task.get_task_role()
             for l in f:
+                if proc_ns:  #if true, do replace pattern expansions before sending
+                    cv = _ComputableValue(l)
+                    l = cv.expand(task_role, raise_on_unexpanded=True)
                 sh.sendall(l)
             sh.sendall("\n")
             sh.sendall(self.ctrl_d)
@@ -313,8 +321,19 @@ class CommandProcessor(ScriptProcessor):
         self._populate_environment(sh, task)
         
         if not skip_command:
+            if executable is not None:
+                sh.sendall("test -x %s\n" % executable)
+                self.output.append("".join(self._drain(sh)))
+                success, ecode = self._was_success(sh)
+                if not success:
+                    raise ExecutionException("Executable '%s' either can't be found or isn't executable"
+                                             % executable)
+                sh.sendall("%s\n" % executable)
             sh.sendall("%s\n;" % free_form)
             time.sleep(0.2)
+            if executable is not None:
+                sh.sendall("\n")
+                sh.sendall(self.ctrl_d)
             output.append("".join(self._drain(sh)))
         success, ecode = self._was_success(sh)
         result = _Result(success, ecode, "".join(output), "")
@@ -324,6 +343,28 @@ class CommandProcessor(ScriptProcessor):
 @capture_mapping(_paramiko_domain, ShellTask)
 class ShellProcessor(CommandProcessor):
     pass
+
+
+@capture_mapping(_paramiko_domain, CopyFileTask)
+class CopyFileProcessor(TaskProcessor):
+    def _make_args(self, task):
+        assert isinstance(task, CopyFileTask)
+        args = {"dest": task.dest,
+                "backup": task.backup,
+                "content": task.content,
+                "directory_mode": task.directory_mode,
+                "follow": task.follow,
+                "force": task.force,
+                "group": task.group,
+                "mode": task.mode,
+                "owner": task.owner,
+                "selevel": task.selevel,
+                "serole": task.serole,
+                "setype": task.setype,
+                "seuser": task.seuser,
+                "src": task.src,
+                "validate": task.validate}
+        return args
 
 
 class ParamikoExecutionAgent(ExecutionAgent):
@@ -358,13 +399,14 @@ class ParamikoExecutionAgent(ExecutionAgent):
         """
         conn = None
         
-        if priv_key is None and priv_key_file is None and password is None:
-            raise ExecutionException("Can't get connection to host; one of priv_key, "
-                                     "priv_key_file, or password must be supplied in "
-                                     "order to connect")
+#         if priv_key is None and priv_key_file is None and password is None:
+#             raise ExecutionException("Can't get connection to host; one of priv_key, "
+#                                      "priv_key_file, or password must be supplied in "
+#                                      "order to connect")
             
         try:
             conn = SSHClient()
+            conn.load_system_host_keys()
             conn.set_missing_host_key_policy(AutoAddPolicy())
             if priv_key:
                 sio = StringIO(priv_key)
@@ -382,7 +424,7 @@ class ParamikoExecutionAgent(ExecutionAgent):
         return conn
 
         #@FIXME Paramiko can't handle more than one channel on a single client
-        #so the follow is commented out until that is corrected
+        #so the following is commented out until that is corrected
 #         while not conn:
 #             wait_on_ipc = False
 #             with self.cache_lock:

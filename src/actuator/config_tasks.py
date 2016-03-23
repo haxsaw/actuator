@@ -41,7 +41,7 @@ class ScriptTask(ConfigTask):
     
     See http://docs.ansible.com/script_module.html for full details.
     """
-    def __init__(self, name, free_form, creates=None, removes=None, **kwargs):
+    def __init__(self, name, free_form, creates=None, removes=None, proc_ns=False, **kwargs):
         """
         @param name: logical name for the task
         @param free_form: A string with the path to the locally available
@@ -55,6 +55,11 @@ class ScriptTask(ConfigTask):
         @keyword removes: String; the name of a file on the remote system that
             the script will remove. If it isn't there, then the script will
             not be run. If not supplied then no removal test will be performed.
+        @keyword proc_ns: boolean; a flag to indicate if the script should be processed
+            through the namespace prior to being copied to the remote system. This allows
+            for scripts with Actuator Var replacement patterns to have those patterns
+            replaced with the appropriate value in the final script that will be executed.
+            The default is False, so no namespace processing is done. 
         @keyword **kwargs: the other available keyword arguments for
             L{ConfigTask}
         """
@@ -65,6 +70,8 @@ class ScriptTask(ConfigTask):
         self._creates = creates
         self.removes = None
         self._removes = removes
+        self.proc_ns = None
+        self._proc_ns = proc_ns
         
     def get_init_args(self):
         __doc__ = ConfigTask.get_init_args.__doc__
@@ -72,6 +79,7 @@ class ScriptTask(ConfigTask):
         args = args + (self._free_form,)
         kwargs["creates"] = self._creates
         kwargs["removes"] = self._removes
+        kwargs["proc_ns"] = self._proc_ns
         return args, kwargs
 
     def _fix_arguments(self):
@@ -79,6 +87,7 @@ class ScriptTask(ConfigTask):
         self.free_form = self._get_arg_value(self._free_form)
         self.creates = self._get_arg_value(self._creates)
         self.removes = self._get_arg_value(self._removes)
+        self.proc_ns = self._get_arg_value(self._proc_ns)
         
 
 class CommandTask(ScriptTask):

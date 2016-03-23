@@ -32,7 +32,7 @@ from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file
 from actuator.config import ConfigModel, with_config_options, with_dependencies
 from actuator.config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask)
-from actuator.namespace import Var, Role, NamespaceModel, with_variables
+from actuator.namespace import (Var, Role, NamespaceModel, with_variables)
 
 
 here, _ = os.path.split(__file__)
@@ -457,8 +457,40 @@ def test13():
                 print()
         assert False, e.message
     else:
-        assert os.path.exists("/tmp/test013Out.txt")
+        assert os.path.exists("/tmp/test013Out.txt")                                  
         assert not os.path.exists("/tmp/test013.sh")
+        
+        
+def test13a():
+    """
+    test13a: run a simple script with replacements
+    """
+    class C13a(ConfigModel):
+        with_config_options(**config_options)
+        script = ScriptTask("script13a",
+                            os.path.join(here, "test013a.sh"),
+                            task_role=SingleRoleNS.target,
+                            proc_ns=True)
+    ns = SingleRoleNS()
+    cfg = C13a("run test13a script")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    else:
+        assert os.path.exists("/tmp/test013aOut.txt")
+        assert not os.path.exists("/tmp/test013a.sh")
         
         
 def test14():
@@ -490,9 +522,37 @@ def test14():
         assert False, e.message
 
 
+def test15():
+    """
+    test15: back to CommandTask one last time; try running another shell
+    """
+    class C15(ConfigModel):
+        with_config_options(**config_options)
+        task = CommandTask("dash!", "ls -l",
+                           task_role=SingleRoleNS.target,
+                           executable="/bin/dash")
+        
+    ns = SingleRoleNS()
+    cfg = C15("alt shell")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+
+
 def do_all():
     setup_module()
-    test13()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
