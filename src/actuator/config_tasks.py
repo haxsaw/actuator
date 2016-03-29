@@ -151,7 +151,7 @@ class CommandTask(ScriptTask):
 class ShellTask(CommandTask):
     """
     Almost the same as the L{CommandTask}, except that the task is run within
-    a shell, and so shell meta-characters (rediction, etc) can be used.
+    a shell, and so shell meta-characters (redirection, etc) can be used.
     
     The arguments for ShellTask are the same as those for L{CommandTask}.
     
@@ -299,7 +299,7 @@ class CopyFileTask(ConfigTask):
     
 class ProcessCopyFileTask(CopyFileTask):
     """
-    Like CopyFileTask, except for two crucial differences:
+    Like L{CopyFileTask}, except for two crucial differences:
     
       1. The file to be copied can contain Var replacement patterns that will
          be processed through the task_role's view of the namespace, replacing
@@ -308,11 +308,11 @@ class ProcessCopyFileTask(CopyFileTask):
       2. Given that the file is changed, recursive copies will not result in
          replacement patterns being processed. If you have a directory hierarchy
          to copy that contains some files to replace, the best approach is to
-         use CopyFileTask to copy the whole hierarchy, then use
+         use L{CopyFileTask} to copy the whole hierarchy, then use
          ProcessCopyFileTask to independently copy just the files that have to
          be processed through the namespace.
          
-    The arguments are otherwise identical to CopyFileTask.
+    The arguments are otherwise identical to L{CopyFileTask}.
     """
     def __init__(self, *args, **kwargs):
         if "src" not in kwargs and "content" not in kwargs:
@@ -320,3 +320,23 @@ class ProcessCopyFileTask(CopyFileTask):
                                      "the 'src' or 'content' keyword arguments")
         super(ProcessCopyFileTask, self).__init__(*args, **kwargs)
 
+
+class LocalCommandTask(ConfigTask):
+    """
+    Runs some command on the local host in a subprocess. A shell is not
+    invoked so shell metachars are NOT expanded (use L{LocalShell} if metachar
+    support is required).
+    """
+    def __init__(self, name, command, *args, **kwargs):
+        super(LocalCommandTask, self).__init__(name, *args, **kwargs)
+        self._command = command
+        self.command = None
+        
+    def get_init_args(self):
+        args, kwargs = super(LocalCommandTask, self).get_init_args()
+        args += (self._command,)
+        return args, kwargs
+    
+    def _fix_arguments(self):
+        super(LocalCommandTask, self)._fix_arguments()
+        self.command = self._get_arg_value(self._command)

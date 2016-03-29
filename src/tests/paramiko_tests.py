@@ -28,14 +28,17 @@ import traceback
 import sys
 import os, os.path
 
+from nose import SkipTest
+
 from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file
 from actuator.config import ConfigModel, with_config_options, with_dependencies
-from actuator.config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask)
+from actuator.config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
+                                   CopyFileTask, LocalCommandTask)
 from actuator.namespace import (Var, Role, NamespaceModel, with_variables)
 
 
-here, _ = os.path.split(__file__)
+here, this_file = os.path.split(__file__)
 
 
 def find_ip():
@@ -549,6 +552,145 @@ def test15():
                 traceback.print_exception(et, ev, tb, file=sys.stdout)
                 print()
         assert False, e.message
+        
+        
+def test16():
+    """
+    test16: Run a command with shell metachars and see they don't expand
+    """
+    class C16(ConfigModel):
+        with_config_options(**config_options)
+        task = CommandTask("echo-1", "/bin/echo $PATH > test16",
+                           task_role=SingleRoleNS.target,
+                           chdir="/tmp")
+        
+    ns = SingleRoleNS()
+    cfg = C16("echo-1")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    else:
+        assert not os.path.exists("/tmp/test16")
+        
+        
+def test17():
+    """
+    test17: Run a shell with shell metachars and see they are respected
+    """
+    thefile = "/tmp/test17"
+    class C17(ConfigModel):
+        with_config_options(**config_options)
+        task = ShellTask("echo-2", "/bin/echo $PATH > !{SINK_FILE}",
+                           task_role=SingleRoleNS.target)
+        check = CommandTask("check", "test -e !{SINK_FILE}",
+                            task_role=SingleRoleNS.target)
+        rm = CommandTask("rm", "rm !{SINK_FILE}",
+                         task_role=SingleRoleNS.target)
+        with_dependencies(task | check | rm)
+        
+    ns = SingleRoleNS()
+    ns.add_variable(Var("SINK_FILE", thefile))
+    cfg = C17("echo-2")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+#
+# NOTE:
+# test18 normally raises SkipTest as the test is predicated on the user running the test
+# having their known_hosts file containing credentials for the user named in the
+# rem_user variable for localhost. Since this can't be guaranteed this test
+# is usually skipped, but it can be activated simply by commenting out the
+# raise SkipTest after replacing the value of rem_user with a credentialed user name.
+        
+def test18():
+    """
+    test18: check logging in when using system keys only
+    """
+    rem_user = "tom"
+    raise SkipTest("See comment; only run this test if the credentials for 'rem_user' to localhost "
+                     "are in the current user's known_hosts")
+    class C18(ConfigModel):
+        with_config_options(remote_user=rem_user)
+        ping = PingTask("system-keys-ping", task_role=SingleRoleNS.target)
+ 
+    ns = SingleRoleNS()
+    cfg = C18("system-creds-check")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+        
+        
+def test19():
+    """
+    test19: simple copy file test
+    """
+    there = os.path.join("/tmp", this_file)
+    class C19(ConfigModel):
+        with_config_options(**config_options)
+        cp = CopyFileTask("sendit", there, src=__file__,
+                          task_role=SingleRoleNS.target)
+        check1 = LocalCommandTask("check there", "/usr/bin/test -e %s" % there,
+                                  task_role=SingleRoleNS.target)
+        rm = CommandTask("removeit", "rm %s" % there,
+                         task_role=SingleRoleNS.target)
+        check2 = LocalCommandTask("check gone", "/usr/bin/test ! -e %s" % there,
+                                  task_role=SingleRoleNS.target)
+        with_dependencies(cp | check1 | rm | check2)
+        
+    ns = SingleRoleNS()
+    cfg = C19("local command and simple copy")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+
 
 
 def do_all():

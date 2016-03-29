@@ -35,6 +35,7 @@ from cStringIO import StringIO
 import time
 import shlex
 import os.path
+import subprocess32
 
 from paramiko import (SSHClient, SSHException, BadHostKeyException, AuthenticationException,
                       AutoAddPolicy, RSAKey)
@@ -43,7 +44,8 @@ from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
 from actuator.utils import capture_mapping
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
-                                   CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask)
+                                   CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
+                                   LocalCommandTask)
 from actuator.namespace import _ComputableValue
 
 
@@ -298,6 +300,13 @@ class CommandProcessor(ScriptProcessor):
                       "warn": task.warn} )
         return args
     
+    def _format_command(self, command):
+        parts = shlex.split(command)
+        formatted = [parts[0]]
+        for p in parts[1:]:
+            formatted.append("'%s'" % p)
+        return ' '.join(formatted)
+    
     def _process_task(self, client, task, free_form=None, creates=None, removes=None,
                       chdir=None, executable=None, warn=None, **kwargs):
         output = []
@@ -329,7 +338,8 @@ class CommandProcessor(ScriptProcessor):
                     raise ExecutionException("Executable '%s' either can't be found or isn't executable"
                                              % executable)
                 sh.sendall("%s\n" % executable)
-            sh.sendall("%s\n;" % free_form)
+            ff_formatted = self._format_command(free_form)
+            sh.sendall("%s\n;" % ff_formatted)
             time.sleep(0.2)
             if executable is not None:
                 sh.sendall("\n")
@@ -342,11 +352,29 @@ class CommandProcessor(ScriptProcessor):
     
 @capture_mapping(_paramiko_domain, ShellTask)
 class ShellProcessor(CommandProcessor):
-    pass
+    def _format_command(self, command):
+        return command
 
+
+@capture_mapping(_paramiko_domain, LocalCommandTask)
+class LocalCommandProcessor(PTaskProcessor):
+    def _make_args(self, task):
+        assert isinstance(task, LocalCommandTask)
+        args = {"command": task.command}
+        return args
+    
+    def _process_task(self, client, task, command):
+        output = []
+        args = shlex.split(command)
+        sp = subprocess32.Popen(args, stdout=subprocess32.PIPE, stderr=subprocess32.STDOUT)
+        for l in sp.stdout:
+            output.append(l)
+        success = sp.returncode == 0
+        return _Result(success, sp.returncode, "".join(output), "")
+            
 
 @capture_mapping(_paramiko_domain, CopyFileTask)
-class CopyFileProcessor(TaskProcessor):
+class CopyFileProcessor(PTaskProcessor):
     def _make_args(self, task):
         assert isinstance(task, CopyFileTask)
         args = {"dest": task.dest,
@@ -365,7 +393,40 @@ class CopyFileProcessor(TaskProcessor):
                 "src": task.src,
                 "validate": task.validate}
         return args
-
+    
+    def _process_task(self, client, task, dest, backup=None, content=None, directory_mode=None,
+                      follow=False, force=True, group=None, mode=None, owner=None,
+                      selevel="s0", serole=None, setype=None, seuser=None, src=None,
+                      validate=None):
+        if src is None and content is None:
+            raise ExecutionException("Task %s can't run; neither src nor content were supplied"
+                                     % task.name)
+        if content is not None:
+            f = StringIO(content)
+        else:
+            if not os.path.exists(src):
+                raise ExecutionException("Task %s can't run; can't find src file %s" % src)
+            f = open(src, "r")
+            
+        output = []
+        sh = self._get_shell(client)
+        _ = self._drain(sh)
+        sh.send("touch %s\n" % dest)
+        output.append("".join(self._drain(sh)))
+        success, ecode = self._was_success(sh)
+        if not success:
+            raise ExecutionException("Unable to create destination file %s: (%s) %s" % (dest, ecode, "".join(output)))
+        sh.send("cat > %s\n" % dest)
+        for l in f:
+            sh.send(l)
+        sh.send("\n")
+        sh.send(self.ctrl_d)
+        #we don't capture this as the echo of the file could be huge...
+        _ = self._drain(sh)
+        success, ecode = self._was_success(sh)
+        result = _Result(success, ecode, "".join(output), "")
+        return result
+        
 
 class ParamikoExecutionAgent(ExecutionAgent):
     def __init__(self, **kwargs):
