@@ -275,12 +275,15 @@ class CopyFileTask(ConfigTask):
         kwargs["validate"] = self._validate
         return args, kwargs
     
+    def _get_content(self):
+        return self._content
+    
     def _fix_arguments(self):
         super(CopyFileTask, self)._fix_arguments()
         self.dest = self._get_arg_value(self._dest)
         self.backup = self._get_arg_value(self._backup)
         self.backup = "yes" if self.backup else "no"
-        self.content = self._get_arg_value(self._content)
+        self.content = self._get_content()
         self.directory_mode = self._get_arg_value(self._directory_mode)
         self.follow = self._get_arg_value(self._follow)
         self.follow = "yes" if self.follow else "no"
@@ -319,6 +322,9 @@ class ProcessCopyFileTask(CopyFileTask):
             raise ExecutionException("ProcessCopyFileTask must be given either "
                                      "the 'src' or 'content' keyword arguments")
         super(ProcessCopyFileTask, self).__init__(*args, **kwargs)
+        
+    def _get_content(self):
+        return self._get_arg_value(self._content)
 
 
 class LocalCommandTask(ConfigTask):

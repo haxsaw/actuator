@@ -667,14 +667,55 @@ def test19():
                           task_role=SingleRoleNS.target)
         check1 = LocalCommandTask("check there", "/usr/bin/test -e %s" % there,
                                   task_role=SingleRoleNS.target)
+        diff = LocalCommandTask("diff", "diff %s %s" % (there, __file__),
+                                task_role=SingleRoleNS.target)
         rm = CommandTask("removeit", "rm %s" % there,
                          task_role=SingleRoleNS.target)
         check2 = LocalCommandTask("check gone", "/usr/bin/test ! -e %s" % there,
                                   task_role=SingleRoleNS.target)
-        with_dependencies(cp | check1 | rm | check2)
+        with_dependencies(cp | check1 | diff | rm | check2)
         
     ns = SingleRoleNS()
     cfg = C19("local command and simple copy")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+        
+        
+def test20():
+    """
+    test20: copy a file from memory
+    """
+    there = os.path.join("/tmp", this_file)
+    my_content = open(__file__, "r").read()
+    class C20(ConfigModel):
+        with_config_options(**config_options)
+        cp = CopyFileTask("sendit", there, content=my_content,
+                          task_role=SingleRoleNS.target)
+        check1 = LocalCommandTask("check there", "/usr/bin/test -e %s" % there,
+                                  task_role=SingleRoleNS.target)
+        diff = LocalCommandTask("diff", "diff %s %s" % (there, __file__),
+                                task_role=SingleRoleNS.target)
+        rm = CommandTask("removeit", "rm %s" % there,
+                         task_role=SingleRoleNS.target)
+        check2 = LocalCommandTask("check gone", "/usr/bin/test ! -e %s" % there,
+                                  task_role=SingleRoleNS.target)
+        with_dependencies(cp | check1 | diff | rm | check2)
+
+    ns = SingleRoleNS()
+    cfg = C20("copy content from memory")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
@@ -695,9 +736,10 @@ def test19():
 
 def do_all():
     setup_module()
-    for k, v in globals().items():
-        if k.startswith("test") and callable(v):
-            v()
+    test20()
+#     for k, v in globals().items():
+#         if k.startswith("test") and callable(v):
+#             v()
             
 if __name__ == "__main__":
     do_all()
