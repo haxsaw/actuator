@@ -460,6 +460,8 @@ class CopyFileProcessor(PTaskProcessor):
                 target = dest
             for dirpath, dirnames, filenames in os.walk(src, followlinks=follow):
                 prefix = dirpath.split(src)[-1]
+                if os.path.isabs(prefix):
+                    prefix = prefix[1:]
                 for dn in dirnames:
                     newdir = os.path.join(target, prefix, dn)
                     self._make_dir(sftp, newdir, mode=mode, owner=owner, group=group)

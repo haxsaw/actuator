@@ -646,11 +646,41 @@ def test22():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    perform_and_complain(pea)   
+    perform_and_complain(pea)
+    
+    
+def test23():
+    """
+    test23: ensure nested directory hierarchies copy
+    """
+    srcdir, _ = os.path.split(here) #assumes src/tests dir structure
+    dest = "/tmp"
+    class C23(ConfigModel):
+        with_config_options(**config_options)
+        check1 = LocalCommandTask("check gone",
+                                  "/usr/bin/test ! -e /tmp/src",
+                                  task_role=SingleRoleNS.target)
+        cp = CopyFileTask("deep-hier-copy", dest, src=srcdir,
+                          task_role=SingleRoleNS.target)
+        check2 = LocalCommandTask("check copied",
+                                  "/usr/bin/test -e /tmp/src/tests",
+                                  task_role=SingleRoleNS.target)
+        rm = CommandTask("rmdir", "rm -rf /tmp/src",
+                         task_role=SingleRoleNS.target)
+        with_dependencies(check1 | cp | check2 | rm)
+        
+    ns = SingleRoleNS()
+    cfg = C23("deep copy")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    perform_and_complain(pea)
+    
 
 
 def do_all():
     setup_module()
+    test23()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
