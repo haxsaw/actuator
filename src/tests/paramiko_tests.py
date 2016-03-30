@@ -167,6 +167,21 @@ class SingleRoleNS(NamespaceModel):
     target = Role("testTarget", host_ref=find_ip())
     
     
+def perform_and_complain(pea):
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+    
+    
 def test06():
     """
     Test a simple ping using Paramiko
@@ -185,19 +200,7 @@ def test06():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task message; need to find where it should be")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>Task: %s" % task.name)
-                traceback.print_exception(et, ev, tb)
-                print()
-            print("Traces done")
-        assert False, e.message
+    perform_and_complain(pea)
                 
                 
 def test07():
@@ -214,18 +217,7 @@ def test07():
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
         
         
 def test08():
@@ -243,18 +235,7 @@ def test08():
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
         
         
 def test09():
@@ -277,17 +258,9 @@ def test09():
                                  no_delay=True)
     
     try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+        perform_and_complain(pea)
+    except:
+        raise
     else:
         assert os.path.exists("/tmp/asdf")
         
@@ -345,17 +318,9 @@ def test11():
         pass
     
     try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+        perform_and_complain(pea)
+    except:
+        raise
     else:
         assert os.path.exists("/tmp/xyz")
         assert not os.path.exists("/tmp/abc")
@@ -381,17 +346,9 @@ def test11a():
         pass
     
     try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+        perform_and_complain(pea)
+    except:
+        raise
     else:
         assert os.path.exists("/tmp/def")
         
@@ -418,17 +375,9 @@ def test12():
         pass
     
     try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+        perform_and_complain(pea)
+    except:
+        raise
     else:
         assert not os.path.exists("/tmp/mno")
 
@@ -448,17 +397,9 @@ def test13():
                                  namespace_model_instance=ns,
                                  no_delay=True)
     try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+        perform_and_complain(pea)
+    except:
+        raise
     else:
         assert os.path.exists("/tmp/test013Out.txt")                                  
         assert not os.path.exists("/tmp/test013.sh")
@@ -480,17 +421,9 @@ def test13a():
                                  namespace_model_instance=ns,
                                  no_delay=True)
     try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+        perform_and_complain(pea)
+    except:
+        raise
     else:
         assert os.path.exists("/tmp/test013aOut.txt")
         assert not os.path.exists("/tmp/test013a.sh")
@@ -511,18 +444,7 @@ def test14():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
 
 
 def test15():
@@ -540,18 +462,7 @@ def test15():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
         
         
 def test16():
@@ -570,17 +481,9 @@ def test16():
                                  namespace_model_instance=ns,
                                  no_delay=True)
     try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+        perform_and_complain(pea)
+    except:
+        raise
     else:
         assert not os.path.exists("/tmp/test16")
         
@@ -606,18 +509,8 @@ def test17():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
+    
 #
 # NOTE:
 # test18 normally raises SkipTest as the test is predicated on the user running the test
@@ -642,18 +535,7 @@ def test18():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
         
         
 def test19():
@@ -680,18 +562,7 @@ def test19():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
         
         
 def test20():
@@ -719,27 +590,70 @@ def test20():
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
-    try:
-        pea.perform_config()
-    except Exception as e:
-        if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
-        else:
-            print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
-                traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+    perform_and_complain(pea)
+        
+        
+def test21():
+    """
+    test21: try copying a whole directory hierarchy including the root
+    """
+    dir_to_copy = here
+    dest = os.path.join("/tmp", os.path.split(here)[-1])
+    class C21(ConfigModel):
+        with_config_options(**config_options)
+        check1 = LocalCommandTask("check gone", "/usr/bin/test ! -e %s" % dest,
+                                  task_role=SingleRoleNS.target)
+        cp = CopyFileTask("copy-dir-with-root", "/tmp", src=dir_to_copy,
+                          task_role=SingleRoleNS.target)
+        check2 = LocalCommandTask("check there", "/usr/bin/test -e %s" % dest,
+                                  task_role=SingleRoleNS.target)
+        rm = CommandTask("rmdir", "rm -rf %s" % dest,
+                         task_role=SingleRoleNS.target)
+        
+        with_dependencies(check1 | cp | check2 | rm)
 
+    ns = SingleRoleNS()
+    cfg = C21("copy directory with root")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    perform_and_complain(pea)   
+
+
+def test22():
+    """
+    test22: copy a whole directory but not the root
+    """
+    dir_to_copy = "%s/" % here
+    dest = "/tmp/terst"
+    this_new = os.path.join(dest, this_file)
+    class C22(ConfigModel):
+        with_config_options(**config_options)
+        check1 = LocalCommandTask("check gone", "/usr/bin/test ! -e %s" % dest,
+                                  task_role=SingleRoleNS.target)
+        mkdir = CommandTask("mkdir", "mkdir %s" % dest,
+                            task_role=SingleRoleNS.target)
+        cp = CopyFileTask("copy-dir-without-root", dest, src=dir_to_copy,
+                          task_role=SingleRoleNS.target)
+        check2 = LocalCommandTask("check there", "/usr/bin/test -e %s" % this_new,
+                                  task_role=SingleRoleNS.target)
+        rm = CommandTask("rm", "rm -rf %s" % dest,
+                         task_role=SingleRoleNS.target)
+        with_dependencies(check1 | mkdir | cp | check2 | rm)
+        
+    ns = SingleRoleNS()
+    cfg = C22("copy directory without root")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    perform_and_complain(pea)   
 
 
 def do_all():
     setup_module()
-    test20()
-#     for k, v in globals().items():
-#         if k.startswith("test") and callable(v):
-#             v()
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
             
 if __name__ == "__main__":
     do_all()

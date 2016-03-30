@@ -38,7 +38,7 @@ import os.path
 import subprocess32
 
 from paramiko import (SSHClient, SSHException, BadHostKeyException, AuthenticationException,
-                      AutoAddPolicy, RSAKey)
+                      AutoAddPolicy, RSAKey, SFTPClient, SFTPAttributes)
 
 from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
@@ -394,6 +394,49 @@ class CopyFileProcessor(PTaskProcessor):
                 "validate": task.validate}
         return args
     
+    def _put_file(self, sftp, rem_path, abs_local_file=None, content=None, mode=None,
+                  owner=None, group=None):
+        assert isinstance(sftp, SFTPClient)
+        
+        if content is not None:
+            f = sftp.open(rem_path, mode="w")
+            f.write(content)
+            f.close()
+        else:
+            if not os.path.exists(abs_local_file):
+                return False, "The local file %s doesn't exist" % abs_local_file
+            if not os.path.isfile(abs_local_file):
+                return False, "%s isn't a plain file" % abs_local_file
+            sftp.put(abs_local_file, rem_path)
+            
+        if mode is not None:
+            sftp.chmod(rem_path, mode)
+            
+        if owner is not None or group is not None:
+            stat = sftp.stat(rem_path)
+            assert isinstance(stat, SFTPAttributes)
+            owner = owner if owner is not None else stat.st_uid
+            group = group if group is not None else stat.st_gid
+            sftp.chown(rem_path, owner, group)
+        
+        return True, ""
+    
+    def _make_dir(self, sftp, rem_path, mode=None, owner=None, group=None):
+        assert isinstance(sftp, SFTPClient)
+        sftp.mkdir(rem_path)
+        
+        if mode is not None:
+            sftp.chmod(rem_path, mode)
+            
+        if owner is not None or group is not None:
+            stat = sftp.stat(rem_path)
+            assert isinstance(stat, SFTPAttributes)
+            owner = owner if owner is not None else stat.st_uid
+            group = group if group is not None else stat.st_gid
+            sftp.chown(rem_path, owner, group)
+            
+        return True, ""
+    
     def _process_task(self, client, task, dest, backup=None, content=None, directory_mode=None,
                       follow=False, force=True, group=None, mode=None, owner=None,
                       selevel="s0", serole=None, setype=None, seuser=None, src=None,
@@ -401,30 +444,33 @@ class CopyFileProcessor(PTaskProcessor):
         if src is None and content is None:
             raise ExecutionException("Task %s can't run; neither src nor content were supplied"
                                      % task.name)
-        if content is not None:
-            f = StringIO(content)
-        else:
-            if not os.path.exists(src):
-                raise ExecutionException("Task %s can't run; can't find src file %s" % src)
-            f = open(src, "r")
             
-        output = []
-        sh = self._get_shell(client)
-        _ = self._drain(sh)
-        sh.send("touch %s\n" % dest)
-        output.append("".join(self._drain(sh)))
-        success, ecode = self._was_success(sh)
-        if not success:
-            raise ExecutionException("Unable to create destination file %s: (%s) %s" % (dest, ecode, "".join(output)))
-        sh.send("cat > %s\n" % dest)
-        for l in f:
-            sh.send(l)
-        sh.send("\n")
-        sh.send(self.ctrl_d)
-        #we don't capture this as the echo of the file could be huge...
-        _ = self._drain(sh)
-        success, ecode = self._was_success(sh)
-        result = _Result(success, ecode, "".join(output), "")
+        sftp = client.open_sftp()
+            
+        if (src is not None and not os.path.isdir(src)) or content is not None:
+            success, ecode = self._put_file(sftp, dest, abs_local_file=src, content=content, mode=mode,
+                                            owner=owner, group=group)
+        elif src is not None and os.path.isdir(src):
+            with_root = not src.endswith("/")
+            _, tail = os.path.split(src)
+            if with_root:
+                target = os.path.join(dest, tail)
+                self._make_dir(sftp, target, mode=mode, owner=owner, group=group)
+            else:
+                target = dest
+            for dirpath, dirnames, filenames in os.walk(src, followlinks=follow):
+                prefix = dirpath.split(src)[-1]
+                for dn in dirnames:
+                    newdir = os.path.join(target, prefix, dn)
+                    self._make_dir(sftp, newdir, mode=mode, owner=owner, group=group)
+                for fn in filenames:
+                    rp = os.path.join(target, prefix, fn)
+                    lp = os.path.join(dirpath, fn)
+                    self._put_file(sftp, rp, lp, mode=mode, owner=owner, group=group)
+            success = True
+            ecode = 0
+                
+        result = _Result(success, ecode, "", "")
         return result
         
 
@@ -451,8 +497,8 @@ class ParamikoExecutionAgent(ExecutionAgent):
             named host and user.
         @param password: string, optional. The user's password for logging into the named host.
         
-        One of priv_key, priv_key_file, or password must be supplied in order to connect
-        to the host.
+        If none of priv_key, priv_key_file, or password are supplied, a private key
+        must exist for this host in the user's known_hosts file.
         
         @return: A connected Paramiko SSHClient instance.
         @raise ExecutionException: Raised for incorrect arguments (missing credentials) or
