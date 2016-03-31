@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from actuator.exec_agents.ansible.agent import TaskProcessor
+from nose.util import src
 
 '''
 Created on Mar 15, 2016
@@ -363,7 +364,7 @@ class LocalCommandProcessor(PTaskProcessor):
         args = {"command": task.command}
         return args
     
-    def _process_task(self, client, task, command):
+    def _process_task(self, client, task, command=None):
         output = []
         args = shlex.split(command)
         sp = subprocess32.Popen(args, stdout=subprocess32.PIPE, stderr=subprocess32.STDOUT)
@@ -421,20 +422,25 @@ class CopyFileProcessor(PTaskProcessor):
         
         return True, ""
     
-    def _make_dir(self, sftp, rem_path, mode=None, owner=None, group=None):
+    def _set_dir_perms(self, sftp, rem_dir, local_dir, mode=None, owner=None,
+                       group=None):
+        rstat = sftp.stat(rem_dir)
+        if owner is not None or group is not None:
+            owner = owner if owner is not None else rstat.st_uid
+            group = group if group is not None else rstat.st_gid
+            sftp.chown(rem_dir, owner, group)
+            
+        if mode is None:
+            lstat = os.stat(local_dir)
+            mode = lstat.st_mode
+        sftp.chmod(rem_dir, mode)
+        
+        return True, ""
+    
+    def _make_dir(self, sftp, rem_path):
         assert isinstance(sftp, SFTPClient)
         sftp.mkdir(rem_path)
         
-        if mode is not None:
-            sftp.chmod(rem_path, mode)
-            
-        if owner is not None or group is not None:
-            stat = sftp.stat(rem_path)
-            assert isinstance(stat, SFTPAttributes)
-            owner = owner if owner is not None else stat.st_uid
-            group = group if group is not None else stat.st_gid
-            sftp.chown(rem_path, owner, group)
-            
         return True, ""
     
     def _process_task(self, client, task, dest, backup=None, content=None, directory_mode=None,
@@ -448,6 +454,9 @@ class CopyFileProcessor(PTaskProcessor):
         sftp = client.open_sftp()
             
         if (src is not None and not os.path.isdir(src)) or content is not None:
+            if src is not None and content is None and mode is None:
+                fstat = os.stat(src)
+                mode = fstat.st_mode
             success, ecode = self._put_file(sftp, dest, abs_local_file=src, content=content, mode=mode,
                                             owner=owner, group=group)
         elif src is not None and os.path.isdir(src):
@@ -455,7 +464,7 @@ class CopyFileProcessor(PTaskProcessor):
             _, tail = os.path.split(src)
             if with_root:
                 target = os.path.join(dest, tail)
-                self._make_dir(sftp, target, mode=mode, owner=owner, group=group)
+                self._make_dir(sftp, target)
             else:
                 target = dest
             for dirpath, dirnames, filenames in os.walk(src, followlinks=follow):
@@ -464,11 +473,26 @@ class CopyFileProcessor(PTaskProcessor):
                     prefix = prefix[1:]
                 for dn in dirnames:
                     newdir = os.path.join(target, prefix, dn)
-                    self._make_dir(sftp, newdir, mode=mode, owner=owner, group=group)
+                    self._make_dir(sftp, newdir)
                 for fn in filenames:
                     rp = os.path.join(target, prefix, fn)
                     lp = os.path.join(dirpath, fn)
-                    self._put_file(sftp, rp, lp, mode=mode, owner=owner, group=group)
+                    if mode is None:
+                        fstat = os.stat(lp)
+                        fmode = fstat.st_mode
+                    else:
+                        fmode = mode
+                    self._put_file(sftp, rp, lp, mode=fmode, owner=owner, group=group)
+                    
+            #now pass over the local dirs again in order to set all directory modes on the remote
+            for dirpath, _, _ in os.walk(src, followlinks=follow, topdown=False):
+                prefix = dirpath.split(src)[-1]
+                if os.path.isabs(prefix):
+                    prefix = prefix[1:]
+                self._set_dir_perms(sftp, os.path.join(target, prefix),
+                                    dirpath, mode=directory_mode, owner=owner, group=group)
+            if with_root:
+                self._set_dir_perms(sftp, target, src, mode=directory_mode, owner=owner, group=group)
             success = True
             ecode = 0
                 

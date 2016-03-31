@@ -333,14 +333,14 @@ class LocalCommandTask(ConfigTask):
     invoked so shell metachars are NOT expanded (use L{LocalShell} if metachar
     support is required).
     """
-    def __init__(self, name, command, *args, **kwargs):
-        super(LocalCommandTask, self).__init__(name, *args, **kwargs)
+    def __init__(self, name, command=None, **kwargs):
+        super(LocalCommandTask, self).__init__(name, **kwargs)
         self._command = command
         self.command = None
         
     def get_init_args(self):
         args, kwargs = super(LocalCommandTask, self).get_init_args()
-        args += (self._command,)
+        kwargs["command"] = self._command
         return args, kwargs
     
     def _fix_arguments(self):

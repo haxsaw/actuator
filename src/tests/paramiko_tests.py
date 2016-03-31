@@ -676,6 +676,67 @@ def test23():
                                  no_delay=True)
     perform_and_complain(pea)
     
+    
+def test24():
+    """
+    test24: copy a file with a specific mode
+    """
+    dest = os.path.join("/tmp", this_file)
+    fmode = 0700
+    class C24(ConfigModel):
+        with_config_options(**config_options)
+        check1 = LocalCommandTask("check gone",
+                                  "/usr/bin/test ! -e %s" % dest,
+                                  task_role=SingleRoleNS.target)
+        cp = CopyFileTask("copy-with-mode", dest, src=__file__,
+                          mode=fmode,
+                          task_role=SingleRoleNS.target)
+        check2 = LocalCommandTask("check mode",
+                                  "/usr/bin/python -c 'import sys,os;s=os.stat(\"%s\");sys.exit(0 if (s.st_mode&0777)==int(sys.argv[1]) else 1)' %d"
+                                  % (dest, fmode),
+                                  task_role=SingleRoleNS.target)
+        rm = CommandTask("rm", "rm %s" % dest, task_role=SingleRoleNS.target)
+        with_dependencies(check1 | cp | check2 | rm)
+        
+    ns = SingleRoleNS()
+    cfg = C24("set file mode")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    perform_and_complain(pea)
+    
+    
+def test25():
+    """
+    test25: copy a dir with a specific mode
+    """
+    tests = os.path.split(here)[-1]
+    dest = "/tmp"
+    to_check = os.path.join(dest, tests)
+    fmode = 0700
+    class C25(ConfigModel):
+        with_config_options(**config_options)
+        check1 = LocalCommandTask("check gone",
+                                  "/usr/bin/test ! -e %s" % dest,
+                                  task_role=SingleRoleNS.target)
+        cp = CopyFileTask("copy-dir-with-mode", dest,
+                          src=here, directory_mode=fmode,
+                          task_role=SingleRoleNS.target)
+        check2 = LocalCommandTask("check dir mode",
+                                  "/usr/bin/python -c 'import sys,os;s=os.stat(\"%s\");sys.exit(0 if (s.st_mode&0777)==int(sys.argv[1]) else 1)' %d"
+                                  % (to_check, fmode),
+                                  task_role=SingleRoleNS.target)
+        rm = CommandTask("rm", "rm -rf %s" % to_check,
+                         task_role=SingleRoleNS.target)
+        with_dependencies(check1 | cp | check2 | rm)
+        
+    ns = SingleRoleNS()
+    cfg = C25("set dir mode")
+    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    perform_and_complain(pea)
+
 
 
 def do_all():
