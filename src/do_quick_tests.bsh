@@ -1,12 +1,12 @@
 #!/bin/bash
 echo Doing quick tests
 echo =================
-echo The quick tests skip the Ansible integration tests which take a fair
-echo amount of time due to ssh connection setup and encrypt/decrypt
+echo The quick tests skip any tests that rely on Paramiko as these take a long time
+echo due to ssh connection setup and encrypt/decrypt
 if /usr/bin/test -d tests; then
     export PYTHONPATH=`pwd`
     rm -f .coverage
-    nosetests  -v --cover-package=actuator --with-coverage --cover-erase -I "ansible.*.py"
+    nosetests  -v --cover-package=actuator --with-coverage --cover-erase -I "ansible.*.py" -I "paramiko.*.py"
 else
     echo "THIS MUST BE RUN IN THE DIRECTORY THAT CONTAINS THE 'tests' DIRECTORY"
 fi

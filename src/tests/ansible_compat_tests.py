@@ -30,13 +30,14 @@ import socket
 import os
 import os.path
 import stat
+import traceback
 from actuator import (NamespaceModel, Var, Role, ConfigModel, PingTask,
                       with_variables, ExecutionException, CommandTask,
                       ScriptTask, CopyFileTask, InfraModel, StaticServer,
                       ProcessCopyFileTask, ctxt, with_config_options,
                       NullTask, with_dependencies, MultiTask,
                       ConfigClassTask, MultiRole)
-from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
+from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file, LOG_DEBUG
 
 
@@ -46,7 +47,7 @@ def setup():
     os.chmod(pkeyfile, stat.S_IRUSR|stat.S_IWUSR)
     
     
-user_home = os.path.expanduser("~")
+user_home = os.path.expanduser("~lxle1")
 
 
 def find_ip():
@@ -62,6 +63,25 @@ def find_ip():
     return get_ip
 
 
+def perform_and_complain(pea):
+    try:
+        pea.perform_config()
+    except Exception as e:
+        if not len(pea.get_aborted_tasks()):
+            print("Missing aborted task messages; need to find where they are!!")
+        else:
+            print("Here are the traces:")
+            for task, et, ev, tb in pea.get_aborted_tasks():
+                print(">>>>>>Task %s:" % task.name)
+                traceback.print_exception(et, ev, tb, file=sys.stdout)
+                print()
+        assert False, e.message
+        
+        
+config_options = dict(remote_user="lxle1",
+                      private_key_file=find_file("lxle1-dev-key"))
+    
+    
 def test001():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()))
@@ -69,15 +89,14 @@ def test001():
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        assert False, e.message
+    perform_and_complain(ea)
+      
       
 def test002():
     class SimpleNamespace(NamespaceModel):
@@ -86,34 +105,35 @@ def test002():
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        assert False, e.message
+    perform_and_complain(ea)
+    
     
 def test003():
     class SimpleNamespace(NamespaceModel):
-        with_variables(Var("PING_TARGET", "not.an.get_ip.addy"))
+        with_variables(Var("PING_TARGET", "not.an.ip.addy"))
         ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         repeat_count=1)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
     try:
-        ea.perform_config()
-        assert False, "This should have caused an error to be raised"
-    except ExecutionException, e:
-        assert len(ea.get_aborted_tasks()) == 1
+        perform_and_complain(ea)
+        assert False, "this should have failed due to the bad ip address"
+    except:
+        assert True
+
         
 def test004():
     class SimpleNamespace(NamespaceModel):
@@ -123,15 +143,14 @@ def test004():
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls !{HOME}", task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        assert False, e.message
+    perform_and_complain(ea)
+
 
 def test005():
     class SimpleNamespace(NamespaceModel):
@@ -140,16 +159,15 @@ def test005():
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir=user_home,
                            task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        assert False, e.message
+    perform_and_complain(ea)
+
 
 def test006():
     """test006 should raise an exception during perform_config() because
@@ -160,18 +178,20 @@ def test006():
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/wibble", chdir=user_home,
                            task_role=SimpleNamespace.cmd_target,
                            repeat_count=1)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
     try:
-        ea.perform_config()
+        perform_and_complain(ea)
         assert False, "this should have failed"
-    except ExecutionException, e:
+    except:
         assert len(ea.get_aborted_tasks()) == 1
+
 
 def test007():
     class SimpleNamespace(NamespaceModel):
@@ -181,16 +201,15 @@ def test007():
     ns = SimpleNamespace()
           
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        assert False, e.message
+    perform_and_complain(ea)
+    
 
 def test008():
     #NOTE: this will only work with nose if run from the actuator/src directory
@@ -203,21 +222,15 @@ def test008():
     ns = SimpleNamespace()
            
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = ScriptTask("script", os.path.join(os.getcwd(), "tests", "test008.sh"),
                            task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
         
 def test009():
     #NOTE: this will only work with nose if run from the actuator/src directory
@@ -230,6 +243,7 @@ def test009():
     ns = SimpleNamespace()
     
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         cleanup = CommandTask("clean", "/bin/rm -rf !{PKG}", chdir="!{DEST}",
                               task_role=SimpleNamespace.copy_target,
                               repeat_count=1)
@@ -240,18 +254,11 @@ def test009():
         with_dependencies(cleanup | copy)
         
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
     
 def test010():
     class SimpleInfra(InfraModel):
@@ -266,33 +273,17 @@ def test010():
     ns.compute_provisioning_for_environ(infra)
           
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        assert False, e.message
+
+    perform_and_complain(ea)
         
         
-# def find_file(filename, start_path=None):
-#     if start_path is None:
-#         start_path = os.getcwd()
-#     if os.path.isabs(filename):
-#         test_file_path = filename
-#     else:
-#         test_file_path = None
-#         for root, _, files in os.walk(start_path):
-#             if filename in files:
-#                 test_file_path = os.path.join(root, filename)
-#                 break
-#     assert test_file_path, "Can't find the test file {}; aborting test".format(filename)
-#     return test_file_path
-
-
 def test011():
     """
     test011: this test checks the basic behavior of the ProcessCopyFileTask.
@@ -317,6 +308,7 @@ def test011():
     ns = SimpleNamespace()
         
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
                             task_role=SimpleNamespace.target)
         process = ProcessCopyFileTask("pcf", "!{DEST}",
@@ -326,20 +318,13 @@ def test011():
         with_dependencies(reset | process)
     cfg = SimpleConfig()
     
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-        file_content = file("/tmp/test011.txt", "r").read()
-        assert "summat or the other" == file_content
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+    file_content = file("/tmp/test011.txt", "r").read()
+    assert "summat or the other" == file_content
+
 
 def test012():
     """
@@ -364,6 +349,7 @@ def test012():
     ns = SimpleNamespace()
         
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
                             task_role=SimpleNamespace.target)
         process = ProcessCopyFileTask("pcf", "!{DEST}",
@@ -373,19 +359,20 @@ def test012():
         with_dependencies(reset | process)
     cfg = SimpleConfig()
     
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
     try:
-        ea.perform_config()
+        perform_and_complain(ea)
         assert False, "this should have raised an exception about not finding var3"
-    except ExecutionException, _:
+    except (ExecutionException, AssertionError) as _:
         found_it = False
         for _, _, value, _ in ea.get_aborted_tasks():
             if 'var3' in value.message:
                 found_it = True
                 break
         assert found_it, "an exception was raised, but not about missing var3"
+
 
 def test013():
     """
@@ -410,6 +397,7 @@ def test013():
     ns = SimpleNamespace()
         
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         reset = CommandTask("reset", "/bin/rm -rf !{DEST}", removes="!{DEST}",
                             task_role=SimpleNamespace.target)
         process = ProcessCopyFileTask("pcf", "!{DEST}",
@@ -419,21 +407,14 @@ def test013():
         with_dependencies(reset | process)
     cfg = SimpleConfig()
     
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-        file_content = [l.strip()
-                        for l in file("/tmp/test013.txt", "r").readlines()]
-        assert "summat or" == file_content[0] and "the other" == file_content[1]
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+    file_content = [l.strip()
+                    for l in file("/tmp/test013.txt", "r").readlines()]
+    assert "summat or" == file_content[0] and "the other" == file_content[1]
+
 
 def test014():
     """
@@ -455,12 +436,13 @@ def test014():
     ns = SimpleNamespace()
     
     class SingleCopy(ConfigModel):
-        reset = CommandTask("014_reset", "/bin/rm -rf !{DEST}", removes="!{DEST}")
+        reset = CommandTask("014_reset", "/bin/rm -f !{DEST}", removes="!{DEST}")
         copy = CopyFileTask("014_cpf", "!{DEST}",
                             src=test_file_path)
         with_dependencies(reset | copy)
         
     class MultiCopy(ConfigModel):
+        with_config_options(**config_options)
         task_suite = MultiTask("all-copies", ConfigClassTask("one-copy", SingleCopy),
                                SimpleNamespace.q.target.all())
         
@@ -469,18 +451,11 @@ def test014():
     for i in range(5):
         _ = ns.target[i]
     
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                num_threads=5, no_delay=True, log_level=LOG_DEBUG)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
 
 def test015():
     "test015: try pinging as another user"
@@ -491,22 +466,16 @@ def test015():
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         remote_user="!{RUSER}",
                         private_key_file=find_file("lxle1-dev-key"))
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
       
 def test016():
     "test016: try writing a file into another user's directory"
@@ -518,6 +487,7 @@ def test016():
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         copy = CopyFileTask("cpf", "!{HOME}/tmp/failure.txt",
                             task_role=SimpleNamespace.copy_target,
                             remote_user="!{RUSER}",
@@ -525,17 +495,14 @@ def test016():
                             content="This shouldn't get written!\n",
                             )
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-        assert False, "This copy should not have succeeded"
-    except ExecutionException, _:
-        pass
+    perform_and_complain(ea)
+
       
 def test017():
-    "test017: ping as another user, use password instead of key: requires sshpass, but frequently fails anyway with a Broken Pipe for some reason"
+    "test017: ping as another user, use password instead of key"
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"),
@@ -548,18 +515,11 @@ def test017():
                         remote_user="!{RUSER}",
                         remote_pass="!{RPASS}")
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
       
 def test018():
     "test018: ping as two different users"
@@ -571,23 +531,17 @@ def test018():
     ns = SimpleNamespace()
        
     class SimpleConfig(ConfigModel):
+        with_config_options(**config_options)
         ping1 = PingTask("ping", task_role=SimpleNamespace.ping1_target,
                         remote_user="!{RUSER1}",
                         private_key_file=find_file("lxle1-dev-key"))
         ping2 = PingTask("ping", task_role=SimpleNamespace.ping2_target)
     cfg = SimpleConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
       
 def test019():
     "test019: clear and copy files"
@@ -614,6 +568,7 @@ def test019():
         with_dependencies(make | remove | copy)
          
     class CopyAllConfig(ConfigModel):
+        with_config_options(**config_options)
         u1_copy = ConfigClassTask("u1-copy", CopyConfig,
                                   task_role=SimpleNamespace.copy1_target,
                                   remote_user="!{RUSER}",
@@ -624,20 +579,11 @@ def test019():
          
         
     cfg = CopyAllConfig()
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-        assert (os.path.exists(ns.copy1_target.var_value("FILEPATH")) and
-                os.path.exists(ns.copy2_target.var_value("FILEPATH")))
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
       
 def test020():
     "test020: write some data to a user's tmp dir based on config-level user"
@@ -658,19 +604,11 @@ def test020():
     cfg = SimpleConfig(remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-        assert now_str in "".join(file(target, "r").readlines())
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
       
 def test021():
     "test021: Have a multi-task get the proper user from the config class"
@@ -701,19 +639,11 @@ def test021():
     cfg = SimpleConfig(remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
-    try:
-        ea.perform_config()
-        assert num_files == len(os.listdir(target_dir))
-    except ExecutionException, e:
-        import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
-            traceback.print_exception(etype, value, tb, file=sys.stdout)
-            print
-        assert False, e.message
+    perform_and_complain(ea)
+
       
 def test022():
     class NS022(NamespaceModel):
@@ -722,12 +652,13 @@ def test022():
     ns = NS022()
     
     class C022(ConfigModel):
+        with_config_options(**config_options)
         with_config_options(default_run_from=NS022.def_role)
         t = NullTask("null", task_role=NS022.r)
     cfg = C022()
     
     cfg.set_namespace(ns)
-    ea = AnsibleExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ParamikoExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
     assert ea._get_run_host(cfg.t) == "127.0.0.1"
 
 def test023():
@@ -741,7 +672,7 @@ def test023():
     cfg = C023()
     
     cfg.set_namespace(ns)
-    ea = AnsibleExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ParamikoExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
     assert ea._get_run_host(cfg.t) == "127.0.0.1"
 
 

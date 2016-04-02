@@ -19,7 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from actuator.exec_agents.ansible.agent import TaskProcessor
-from nose.util import src
 
 '''
 Created on Mar 15, 2016
@@ -37,6 +36,7 @@ import time
 import shlex
 import os.path
 import subprocess32
+import tempfile
 
 from paramiko import (SSHClient, SSHException, BadHostKeyException, AuthenticationException,
                       AutoAddPolicy, RSAKey, SFTPClient, SFTPAttributes)
@@ -111,7 +111,15 @@ class PTaskProcessor(AbstractTaskProcessor):
         return {}
         
     def result_check(self, task, result, logfile=None):
-        return
+        assert isinstance(result, _Result)
+        if not result.success:
+            if logfile:
+                logfile.write("Task %s (%s) failed; output follows:\n%s" %
+                              (task.name, task._id, result.stdout))
+            raise ExecutionException("Task %s failed; output: %s" %
+                                     (task.name, result.stdout))
+        else:
+            return
     
     def process_task(self, pea, task, host, user, password=None, priv_key_file=None, priv_key=None,
                       dirty=False, timeout=20, **kwargs):
@@ -305,7 +313,7 @@ class CommandProcessor(ScriptProcessor):
         parts = shlex.split(command)
         formatted = [parts[0]]
         for p in parts[1:]:
-            formatted.append("'%s'" % p)
+            formatted.append('"%s"' % p)
         return ' '.join(formatted)
     
     def _process_task(self, client, task, free_form=None, creates=None, removes=None,
@@ -340,7 +348,7 @@ class CommandProcessor(ScriptProcessor):
                                              % executable)
                 sh.sendall("%s\n" % executable)
             ff_formatted = self._format_command(free_form)
-            sh.sendall("%s\n;" % ff_formatted)
+            sh.sendall("%s\n" % ff_formatted)
             time.sleep(0.2)
             if executable is not None:
                 sh.sendall("\n")
@@ -370,6 +378,7 @@ class LocalCommandProcessor(PTaskProcessor):
         sp = subprocess32.Popen(args, stdout=subprocess32.PIPE, stderr=subprocess32.STDOUT)
         for l in sp.stdout:
             output.append(l)
+        sp.wait()
         success = sp.returncode == 0
         return _Result(success, sp.returncode, "".join(output), "")
             
@@ -395,13 +404,20 @@ class CopyFileProcessor(PTaskProcessor):
                 "validate": task.validate}
         return args
     
-    def _put_file(self, sftp, rem_path, abs_local_file=None, content=None, mode=None,
-                  owner=None, group=None):
+    def _put_file(self, task, sftp, rem_path, abs_local_file=None, content=None, flo=None,
+                  mode=None, owner=None, group=None):
+        #flo is a "file-like object" from which we get content and send it to the remote
         assert isinstance(sftp, SFTPClient)
         
         if content is not None:
             f = sftp.open(rem_path, mode="w")
             f.write(content)
+            f.close()
+        elif flo is not None:
+            pass
+            f = sftp.open(rem_path, mode="w")
+            for l in flo:
+                f.write(l)
             f.close()
         else:
             if not os.path.exists(abs_local_file):
@@ -412,6 +428,10 @@ class CopyFileProcessor(PTaskProcessor):
             
         if mode is not None:
             sftp.chmod(rem_path, mode)
+        elif abs_local_file is not None:
+            #make the mode the same as the local file if not otherwise spec'd
+            fstat = os.stat(abs_local_file)
+            sftp.chmod(rem_path, fstat.st_mode)
             
         if owner is not None or group is not None:
             stat = sftp.stat(rem_path)
@@ -457,7 +477,7 @@ class CopyFileProcessor(PTaskProcessor):
             if src is not None and content is None and mode is None:
                 fstat = os.stat(src)
                 mode = fstat.st_mode
-            success, ecode = self._put_file(sftp, dest, abs_local_file=src, content=content, mode=mode,
+            success, ecode = self._put_file(task, sftp, dest, abs_local_file=src, content=content, mode=mode,
                                             owner=owner, group=group)
         elif src is not None and os.path.isdir(src):
             with_root = not src.endswith("/")
@@ -482,7 +502,7 @@ class CopyFileProcessor(PTaskProcessor):
                         fmode = fstat.st_mode
                     else:
                         fmode = mode
-                    self._put_file(sftp, rp, lp, mode=fmode, owner=owner, group=group)
+                    self._put_file(task, sftp, rp, lp, mode=fmode, owner=owner, group=group)
                     
             #now pass over the local dirs again in order to set all directory modes on the remote
             for dirpath, _, _ in os.walk(src, followlinks=follow, topdown=False):
@@ -498,8 +518,46 @@ class CopyFileProcessor(PTaskProcessor):
                 
         result = _Result(success, ecode, "", "")
         return result
+    
+    
+@capture_mapping(_paramiko_domain, ProcessCopyFileTask)
+class ProcessCopyFileProcessor(CopyFileProcessor):
+    def _make_args(self, task):
+        args = super(ProcessCopyFileProcessor, self)._make_args(task)
+        if args["content"] is not None:
+            cv = _ComputableValue(args["content"])
+            expanded_content = cv.expand(task.get_task_role(),
+                                         raise_on_unexpanded=True)
+            args["content"] = expanded_content
+        return args
         
-
+    def _put_file(self, task, sftp, rem_path, abs_local_file=None, content=None, mode=None,
+                  owner=None, group=None):
+        if content is not None:
+            super(ProcessCopyFileProcessor, self)._put_file(task, sftp, rem_path,
+                                                            abs_local_file=abs_local_file,
+                                                            content=content, mode=mode,
+                                                            owner=owner, group=group)
+        else:
+            #we have a file to copy
+            fstat = os.stat(abs_local_file)
+            if mode is None:
+                mode = fstat.st_mode
+            tf = tempfile.TemporaryFile()
+            assert isinstance(tf, file)
+            for l in open(abs_local_file, "rb"):
+                cv = _ComputableValue(l)
+                tf.write(cv.expand(task.get_task_role(), raise_on_unexpanded=True))
+            tf.seek(0)
+            super(ProcessCopyFileProcessor, self)._put_file(task, sftp, rem_path,
+                                                            abs_local_file=None,
+                                                            content=None,
+                                                            flo=tf, mode=mode,
+                                                            owner=owner,
+                                                            group=group)
+        return True, ""
+            
+            
 class ParamikoExecutionAgent(ExecutionAgent):
     def __init__(self, **kwargs):
         super(ParamikoExecutionAgent, self).__init__(**kwargs)
@@ -630,5 +688,5 @@ class ParamikoExecutionAgent(ExecutionAgent):
         return _paramiko_domain
     
     def _perform_with_args(self, task, processor, args, kwargs):
-        processor.process_task(self, *args, **kwargs)
+        return processor.process_task(self, *args, **kwargs)
     

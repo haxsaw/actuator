@@ -1,7 +1,7 @@
 #!/bin/bash
 echo Running all tests
 echo =================
-echo Bear in mind that this includes the Ansible integration tests which
+echo Bear in mind that this includes the Paramiko integration tests which
 echo take more time than all the other tests combined. They also require certain
 echo ssh configurations to be in place to ensure proper operation. Besides having
 echo ssh installed, the user running the tests must be able to ssh login to the
@@ -10,14 +10,9 @@ echo user, a user 'lxle1' must exist as this is the user the tests attempt to
 echo log in as. A public and private keypair for this user is part of Actuator's
 echo source, and you need to install the public key into appropriate place in the
 echo lxle1 user's .ssh directory so that passwordless logins can be conducted for
-echo this user. Failure to do this right will result in some of the Ansible
+echo this user. Failure to do this right will result in some of the Paramiko
 echo integration tests failing.
 echo
-echo NOTE: test017 is currently failing due to the apparent misbehavior of
-echo sshpass trying to provide the password to ssh \(a BROKEN PIPE error is
-echo received instead of the password going along properly\). This will be
-echo studied more in the future, but the workaround is to instead provide a
-echo private_key_file for the tasks you want to run as another user.
 echo
 read -p "Do you want to proceed with these tests? " -n 1 -r
 echo

@@ -547,7 +547,7 @@ def test19():
         with_config_options(**config_options)
         cp = CopyFileTask("sendit", there, src=__file__,
                           task_role=SingleRoleNS.target)
-        check1 = LocalCommandTask("check there", "/usr/bin/test -e %s" % there,
+        check1 = LocalCommandTask("check-there", "/usr/bin/test -e %s" % there,
                                   task_role=SingleRoleNS.target)
         diff = LocalCommandTask("diff", "diff %s %s" % (there, __file__),
                                 task_role=SingleRoleNS.target)
@@ -717,7 +717,7 @@ def test25():
     class C25(ConfigModel):
         with_config_options(**config_options)
         check1 = LocalCommandTask("check gone",
-                                  "/usr/bin/test ! -e %s" % dest,
+                                  "/usr/bin/test ! -e %s" % to_check,
                                   task_role=SingleRoleNS.target)
         cp = CopyFileTask("copy-dir-with-mode", dest,
                           src=here, directory_mode=fmode,
@@ -741,7 +741,7 @@ def test25():
 
 def do_all():
     setup_module()
-    test23()
+    test19()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

@@ -68,7 +68,7 @@ from config import (ConfigModel, with_searchpath, with_dependencies,
                     ConfigClassTask, with_config_options)
 from provisioners.core import ProvisionerException, BaseProvisioner
 from exec_agents.core import ExecutionAgent, ExecutionException
-from exec_agents.ansible.agent import AnsibleExecutionAgent
+from exec_agents.paramiko.agent import ParamikoExecutionAgent
 from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                           CopyFileTask, ProcessCopyFileTask)
 from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
@@ -194,7 +194,7 @@ class ActuatorOrchestration(_Persistable):
         self.tags = list(tags) if tags is not None else []
         
         if self.config_model_inst is not None:
-            self.config_ea = AnsibleExecutionAgent(config_model_instance=self.config_model_inst,
+            self.config_ea = ParamikoExecutionAgent(config_model_instance=self.config_model_inst,
                                                    namespace_model_instance=self.namespace_model_inst,
                                                    num_threads=num_threads,
                                                    no_delay=no_delay,
