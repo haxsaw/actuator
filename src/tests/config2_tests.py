@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from actuator.exec_agents.core import ExecutionAgent
 
 '''
 Created on Jan 15, 2015
@@ -42,7 +41,7 @@ from actuator.provisioners.openstack.resources import (Server, Network,
                                                         Subnet, SecGroup,
                                                         SecGroupRule, RouterGateway,
                                                         RouterInterface)
-from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
+from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.modeling import AbstractModelReference
 from actuator.exec_agents.core import ExecutionAgent
 
@@ -140,7 +139,7 @@ def test001():
             print
         assert False, "can't proceed due to provisioning errors"
         
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                num_threads = 1,
                                no_delay=True, log_level=LOG_DEBUG)
@@ -166,7 +165,7 @@ def test002():
     class Infra2(InfraModel): pass
     
     try:
-        aea = AnsibleExecutionAgent(config_model_instance=Infra2("i2"))
+        aea = ParamikoExecutionAgent(config_model_instance=Infra2("i2"))
         assert False, "should have complained about wrong type for config_model_instance"
     except ExecutionException, _:
         assert True
@@ -180,7 +179,7 @@ def test003():
     class Infra3(InfraModel): pass
     
     try:
-        aea = AnsibleExecutionAgent(namespace_model_instance=Infra3("i3"))
+        aea = ParamikoExecutionAgent(namespace_model_instance=Infra3("i3"))
         assert False, "should have complained about wrong type for namespace_model_instance"
     except ExecutionException, _:
         assert True
@@ -194,7 +193,7 @@ def test004():
     class NS4(NamespaceModel): pass
     
     try:
-        aea = AnsibleExecutionAgent(infra_model_instance=NS4())
+        aea = ParamikoExecutionAgent(infra_model_instance=NS4())
         assert False, "should have complained about wrong type for infra_model_instance"
     except ExecutionException, _:
         assert True

@@ -41,16 +41,6 @@ sys.modules["subprocess"] = subprocess32
 del subprocess
 
 import os
-#The use of ssh's ControlMaster option seems to be fairly unstable, as least
-#with current Ubuntu-based distros. Hence, by default Actuator disables Ansible's
-#use of ControlMaster by setting the ANSIBLE_SSH_ARGS env var to a value of it's
-#own. However, you can allow regular processing on ANSIBLE_SSH_ARGS by supplying
-#a non-empty value for the ACTUATOR_ALLOW_SSH_ARGS env var, but you need to
-#include the values shown below for ANSIBLE_SSH_ARGS to ensure that Actuator
-#will be able to 1) log into new hosts without being asked "are you sure?" by
-#ssh, and 2) not actually store those new hosts into the known_hosts file
-if not os.environ.get("ACTUATOR_ALLOW_SSH_ARGS"):
-    os.environ['ANSIBLE_SSH_ARGS'] = "-oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"
 import traceback
 import time
 
