@@ -19,16 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
 import subprocess
 import json
 
 from actuator.utils import *
 from actuator.utils import _Persistable, persist_to_dict, reanimate_from_dict
-from actuator.infra import InfraModel
-from keystoneclient.utils import arg
 
-#class mapping tests setup
 
 dom1 = "dom1"
 dom2 = "dom2"

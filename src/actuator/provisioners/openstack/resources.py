@@ -46,7 +46,7 @@ class _OpenstackProvisionableInfraResource(Provisionable):
         
     def _get_attrs_dict(self):
         d = super(_OpenstackProvisionableInfraResource, self)._get_attrs_dict()
-        d["osdi"] = str(self.osid)
+        d["osid"] = str(self.osid)
         return d
         
     def set_osid(self, id):
@@ -66,8 +66,6 @@ class _OpenstackProvisionableInfraResource(Provisionable):
                                            (argname, klass.__name__))
         return value
                 
-            
-
 
 class NetworkInterface(_Persistable):
     """

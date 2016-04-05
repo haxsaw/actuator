@@ -40,7 +40,7 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
                        private_key_file="actuator-dev-key")
     ns.create_slaves(num_slaves)
         
-    os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5)
+    os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5, cloud_name="trystack")
     ao = ActuatorOrchestration(infra_model_inst=infra,
                                provisioner=os_prov,
                                namespace_model_inst=ns,

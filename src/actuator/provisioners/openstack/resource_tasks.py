@@ -27,6 +27,9 @@ import threading
 import uuid
 import string
 
+import shade
+import os_client_config
+
 from actuator.modeling import AbstractModelReference
 from actuator.task import TaskEngine, GraphableModelMixin, Task
 from actuator.provisioners.openstack import openstack_class_factory as ocf
@@ -42,13 +45,16 @@ _rt_domain = "resource_task_domain"
 
 
 class RunContext(object):
-    def __init__(self, record, username, password, tenant_name, auth_url):
+    def __init__(self, record, username, password, tenant_name, auth_url, cloud_name=None):
         self.username = username
         self.password = password
         self.tenant_name = tenant_name
         self.auth_url = auth_url
         self.record = record
         self.maps = _OSMaps(self)
+        if cloud_name is not None:
+            self.cloud_config = os_client_config.OpenStackConfig().get_one_cloud(cloud_name)
+            self.cloud = shade.OpenStackCloud(cloud_config=self.cloud_config)
     
     def _nuclient(self):
         return NeutronClient(username=self.username, password=self.password,
@@ -57,7 +63,6 @@ class RunContext(object):
     nuclient = property(_nuclient)
     
     def _nvclient(self):
-#         return NovaClient('1.1', self.username, self.password,
         return NovaClient('1.1', self.username, self.password,
                           self.tenant_name, self.auth_url)
         
@@ -106,16 +111,20 @@ class ProvisioningTask(Task):
 class ProvisionNetworkTask(ProvisioningTask):
     def _perform(self, engine):
         run_context = engine.get_context()
-        msg = {u'network': {u'name':self.rsrc.get_display_name(),
-                            u'admin_state_up':self.rsrc.admin_state_up}}
-        response = run_context.nuclient.create_network(body=msg)
-        self.rsrc.set_osid(response['network']['id'])
+        # msg = {u'network': {u'name':self.rsrc.get_display_name(),
+        #                     u'admin_state_up':self.rsrc.admin_state_up}}
+        # response = run_context.nuclient.create_network(body=msg)
+        # self.rsrc.set_osid(response['network']['id'])
+        response = run_context.cloud.create_network(self.rsrc.get_display_name(),
+                                                    admin_state_up=self.rsrc.admin_state_up)
+        self.rsrc.set_osid(response["id"])
         run_context.record.add_network_id(self.rsrc._id, self.rsrc.osid)
         
     def _reverse(self, engine):
         run_context = engine.get_context()
         netid = self.rsrc.osid
-        run_context.nuclient.delete_network(netid)
+        # run_context.nuclient.delete_network(netid)
+        run_context.cloud.delete_network(netid)
         
         
 @capture_mapping(_rt_domain, Subnet)
@@ -127,28 +136,38 @@ class ProvisionSubnetTask(ProvisioningTask):
         
     def _perform(self, engine):
         run_context = engine.get_context()
-        msg = {'subnets': [{'cidr':self.rsrc.cidr,
-                            'ip_version':self.rsrc.ip_version,
-                            'network_id':self.rsrc._get_arg_msg_value(self.rsrc.network,
-                                                                      Network,
-                                                                      "osid",
-                                                                      "network"),
-                            'dns_nameservers':self.rsrc.dns_nameservers,
-                            'name':self.rsrc.get_display_name()}]}
-        sn = run_context.nuclient.create_subnet(body=msg)
-        self.rsrc.set_osid(sn["subnets"][0]["id"])
+        response = run_context.cloud.create_subnet(self.rsrc._get_arg_msg_value(self.rsrc.network,
+                                                                                Network,
+                                                                                "osid",
+                                                                                "network"),
+                                                   self.rsrc.cidr, ip_version=self.rsrc.ip_version,
+                                                   subnet_name=self.rsrc.get_display_name(),
+                                                   dns_nameservers=self.rsrc.dns_nameservers)
+        # msg = {'subnets': [{'cidr': self.rsrc.cidr,
+        #                     'ip_version': self.rsrc.ip_version,
+        #                     'network_id': self.rsrc._get_arg_msg_value(self.rsrc.network,
+        #                                                                Network,
+        #                                                                "osid",
+        #                                                                "network"),
+        #                     'dns_nameservers': self.rsrc.dns_nameservers,
+        #                     'name': self.rsrc.get_display_name()}]}
+        # sn = run_context.nuclient.create_subnet(body=msg)
+        # self.rsrc.set_osid(sn["subnets"][0]["id"])
+        self.rsrc.set_osid(response["id"])
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
         
     def _reverse(self, engine):
         run_context = engine.get_context()
         #this may not be needed as the subnet may go with the network
         subnet_id = self.rsrc.osid
-        run_context.nuclient.delete_subnet(subnet_id)
+        # run_context.nuclient.delete_subnet(subnet_id)
+        run_context.cloud.delete_subnet(subnet_id)
 
 
 @capture_mapping(_rt_domain, SecGroup)
 class ProvisionSecGroupTask(ProvisioningTask):
-    "depends on nothing"
+    """depends on nothing"""
+
     #@FIXME: this lock and its use are due to an apparent thread-safety issue
     #down in the novaclient. It would seem that even if there are different
     #client objects being used in different threads to build security groups,
@@ -156,24 +175,35 @@ class ProvisionSecGroupTask(ProvisioningTask):
     #fail if they're happening at the same time. For now, this lock will ensure
     #single-threaded operation of this trouble code, and hopefully we can get
     #a bug filed and the problem resolved soon.
+
     _sg_create_lock = threading.Lock()
+
     def _perform(self, engine):
         run_context = engine.get_context()
-        try:
+        with self._sg_create_lock:
             #@FIXME: this lock is because nova isn't threadsafe for this
             #call, and until it is we have to single-thread through it
-            self._sg_create_lock.acquire()
-            response = run_context.nvclient.security_groups.create(name=self.rsrc.get_display_name(),
-                                                                   description=self.rsrc.description)
-        finally:
-            self._sg_create_lock.release()
-        self.rsrc.set_osid(response.id)
+            # response = run_context.nvclient.security_groups.create(name=self.rsrc.get_display_name(),
+            #                                                        description=self.rsrc.description)
+            response = run_context.cloud.create_security_group(name=self.rsrc.get_display_name(),
+                                                               description=self.rsrc.description)
+        # try:
+        #     #@FIXME: this lock is because nova isn't threadsafe for this
+        #     #call, and until it is we have to single-thread through it
+        #     self._sg_create_lock.acquire()
+        #     response = run_context.nvclient.security_groups.create(name=self.rsrc.get_display_name(),
+        #                                                            description=self.rsrc.description)
+        # finally:
+        #     self._sg_create_lock.release()
+        # self.rsrc.set_osid(response.id)
+        self.rsrc.set_osid(response["id"])
         run_context.record.add_secgroup_id(self.rsrc._id, self.rsrc.osid)
         
     def _reverse(self, engine):
         run_context = engine.get_context()
         secgroup_id = self.rsrc.osid
-        run_context.nvclient.security_groups.delete(secgroup_id)
+        # run_context.nvclient.security_groups.delete(secgroup_id)
+        run_context.cloud.delete_security_group(secgroup_id)
 
 
 @capture_mapping(_rt_domain, SecGroupRule)
@@ -185,14 +215,21 @@ class ProvisionSecGroupRuleTask(ProvisioningTask):
         
     def _perform(self, engine):
         run_context = engine.get_context()
-        response = run_context.nvclient.security_group_rules.create(self.rsrc._get_arg_msg_value(self.rsrc.slave_secgroup,
-                                                                                                 SecGroup,
-                                                                                                 "osid", "secgroup"),
-                                                                    ip_protocol=self.rsrc.ip_protocol,
-                                                                    from_port=self.rsrc.from_port,
-                                                                    to_port=self.rsrc.to_port,
-                                                                    cidr=self.rsrc.cidr)
-        self.rsrc.set_osid(response.id)
+        sg_id = self.rsrc._get_arg_msg_value(self.rsrc.slave_secgroup,
+                                             SecGroup,
+                                             "osid", "secgroup")
+        response = run_context.cloud.create_security_group_rule(sg_id,
+                                                                port_range_min=self.rsrc.from_port,
+                                                                port_range_max=self.rsrc.to_port,
+                                                                protocol=self.rsrc.ip_protocol,
+                                                                remote_ip_prefix=self.rsrc.cidr)
+        # response = run_context.nvclient.security_group_rules.create(sg_id,
+        #                                                             ip_protocol=self.rsrc.ip_protocol,
+        #                                                             from_port=self.rsrc.from_port,
+        #                                                             to_port=self.rsrc.to_port,
+        #                                                             cidr=self.rsrc.cidr)
+        # self.rsrc.set_osid(response.id)
+        self.rsrc.set_osid(response["id"])
         run_context.record.add_secgroup_rule_id(self.rsrc._id, self.rsrc.osid)
         
     #NO _reverse required; the rules should follow the secgroup
@@ -393,15 +430,14 @@ class ProvisionKeyPairTask(ProvisioningTask):
         else:
             run_context.nvclient.keypairs.create(name, public_key=public_key)
                 
-        
 
-            
 class OpenstackCredentials(object):
-    def __init__(self, username, password, tenant_name, auth_url):
+    def __init__(self, username, password, tenant_name, auth_url, cloud_name=None):
         self.username = username
         self.password = password
         self.tenant_name = tenant_name
         self.auth_url = auth_url
+        self.cloud_name = cloud_name
 
 
 class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
@@ -409,6 +445,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
     exception_class = ProvisionerException
     exec_agent = "rsrc_provisioner"
     repeat_count = 3
+
     def __init__(self, infra_model, os_creds, num_threads=5, log_level=LOG_INFO,
                  no_delay=True):
         self.logger = root_logger.getChild("os_prov_agent")
@@ -501,7 +538,8 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
             context = RunContext(self.record, self.os_creds.username,
                                  self.os_creds.password,
                                  self.os_creds.tenant_name,
-                                 self.os_creds.auth_url)
+                                 self.os_creds.auth_url,
+                                 cloud_name=self.os_creds.cloud_name)
             self.run_contexts[threading.current_thread()] = context
         return context
     
@@ -528,8 +566,8 @@ class OpenstackProvisioner(BaseProvisioner):
     the provisioner independently.
     """
     LOG_SUFFIX = "os_provisioner"
-    def __init__(self, username, password, tenant_name, auth_url, num_threads=5,
-                 log_level=LOG_INFO):
+    def __init__(self, username, password, tenant_name, auth_url, cloud_name=None,
+                 num_threads=5, log_level=LOG_INFO):
         """
         @param username: String; the Openstack user name
         @param password: String; the Openstack password for username
@@ -542,7 +580,7 @@ class OpenstackProvisioner(BaseProvisioner):
         @keyword log_level: Optional; default LOG_INFO. One of the logging values
             from actuator: LOG_CRIT, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG.
         """
-        self.os_creds = OpenstackCredentials(username, password, tenant_name, auth_url)
+        self.os_creds = OpenstackCredentials(username, password, tenant_name, auth_url, cloud_name=cloud_name)
         self.agent = None
         self.num_threads = num_threads
         root_logger.setLevel(log_level)
