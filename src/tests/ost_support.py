@@ -88,10 +88,10 @@ class MockKeypair(dict):
 
 
 class NetworkResult(dict):
-    def __init__(self, label):
+    def __init__(self, name):
         super(NetworkResult, self).__init__()
-        self.label = label
-        self["label"] = self.label
+        self.name = name
+        self["name"] = self.name
         self.id = uuid.uuid4()
         self["id"] = self.id
 
@@ -165,16 +165,6 @@ class _cache(object):
 
 
 class MockOSCloud(_cache):
-    # _keypairs_dict = {n: MockKeypair(n, "startingkey") for n in [u"actuator-dev-key",
-    #                                                              u"test-key"]}
-    # _networks_list = [NetworkResult(n) for n in (u'wibbleNet', u'wibble', u'test1Net', u'network',
-    #                                              u'external')]
-    # _image_list = [ImageResult(n) for n in (u'CentOS 6.5 x86_64', u'Ubuntu 13.10',
-    #                                         u'Fedora 20 x86_64')]
-    # _flavor_list = [FlavorResult(n) for n in (u'm1.small', u'm1.medium', u'm1.large')]
-    # _secgroup_list = [SecGroupResult(n) for n in (u'default', u'wibbleGroup')]
-    # _keypairs_dict = {n: MockKeypair(n, "startingkey") for n in [u"actuator-dev-key",
-    #                                                              u"test-key"]}
 
     def __init__(self, name, **kwargs):
         self.name = name
@@ -199,11 +189,17 @@ class MockOSCloud(_cache):
     def delete_network(self, _):
         return
 
+    def list_networks(self):
+        return self._networks_list
+
     def create_subnet(self, *args, **kwargs):
         return {"id": fake.md5()}
 
     def delete_subnet(self, subnet_id):
         return
+
+    def list_subnets(self):
+        return {}
 
     def create_security_group(self, *args, **kwargs):
         return random.choice(self._secgroup_list)
@@ -211,8 +207,17 @@ class MockOSCloud(_cache):
     def delete_security_group(self, secgroup_id):
         return
 
+    def list_security_groups(self):
+        return self._secgroup_list
+
     def create_security_group_rule(self, *args, **kwargs):
         return SecGroupRuleResult()
+
+    def list_flavors(self):
+        return self._flavor_list
+
+    def list_images(self):
+        return self._image_list
 
     def create_floating_ip(self, **kwargs):
         return FIPResult()
@@ -471,6 +476,3 @@ class MockNeutronClient(object):
     
     def remove_interface_router(self, router_id, args_dict):
         return
-    
-    
-    

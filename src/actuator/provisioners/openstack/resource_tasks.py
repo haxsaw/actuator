@@ -27,9 +27,6 @@ import threading
 import uuid
 import string
 
-import shade
-import os_client_config
-
 from actuator.modeling import AbstractModelReference
 from actuator.task import TaskEngine, GraphableModelMixin, Task
 from actuator.provisioners.openstack import openstack_class_factory as ocf
@@ -54,8 +51,6 @@ class RunContext(object):
         self.maps = _OSMaps(self)
         if cloud_name is not None:
             self.cloud = ocf.get_shade_cloud(cloud_name)
-            # self.cloud_config = os_client_config.OpenStackConfig().get_one_cloud(cloud_name)
-            # self.cloud = shade.OpenStackCloud(cloud_config=self.cloud_config)
         else:
             self.cloud = None
     
@@ -294,7 +289,7 @@ class ProvisionServerTask(ProvisioningTask):
                 if nic is None:
                     raise ProvisionerException("NIC %s doesn't seem to exist" % nicname,
                                                record=run_context.record)
-                nics_list.append({'net-id':nic.id})
+                nics_list.append({'net-id': nic.id})
             kwargs['nics'] = nics_list
             
         if isinstance(kwargs["key_name"], KeyPair):

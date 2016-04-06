@@ -390,9 +390,11 @@ def test024():
     inst = SGTest("t1")
     rec = prov.provision_infra_model(inst)
     assert rec
-    
+
+
 def test025():
     prov = get_provisioner()
+
     class SGTest(InfraModel):
         secgroup = SecGroup("wibbleGroup", description="stuff")
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key",
@@ -1175,11 +1177,13 @@ def test068():
     i68 = Infra68("68")
     i68p = persistence_helper(i68)
     assert (i68p.net.name.value() == "net")
-    
+
+
 class Infra69(InfraModel):
     net = Network("net")
     srvr = Server("node", u"Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
-    
+
+
 def test069():
     """
     test069: check if a Server referencing a Network reanimates properly
@@ -1187,13 +1191,15 @@ def test069():
     i69 = Infra69("69")
     i69p = persistence_helper(i69)
     assert (i69p.srvr.nics.value()[0] is i69p.net.value())
-    
+
+
 class Infra70(InfraModel):
     g = ResourceGroup("g",
                       net=Network("net"),
                       srvr = Server("node", u"Ubuntu 13.10", "m1.small",
                                     nics=[ctxt.comp.container.net]))
-    
+
+
 def test070():
     """
     test070: Persist/reanimate a ResourceGroup with inter-relating resources
@@ -1201,14 +1207,16 @@ def test070():
     i70 = Infra70("70")
     i70p = persistence_helper(i70)
     assert (i70p.g.net.value() is i70p.g.srvr.nics.value()[0])
-    
+
+
 class Infra71(InfraModel):
     g = ResourceGroup("g",
                       net=Network("net"),
                       grid=MultiResource(Server("node", u"Ubuntu 13.10",
                                                 "m1.small",
                                                 nics=[ctxt.comp.container.container.net])))
-    
+
+
 def test071():
     """
     test071: Persist/reanimate a ResourceGroup with embedded, interrelated resources in a MultiResource
@@ -1219,7 +1227,8 @@ def test071():
     i71p = persistence_helper(i71)
     assert (len(i71p.g.grid) == 5 and
             i71p.g.net.value() is i71p.g.grid[4].nics.value()[0])
-    
+
+
 class Infra72(InfraModel):
     net = Network("main")
     cells = MultiResourceGroup("cell",
@@ -1232,7 +1241,8 @@ class Infra72(InfraModel):
                                            "m1.small",
                                            nics=[ctxt.model.net,
                                                  ctxt.comp.container.subnet]))
-    
+
+
 def test072():
     """
     test072: Persist/reanimate MultiResouce inside a MultiResourceGroup with related resources
@@ -1248,10 +1258,12 @@ def test072():
             i72p.cells[0].subnet.value() is i72p.cells[0].slaves[10].nics.value()[0] and
             i72p.net.value() is i72p.cells[1].boss.nics.value()[0] and
             i72p.cells[1].subnet.value() is i72p.cells[1].boss.nics.value()[1])
-    
+
+
 class Infra73(InfraModel):
     router = Router("r", admin_state_up=False)
-    
+
+
 def test073():
     """
     test073: persist/reanimate Router
@@ -1259,12 +1271,14 @@ def test073():
     i73 = Infra73("73")
     i73p = persistence_helper(i73)
     assert i73.router.admin_state_up.value() == i73p.router.admin_state_up.value()
-    
+
+
 class Infra74(InfraModel):
     net = Network("net")
     sn = Subnet("sn", ctxt.model.net, "192.168.6.0/24",
                 dns_nameservers=["8.8.8.8"])
-    
+
+
 def test074():
     """
     test074: persist/reanimate Subnet related to a network
@@ -1274,11 +1288,13 @@ def test074():
     assert (i74p.net.value() is i74p.sn.network.value() and
             i74p.sn.cidr.value() == "192.168.6.0/24" and
             u"8.8.8.8" in i74p.sn.dns_nameservers.value())
-    
+
+
 class Infra75(InfraModel):
     rg = RouterGateway("argee", ctxt.model.router, "external")
     router = Router("rotter")
-    
+
+
 def test075():
     """
     test075: persist/reanimate a RouterGateway related to a Router
@@ -1287,14 +1303,16 @@ def test075():
     i75p = persistence_helper(i75)
     assert (i75p.rg.name.value() == "argee" and
             i75p.rg.router.value() is i75p.router.value())
-    
+
+
 class Infra76(InfraModel):
     router = Router("rotter")
     net = Network("knitwork")
     sn = Subnet("subknit", ctxt.model.net, "192.168.6.0/24",
                 dns_nameservers=["8.8.8.8"])
     ri = RouterInterface("rhodie", ctxt.model.router, ctxt.model.sn)
-    
+
+
 def test076():
     """
     test076: persist/reanimate Router/RouterInterface/Network/Subnet
@@ -1304,7 +1322,8 @@ def test076():
     assert (i76p.ri.router.value() is i76p.router.value() and
             i76p.ri.subnet.value() is i76p.sn.value() and
             i76p.sn.network.value() is i76p.net.value())
-    
+
+
 class Infra77(InfraModel):
     s = Server("wibble", u"Ubuntu 13.10", "m1.small")
     fip = FloatingIP("wibble_fip", ctxt.model.s,
@@ -1317,12 +1336,14 @@ def test077():
     i77 = Infra77("77")
     i77p = persistence_helper(i77)
     assert i77p.fip.server.value() is i77p.s.value()
-    
+
+
 class Infra78(InfraModel):
     sg = SecGroup("essgee", "The king of groups")
     s = Server("s", u"Ubuntu 13.10", "m1.small",
                security_groups=[ctxt.model.sg])
-    
+
+
 def test078():
     """
     test078: persist/reanimate a SecGroup related to a Server
@@ -1331,14 +1352,16 @@ def test078():
     i78p = persistence_helper(i78)
     assert (i78p.sg.value() in i78p.s.security_groups.value() and
             "king" in i78p.sg.description.value())
-    
+
+
 class Infra79(InfraModel):
     sg = SecGroup("79ner", description="wibble")
     sgr1 = SecGroupRule("rule1", secgroup=ctxt.model.sg, ip_protocol="tcp",
                         from_port=8000, to_port=8001, cidr="192.168.6.1")
     sgr2 = SecGroupRule("rule2", secgroup=ctxt.model.sg, ip_protocol="tcp",
                         from_port=80, to_port=80, cidr="192.168.6.1")
-    
+
+
 def test079():
     """
     test079: persist/reanimate SecGroupRules related to a SecGroup
@@ -1351,14 +1374,16 @@ def test079():
             i79p.sgr2.from_port.value() == 80 and
             i79p.sgr1.to_port.value() == 8001 and
             i79p.sgr2.cidr.value() == "192.168.6.1")
-    
+
+
 class Infra80(InfraModel):
     kp = KeyPair("kp1", "kpalias", os_name="kpalias",
                  pub_key_file=find_file("actuator-dev-key.pub"),
                  force=True)
     s = Server("keyeater",  u"Ubuntu 13.10",
                "m1.small", key_name=ctxt.model.kp)
-    
+
+
 def test080():
     """
     test080: persist/reanimate KeyPair related to a Server
@@ -1370,14 +1395,16 @@ def test080():
             i80p.kp.priv_key_name.value() == "kpalias" and
             "actuator-dev-key.pub" in i80p.kp.pub_key_file.value() and
             i80p.kp.force.value() == True)
-    
+
+
 class Infra81(InfraModel):
     kp = KeyPair("kp1", "kpalias", os_name="kpalias",
                  pub_key="gobbledegook",
                  force=True)
     s = Server("keyeater",  u"Ubuntu 13.10",
                "m1.small", key_name=ctxt.model.kp)
-    
+
+
 def test081():
     """
     test081: persist/reanimate KeyPair related to a Server; specify pub key contents
@@ -1389,10 +1416,12 @@ def test081():
             i81p.kp.priv_key_name.value() == "kpalias" and
             i81p.kp.pub_key.value() == "gobbledegook" and
             i81p.kp.force.value() == True)
-    
+
+
 class Infra82(InfraModel):
     s1 = StaticServer("static", "192.168.6.2")
-    
+
+
 def test082():
     """
     test082: persist/reanimate a StaticServer
@@ -1407,6 +1436,7 @@ def test082():
 #
 class DecoInfra83(InfraModel):
     net = Network("deco")
+
 
 def test083():  #reating test063 but with persistence/reanimation
     "test083: deprovision infra after reanimation"
@@ -1424,6 +1454,7 @@ def test083():  #reating test063 but with persistence/reanimation
     
 
 def do_all():
+    test025()
     globs = globals()
     tests = []
     for k, v in globs.items():

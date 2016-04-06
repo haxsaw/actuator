@@ -190,8 +190,11 @@ class _OSMaps(object):
         Refresh the subnets map, subnet_map.
         Keys are the subnet name, value is the neutron subnet dict.
         """
-        response = self.os_provisioner.nuclient.list_subnets()
-        self.subnet_map = {d['name']:d for d in response['subnets']}
+        # response = self.os_provisioner.nuclient.list_subnets()
+        # self.subnet_map = {d['name']:d for d in response['subnets']}
+        response = self.os_provisioner.cloud.list_subnets()
+        self.subnet_map = {d["name"]:d for d in response}
+        self.subnet_map.update({d["id"]:d for d in response})
         
     def refresh_routers(self):
         """
@@ -206,24 +209,33 @@ class _OSMaps(object):
         Refresh the networks map, network_map.
         Keys are the network id, values are nova Network objects
         """
-        networks = self.os_provisioner.nvclient.networks.list()
-        self.network_map = {n.label:n for n in networks}
-        for network in networks:
-            self.network_map[network.id] = network
+        # networks = self.os_provisioner.nvclient.networks.list()
+        # self.network_map = {n.label:n for n in networks}
+        # for network in networks:
+        #     self.network_map[network.id] = network
+        networks = self.os_provisioner.cloud.list_networks()
+        self.network_map = {n["name"]:n for n in networks}
+        self.network_map.update({n["id"]:n for n in networks})
 
     def refresh_images(self):
         """
         Refresh the images map, image_map
         Keys are image names, values are nova Image objects.
         """
-        self.image_map = {i.name:i for i in self.os_provisioner.nvclient.images.list()}
+        self.image_map = {i.name: i for i in self.os_provisioner.nvclient.images.list()}
+        images = self.os_provisioner.cloud.list_images()
+        self.image_map = {d["name"]: d for d in images}
+        self.image_map.update({d["id"]: d for d in images})
 
     def refresh_flavors(self):
         """
         Refresh the flavors map, flavor_map
         Keys are flavor names, values are nova Flavor objects
         """
-        self.flavor_map = {f.name:f for f in self.os_provisioner.nvclient.flavors.list()}
+        # self.flavor_map = {f.name: f for f in self.os_provisioner.nvclient.flavors.list()}
+        flavors = self.os_provisioner.cloud.list_flavors()
+        self.flavor_map = {f["name"]: f for f in flavors}
+        self.flavor_map.update({f["id"]: f for f in flavors})
 
     def refresh_secgroups(self):
         """
@@ -231,6 +243,9 @@ class _OSMaps(object):
         Keys are secgroup names and secgroup ids, values are nova SecGroup
         objects.
         """
-        secgroups = list(self.os_provisioner.nvclient.security_groups.list())
-        self.secgroup_map = {sg.name:sg for sg in secgroups}
-        self.secgroup_map.update({sg.id:sg for sg in secgroups})
+        # secgroups = list(self.os_provisioner.nvclient.security_groups.list())
+        # self.secgroup_map = {sg.name: sg for sg in secgroups}
+        # self.secgroup_map.update({sg.id: sg for sg in secgroups})
+        secgroups = self.os_provisioner.cloud.list_security_groups()
+        self.secgroup_map = {sg["name"]: sg for sg in secgroups}
+        self.secgroup_map.update({sg["id"]: sg for sg in secgroups})
