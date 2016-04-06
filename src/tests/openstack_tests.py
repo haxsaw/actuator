@@ -33,9 +33,11 @@ import json
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
+# setting up mocks
 ocf.set_neutron_client_class(ost_support.MockNeutronClient)
 ocf.set_nova_client_class(ost_support.MockNovaClient)
-
+ocf.get_shade_cloud = ost_support.mock_get_shade_cloud
+# end mocks
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
                       MultiResource, ctxt, Var, ResourceGroup, with_infra_options,
                       ActuatorOrchestration)
@@ -43,11 +45,11 @@ from actuator.provisioners.openstack.resource_tasks import (OpenstackProvisioner
                                                             ResourceTaskSequencerAgent)
 ResourceTaskSequencerAgent.repeat_count = 1
 from actuator.provisioners.openstack.resources import (Server, Network,
-                                                        Router, FloatingIP,
-                                                        Subnet, SecGroup,
-                                                        SecGroupRule, KeyPair,
-                                                        RouterInterface,
-                                                        RouterGateway)
+                                                       Router, FloatingIP,
+                                                       Subnet, SecGroup,
+                                                       SecGroupRule, KeyPair,
+                                                       RouterInterface,
+                                                       RouterGateway)
 from actuator.utils import (LOG_INFO, find_file, persist_to_dict,
                             reanimate_from_dict)
 from actuator.infra import StaticServer
@@ -55,20 +57,23 @@ from actuator.infra import StaticServer
 
 def get_provisioner():
     return OpenstackProvisioner("it", "just", "doesn't", "matter",
-                                log_level=LOG_INFO)
+                                log_level=LOG_INFO, cloud_name="wibble")
 
 
 def test001():
     provisioner = get_provisioner()
+
     class Test1(InfraModel):
         net = Network("test1Net")
     model = Test1("test1")
     assert model.net.osid.value() is None
     provisioner.provision_infra_model(model)
     assert model.net.osid.value()
-    
+
+
 def test002():
     provisioner = get_provisioner()
+
     class Test2(InfraModel):
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
         fip = FloatingIP("fip1", ctxt.model.server,
@@ -86,9 +91,11 @@ def test002():
             print
         assert False, "Test provisioning failed"
     assert model.fip.get_ip() and model.fip.osid.value()
-    
+
+
 def test003():
     provisioner = get_provisioner()
+
     class Test3(InfraModel):
         net = Network("wibbleNet")
         subnet = Subnet("wibbleSub", ctxt.model.net, u"192.168.23.0/24")
@@ -99,6 +106,7 @@ def test003():
 
 def test004():
     provisioner = get_provisioner()
+
     class Test4(InfraModel):
         net = Network("wibbleNet")
         subnet = Subnet("wibbleSub", ctxt.model.net, u"192.168.23.0/24")
@@ -110,20 +118,24 @@ def test004():
 
 def test005():
     provisioner = get_provisioner()
+
     class Test5(InfraModel):
         router = Router("wibbleRouter")
     model = Test5("test5")
     provisioner.provision_infra_model(model)
     assert model.router.osid.value()
-    
+
+
 def test006():
     provisioner = get_provisioner()
+
     class Test6(InfraModel):
         server = Server("simple", u"Ubuntu 13.10", "m1.small", key_name="perseverance_dev_key")
     model = Test6("test6")
     provisioner.provision_infra_model(model)
     assert model.server.osid.value() and model.server.addresses.value()
-    
+
+
 def test007():
     "this test is currently disabled"
     try:
@@ -134,7 +146,8 @@ def test007():
 #         assert False, "There should have been an exception regarding the cidr string"
     except ProvisionerException, _:
         assert True
-        
+
+
 def test008():
     """
     NOTE: this test is obsolete, but must remain as it impacts the operation
@@ -142,6 +155,7 @@ def test008():
     this test running). It will always return success, but PLEASE DON'T DELETE IT!!
     """
     provisioner = get_provisioner()
+
     class Test8(InfraModel):
         net = Network("wibbleNet")
         subnet = Subnet("WibbleSub", ctxt.model.net, u'192.168.22.0/24')
@@ -151,9 +165,11 @@ def test008():
     model = Test8("test8")
     provisioner.provision_infra_model(model)
     assert True
-    
+
+
 def test009():
     provisioner = get_provisioner()
+
     class Test9(InfraModel):
         server = Server("simple", u'bogus image', "m1.small", key_name="perseverance_dev_key")
     model = Test9("test9")
@@ -166,6 +182,7 @@ def test009():
 
 def test010():
     provisioner = get_provisioner()
+
     class Test10(InfraModel):
         server = Server("simple", u'Ubuntu 13.10', "m1.wibble", key_name="perseverance_dev_key")
     model = Test10("test10")
@@ -175,9 +192,11 @@ def test010():
     except ProvisionerException, _:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
         assert "flavor" in evalues
-        
+
+
 def test011():
     provisioner = get_provisioner()
+
     class Test11(InfraModel):
         net = Network("wibble")
         server = Server("simple", u'Ubuntu 13.10', "m1.small", nics=[ctxt.model.net.name],
@@ -187,9 +206,11 @@ def test011():
     model = Test11("t11")
     rec = provisioner.provision_infra_model(model)
     assert rec
-    
+
+
 def test012():
     provisioner = get_provisioner()
+
     class Test12(InfraModel):
         net = Network("wibble")
         routable_group = MultiResourceGroup("routables",
@@ -207,12 +228,13 @@ def test012():
 
 def test013():
     provisioner = get_provisioner()
+
     class Test13(InfraModel):
         subnet = Subnet("WibbleSub", ctxt.model.net, u'192.168.22.0/24')
         net = Network("wibble")
         grid = MultiResource(Server("simple", u'Ubuntu 13.10', "m1.small",
-                                     nics=[ctxt.model.net.name],
-                                     key_name="perseverance_dev_key"))
+                                    nics=[ctxt.model.net.name],
+                                    key_name="perseverance_dev_key"))
         gateway = Server("gateway", u'Ubuntu 13.10', "m1.small",
                          nics=[ctxt.model.net.name], key_name="perseverance_dev_key")
         fip = FloatingIP("fip", ctxt.model.gateway,
@@ -221,19 +243,21 @@ def test013():
     _ = [model.grid[i] for i in ["LN", "NY", "TK"]]
     rec = provisioner.provision_infra_model(model)
     assert rec
-    
+
+
 def test014():
     provisioner = get_provisioner()
+
     class Test14(InfraModel):
         subnet = Subnet("WibbleSub", ctxt.model.net, u'192.168.22.0/24')
         net = Network("wibble")
         collective = MultiResourceGroup("collective",
-                                         foreman = Server("gateway", u'Ubuntu 13.10', "m1.small",
-                                                          nics=[ctxt.model.net.name],
-                                                          key_name="perseverance_dev_key"),
-                                         workers = MultiResource(Server("simple", u'Ubuntu 13.10', "m1.small",
-                                                                         nics=[ctxt.model.net.name],
-                                                                         key_name="perseverance_dev_key")))
+                                        foreman=Server("gateway", u'Ubuntu 13.10', "m1.small",
+                                                       nics=[ctxt.model.net.name],
+                                                       key_name="perseverance_dev_key"),
+                                        workers=MultiResource(Server("simple", u'Ubuntu 13.10', "m1.small",
+                                                                     nics=[ctxt.model.net.name],
+                                                                     key_name="perseverance_dev_key")))
         gateway = Server("gateway", u'Ubuntu 13.10', "m1.small",
                          nics=[ctxt.model.net.name], key_name="perseverance_dev_key")
         fip = FloatingIP("fip", ctxt.model.gateway,
@@ -244,22 +268,26 @@ def test014():
             _ = model.collective[i].workers[j]
     _ = provisioner.provision_infra_model(model)
     assert len(model.components()) == 22
-    
+
+
 def test015():
     provisioner = get_provisioner()
+
     class Test15(InfraModel):
         g = MultiResourceGroup("testGroup",
-                                net=Network("wibble"),
-                                subnet=Subnet("WibbleSub", ctxt.comp.container.net, u'192.168.23.0/24'),
-                                workers=MultiResource(Server("worker", u'Ubuntu 13.10', "m1.small",
-                                                              nics=[ctxt.comp.container.container.net.name])))
+                               net=Network("wibble"),
+                               subnet=Subnet("WibbleSub", ctxt.comp.container.net, u'192.168.23.0/24'),
+                               workers=MultiResource(Server("worker", u'Ubuntu 13.10', "m1.small",
+                                                            nics=[ctxt.comp.container.container.net.name])))
     model = Test15("t15")
     _ = model.g[1].workers[1]
     rec = provisioner.provision_infra_model(model)
     assert rec
+
     
 def test016():
     provisioner = get_provisioner()
+
     class Test16(InfraModel):
         net = Network("wibble")
         subnet = Subnet("WibbleSub", lambda _: [], u"192.168.23.0/24",
@@ -271,22 +299,24 @@ def test016():
     except ProvisionerException, _:
         evalues = " ".join([t[2].message.lower() for t in provisioner.agent.aborted_tasks])
         assert "network" in evalues
-        
+
+
 def test017():
     provisioner = get_provisioner()
+
     class Test17(InfraModel):
         net = Network("wibble")
         subnet = Subnet("WibbleSub", ctxt.model.net, u"192.168.23.0/24",
                         dns_nameservers=[u'8.8.8.8'])
         s1 = Server("perseverance1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net.name])
         clusters = MultiResourceGroup("clusters",
-                                       cluster_net=Network("wibbleNet"),
-                                       cluster_sub=Subnet("cluster_sub", ctxt.comp.container.cluster_net,
-                                                          u'192.168.%d.0/30'),
-                                       cluster_foreman = Server("cluster_foreman", "Ubuntu 13.10", "m1.small",
-                                                                nics=[ctxt.comp.container.cluster_net.name]),
-                                       cluster=MultiResource(Server("cluster_node", "Ubuntu 13.10", "m1.small",
-                                                                     nics=[ctxt.comp.container.container.cluster_net.name])))
+                                      cluster_net=Network("wibbleNet"),
+                                      cluster_sub=Subnet("cluster_sub", ctxt.comp.container.cluster_net,
+                                                         u'192.168.%d.0/30'),
+                                      cluster_foreman = Server("cluster_foreman", "Ubuntu 13.10", "m1.small",
+                                                               nics=[ctxt.comp.container.cluster_net.name]),
+                                      cluster=MultiResource(Server("cluster_node", "Ubuntu 13.10", "m1.small",
+                                                                   nics=[ctxt.comp.container.container.cluster_net.name])))
     model = Test17("t17")
     _ = model.clusters["ny"].cluster[1]
     rec = provisioner.provision_infra_model(model)
@@ -576,7 +606,8 @@ class FauxEngine(object):
     def get_context(self):
         from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
         from actuator.provisioners.openstack.resource_tasks import RunContext
-        return RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter")
+        return RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter",
+                          cloud_name="wobble")
     
     
 def test042():
@@ -630,6 +661,7 @@ def test044():
     result = psnt.reverse(engine)
     assert result is None
 
+
 def test045():
     "test045: provision/deprovision a security group"
     from actuator.provisioners.openstack.resource_tasks import ProvisionSecGroupTask
@@ -644,7 +676,8 @@ def test045():
     psgt.perform(engine)
     result = psgt.reverse(engine)
     assert result is None
-    
+
+
 def test046():
     "test046: provision/deprovision a server"
     from actuator.provisioners.openstack.resource_tasks import ProvisionServerTask
@@ -661,7 +694,8 @@ def test046():
     pst.perform(engine)
     result = pst.reverse(engine)
     assert result is None
-    
+
+
 def test047():
     "test047: provision/deprovision a router"
     from actuator.provisioners.openstack.resource_tasks import ProvisionRouterTask
@@ -676,7 +710,8 @@ def test047():
     prt.perform(engine)
     result = prt.reverse(engine)
     assert result is None
-    
+
+
 def test048():
     "test048: provision/deprovision a router interface"
     from actuator.provisioners.openstack.resource_tasks import (ProvisionNetworkTask,
@@ -710,7 +745,8 @@ def test048():
     prit.perform(engine)
     result = prit.reverse(engine)
     assert result is None
-    
+
+
 def test049():
     "test049: provision/deprovision a floating ip"
     from actuator.provisioners.openstack.resource_tasks import (ProvisionFloatingIPTask,
@@ -743,6 +779,7 @@ class BreakableNetworkTask(ProvisionNetworkTask):
     """
     prov_cb = None
     deprov_cb = None
+
     def __init__(self, *args, **kwargs):
         super(BreakableNetworkTask, self).__init__(*args, **kwargs)
         self.prov_tries = 0
@@ -765,7 +802,8 @@ class BreakableNetworkTask(ProvisionNetworkTask):
         self.deprov_tries += 1
         if self.deprov_cb is not None:
             self.deprov_cb(self)
-        
+
+
 def prov_deprov_setup():
     engine = FauxEngine()
 
@@ -773,7 +811,8 @@ def prov_deprov_setup():
         net = Network("wibble")
     inst = Test("wibble")
     return engine, inst
-            
+
+
 def test050():
     'test050: test no multiple provisioning'
     engine, inst = prov_deprov_setup()
@@ -782,7 +821,8 @@ def test050():
     pnt.perform(engine)
     pnt.perform(engine)
     assert pnt.prov_tries == 1
-    
+
+
 def test051():
     'test051: test provision after fail'
     engine, inst = prov_deprov_setup()
@@ -794,7 +834,8 @@ def test051():
     pnt.do_prov_fail = False
     pnt.perform(engine)
     assert pnt.prov_tries == 1
-    
+
+
 def test052():
     'test052: test no deprov before prov'
     engine, inst = prov_deprov_setup()
@@ -802,7 +843,8 @@ def test052():
     pnt = BreakableNetworkTask(net)
     pnt.reverse(engine)
     assert pnt.prov_tries == 0 and pnt.deprov_tries == 0
-    
+
+
 def test053():
     'test053: test deprov after prov'
     engine, inst = prov_deprov_setup()
@@ -811,7 +853,8 @@ def test053():
     pnt.perform(engine)
     pnt.reverse(engine)
     assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
-    
+
+
 def test054():
     'test054: test no prov after deprov'
     engine, inst = prov_deprov_setup()
@@ -821,7 +864,8 @@ def test054():
     pnt.reverse(engine)
     pnt.perform(engine)
     assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
-    
+
+
 def test055():
     'test055: test deprov after one failed deprov'
     engine, inst = prov_deprov_setup()
@@ -834,7 +878,8 @@ def test055():
     pnt.do_deprov_fail = False
     pnt.reverse(engine)
     assert pnt.deprov_tries == 1
-    
+
+
 def test056():
     'test056: no multiple deprov after prov'
     engine, inst = prov_deprov_setup()
@@ -844,7 +889,8 @@ def test056():
     pnt.reverse(engine)
     pnt.reverse(engine)
     assert pnt.prov_tries == 1 and pnt.deprov_tries == 1
-    
+
+
 class ResumeNetwork(Network):
     def __init__(self, *args, **kwargs):
         self.do_raise = False
@@ -863,14 +909,17 @@ class ResumeNetwork(Network):
     def set_as(self, asu):
         self.__admin_state_up = asu
     admin_state_up = property(get_as, set_as)
-    
+
+
 class CaptureTries(object):
     def __init__(self):
         self.prov_count = 0
         self.tasks_seen = set()
+
     def cb(self, t):
         self.prov_count = t.prov_tries
         self.tasks_seen.add(t)
+
 
 def test057():
     'test057: resume provisioning an infra'
@@ -880,6 +929,7 @@ def test057():
     ct = CaptureTries()
                     
     capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+
     class ResumeInfra(InfraModel):
         net = ResumeNetwork("resume")
     inst = ResumeInfra('resume')
@@ -907,7 +957,8 @@ def test057():
             traceback.print_exception(et, ev, tb)
         raise
     assert ct.prov_count == 1
-    
+
+
 def test058():
     'test058: resume provisioning an infra; complete just once'
     from actuator.provisioners.openstack.resource_tasks import _rt_domain
@@ -916,6 +967,7 @@ def test058():
     ct = CaptureTries()
                      
     capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+
     class ResumeInfra(InfraModel):
         net = ResumeNetwork("resume")
     inst = ResumeInfra('resume')
@@ -932,7 +984,8 @@ def test058():
     prov.provision_infra_model(inst)
     prov.provision_infra_model(inst)
     assert ct.prov_count == 1 and len(ct.tasks_seen) == 1
-    
+
+
 def test059():
     'test059: multiple provisions, just one performance'
     from actuator.provisioners.openstack.resource_tasks import _rt_domain
@@ -941,6 +994,7 @@ def test059():
     ct = CaptureTries()
                      
     capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+
     class ResumeInfra(InfraModel):
         net = ResumeNetwork("resume")
     inst = ResumeInfra('resume')
@@ -950,7 +1004,8 @@ def test059():
     prov.provision_infra_model(inst)
     prov.provision_infra_model(inst)
     assert ct.prov_count == 1 and len(ct.tasks_seen) == 1
-    
+
+
 def test060():
     'test060: test fail orchestration'
     from actuator.provisioners.openstack.resource_tasks import _rt_domain
@@ -960,6 +1015,7 @@ def test060():
     ct = CaptureTries()
                     
     capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+
     class ResumeInfra(InfraModel):
         net = ResumeNetwork("resume")
     inst = ResumeInfra('resume')
@@ -970,7 +1026,8 @@ def test060():
     orch = ActuatorOrchestration(infra_model_inst=inst, provisioner=prov)
     result = orch.initiate_system()
     assert not result
-    
+
+
 def test061():
     'test061: test resume to success with orchestration'
     from actuator.provisioners.openstack.resource_tasks import _rt_domain
@@ -980,6 +1037,7 @@ def test061():
     ct = CaptureTries()
                     
     capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+
     class ResumeInfra(InfraModel):
         net = ResumeNetwork("resume")
     inst = ResumeInfra('resume')
@@ -993,7 +1051,8 @@ def test061():
     inst.net.set_raise(False)
     result2 = orch.initiate_system()
     assert not result1 and result2 and ct.prov_count == 1
-    
+
+
 def test062():
     'test062: two initiates only perform the tasks once'
     from actuator.provisioners.openstack.resource_tasks import _rt_domain
@@ -1003,6 +1062,7 @@ def test062():
     ct = CaptureTries()
                     
     capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+
     class ResumeInfra(InfraModel):
         net = ResumeNetwork("resume")
     inst = ResumeInfra('resume')
@@ -1013,7 +1073,8 @@ def test062():
     result1 = orch.initiate_system()
     result2 = orch.initiate_system()
     assert result1 and result2 and ct.prov_count == 1
-    
+
+
 def test063():
     "test063: deprovision infra"
     class DecoInfra(InfraModel):
@@ -1023,7 +1084,8 @@ def test063():
     prov.provision_infra_model(deco)
     prov.deprovision_infra_model(deco)
     assert True
-    
+
+
 def test064():
     'test064: run the teardown after initiation'
     from actuator.provisioners.openstack.resource_tasks import _rt_domain
@@ -1033,6 +1095,7 @@ def test064():
     ct = CaptureTries()
                     
     capture_mapping(_rt_domain, ResumeNetwork)(BreakableNetworkTask)
+
     class ResumeInfra(InfraModel):
         net = ResumeNetwork("resume")
     inst = ResumeInfra('resume')
@@ -1059,7 +1122,8 @@ def persistence_helper(inst):
 
 class Infra65(InfraModel):
     s = Server("s", u"Ubuntu 13.10", "m1.small")
-    
+
+
 def test065():
     """
     test065: check persistence of a model with a single server
@@ -1068,10 +1132,12 @@ def test065():
     i65p = persistence_helper(i65)
     assert (i65p.s.imageName.value() == u"Ubuntu 13.10" and
             i65p.s.flavorName.value() == "m1.small")
-    
+
+
 class Infra66(InfraModel):
     s = Server("s", u"Ubuntu 13.10", "m1.small", userdata={"k1":1, "k2":2})
-    
+
+
 def test066():
     """
     test066: another single server persistence test, check more args
@@ -1086,7 +1152,8 @@ def udfunc(context):
 class Infra67(InfraModel):
     grid = MultiResource(Server("node", u"Ubuntu 13.10", "m1.small",
                          userdata=udfunc))
-    
+
+
 def test067():
     """
     test067: persistence test: infra model with a MultiResource wrapping a server

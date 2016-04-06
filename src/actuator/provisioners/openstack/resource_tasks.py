@@ -53,8 +53,11 @@ class RunContext(object):
         self.record = record
         self.maps = _OSMaps(self)
         if cloud_name is not None:
-            self.cloud_config = os_client_config.OpenStackConfig().get_one_cloud(cloud_name)
-            self.cloud = shade.OpenStackCloud(cloud_config=self.cloud_config)
+            self.cloud = ocf.get_shade_cloud(cloud_name)
+            # self.cloud_config = os_client_config.OpenStackConfig().get_one_cloud(cloud_name)
+            # self.cloud = shade.OpenStackCloud(cloud_config=self.cloud_config)
+        else:
+            self.cloud = None
     
     def _nuclient(self):
         return NeutronClient(username=self.username, password=self.password,
@@ -247,7 +250,7 @@ class ProvisionServerTask(ProvisioningTask):
                  if isinstance(self.rsrc.key_name, KeyPair)
                  else []))
 
-    def  _process_server_addresses(self, addr_dict):
+    def _process_server_addresses(self, addr_dict):
         self.rsrc.set_addresses(addr_dict)
         for i, (k, v) in enumerate(addr_dict.items()):
             iface = getattr(self.rsrc, "iface%d" % i)

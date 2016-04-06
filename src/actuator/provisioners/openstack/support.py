@@ -25,6 +25,7 @@ of Openstack resources that have been provisioned for a model, and a class that
 can retrieves and caches identifiers for Openstack resources that may be needed
 when provisioning infra for a model.
 '''
+
 from actuator.provisioners.core import BaseProvisioningRecord
 
 
@@ -182,7 +183,7 @@ class _OSMaps(object):
         Keys are the keypair name, values are nova Keypair values.
         """
         response = self.os_provisioner.nvclient.keypairs.list()
-        self.keypair_map = {kp.name:kp for kp in response}
+        self.keypair_map = {kp.name: kp for kp in response}
         
     def refresh_subnets(self):
         """

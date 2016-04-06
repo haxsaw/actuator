@@ -331,22 +331,21 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         'fixed' values; that is, the arguments that resulted after evaluating all
         context expressions, calling all callables, etc.
         """
-        return ( (self.name, self.imageName, self.flavorName),
-                 {"meta":self.meta,
-                  "files":self.files,
-                  "reservation_id":self.reservation_id,
-                  "min_count":self.min_count,
-                  "max_count":self.max_count,
-                  "security_groups":self.security_groups,
-                  "userdata":self.userdata,
-                  "key_name":self.key_name,
-                  "availability_zone":self.availability_zone,
-                  "block_device_mapping":self.block_device_mapping,
-                  "block_device_mapping_v2":self.block_device_mapping_v2,
-                  "nics":self.nics,
-                  "scheduler_hints":self.scheduler_hints,
-                  "config_drive":self.config_drive, "disk_config":self.disk_config,})
-#                   "floating_ip":self.floating_ip} )
+        return ((self.name, self.imageName, self.flavorName),
+                {"meta": self.meta,
+                 "files": self.files,
+                 "reservation_id": self.reservation_id,
+                 "min_count": self.min_count,
+                 "max_count": self.max_count,
+                 "security_groups": self.security_groups,
+                 "userdata": self.userdata,
+                 "key_name": self.key_name,
+                 "availability_zone": self.availability_zone,
+                 "block_device_mapping": self.block_device_mapping,
+                 "block_device_mapping_v2": self.block_device_mapping_v2,
+                 "nics": self.nics,
+                 "scheduler_hints": self.scheduler_hints,
+                 "config_drive": self.config_drive, "disk_config": self.disk_config})
 
     def get_ip(self, context=None):
         """

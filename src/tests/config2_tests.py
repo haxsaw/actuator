@@ -30,6 +30,7 @@ from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
 ocf.set_neutron_client_class(ost_support.MockNeutronClient)
 ocf.set_nova_client_class(ost_support.MockNovaClient)
+ocf.get_shade_cloud = ost_support.mock_get_shade_cloud
 
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
                       MultiResource, ctxt, Var, ResourceGroup, Role,
@@ -123,7 +124,7 @@ def test001():
     pwd = "doesn't"
     url = "matter"
     
-    os_prov = OpenstackProvisioner(uid, pwd, uid, url, num_threads=1)
+    os_prov = OpenstackProvisioner(uid, pwd, uid, url, num_threads=1, cloud_name="wibble")
     for i in range(5):
         _ = ns.slaves[i]
     ns.compute_provisioning_for_environ(infra)
@@ -157,7 +158,8 @@ def test001():
             cfg.do_it.value().instances[0].instance.task.get_task_host() is not None and
             isinstance(cfg.do_it.value().instances[0].instance.task.get_task_host(),
                            basestring))
-    
+
+
 def test002():
     """
     test002: check that we properly catch the wrong type for the config model
@@ -171,12 +173,14 @@ def test002():
         assert True
     except Exception, e:
         assert False, "Wrong exception raised: %s" % e.message
-        
+
+
 def test003():
     """
     test003: check that we raise the right exception when given the wrong type for namespacce
     """
-    class Infra3(InfraModel): pass
+    class Infra3(InfraModel):
+        pass
     
     try:
         aea = ParamikoExecutionAgent(namespace_model_instance=Infra3("i3"))
@@ -190,7 +194,8 @@ def test004():
     """
     test004: check that we raise the right exception when given the wrong type for infra model
     """
-    class NS4(NamespaceModel): pass
+    class NS4(NamespaceModel):
+        pass
     
     try:
         aea = ParamikoExecutionAgent(infra_model_instance=NS4())
@@ -199,13 +204,18 @@ def test004():
         assert True
     except Exception, e:
         assert False, "Wrong exception raised: %s" % e.message
-        
+
+
 def test005():
     """
     test005: check that we can initiate reversing config tasks
     """
-    class Config5(ConfigModel): pass
-    class NS5(NamespaceModel): pass
+    class Config5(ConfigModel):
+        pass
+
+    class NS5(NamespaceModel):
+        pass
+
     ea = ExecutionAgent(config_model_instance=Config5(),
                         namespace_model_instance=NS5())
     try:
@@ -213,26 +223,36 @@ def test005():
         assert True
     except Exception, e:
         assert False, "Failed with: %s" % e.message
-        
+
+
 def test006():
     """
     test006: invoke the abort processing method
     """
-    class Config6(ConfigModel): pass
-    class NS6(NamespaceModel): pass
+    class Config6(ConfigModel):
+        pass
+
+    class NS6(NamespaceModel):
+        pass
+
     ea = ExecutionAgent(config_model_instance=Config6(),
                         namespace_model_instance=NS6())
     ea.abort_process_tasks()
     assert ea.stop, "Processing state not set to stop"
 
+
 def test007():
     """
     test007: affirm that we can stop the processing loop; this can block forever if broken
     """
-    class Config7(ConfigModel): pass
-    class NS7(NamespaceModel): pass
+    class Config7(ConfigModel):
+        pass
+
+    class NS7(NamespaceModel):
+        pass
     ea = ExecutionAgent(config_model_instance=Config7(),
                         namespace_model_instance=NS7())
+
     def wait_and_abort(ea):
         time.sleep(0.5)
         ea.abort_process_tasks()
@@ -243,13 +263,12 @@ def test007():
     t.start()
     ea.reverse_process_tasks()
     assert ea.stop, "We stopped processing without signaling abort"
-    
-
 
 
 def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
+            print ">>>>>>>>Running test %s" % k
             v()
             
 if __name__ == "__main__":
