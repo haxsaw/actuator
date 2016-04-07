@@ -278,7 +278,7 @@ class ProvisionServerTask(ProvisioningTask):
                 if sg is None:
                     raise ProvisionerException("Security group %s doesn't seem to exist" % sgname,
                                                record=run_context.record)
-                secgroup_list.append(sg.id)
+                secgroup_list.append(sg["id"])
             kwargs["security_groups"] = secgroup_list
             
         nics_list = []
@@ -289,21 +289,27 @@ class ProvisionServerTask(ProvisioningTask):
                 if nic is None:
                     raise ProvisionerException("NIC %s doesn't seem to exist" % nicname,
                                                record=run_context.record)
-                nics_list.append({'net-id': nic.id})
+                # nics_list.append(nic)
+                nics_list.append({'net-id': nic["id"]})
             kwargs['nics'] = nics_list
             
         if isinstance(kwargs["key_name"], KeyPair):
             kwargs["key_name"] = kwargs["key_name"].get_key_name()
             
-        srvr = run_context.nvclient.servers.create(name, image, flavor, **kwargs)
-        self.rsrc.set_osid(srvr.id)
+        # srvr = run_context.nvclient.servers.create(name, image, flavor, **kwargs)
+        # self.rsrc.set_osid(srvr.id)
+        srvr = run_context.cloud.create_server(name, image, flavor, **kwargs)
+        self.rsrc.set_osid(srvr["id"])
         run_context.record.add_server_id(self.rsrc._id, self.rsrc.osid)
         
-        while not srvr.addresses:
+        # while not srvr.addresses:
+        while not srvr["addresses"]:
             time.sleep(0.25)
-            srvr.get()
-        self._process_server_addresses(srvr.addresses)
-        
+            # srvr.get()
+            srvr = run_context.cloud.get_server(srvr["id"])
+        # self._process_server_addresses(srvr.addresses)
+        self._process_server_addresses(srvr["addresses"])
+
     def _reverse(self, engine):
         run_context = engine.get_context()
         server = run_context.nvclient.servers.get(self.rsrc.osid)
@@ -339,8 +345,9 @@ class ProvisionRouterGatewayTask(ProvisioningTask):
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         run_context.maps.refresh_networks()
         ext_net = run_context.maps.network_map.get(self.rsrc.external_network_name)
-        msg = {u'network_id':ext_net.id}
-        _ = run_context.nuclient.add_gateway_router(router_id, msg)
+        # msg = {u'network_id':ext_net.id}
+        # _ = run_context.nuclient.add_gateway_router(router_id, msg)
+        run_context.cloud.update_router(router_id, ext_gateway_net_id=ext_net["id"])
         
     #no reversing; assume it goes with the router
 
@@ -358,10 +365,12 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
     def _perform(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
-        subnet = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
-        response = run_context.nuclient.add_interface_router(router_id,
-                                                      {u'subnet_id':subnet,
-                                                       u'name':self.rsrc.get_display_name()})
+        router = run_context.cloud.get_router(router_id)
+        snid = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
+        # response = run_context.nuclient.add_interface_router(router_id,
+        #                                               {u'subnet_id':subnet,
+        #                                                u'name':self.rsrc.get_display_name()})
+        response = run_context.cloud.add_router_interface(router, subnet_id=snid)
         self.rsrc.set_osid(response[u'port_id'])
         run_context.record.add_router_iface_id(self.rsrc._id, response[u'port_id'])
         
@@ -423,11 +432,14 @@ class ProvisionKeyPairTask(ProvisioningTask):
         kp = run_context.maps.keypair_map.get(name)
         if kp is not None:
             if self.rsrc.force:
-                run_context.nvclient.keypairs.delete(name)
-                run_context.nvclient.keypairs.create(name, public_key=public_key)
+                # run_context.nvclient.keypairs.delete(name)
+                # run_context.nvclient.keypairs.create(name, public_key=public_key)
+                run_context.cloud.delete_keypair(name)
+                run_context.cloud.create_keypair(name, public_key)
         else:
-            run_context.nvclient.keypairs.create(name, public_key=public_key)
-                
+            # run_context.nvclient.keypairs.create(name, public_key=public_key)
+            run_context.cloud.create_keypair(name, public_key)
+
 
 class OpenstackCredentials(object):
     def __init__(self, username, password, tenant_name, auth_url, cloud_name=None):

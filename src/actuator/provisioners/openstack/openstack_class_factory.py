@@ -67,6 +67,6 @@ def _real_get_os_cloud(cloud_name, config_files=None, vendor_files=None, overrid
 # to this function name to support testing
 def get_shade_cloud(cloud_name, config_files=None, vendor_files=None, override_defaults=None,
                     force_ipv4=None, envvar_prefix=None, secure_files=None):
-    return _real_get_os_cloud(cloud_name, onfig_files=config_files, vendor_files=vendor_files,
+    return _real_get_os_cloud(cloud_name, config_files=config_files, vendor_files=vendor_files,
                               override_defaults=override_defaults, force_ipv4=force_ipv4,
                               envvar_prefix=envvar_prefix, secure_files=secure_files)

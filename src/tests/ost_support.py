@@ -83,6 +83,7 @@ class MockKeypair(dict):
         super(MockKeypair, self).__init__()
         self.name = self.id = name
         self["name"] = self.name
+        self["id"] = self.id
         self.public_key = public_key
         self["public_key"] = public_key
 
@@ -118,12 +119,14 @@ class FIPResult(dict):
 
 
 class ServerResult(dict):
-    def __init__(self):
+    def __init__(self, name):
         super(ServerResult, self).__init__()
         self.id = fake.md5()
         self["id"] = self.id
         self.addresses = {u"network":[{u'addr':fake.ipv4()}]}
         self["addresses"] = self.addresses
+        self.name = name
+        self["name"] = name
 
 
 class FlavorResult(dict):
@@ -162,6 +165,7 @@ class _cache(object):
     _secgroup_list = [SecGroupResult(n) for n in (u'default', u'wibbleGroup')]
     _keypairs_dict = {n: MockKeypair(n, "startingkey") for n in [u"actuator-dev-key",
                                                                  u"test-key"]}
+    _servers_dict = {}
 
 
 class MockOSCloud(_cache):
@@ -250,6 +254,9 @@ class MockOSCloud(_cache):
     def delete_router(self, router_id):
         return
 
+    def get_router(self, rid, **kwargs):
+        return {"id": fake.md5()}
+
     def update_router(self, name_or_id, **kwargs):
         return
 
@@ -258,6 +265,27 @@ class MockOSCloud(_cache):
 
     def remove_router_interface(self, router, **kwargs):
         return
+
+    def create_server(self, name, image, flavor, **kwargs):
+        s = ServerResult(name)
+        self._servers_dict[s["name"]] = s
+        self._servers_dict[s["id"]] = s
+        return s
+
+    def get_server(self, name_or_id=None, **kwargs):
+        return self._servers_dict.get(name_or_id)
+
+    def delete_server(self, name_or_id=None, **kwargs):
+        s = self._servers_dict.get(name_or_id)
+        if s:
+            try:
+                del self._servers_dict[s["name"]]
+            except KeyError:
+                pass
+            try:
+                del self._servers_dict[s["id"]]
+            except KeyError:
+                pass
 
     ### TEST SUPPORT METHODS
 

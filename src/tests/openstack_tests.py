@@ -494,10 +494,12 @@ def test032():
         assert False, "The class creation should have failed"
     except ProvisionerException, _:
         assert True
-    
+
+
 def test033():
     "test033 test getting a resource task for the KeyPair"
     prov = get_provisioner()
+
     class KPTest(InfraModel):
         kp = KeyPair("kp_test", "pkn", os_name="kp_test",
                      pub_key_file=None, pub_key="wibble", force=False)
@@ -1454,7 +1456,7 @@ def test083():  #reating test063 but with persistence/reanimation
     
 
 def do_all():
-    test025()
+    test033()
     globs = globals()
     tests = []
     for k, v in globs.items():

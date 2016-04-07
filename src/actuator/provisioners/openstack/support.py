@@ -182,9 +182,11 @@ class _OSMaps(object):
         Refresh the keypairs map, keypair_map.
         Keys are the keypair name, values are nova Keypair values.
         """
-        response = self.os_provisioner.nvclient.keypairs.list()
-        self.keypair_map = {kp.name: kp for kp in response}
-        
+        # response = self.os_provisioner.nvclient.keypairs.list()
+        response = self.os_provisioner.cloud.list_keypairs()
+        self.keypair_map = {kp["name"]: kp for kp in response}
+        self.keypair_map.update({kp["id"]: kp for kp in response})
+
     def refresh_subnets(self):
         """
         Refresh the subnets map, subnet_map.
@@ -214,8 +216,8 @@ class _OSMaps(object):
         # for network in networks:
         #     self.network_map[network.id] = network
         networks = self.os_provisioner.cloud.list_networks()
-        self.network_map = {n["name"]:n for n in networks}
-        self.network_map.update({n["id"]:n for n in networks})
+        self.network_map = {n["name"]: n for n in networks}
+        self.network_map.update({n["id"]: n for n in networks})
 
     def refresh_images(self):
         """
