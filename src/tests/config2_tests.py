@@ -28,8 +28,6 @@ import threading
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
-ocf.set_neutron_client_class(ost_support.MockNeutronClient)
-ocf.set_nova_client_class(ost_support.MockNovaClient)
 ocf.get_shade_cloud = ost_support.mock_get_shade_cloud
 
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,

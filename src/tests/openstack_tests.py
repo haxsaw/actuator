@@ -34,13 +34,10 @@ import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
 # setting up mocks
-ocf.set_neutron_client_class(ost_support.MockNeutronClient)
-ocf.set_nova_client_class(ost_support.MockNovaClient)
 ocf.get_shade_cloud = ost_support.mock_get_shade_cloud
 # end mocks
 from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
-                      MultiResource, ctxt, Var, ResourceGroup, with_infra_options,
-                      ActuatorOrchestration)
+                      MultiResource, ctxt, Var, ResourceGroup, ActuatorOrchestration)
 from actuator.provisioners.openstack.resource_tasks import (OpenstackProvisioner,
                                                             ResourceTaskSequencerAgent)
 ResourceTaskSequencerAgent.repeat_count = 1
@@ -376,15 +373,18 @@ def test017():
 
 def test022():
     _ = SecGroup("wibbleGroup", description="A group for testing")
-    
+
+
 def test023():
     class SGTest(InfraModel):
         secgroup = SecGroup("wibbleGroup", description="A group for testing")
     inst = SGTest("t1")
     assert inst.secgroup is not SGTest.secgroup
 
+
 def test024():
     prov = get_provisioner()
+
     class SGTest(InfraModel):
         secgroup = SecGroup("wibbleGroup", description="A group for testing")
     inst = SGTest("t1")
@@ -404,7 +404,8 @@ def test025():
     inst = SGTest("t25")
     rec = prov.provision_infra_model(inst)
     assert rec
-    
+
+
 def test026():
     _ = SecGroupRule("rule1", ctxt.model.secgroup, ip_protocol=None,
                      from_port=None, to_port=None, cidr=None)
@@ -460,7 +461,8 @@ def test029():
     inst = SGRTest("seccomp with server")
     rec = prov.provision_infra_model(inst)
     assert rec
-    
+
+
 def test030():
     prov = get_provisioner()
     class IPTest(InfraModel):
@@ -475,7 +477,8 @@ def test030():
     ns.compute_provisioning_for_environ(inst)
     prov.provision_infra_model(inst)
     assert ns.future("SERVER_IP").value()
-    
+
+
 def test031():
     "test basic KeyPair modeling capabilities"
     class KPTest(InfraModel):
@@ -485,7 +488,8 @@ def test031():
     inst.kp.fix_arguments()
     assert (inst and inst.kp and inst.kp is not KPTest.kp
             and inst.kp.priv_key_name.value() == "pkn")
-    
+
+
 def test032():
     "test arg testing"
     try:
@@ -508,61 +512,71 @@ def test033():
         prov.provision_infra_model(inst)
     except ProvisionerException, _:
         assert False, "provisioning the public key failed"
-    
+
+
 def test034():
     "test034 test provisioning an existing key"
     prov = get_provisioner()
+
     class KPTest(InfraModel):
         kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble")
     inst = KPTest("thing")
     try:
         prov.provision_infra_model(inst)
-        assert ost_support.MockNovaClient._keypairs_dict["test-key"].public_key == "startingkey"
+        assert ost_support.MockOSCloud._keypairs_dict["test-key"]["public_key"] == "startingkey"
     except ProvisionerException, _:
         assert False, "provisioning the public key failed"
-        
+
+
 def test035():
     "test035 test provisioning an existing key with overwrite"
     prov = get_provisioner()
+
     class KPTest(InfraModel):
         kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble",
                      force=True)
     inst = KPTest("thing")
     try:
         prov.provision_infra_model(inst)
-        assert ost_support.MockNovaClient._keypairs_dict["test-key"].public_key == "wibble"
+        assert ost_support.MockOSCloud._keypairs_dict["test-key"]["public_key"] == "wibble"
     except ProvisionerException, _:
         assert False, "provisioning the public key failed"
-        
+
+
 def test036():
     "test036 test using a os_name instead of the KeyPair name"
     prov = get_provisioner()
+
     class KPTest(InfraModel):
         kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble",
                      os_name="alt-key-name")
     inst = KPTest("thing")
     try:
         prov.provision_infra_model(inst)
-        assert ost_support.MockNovaClient._keypairs_dict["alt-key-name"].public_key == "wibble"
+        assert ost_support.MockOSCloud._keypairs_dict["alt-key-name"]["public_key"] == "wibble"
     except ProvisionerException, _:
         assert False, "provisioning the public key failed"
-        
+
+
 def test037():
     "test037 making sure force doesn't mess with use os_name"
     prov = get_provisioner()
+
     class KPTest(InfraModel):
         kp = KeyPair("test-key", "pkn", pub_key_file=None, pub_key="wibble2",
                      os_name="alt-key-name", force=True)
     inst = KPTest("thing")
     try:
         prov.provision_infra_model(inst)
-        assert ost_support.MockNovaClient._keypairs_dict["alt-key-name"].public_key == "wibble2"
+        assert ost_support.MockOSCloud._keypairs_dict["alt-key-name"]["public_key"] == "wibble2"
     except ProvisionerException, _:
         assert False, "provisioning the public key failed"
-        
+
+
 def test038():
     "test038: check if the key is properly pulled from a file"
     prov = get_provisioner()
+
     class KPTest(InfraModel):
         kp = KeyPair("test-key", "pkn",
                      pub_key_file=find_file("actuator-dev-key.pub"),
@@ -570,14 +584,16 @@ def test038():
     inst = KPTest("thing")
     try:
         prov.provision_infra_model(inst)
-        assert (ost_support.MockNovaClient._keypairs_dict["alt-key-name"].public_key ==
+        assert (ost_support.MockOSCloud._keypairs_dict["alt-key-name"]["public_key"] ==
                 open(find_file("actuator-dev-key.pub"), "r").read())
     except ProvisionerException, _:
         assert False, "provisioning the public key failed"
-        
+
+
 def test039():
     "test039: ensure that we get an error if we can't find the key file"
     prov = get_provisioner()
+
     class KPTest(InfraModel):
         kp = KeyPair("test-key", "pkn", pub_key_file="no-such-file.pub")
     inst = KPTest("thing")
@@ -586,7 +602,8 @@ def test039():
         assert False, "should have complained about finding the key file"
     except ProvisionerException, _:
         assert True
-        
+
+
 def test040():
     "test040: ensure that we require either a key file or a public key"
     try:
@@ -1456,7 +1473,6 @@ def test083():  #reating test063 but with persistence/reanimation
     
 
 def do_all():
-    test033()
     globs = globals()
     tests = []
     for k, v in globs.items():

@@ -30,9 +30,7 @@ import string
 from actuator.modeling import AbstractModelReference
 from actuator.task import TaskEngine, GraphableModelMixin, Task
 from actuator.provisioners.openstack import openstack_class_factory as ocf
-NovaClient = ocf.get_nova_client_class()
-NeutronClient = ocf.get_neutron_client_class()
-from actuator.provisioners.core import ProvisionerException, BaseProvisioner
+from actuator.provisioners.core import BaseProvisioner
 from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.openstack.support import (_OSMaps,
                                                      OpenstackProvisioningRecord)
@@ -53,18 +51,6 @@ class RunContext(object):
             self.cloud = ocf.get_shade_cloud(cloud_name)
         else:
             self.cloud = None
-    
-    def _nuclient(self):
-        return NeutronClient(username=self.username, password=self.password,
-                             auth_url=self.auth_url, tenant_name=self.tenant_name)
-        
-    nuclient = property(_nuclient)
-    
-    def _nvclient(self):
-        return NovaClient('1.1', self.username, self.password,
-                          self.tenant_name, self.auth_url)
-        
-    nvclient = property(_nvclient)
 
 
 class ProvisioningTask(Task):
@@ -73,12 +59,11 @@ class ProvisioningTask(Task):
     
     def __init__(self, rsrc, repeat_count=1):
         super(ProvisioningTask, self).__init__("{}_provisioning_{}_task"
-                                                .format(rsrc.name,
-                                                        rsrc.__class__.__name__),
-                                                repeat_count=repeat_count)
+                                               .format(rsrc.name,
+                                                       rsrc.__class__.__name__),
+                                               repeat_count=repeat_count)
         self._rsrc_by_id[rsrc._id] = rsrc
         self.rsrc_id = rsrc._id
-        #self.rsrc has been turned into a property
 
     def _get_rsrc(self):
         return self._rsrc_by_id[self.rsrc_id]
@@ -109,10 +94,6 @@ class ProvisioningTask(Task):
 class ProvisionNetworkTask(ProvisioningTask):
     def _perform(self, engine):
         run_context = engine.get_context()
-        # msg = {u'network': {u'name':self.rsrc.get_display_name(),
-        #                     u'admin_state_up':self.rsrc.admin_state_up}}
-        # response = run_context.nuclient.create_network(body=msg)
-        # self.rsrc.set_osid(response['network']['id'])
         response = run_context.cloud.create_network(self.rsrc.get_display_name(),
                                                     admin_state_up=self.rsrc.admin_state_up)
         self.rsrc.set_osid(response["id"])
@@ -121,7 +102,6 @@ class ProvisionNetworkTask(ProvisioningTask):
     def _reverse(self, engine):
         run_context = engine.get_context()
         netid = self.rsrc.osid
-        # run_context.nuclient.delete_network(netid)
         run_context.cloud.delete_network(netid)
         
         
@@ -141,16 +121,6 @@ class ProvisionSubnetTask(ProvisioningTask):
                                                    self.rsrc.cidr, ip_version=self.rsrc.ip_version,
                                                    subnet_name=self.rsrc.get_display_name(),
                                                    dns_nameservers=self.rsrc.dns_nameservers)
-        # msg = {'subnets': [{'cidr': self.rsrc.cidr,
-        #                     'ip_version': self.rsrc.ip_version,
-        #                     'network_id': self.rsrc._get_arg_msg_value(self.rsrc.network,
-        #                                                                Network,
-        #                                                                "osid",
-        #                                                                "network"),
-        #                     'dns_nameservers': self.rsrc.dns_nameservers,
-        #                     'name': self.rsrc.get_display_name()}]}
-        # sn = run_context.nuclient.create_subnet(body=msg)
-        # self.rsrc.set_osid(sn["subnets"][0]["id"])
         self.rsrc.set_osid(response["id"])
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
         
@@ -158,7 +128,6 @@ class ProvisionSubnetTask(ProvisioningTask):
         run_context = engine.get_context()
         #this may not be needed as the subnet may go with the network
         subnet_id = self.rsrc.osid
-        # run_context.nuclient.delete_subnet(subnet_id)
         run_context.cloud.delete_subnet(subnet_id)
 
 
@@ -181,26 +150,14 @@ class ProvisionSecGroupTask(ProvisioningTask):
         with self._sg_create_lock:
             #@FIXME: this lock is because nova isn't threadsafe for this
             #call, and until it is we have to single-thread through it
-            # response = run_context.nvclient.security_groups.create(name=self.rsrc.get_display_name(),
-            #                                                        description=self.rsrc.description)
             response = run_context.cloud.create_security_group(name=self.rsrc.get_display_name(),
                                                                description=self.rsrc.description)
-        # try:
-        #     #@FIXME: this lock is because nova isn't threadsafe for this
-        #     #call, and until it is we have to single-thread through it
-        #     self._sg_create_lock.acquire()
-        #     response = run_context.nvclient.security_groups.create(name=self.rsrc.get_display_name(),
-        #                                                            description=self.rsrc.description)
-        # finally:
-        #     self._sg_create_lock.release()
-        # self.rsrc.set_osid(response.id)
         self.rsrc.set_osid(response["id"])
         run_context.record.add_secgroup_id(self.rsrc._id, self.rsrc.osid)
         
     def _reverse(self, engine):
         run_context = engine.get_context()
         secgroup_id = self.rsrc.osid
-        # run_context.nvclient.security_groups.delete(secgroup_id)
         run_context.cloud.delete_security_group(secgroup_id)
 
 
@@ -221,12 +178,6 @@ class ProvisionSecGroupRuleTask(ProvisioningTask):
                                                                 port_range_max=self.rsrc.to_port,
                                                                 protocol=self.rsrc.ip_protocol,
                                                                 remote_ip_prefix=self.rsrc.cidr)
-        # response = run_context.nvclient.security_group_rules.create(sg_id,
-        #                                                             ip_protocol=self.rsrc.ip_protocol,
-        #                                                             from_port=self.rsrc.from_port,
-        #                                                             to_port=self.rsrc.to_port,
-        #                                                             cidr=self.rsrc.cidr)
-        # self.rsrc.set_osid(response.id)
         self.rsrc.set_osid(response["id"])
         run_context.record.add_secgroup_rule_id(self.rsrc._id, self.rsrc.osid)
         
@@ -296,8 +247,6 @@ class ProvisionServerTask(ProvisioningTask):
         if isinstance(kwargs["key_name"], KeyPair):
             kwargs["key_name"] = kwargs["key_name"].get_key_name()
             
-        # srvr = run_context.nvclient.servers.create(name, image, flavor, **kwargs)
-        # self.rsrc.set_osid(srvr.id)
         srvr = run_context.cloud.create_server(name, image, flavor, **kwargs)
         self.rsrc.set_osid(srvr["id"])
         run_context.record.add_server_id(self.rsrc._id, self.rsrc.osid)
@@ -305,15 +254,12 @@ class ProvisionServerTask(ProvisioningTask):
         # while not srvr.addresses:
         while not srvr["addresses"]:
             time.sleep(0.25)
-            # srvr.get()
             srvr = run_context.cloud.get_server(srvr["id"])
-        # self._process_server_addresses(srvr.addresses)
         self._process_server_addresses(srvr["addresses"])
 
     def _reverse(self, engine):
         run_context = engine.get_context()
-        server = run_context.nvclient.servers.get(self.rsrc.osid)
-        run_context.nvclient.servers.delete(server)
+        run_context.cloud.delete_server(self.rsrc.osid)
 
                 
 @capture_mapping(_rt_domain, Router)
@@ -321,16 +267,15 @@ class ProvisionRouterTask(ProvisioningTask):
     "depends on nothing"
     def _perform(self, engine):
         run_context = engine.get_context()
-        msg = {u'router': {u'admin_state_up':self.rsrc.admin_state_up,
-                           u'name':self.rsrc.get_display_name()}}
-        reply = run_context.nuclient.create_router(body=msg)
-        self.rsrc.set_osid(reply["router"]["id"])
+        reply = run_context.cloud.create_router(name=self.rsrc.get_display_name(),
+                                                admin_state_up=self.rsrc.admin_state_up)
+        self.rsrc.set_osid(reply["id"])
         run_context.record.add_router_id(self.rsrc._id, self.rsrc.osid)
         
     def _reverse(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc.osid
-        run_context.nuclient.delete_router(router_id)
+        run_context.cloud.delete_router(router_id)
 
 
 @capture_mapping(_rt_domain, RouterGateway)
@@ -345,8 +290,6 @@ class ProvisionRouterGatewayTask(ProvisioningTask):
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         run_context.maps.refresh_networks()
         ext_net = run_context.maps.network_map.get(self.rsrc.external_network_name)
-        # msg = {u'network_id':ext_net.id}
-        # _ = run_context.nuclient.add_gateway_router(router_id, msg)
         run_context.cloud.update_router(router_id, ext_gateway_net_id=ext_net["id"])
         
     #no reversing; assume it goes with the router
@@ -367,9 +310,6 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         router = run_context.cloud.get_router(router_id)
         snid = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
-        # response = run_context.nuclient.add_interface_router(router_id,
-        #                                               {u'subnet_id':subnet,
-        #                                                u'name':self.rsrc.get_display_name()})
         response = run_context.cloud.add_router_interface(router, subnet_id=snid)
         self.rsrc.set_osid(response[u'port_id'])
         run_context.record.add_router_iface_id(self.rsrc._id, response[u'port_id'])
@@ -377,8 +317,9 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
     def _reverse(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
-        run_context.nuclient.remove_interface_router(router_id,
-                                                     {u'port_id':self.rsrc.osid})
+        router = run_context.cloud.get_router(router_id)
+        snid = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
+        run_context.cloud.remove_router_interface(router, subnet_id=snid)
 
 
 @capture_mapping(_rt_domain, FloatingIP)
@@ -389,28 +330,27 @@ class ProvisionFloatingIPTask(ProvisioningTask):
     def _perform(self, engine):
         run_context = engine.get_context()
         self.rsrc._refix_arguments()
-        fip = run_context.nvclient.floating_ips.create(self.rsrc.pool)
-        self.rsrc.set_addresses(fip.ip)
-        self.rsrc.set_osid(fip.id)
-        run_context.record.add_floating_ip_id(self.rsrc._id, self.rsrc.osid)
         associated_ip = self.rsrc.associated_ip
         if associated_ip is not None:
             servername = self.rsrc._get_arg_msg_value(self.rsrc.server, Server,
                                                       "osid", "server")
-            server = run_context.nvclient.servers.get(servername)
-            run_context.nvclient.servers.add_floating_ip(server, fip, associated_ip)
-            
+            server = run_context.cloud.get_server(servername)
+        else:
+            server = None
+        fip = run_context.cloud.create_floating_ip(network=self.rsrc.pool, server=server)
+        self.rsrc.set_addresses(fip["floating_ip_address"])
+        self.rsrc.set_osid(fip["id"])
+        run_context.record.add_floating_ip_id(self.rsrc._id, self.rsrc.osid)
+
     def _reverse(self, engine):
         run_context = engine.get_context()
-        fip = run_context.nvclient.floating_ips.get(self.rsrc.osid)
         associated_ip = self.rsrc.associated_ip
         if associated_ip is not None:
             servername = self.rsrc._get_arg_msg_value(self.rsrc.server, Server,
                                                       "osid", "server")
-            server = run_context.nvclient.servers.get(servername)
-            run_context.nvclient.servers.remove_floating_ip(server, fip)
-        fip.delete()
-            
+            run_context.cloud.detach_ip_from_server(servername, self.rsrc.osid)
+        run_context.cloud.delete_floating_ip(self.rsrc.osid)
+
             
 @capture_mapping(_rt_domain, KeyPair)
 class ProvisionKeyPairTask(ProvisioningTask):
@@ -432,12 +372,9 @@ class ProvisionKeyPairTask(ProvisioningTask):
         kp = run_context.maps.keypair_map.get(name)
         if kp is not None:
             if self.rsrc.force:
-                # run_context.nvclient.keypairs.delete(name)
-                # run_context.nvclient.keypairs.create(name, public_key=public_key)
                 run_context.cloud.delete_keypair(name)
                 run_context.cloud.create_keypair(name, public_key)
         else:
-            # run_context.nvclient.keypairs.create(name, public_key=public_key)
             run_context.cloud.create_keypair(name, public_key)
 
 

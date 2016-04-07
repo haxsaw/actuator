@@ -17,14 +17,14 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-'''
+"""
 Support for the Openstack provisioner.
 
 This module's main contents are a class that captures the Openstack ids
 of Openstack resources that have been provisioned for a model, and a class that
 can retrieves and caches identifiers for Openstack resources that may be needed
 when provisioning infra for a model.
-'''
+"""
 
 from actuator.provisioners.core import BaseProvisioningRecord
 
@@ -34,8 +34,8 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
     Primitive record of provisioned Openstack resources. Currently only capture
     the ids of the resources.
     """
-    def __init__(self, id):
-        super(OpenstackProvisioningRecord, self).__init__(id)
+    def __init__(self, recid):
+        super(OpenstackProvisioningRecord, self).__init__(recid)
         self.network_ids = dict()
         self.subnet_ids = dict()
         self.floating_ip_ids = dict()
@@ -49,14 +49,14 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
         
     def __getstate__(self):
         d = super(OpenstackProvisioningRecord, self).__getstate__()
-        d.update( {"network_ids":self.network_ids,
-                   "subnet_ids":self.subnet_ids,
-                   "floating_ip_ids":self.floating_ip_ids,
-                   "router_ids":self.router_ids,
-                   "router_iface_ids":self.router_iface_ids,
-                   "secgroup_ids":self.secgroup_ids,
-                   "server_ids":self.server_ids,
-                   "port_ids":self.port_ids} )
+        d.update({"network_ids": self.network_ids,
+                  "subnet_ids": self.subnet_ids,
+                  "floating_ip_ids": self.floating_ip_ids,
+                  "router_ids": self.router_ids,
+                  "router_iface_ids": self.router_iface_ids,
+                  "secgroup_ids": self.secgroup_ids,
+                  "server_ids": self.server_ids,
+                  "port_ids": self.port_ids})
         return d
     
     def __setstate__(self, d):
@@ -151,8 +151,7 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
 class _OSMaps(object):
     """
     Utility class that creates a cache of Openstack resources. The resources
-    are mapped by their "natural" key to their appropriate Openstack API
-    client object (nova, neutron, etc).
+    are mapped by their "natural" as provided by Openstack.
     """
     def __init__(self, os_provisioner):
         self.os_provisioner = os_provisioner
@@ -182,7 +181,6 @@ class _OSMaps(object):
         Refresh the keypairs map, keypair_map.
         Keys are the keypair name, values are nova Keypair values.
         """
-        # response = self.os_provisioner.nvclient.keypairs.list()
         response = self.os_provisioner.cloud.list_keypairs()
         self.keypair_map = {kp["name"]: kp for kp in response}
         self.keypair_map.update({kp["id"]: kp for kp in response})
@@ -192,29 +190,23 @@ class _OSMaps(object):
         Refresh the subnets map, subnet_map.
         Keys are the subnet name, value is the neutron subnet dict.
         """
-        # response = self.os_provisioner.nuclient.list_subnets()
-        # self.subnet_map = {d['name']:d for d in response['subnets']}
         response = self.os_provisioner.cloud.list_subnets()
-        self.subnet_map = {d["name"]:d for d in response}
-        self.subnet_map.update({d["id"]:d for d in response})
+        self.subnet_map = {d["name"]: d for d in response}
+        self.subnet_map.update({d["id"]: d for d in response})
         
     def refresh_routers(self):
         """
         Refresh the routers map, router_map
         Keys are the Openstack ID for the router, values are the same ID
         """
-        response = self.os_provisioner.nuclient.list_routers()
-        self.router_map = {d['id']:d['id'] for d in response["routers"]}
+        response = self.os_provisioner.cloud.list_routers()
+        self.router_map = {d['id']: d for d in response}
         
     def refresh_networks(self):
         """
         Refresh the networks map, network_map.
         Keys are the network id, values are nova Network objects
         """
-        # networks = self.os_provisioner.nvclient.networks.list()
-        # self.network_map = {n.label:n for n in networks}
-        # for network in networks:
-        #     self.network_map[network.id] = network
         networks = self.os_provisioner.cloud.list_networks()
         self.network_map = {n["name"]: n for n in networks}
         self.network_map.update({n["id"]: n for n in networks})
@@ -224,7 +216,6 @@ class _OSMaps(object):
         Refresh the images map, image_map
         Keys are image names, values are nova Image objects.
         """
-        self.image_map = {i.name: i for i in self.os_provisioner.nvclient.images.list()}
         images = self.os_provisioner.cloud.list_images()
         self.image_map = {d["name"]: d for d in images}
         self.image_map.update({d["id"]: d for d in images})
@@ -234,7 +225,6 @@ class _OSMaps(object):
         Refresh the flavors map, flavor_map
         Keys are flavor names, values are nova Flavor objects
         """
-        # self.flavor_map = {f.name: f for f in self.os_provisioner.nvclient.flavors.list()}
         flavors = self.os_provisioner.cloud.list_flavors()
         self.flavor_map = {f["name"]: f for f in flavors}
         self.flavor_map.update({f["id"]: f for f in flavors})
@@ -245,9 +235,6 @@ class _OSMaps(object):
         Keys are secgroup names and secgroup ids, values are nova SecGroup
         objects.
         """
-        # secgroups = list(self.os_provisioner.nvclient.security_groups.list())
-        # self.secgroup_map = {sg.name: sg for sg in secgroups}
-        # self.secgroup_map.update({sg.id: sg for sg in secgroups})
         secgroups = self.os_provisioner.cloud.list_security_groups()
         self.secgroup_map = {sg["name"]: sg for sg in secgroups}
         self.secgroup_map.update({sg["id"]: sg for sg in secgroups})
