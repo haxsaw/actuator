@@ -312,6 +312,7 @@ class _Persistable(object):
     _version = "__VERSION__"
     _path = "__PATH__"
     _vernum = 1
+
     def get_attrs_dict(self):
         ad = self._get_attrs_dict()
         for k, v in ad.items():

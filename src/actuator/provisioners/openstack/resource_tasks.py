@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Internal to Actuator; responsible for processing Openstack resource objects
-'''
+"""
 import time
 import threading
 import uuid
@@ -87,7 +87,7 @@ class ProvisioningTask(Task):
         return
     
     def get_init_args(self):
-        return ((self.rsrc,), {"repeat_count":self.repeat_count})
+        return (self.rsrc,), {"repeat_count": self.repeat_count}
 
 
 @capture_mapping(_rt_domain, Network)
@@ -120,13 +120,14 @@ class ProvisionSubnetTask(ProvisioningTask):
                                                                                 "network"),
                                                    self.rsrc.cidr, ip_version=self.rsrc.ip_version,
                                                    subnet_name=self.rsrc.get_display_name(),
-                                                   dns_nameservers=self.rsrc.dns_nameservers)
+                                                   dns_nameservers=self.rsrc.dns_nameservers,
+                                                   enable_dhcp=True)
         self.rsrc.set_osid(response["id"])
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
         
     def _reverse(self, engine):
         run_context = engine.get_context()
-        #this may not be needed as the subnet may go with the network
+        # this may not be needed as the subnet may go with the network
         subnet_id = self.rsrc.osid
         run_context.cloud.delete_subnet(subnet_id)
 
@@ -135,21 +136,21 @@ class ProvisionSubnetTask(ProvisioningTask):
 class ProvisionSecGroupTask(ProvisioningTask):
     """depends on nothing"""
 
-    #@FIXME: this lock and its use are due to an apparent thread-safety issue
-    #down in the novaclient. It would seem that even if there are different
-    #client objects being used in different threads to build security groups,
-    #nova has some shared state that gets hosed and causes one or the other to
-    #fail if they're happening at the same time. For now, this lock will ensure
-    #single-threaded operation of this trouble code, and hopefully we can get
-    #a bug filed and the problem resolved soon.
+    # @FIXME: this lock and its use are due to an apparent thread-safety issue
+    # down in the novaclient. It would seem that even if there are different
+    # client objects being used in different threads to build security groups,
+    # nova has some shared state that gets hosed and causes one or the other to
+    # fail if they're happening at the same time. For now, this lock will ensure
+    # single-threaded operation of this trouble code, and hopefully we can get
+    # a bug filed and the problem resolved soon.
 
     _sg_create_lock = threading.Lock()
 
     def _perform(self, engine):
         run_context = engine.get_context()
         with self._sg_create_lock:
-            #@FIXME: this lock is because nova isn't threadsafe for this
-            #call, and until it is we have to single-thread through it
+            # @FIXME: this lock is because nova isn't threadsafe for this
+            # call, and until it is we have to single-thread through it
             response = run_context.cloud.create_security_group(name=self.rsrc.get_display_name(),
                                                                description=self.rsrc.description)
         self.rsrc.set_osid(response["id"])
@@ -181,8 +182,7 @@ class ProvisionSecGroupRuleTask(ProvisioningTask):
         self.rsrc.set_osid(response["id"])
         run_context.record.add_secgroup_rule_id(self.rsrc._id, self.rsrc.osid)
         
-    #NO _reverse required; the rules should follow the secgroup
-
+    # NO _reverse required; the rules should follow the secgroup
 
 
 @capture_mapping(_rt_domain, Server)
@@ -264,7 +264,7 @@ class ProvisionServerTask(ProvisioningTask):
                 
 @capture_mapping(_rt_domain, Router)
 class ProvisionRouterTask(ProvisioningTask):
-    "depends on nothing"
+    """depends on nothing"""
     def _perform(self, engine):
         run_context = engine.get_context()
         reply = run_context.cloud.create_router(name=self.rsrc.get_display_name(),
@@ -292,7 +292,7 @@ class ProvisionRouterGatewayTask(ProvisioningTask):
         ext_net = run_context.maps.network_map.get(self.rsrc.external_network_name)
         run_context.cloud.update_router(router_id, ext_gateway_net_id=ext_net["id"])
         
-    #no reversing; assume it goes with the router
+    # no reversing; assume it goes with the router
 
 
 @capture_mapping(_rt_domain, RouterInterface)
@@ -354,7 +354,7 @@ class ProvisionFloatingIPTask(ProvisioningTask):
             
 @capture_mapping(_rt_domain, KeyPair)
 class ProvisionKeyPairTask(ProvisioningTask):
-    "KeyPairs depend on nothing"
+    """KeyPairs depend on nothing"""
     def _perform(self, engine):
         run_context = engine.get_context()
         name = self.rsrc.get_key_name()
@@ -402,7 +402,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
                                                          num_threads=num_threads,
                                                          log_level=log_level,
                                                          no_delay=no_delay)
-        self.run_contexts = {}  #keys are threads, values are RunContext objects
+        self.run_contexts = {}  # keys are threads, values are RunContext objects
         self.record = OpenstackProvisioningRecord(uuid.uuid4())
         self.os_creds = os_creds
         self.rsrc_task_map = {}
@@ -425,7 +425,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
         class_mapper = get_mapper(_rt_domain)
         for rsrc in all_resources:
             if rsrc in self.rsrc_task_map:
-                tasks.append( self.rsrc_task_map[rsrc] )
+                tasks.append(self.rsrc_task_map[rsrc])
                 continue
             rsrc.fix_arguments()
             task_class = class_mapper.get(rsrc.__class__)
@@ -453,14 +453,14 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
         @raise ProvisionerException: Raised if a dependency is discovered that
             involves a resource not considered by get_tasks()
         """
-        #now, self already contains a rsrc_task_map, but that's meant to be
-        #used as a cache for multiple calls to get_tasks so that the tasks
-        #returned are always tghe same. However, we can't assume in this
-        #method that get_tasks() has already been called, or that doing
-        #so causes the side-effect that self.rsrc_task_map gets populated
-        #(or that it even exists). So we get the tasks and construct our own
-        #map, just to be on the safe side.
-        rsrc_task_map = {task.rsrc:task for task in self.get_tasks()}
+        # now, self already contains a rsrc_task_map, but that's meant to be
+        # used as a cache for multiple calls to get_tasks so that the tasks
+        # returned are always tghe same. However, we can't assume in this
+        # method that get_tasks() has already been called, or that doing
+        # so causes the side-effect that self.rsrc_task_map gets populated
+        # (or that it even exists). So we get the tasks and construct our own
+        # map, just to be on the safe side.
+        rsrc_task_map = {task.rsrc: task for task in self.get_tasks()}
         dependencies = []
         for rsrc, task in rsrc_task_map.items():
             for d in task.depends_on_list():
@@ -513,6 +513,7 @@ class OpenstackProvisioner(BaseProvisioner):
     the provisioner independently.
     """
     LOG_SUFFIX = "os_provisioner"
+
     def __init__(self, username, password, tenant_name, auth_url, cloud_name=None,
                  num_threads=5, log_level=LOG_INFO):
         """
@@ -552,4 +553,3 @@ class OpenstackProvisioner(BaseProvisioner):
         self.agent.perform_reverses()
         self.logger.info("Deprovisioning complete.")
         return self.agent.record
-    

@@ -128,6 +128,20 @@ class Provisionable(_LNMixin, ModelComponent):
     This class serves as a marker class for any L{ModelComponent} derived
     class as something that can actually be provisioned.
     """
+    # def __init__(self, *args, **kwargs):
+    #     if "other_deps" in kwargs:
+    #         self._other_deps = list(kwargs["other_deps"])
+    #         del kwargs["other_deps"]
+    #     else:
+    #         self._other_deps = []
+    #     self.other_deps = None
+    #     super(Provisionable, self).__init__(*args, **kwargs)
+    #
+    # def _fix_arguments(self):
+    #     super(Provisionable, self)._fix_arguments()
+    #     self.other_deps = [d.fix_arguments() for d in self._other_deps
+    #                        if isinstance(d, Provisionable)]
+
     def get_display_name(self):
         """
         Returns the name to use in reports and displays.

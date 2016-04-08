@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 This module contains resource classes for provisioning Openstack resources.
-'''
+"""
 import collections
 import ipaddress
 
@@ -49,13 +49,14 @@ class _OpenstackProvisionableInfraResource(Provisionable):
         d["osid"] = str(self.osid)
         return d
         
-    def set_osid(self, id):
+    def set_osid(self, osid):
         """
         Set the Openstack id for the resource once it has been provisioned
         """
-        self.osid = id
-        
-    def _get_arg_msg_value(self, arg, klass, attrname, argname):
+        self.osid = osid
+
+    @staticmethod
+    def _get_arg_msg_value(arg, klass, attrname, argname):
         value = arg
         if value is not None:
             if isinstance(value, klass):
@@ -73,7 +74,7 @@ class NetworkInterface(_Persistable):
     attributes that can successfully have model references built on top of them.
     All attributes are meant to be public.
     """
-    def __init__(self, name=None):
+    def __init__(self, _=None):
         self.name = None
         self.addr0 = None
         self.addr1 = None
@@ -86,15 +87,15 @@ class NetworkInterface(_Persistable):
         
     def _get_attrs_dict(self):
         d = super(NetworkInterface, self)._get_attrs_dict()
-        d.update( {"name":self.name,
-                   "addr0":self.addr0,
-                   "addr1":self.addr1,
-                   "addr2":self.addr2,
-                   "addr3":self.addr3,
-                   "addr4":self.addr4,
-                   "addr5":self.addr5,
-                   "addr6":self.addr6,
-                   "addr7":self.addr7} )
+        d.update({"name": self.name,
+                  "addr0": self.addr0,
+                  "addr1": self.addr1,
+                  "addr2": self.addr2,
+                  "addr3": self.addr3,
+                  "addr4": self.addr4,
+                  "addr5": self.addr5,
+                  "addr6": self.addr6,
+                  "addr7": self.addr7})
         return d
 
 
@@ -175,8 +176,8 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.flavorName = None
         self._meta = meta
         self.meta = None
-        self._files = files   #this one may be a list of files to suck up; we make the dict
-        self.files = None   #this one may be a list of files to suck up; we make the dict
+        self._files = files   # this one may be a list of files to suck up; we make the dict
+        self.files = None   # this one may be a list of files to suck up; we make the dict
         self._reservation_id = reservation_id
         self.reservation_id = None
         self._min_count = min_count
@@ -203,11 +204,11 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.config_drive = None
         self._disk_config = disk_config
         self.disk_config = None
-        #@FIXME: disabling floating get_ip argument in order to avoid accidental
-        #cycles in the dependency graph.
+        # @FIXME: disabling floating get_ip argument in order to avoid accidental
+        # cycles in the dependency graph.
 #         self._floating_ip=floating_ip
 #         self.floating_ip=None
-        #things determined by from provisioning
+        # things determined by from provisioning
 #         self.server_id = None
         self.addresses = None
         self.provisionedName = None
@@ -226,17 +227,17 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
     def _get_attrs_dict(self):
         d = super(Server, self)._get_attrs_dict()
         _, kwargs = self.get_fixed_args()
-        d.update( {"name":self.name,
-                   "imageName":self.imageName,
-                   "flavorName":self.flavorName} )
+        d.update({"name": self.name,
+                  "imageName": self.imageName,
+                  "flavorName": self.flavorName})
         d.update(kwargs)
         return d
     
     def encode_attr(self, k, v):
         if k == "userdata":
-            retval = ({vk:(self._get_arg_value(vv)
-                          if isinstance(vv, ContextExpr)
-                          else vv) for vk, vv in v.items()}
+            retval = ({vk: (self._get_arg_value(vv)
+                            if isinstance(vv, ContextExpr)
+                            else vv) for vk, vv in v.items()}
                       if v is not None
                       else v)
             return retval 
@@ -312,19 +313,18 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.addresses = addresses
         
     def get_init_args(self):
-        return ( (self.name, self._imageName, self._flavorName),
-                 {"meta":self._meta, "files":self._files, "reservation_id":self._reservation_id,
-                  "min_count":self._min_count, "max_count":self._max_count,
-                  "security_groups":self._security_groups,
-                  "userdata":self._userdata,
-                  "key_name":self._key_name, "availability_zone":self._availability_zone,
-                  "block_device_mapping":self._block_device_mapping,
-                  "block_device_mapping_v2":self._block_device_mapping_v2,
-                  "nics":self._nics,
-                  "scheduler_hints":self._scheduler_hints,
-                  "config_drive":self._config_drive, "disk_config":self._disk_config,})
-#                   "floating_ip":self._floating_ip} )
-        
+        return ((self.name, self._imageName, self._flavorName),
+                {"meta": self._meta, "files": self._files, "reservation_id": self._reservation_id,
+                 "min_count": self._min_count, "max_count": self._max_count,
+                 "security_groups": self._security_groups,
+                 "userdata": self._userdata,
+                 "key_name": self._key_name, "availability_zone": self._availability_zone,
+                 "block_device_mapping": self._block_device_mapping,
+                 "block_device_mapping_v2": self._block_device_mapping_v2,
+                 "nics": self._nics,
+                 "scheduler_hints": self._scheduler_hints,
+                 "config_drive": self._config_drive, "disk_config": self._disk_config})
+
     def get_fixed_args(self):
         """
         Similar to L{get_init_args} except that the arguments returned are the
@@ -384,11 +384,10 @@ class Network(_OpenstackProvisionableInfraResource):
     
     def _fix_arguments(self, provisioner=None):
         self.admin_state_up = self._get_arg_value(self._admin_state_up)
-        
-        
+
     def get_init_args(self):
         return ((self.name,),
-                {"admin_state_up":self._admin_state_up})
+                {"admin_state_up": self._admin_state_up})
         
         
 class SecGroup(_OpenstackProvisionableInfraResource):
@@ -398,7 +397,7 @@ class SecGroup(_OpenstackProvisionableInfraResource):
     For full details see:
     http://docs.openstack.org/developer/python-novaclient/ref/v1_1/security_groups.html
     """
-    def __init__(self, name, description=None):
+    def __init__(self, name, description=""):
         """
         Create a new security group
         
@@ -416,7 +415,7 @@ class SecGroup(_OpenstackProvisionableInfraResource):
         
     def get_init_args(self):
         return ((self.name,),
-                {"description":self._description})
+                {"description": self._description})
     
     def _fix_arguments(self, provisioner=None):
         self.description = self._get_arg_value(self._description)
@@ -462,18 +461,18 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
         
     def get_init_args(self):
         return ((self.name, self._secgroup),
-                {"ip_protocol":self._ip_protocol,
-                 "from_port":self._from_port,
-                 "to_port":self._to_port,
-                 "cidr":self._cidr})
+                {"ip_protocol": self._ip_protocol,
+                 "from_port": self._from_port,
+                 "to_port": self._to_port,
+                 "cidr": self._cidr})
         
     def _get_attrs_dict(self):
         d = super(SecGroupRule, self)._get_attrs_dict()
-        d.update( {"slave_secgroup":self.slave_secgroup,
-                   "ip_protocol":self.ip_protocol,
-                   "from_port":self.from_port,
-                   "to_port":self.to_port,
-                   "cidr":self.cidr} )
+        d.update({"slave_secgroup": self.slave_secgroup,
+                  "ip_protocol": self.ip_protocol,
+                  "from_port": self.from_port,
+                  "to_port": self.to_port,
+                  "cidr": self.cidr})
         return d
     
     def _fix_arguments(self, provisioner=None):
@@ -493,8 +492,9 @@ class Subnet(_OpenstackProvisionableInfraResource):
     For details see:
     http://docs.openstack.org/user-guide/content/sdk_neutron_apis.html#delete-network
     """
-    _ipversion_map = {ipaddress.IPv4Network:4, ipaddress.IPv6Network:6}
-    def __init__(self, name, network, cidr, dns_nameservers=None, ip_version=4):
+    _ipversion_map = {ipaddress.IPv4Network: 4, ipaddress.IPv6Network: 6}
+
+    def __init__(self, name, network, cidr, dns_nameservers=None, ip_version=4, enable_dhcp=True):
         """
         @param name: string; logical name for the subnet
         @param network: Network; a string containing the Openstack id of a
@@ -518,19 +518,23 @@ class Subnet(_OpenstackProvisionableInfraResource):
         self.ip_version = None
         self._dns_nameservers = dns_nameservers
         self.dns_nameservers = None
+        self._enable_dhcp = enable_dhcp
+        self.enable_dhcp = None
         
     def _get_attrs_dict(self):
         d = super(Subnet, self)._get_attrs_dict()
-        d.update( {"network":self.network,
-                   "cidr":self.cidr,
-                   "ip_version":self.ip_version,
-                   "dns_nameservers":self.dns_nameservers} )
+        d.update({"network": self.network,
+                  "cidr": self.cidr,
+                  "ip_version": self.ip_version,
+                  "dns_nameservers": self.dns_nameservers,
+                  "enable_dhcp": self.enable_dhcp})
         return d
         
     def _fix_arguments(self, provisioner=None):
         self.network = self._get_arg_value(self._network)
         self.cidr = unicode(self._get_arg_value(self._cidr))
         self.ip_version = self._get_arg_value(self._ip_version)
+        self.enable_dhcp = self._get_arg_value(self._enable_dhcp)
         if self._dns_nameservers is None:
             self.dns_nameservers = []
         else:
@@ -542,8 +546,9 @@ class Subnet(_OpenstackProvisionableInfraResource):
                                            "list or else contains non-string objects")
         
     def get_init_args(self):
-        return ((self.name, self._network, self._cidr), {'dns_nameservers':self._dns_nameservers,
-                                                                'ip_version':self._ip_version})
+        return ((self.name, self._network, self._cidr), {'dns_nameservers': self._dns_nameservers,
+                                                         'ip_version': self._ip_version,
+                                                         'enable_dhcp': self._enable_dhcp})
     
     
 class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
@@ -592,10 +597,10 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         
     def _get_attrs_dict(self):
         d = super(FloatingIP, self)._get_attrs_dict()
-        d.update( {"server":self.server,
-                   "associated_ip":self.associated_ip,
-                   "pool":self.pool,
-                   "ip":self.ip} )
+        d.update({"server": self.server,
+                  "associated_ip": self.associated_ip,
+                  "pool": self.pool,
+                  "ip": self.ip})
         return d
         
     def get_ip(self, context=None):
@@ -619,7 +624,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         self.ip = ip
         
     def get_init_args(self):
-        return ((self.name, self._server, self._associated_ip), {"pool":self._pool})
+        return (self.name, self._server, self._associated_ip), {"pool": self._pool}
     
     
 class Router(_OpenstackProvisionableInfraResource):
@@ -649,7 +654,7 @@ class Router(_OpenstackProvisionableInfraResource):
         self.admin_state_up = self._get_arg_value(self._admin_state_up)
         
     def get_init_args(self):
-        return (self.name,), {"admin_state_up":self._admin_state_up}
+        return (self.name,), {"admin_state_up": self._admin_state_up}
     
     
 class RouterGateway(_OpenstackProvisionableInfraResource):
@@ -682,8 +687,8 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         
     def _get_attrs_dict(self):
         d = super(RouterGateway, self)._get_attrs_dict()
-        d.update( {"router":self.router,
-                   "external_network_name":self.external_network_name} )
+        d.update({"router": self.router,
+                  "external_network_name": self.external_network_name})
         return d
         
     def _fix_arguments(self, provisioner=None):
@@ -705,7 +710,7 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         return self.external_network_name if self.external_network_name is not None else self._external_network_name
     
     def get_init_args(self):
-        return ((self.name, self._router, self._external_network_name), {})
+        return (self.name, self._router, self._external_network_name), {}
     
     
 class RouterInterface(_OpenstackProvisionableInfraResource):
@@ -761,7 +766,7 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         return self.subnet if self.subnet is not None else self._subnet
     
     def get_init_args(self):
-        return ((self.name, self._router, self._subnet), {})
+        return (self.name, self._router, self._subnet), {}
     
 
 class KeyPair(_OpenstackProvisionableInfraResource):
@@ -843,11 +848,11 @@ class KeyPair(_OpenstackProvisionableInfraResource):
     
     def _get_attrs_dict(self):
         d = super(KeyPair, self)._get_attrs_dict()
-        d.update( {"priv_key_name":self.priv_key_name,
-                   "os_name":self.os_name,
-                   "pub_key_file":self.pub_key_file,
-                   "pub_key":self.pub_key,
-                   "force":self.force} )
+        d.update({"priv_key_name": self.priv_key_name,
+                  "os_name": self.os_name,
+                  "pub_key_file": self.pub_key_file,
+                  "pub_key": self.pub_key,
+                  "force": self.force})
         return d
         
     def _fix_arguments(self, provisioner=None):
@@ -860,9 +865,7 @@ class KeyPair(_OpenstackProvisionableInfraResource):
     def get_init_args(self):
         __doc__ = _OpenstackProvisionableInfraResource.get_init_args.__doc__
         return ((self.name, self._priv_key_name),
-                {"os_name":self._os_name,
-                 "pub_key_file":self._pub_key_file,
-                 "pub_key":self._pub_key,
-                 "force":self._force})
-
-         
+                {"os_name": self._os_name,
+                 "pub_key_file": self._pub_key_file,
+                 "pub_key": self._pub_key,
+                 "force": self._force})
