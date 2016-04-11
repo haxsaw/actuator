@@ -571,7 +571,7 @@ class TaskEngine(object):
         # Actually reverse the task; the default asks the task to reverse itself
         task.reverse(self)
         
-    def reverse_task(self, graph, task):
+    def reverse_task(self, graph, tec):
         """
         Internal, used to reverse a task in graph. Derived classes implement
         _reverse_task() to supply the actual mechanics for the underlying
@@ -579,7 +579,7 @@ class TaskEngine(object):
         
         @param graph: an NetworkX DiGraph; needed to find the next tasks
             to queue when the current one is done
-        @param task: The actual task to perform
+        @param tec: The TaskExecControl object containing the task to perform
         
         LOGGING FORMAT:
         Some logging in this method embeds a sub-message in the log message. The
@@ -592,13 +592,13 @@ class TaskEngine(object):
         - id of the role (or empty if there is no role)
         - free-form text message
         """
-        self._task_runner(task, "reverse", task.REVERSED)
+        self._task_runner(tec, "reverse", Task.REVERSED)
     
     def _perform_task(self, task, logfile=None):
         # Actually do the task; the default asks the task to perform itself.
         task.perform(self)
         
-    def perform_task(self, graph, task):
+    def perform_task(self, graph, tec):
         """
         Internal, used to perform a task in graph. Derived classes implement
         _perform_task() to supply the actual mechanics of for the underlying
@@ -606,7 +606,7 @@ class TaskEngine(object):
         
         @param graph: an NetworkX DiGraph; needed to find the next tasks
             to queue when the current one is done
-        @param task: The actual task to perform
+        @param tec: The L{TaskExecControl} object wrapping the task to perform
         
         LOGGING FORMAT:
         Some logging in this method embeds a sub-message in the log message. The
@@ -619,9 +619,11 @@ class TaskEngine(object):
         - id of the role (or empty if there is no role)
         - free-form text message
         """
-        self._task_runner(task, "perform", task.PERFORMED)
+        self._task_runner(tec, "perform", Task.PERFORMED)
         
-    def _task_runner(self, task, direction, success_status):
+    def _task_runner(self, tec, direction, success_status):
+        assert isinstance(tec, TaskExecControl)
+        task = tec.task
         fmtmsg = self.make_format_func(task)
         meth = getattr(self, "".join(["_", direction, "_task"]))
             
@@ -629,52 +631,60 @@ class TaskEngine(object):
         logger.info(fmtmsg("processing started"))
         if not self.no_delay:
             time.sleep(random.uniform(0.2, 2.5))
-        try_count = 0
-        success = False
         if not task.fixed:
             task.fix_arguments()
-        while try_count < task.repeat_count and not success:
-            try_count += 1
-            if self.do_log:
-                logfile = open("{}.{}-try{}.txt".format(task.name, str(task._id)[-4:],
-                                                        try_count), "w")
-            else:
-                logfile = None
-            try:
-                logger.info(fmtmsg("start %s-ing task" % direction))
-                meth(task, logfile=logfile)
-                task.status = success_status
-                logger.info(fmtmsg("task successfully %s-ed" % direction))
-                success = True
-            except Exception, e:
-                logger.warning(fmtmsg("task %s failed" % direction))
-                msg = ">>>Task {} Exception for {}!".format(direction, task.name)
+
+        tec.try_count += 1
+        if tec.status == TaskExecControl.FAIL_RETRY:
+            logger.warning("Completing {} sec delay before retrying task {}"
+                           .format((tec.try_count * task.repeat_interval),
+                                   task.name))
+            wait_until = (tec.try_count * task.repeat_interval) + tec.fail_time
+            now = time.time()
+            while now > wait_until and not self.stop:
+                time.sleep(0.2)
+                now = time.time()
+            if self.stop:
+                tec.status = TaskExecControl.ABORT
+                return
+        if self.do_log:
+            logfile = open("{}.{}-try{}.txt".format(task.name, str(task._id)[-4:],
+                                                    tec.try_count), "w")
+        else:
+            logfile = None
+        try:
+            logger.info(fmtmsg("start %s-ing task" % direction))
+            meth(task, logfile=logfile)
+            task.status = success_status
+            tec.status = TaskExecControl.SUCCESS
+            logger.info(fmtmsg("task successfully %s-ed" % direction))
+        except Exception as e:
+            tec.fail_time = time.time()
+            logger.warning(fmtmsg("task %s failed" % direction))
+            msg = ">>>Task {} Exception for {}!".format(direction, task.name)
+            if logfile:
+                logfile.write("{}\n".format(msg))
+            tb = sys.exc_info()[2]
+            if tec.try_count < task.repeat_count:
+                tec.status = TaskExecControl.FAIL_RETRY
+                retry_wait = tec.try_count * task.repeat_interval
+                logger.warning(fmtmsg("will retry after a %d sec delay" % retry_wait))
+                msg = "Retrying {} again after a {} sec delay".format(task.name, retry_wait)
                 if logfile:
                     logfile.write("{}\n".format(msg))
-                tb = sys.exc_info()[2]
-                if try_count < task.repeat_count:
-                    retry_wait = try_count * task.repeat_interval
-                    logger.warning(fmtmsg("retrying after %d secs" % retry_wait))
-                    msg = "Retrying {} again in {} secs".format(task.name, retry_wait)
-                    if logfile:
-                        logfile.write("{}\n".format(msg))
-                        traceback.print_exception(type(e), e, tb, file=logfile)
-                    time.sleep(retry_wait)
-                else:
-                    logger.error(fmtmsg("max tries exceeded; task aborting"))
-                    self.record_aborted_task(task, type(e), e, tb)
-                del tb
-                sys.exc_clear()
-            if logfile:
-                logfile.flush()
-                logfile.close()
-                del logfile
-#         if not success and try_count >= task.repeat_count:
-        if not success:
-            logger.error(fmtmsg("Could not be %s-ed; "
-                         "aborting further task processing" % direction))
-            self.abort_process_tasks()
-    
+                    traceback.print_exception(type(e), e, tb, file=logfile)
+            else:
+                tec.status = TaskExecControl.FAIL_FINAL
+                logger.error(fmtmsg("max tries exceeded; task aborting"))
+                self.record_aborted_task(task, type(e), e, tb)
+                self.abort_process_tasks()
+            del tb
+            sys.exc_clear()
+
+        if logfile:
+            logfile.flush()
+            logfile.close()
+
     def abort_process_tasks(self):
         """
         The the agent to abort performing any further tasks.
@@ -689,13 +699,18 @@ class TaskEngine(object):
         logger = root_logger.getChild("%s.process_perform_tasks" % self.exec_agent)
         while not self.stop:
             try:
-                # graph, task = self.task_queue.get(block=True, timeout=0.2)
                 graph, tec = self.task_queue.get(block=True, timeout=0.2)
                 assert isinstance(tec, TaskExecControl)
                 task = tec.task
                 if not self.stop:
-                    self.perform_task(graph, task)
-                    if task.status == task.PERFORMED:
+                    self.perform_task(graph, tec)
+                    if tec.status == TaskExecControl.FAIL_RETRY:
+                        # this means the task failed but hasn't reached its retry limit yet;
+                        # we'll push the task back onto the task queue so it get's a chance
+                        # to be performed again, as it may very well have an implicit dependency
+                        # on something else
+                        self.task_queue.put((graph, tec))
+                    elif task.status == task.PERFORMED:
                         with self.node_lock:
                             self.num_tasks_to_perform -= 1
                             logger.debug("Remaining tasks to perform: %s" %
@@ -708,7 +723,6 @@ class TaskEngine(object):
                                     if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
                                         logger.debug("queueing up %s for performance"
                                                             % successor.name)
-                                        # self.task_queue.put((graph, successor))
                                         self.task_queue.put((graph, TaskExecControl(successor)))
             except Queue.Empty, _:
                 pass
@@ -720,13 +734,18 @@ class TaskEngine(object):
         logger = root_logger.getChild("%s.process_reverse_tasks" % self.exec_agent)
         while not self.stop:
             try:
-                # graph, task = self.task_queue.get(block=True, timeout=0.2)
                 graph, tec = self.task_queue.get(block=True, timeout=0.2)
                 assert isinstance(tec, TaskExecControl)
                 task = tec.task
                 if not self.stop:
-                    self.reverse_task(graph, task)
-                    if task.status == task.REVERSED:
+                    self.reverse_task(graph, tec)
+                    if tec.status == TaskExecControl.FAIL_RETRY:
+                        # this means the task failed but hasn't reached its retry limit yet;
+                        # we'll push the task back onto the task queue so it get's a chance
+                        # to be performed again, as it may very well have an implicit dependency
+                        # on something else
+                        self.task_queue.put((graph, tec))
+                    elif task.status == task.REVERSED:
                         with self.node_lock:
                             self.num_tasks_to_perform -= 1
                             logger.debug("Remaining tasks to reverse: %s" %
@@ -739,7 +758,6 @@ class TaskEngine(object):
                                     if graph.out_degree(predecessor) == graph.node[predecessor]["outs_traversed"]:
                                         logger.debug("queuing up %s for performance" %
                                                      predecessor.name)
-                                        # self.task_queue.put((graph, predecessor))
                                         self.task_queue.put((graph, TaskExecControl(predecessor)))
             except Queue.Empty, _:
                 pass
@@ -754,22 +772,21 @@ class TaskEngine(object):
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
             self.graph.node[n]["ins_traversed"] = 0
-        #start the workers
+        # start the workers
         logger.info(fmtmsg("Starting workers..."))
         for _ in range(self.num_threads):
             worker = threading.Thread(target=self.process_perform_task_queue)
             worker.start()
             self.threads.add(worker)
         logger.info(fmtmsg("...workers started"))
-        #queue the initial tasks
+        # queue the initial tasks
         for task in (t for t in self.graph.nodes() if self.graph.in_degree(t) == 0):
             logger.debug(fmtmsg("Queueing up %s named %s id %s for performance" %
                          (task.__class__.__name__, task.name, str(task._id))))
-            # self.task_queue.put((self.graph, task))
             tec = TaskExecControl(task)
             self.task_queue.put((self.graph, tec))
         logger.info(fmtmsg("Initial tasks queued; waiting for completion"))
-        #now wait to be signaled it finished
+        # now wait to be signaled it finished
         while not self.stop:
             time.sleep(0.2)
         logger.info(fmtmsg("Reaping threads; this may take a minute"))
@@ -812,7 +829,6 @@ class TaskEngine(object):
         for task in (t for t in self.graph.nodes() if self.graph.out_degree(t) == 0):
             logger.debug(fmtmsg("Queueing up %s named %s id %s for reversing" %
                          (task.__class__.__name__, task.name, str(task._id))))
-            # self.task_queue.put((self.graph, task))
             self.task_queue.put((self.graph, TaskExecControl(task)))
         logger.info(fmtmsg("Initial tasks queued; waiting for completion"))
         # now wait to be signaled it finished
@@ -822,5 +838,6 @@ class TaskEngine(object):
         self._reap_threads()
         logger.info(fmtmsg("Agent task reversing complete"))
         if self.aborted_tasks:
-            raise self.exception_class("Tasks aborted causing reverse to abort; see the execution agent's aborted_tasks list for details")
+            raise self.exception_class("Tasks aborted causing reverse to abort; see the execution agent's"
+                                       " aborted_tasks list for details")
 
