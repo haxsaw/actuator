@@ -611,6 +611,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return len(self._instances) != 0
     
     def __contains__(self, key):
+        # return key in self
         return self.has_key(key)
         
     def iterkeys(self):

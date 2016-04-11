@@ -20,8 +20,7 @@
 # SOFTWARE.
 from setuptools import setup
 
-setup(
-      name="actuator",
+setup(name="actuator",
       version="0.2.a1",
       description="Create models of systems in Python and then orchestrate"
                   " standing up instances of those systems",
@@ -36,6 +35,7 @@ setup(
                    'Intended Audience :: Developers',
                    'Intended Audience :: System Administrators',
                    'Intended Audience :: Information Technology',
+                   'Intended Audience :: Enterprise Architects',
                    'Topic :: Software Development :: Build Tools',
                    'Topic :: Software Development :: Libraries',
                    'Topic :: Software Development :: Libraries :: Python Modules',
@@ -48,15 +48,15 @@ setup(
       keywords='cloud devops openstack ci automation orchestration modeling virtual ansible',
       packages=["actuator",
                 "actuator.exec_agents",
-                "actuator.exec_agents.ansible",
+                "actuator.exec_agents.paramiko",
                 "actuator.provisioners",
                 "actuator.provisioners.openstack"],
-      package_dir={'':'src'},
-      install_requires=["python_novaclient",
-                        "python_neutronclient",
+      package_dir={'': 'src'},
+      install_requires=["shade",
+                        "os_client_config",
+                        "paramiko",
                         "ipaddress",
                         "networkx",
-                        "ansible",
                         "subprocess32",
                         "fake_factory",
                         "nose",

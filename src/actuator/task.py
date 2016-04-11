@@ -32,7 +32,9 @@ from actuator import ActuatorException
 from actuator.utils import root_logger, LOG_INFO, _Persistable
 from actuator.modeling import ModelComponent
 
-class TaskException(ActuatorException): pass
+
+class TaskException(ActuatorException):
+    pass
 
 
 class _Cloneable(object):
@@ -53,7 +55,7 @@ class _Unpackable(object):
                     
     
 class Orable(object):
-    #internal
+    # internal
     def _or_result_class(self):
         return Orable
     
@@ -61,8 +63,8 @@ class Orable(object):
         return TaskGroup
     
     def __nonzero__(self):
-        #everything needs to return False as otherwise expression
-        #short-circuiting may cause some of the expression to get skipped
+        # everything needs to return False as otherwise expression
+        # short-circuiting may cause some of the expression to get skipped
         return False
     
     def __and__(self, other):
@@ -94,6 +96,7 @@ class Task(Orable, ModelComponent):
     UNSTARTED = 1
     PERFORMED = 2
     REVERSED = 3
+
     def __init__(self, name, repeat_til_success=True, repeat_count=1,
                  repeat_interval=15):
         """
@@ -125,10 +128,10 @@ class Task(Orable, ModelComponent):
         
     def _get_attrs_dict(self):
         d = super(Task, self)._get_attrs_dict()
-        d.update( {"repeat_til_success":self.repeat_til_success,
-                   "repeat_count":self.repeat_count,
-                   "repeat_interval":self.repeat_interval,
-                   "status":self.status} )
+        d.update({"repeat_til_success": self.repeat_til_success,
+                  "repeat_count": self.repeat_count,
+                  "repeat_interval": self.repeat_interval,
+                  "status": self.status})
         return d
         
     def perform(self, engine):
@@ -192,15 +195,15 @@ class Task(Orable, ModelComponent):
         return
         
     def _embedded_exittask_attrnames(self):
-        #internal
+        # internal
         return []
     
     def get_init_args(self):
         __doc__ = ModelComponent.__doc__
-        return ((self.name,), {"repeat_til_success":self._repeat_til_success,
-                              "repeat_count":self._repeat_count,
-                              "repeat_interval":self._repeat_interval,
-                              })
+        return (self.name,), {"repeat_til_success": self._repeat_til_success,
+                              "repeat_count": self._repeat_count,
+                              "repeat_interval": self._repeat_interval
+                              }
         
     def _fix_arguments(self):
         self.repeat_til_success = self._get_arg_value(self._repeat_til_success)
@@ -414,7 +417,7 @@ class GraphableModelMixin(object):
         deps = self.get_dependencies()
         graph = nx.DiGraph()
         graph.add_nodes_from(nodes)
-        graph.add_edges_from( [d.edge() for d in deps] )
+        graph.add_edges_from([d.edge() for d in deps])
         return graph
     
     def get_tasks(self):
@@ -444,7 +447,22 @@ class GraphableModelMixin(object):
         """
         raise TypeError("Derived class must implement get_tasks()")
 
-        
+
+class TaskExecControl(object):
+    UNPERFORMED = 0
+    SUCCESS = 1
+    FAIL_RETRY = 2
+    FAIL_FINAL = 3
+    ABORT = 4
+
+    def __init__(self, task):
+        assert isinstance(task, Task)
+        self.status = self.UNPERFORMED
+        self.fail_time = None
+        self.try_count = 0
+        self.task = task
+
+
 class TaskEngine(object):
     """
     Base class for execution agents. The mechanics of actually executing a task
@@ -454,6 +472,7 @@ class TaskEngine(object):
     """
     exception_class = TaskException
     exec_agent = "task_engine"
+
     def __init__(self, name, model, num_threads=5, do_log=False, no_delay=False,
                  log_level=LOG_INFO):
         """
@@ -495,8 +514,8 @@ class TaskEngine(object):
         self._reset()
         
     def _reset(self):
-        #used to reset the processing state of the system so resumes/reverses
-        #don't get weird results
+        # used to reset the processing state of the system so resumes/reverses
+        # don't get weird results
         while not self.task_queue.empty():
             try:
                 self.task_queue.get(False)
@@ -504,7 +523,7 @@ class TaskEngine(object):
                 break
         self.aborted_tasks = []
         self.num_tasks_to_perform = None
-        #just to ensure no threads continue to work while we reset
+        # just to ensure no threads continue to work while we reset
         self.stop = True
         self._reap_threads()
         self.stop = False
@@ -524,7 +543,7 @@ class TaskEngine(object):
         @param value: The exception value
         @param tb: The exception traceback object, as returned by sys.exc_info()
         """
-        self.aborted_tasks.append( (task, etype, value, tb) )
+        self.aborted_tasks.append((task, etype, value, tb))
         
     def has_aborted_tasks(self):
         """
@@ -542,13 +561,14 @@ class TaskEngine(object):
     def make_format_func(self, task):
         ref = task.get_ref()
         path = ".".join(ref.get_path()) if ref is not None else "CAN'T.DETERMINE"
+
         def fmtmsg(msg):
             return "|".join([task.__class__.__name__, task.name, path,
                              str(task._id), msg])
         return fmtmsg
         
     def _reverse_task(self, task, logfile=None):
-        #Actually reverse the task; the default asks the task to reverse itself
+        # Actually reverse the task; the default asks the task to reverse itself
         task.reverse(self)
         
     def reverse_task(self, graph, task):
@@ -575,7 +595,7 @@ class TaskEngine(object):
         self._task_runner(task, "reverse", task.REVERSED)
     
     def _perform_task(self, task, logfile=None):
-        #Actually do the task; the default asks the task to perform itself.
+        # Actually do the task; the default asks the task to perform itself.
         task.perform(self)
         
     def perform_task(self, graph, task):
@@ -616,10 +636,10 @@ class TaskEngine(object):
         while try_count < task.repeat_count and not success:
             try_count += 1
             if self.do_log:
-                logfile=open("{}.{}-try{}.txt".format(task.name, str(task._id)[-4:],
-                                                      try_count), "w")
+                logfile = open("{}.{}-try{}.txt".format(task.name, str(task._id)[-4:],
+                                                        try_count), "w")
             else:
-                logfile=None
+                logfile = None
             try:
                 logger.info(fmtmsg("start %s-ing task" % direction))
                 meth(task, logfile=logfile)
@@ -669,7 +689,10 @@ class TaskEngine(object):
         logger = root_logger.getChild("%s.process_perform_tasks" % self.exec_agent)
         while not self.stop:
             try:
-                graph, task = self.task_queue.get(block=True, timeout=0.2)
+                # graph, task = self.task_queue.get(block=True, timeout=0.2)
+                graph, tec = self.task_queue.get(block=True, timeout=0.2)
+                assert isinstance(tec, TaskExecControl)
+                task = tec.task
                 if not self.stop:
                     self.perform_task(graph, task)
                     if task.status == task.PERFORMED:
@@ -685,7 +708,8 @@ class TaskEngine(object):
                                     if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
                                         logger.debug("queueing up %s for performance"
                                                             % successor.name)
-                                        self.task_queue.put((graph, successor))
+                                        # self.task_queue.put((graph, successor))
+                                        self.task_queue.put((graph, TaskExecControl(successor)))
             except Queue.Empty, _:
                 pass
             
@@ -696,7 +720,10 @@ class TaskEngine(object):
         logger = root_logger.getChild("%s.process_reverse_tasks" % self.exec_agent)
         while not self.stop:
             try:
-                graph, task = self.task_queue.get(block=True, timeout=0.2)
+                # graph, task = self.task_queue.get(block=True, timeout=0.2)
+                graph, tec = self.task_queue.get(block=True, timeout=0.2)
+                assert isinstance(tec, TaskExecControl)
+                task = tec.task
                 if not self.stop:
                     self.reverse_task(graph, task)
                     if task.status == task.REVERSED:
@@ -712,7 +739,8 @@ class TaskEngine(object):
                                     if graph.out_degree(predecessor) == graph.node[predecessor]["outs_traversed"]:
                                         logger.debug("queuing up %s for performance" %
                                                      predecessor.name)
-                                        self.task_queue.put((graph, predecessor))
+                                        # self.task_queue.put((graph, predecessor))
+                                        self.task_queue.put((graph, TaskExecControl(predecessor)))
             except Queue.Empty, _:
                 pass
             
@@ -737,7 +765,9 @@ class TaskEngine(object):
         for task in (t for t in self.graph.nodes() if self.graph.in_degree(t) == 0):
             logger.debug(fmtmsg("Queueing up %s named %s id %s for performance" %
                          (task.__class__.__name__, task.name, str(task._id))))
-            self.task_queue.put((self.graph, task))
+            # self.task_queue.put((self.graph, task))
+            tec = TaskExecControl(task)
+            self.task_queue.put((self.graph, tec))
         logger.info(fmtmsg("Initial tasks queued; waiting for completion"))
         #now wait to be signaled it finished
         while not self.stop:
@@ -771,20 +801,21 @@ class TaskEngine(object):
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
             self.graph.node[n]["outs_traversed"] = 0
-        #start the workers
+        # start the workers
         logger.info(fmtmsg("Starting workers..."))
         for _ in range(self.num_threads):
             worker = threading.Thread(target=self.process_reverse_task_queue)
             worker.start()
             self.threads.add(worker)
         logger.info(fmtmsg("...workers started"))
-        #queue the initial tasks
+        # queue the initial tasks
         for task in (t for t in self.graph.nodes() if self.graph.out_degree(t) == 0):
             logger.debug(fmtmsg("Queueing up %s named %s id %s for reversing" %
                          (task.__class__.__name__, task.name, str(task._id))))
-            self.task_queue.put((self.graph, task))
+            # self.task_queue.put((self.graph, task))
+            self.task_queue.put((self.graph, TaskExecControl(task)))
         logger.info(fmtmsg("Initial tasks queued; waiting for completion"))
-        #now wait to be signaled it finished
+        # now wait to be signaled it finished
         while not self.stop:
             time.sleep(0.2)
         logger.info(fmtmsg("Reaping threads; this may take a minute"))

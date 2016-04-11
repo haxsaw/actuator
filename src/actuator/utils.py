@@ -18,11 +18,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-'''
+"""
 Actuator utilities, for both public and private use
-'''
+"""
 import sys
-import os, os.path
+import os
+import os.path
 import logging
 import pdb
 import datetime
@@ -40,7 +41,8 @@ LOG_ERROR = logging.ERROR
 LOG_CRIT = logging.CRITICAL
 
 
-class UtilsException(Exception): pass
+class UtilsException(Exception):
+    pass
 
 
 class KeyAsAttr(str):
@@ -118,7 +120,8 @@ class ClassModifier(object):
         
     def process(self, obj, *args, **kwargs):
         self.func(obj, *args, **kwargs)
-        
+
+
 def process_modifiers(obj):
     """
     Processes the modifiers against the class they were meant to modify.
@@ -181,6 +184,7 @@ def adb(arg, brk=True):
         break or not; this allows actual debug breaking to be turned on and off
         by changing the value of brk. If True, then actually break.
     """
+
     def inner_adb(context):
         if brk:
             if sys.stdin.isatty():
@@ -197,27 +201,29 @@ def adb(arg, brk=True):
 class _SigDictMeta(type):
     _sigmap = {}
     _SIG_ = "_SIGNATURE_"
+
     def __new__(cls, name, bases, attr_dict):
         newbie = super(_SigDictMeta, cls).__new__(cls, name, bases, attr_dict)
         cls._sigmap[newbie._KIND_] = newbie
         return newbie
     
     @classmethod
-    def get_kind(cls, o):   #  @NoSelf
+    def get_kind(cls, o):   # @NoSelf
         return o[cls._SIG_] if cls.is_sigdict(o) else None
     
     @classmethod
-    def find_class(cls, o):  #  @NoSelf
+    def find_class(cls, o):  # @NoSelf
         return cls._sigmap.get(cls.get_kind(o))
     
     @classmethod
-    def is_sigdict(cls, o):  #  @NoSelf
+    def is_sigdict(cls, o):  # @NoSelf
         return isinstance(o, dict) and cls._SIG_ in o
     
     
 class _SignatureDict(dict):
     _KIND_ = "SignatureDict"
     __metaclass__ = _SigDictMeta
+
     def __init__(self):
         super(_SignatureDict, self).__init__()
         self[_SigDictMeta._SIG_] = self._KIND_
@@ -231,6 +237,7 @@ class _PersistableRef(_SignatureDict):
     _KIND_ = "_PersistableRef"
     _REFID_ = "_REFID_"
     _OBJ_INFO_ = "_OBJINFO_"
+
     def __init__(self, o=None):
         super(_PersistableRef, self).__init__()
         if o is not None:
@@ -250,6 +257,7 @@ class _ClassRef(_SignatureDict):
     _KIND_ = "_ClassRef"
     _CLASS_NAME_ = "_classname_"
     _MODULE_NAME_ = "_moddulename_"
+
     def __init__(self, o=None):
         super(_ClassRef, self).__init__()
         if o is not None:
@@ -264,6 +272,7 @@ class _ClassRef(_SignatureDict):
 class _PersistedKeyAsAttr(_SignatureDict):
     _KIND_ = "_PersistedKeyAsAttr"
     _VALUE_ = "_value_"
+
     def __init__(self, kaa=None):
         super(_PersistedKeyAsAttr, self).__init__()
         if kaa is not None:
@@ -286,6 +295,7 @@ class _PersistablesCyclesDeco(object):
         
     def __call__(self, m):
         self.m = m
+
         def cycle_checker(persistable):
             if not hasattr(self.local, "visitation_set"):
                 self.local.visitation_set = set()
@@ -318,9 +328,9 @@ class _Persistable(object):
         for k, v in ad.items():
             ad[k] = self.encode_attr(k, v)
         sig = self.obj_sig_dict()
-        sig.update({self._version:self._vernum,
-                    self._persistable:"yes",
-                    self._obj_:ad})
+        sig.update({self._version: self._vernum,
+                    self._persistable: "yes",
+                    self._obj_: ad})
         return sig
     
     def finalize_reanimate(self):
@@ -382,10 +392,10 @@ class _Persistable(object):
                         klass = _SigDictMeta.find_class(vv)
                         if not klass:
                             raise UtilsException("Couldn't find a class for kind %s"
-                                            % _SigDictMeta.get_kind(vv))
+                                                 % _SigDictMeta.get_kind(vv))
                         v[vk] = klass().from_dict(vv)
                         if _SigDictMeta.is_sigdict(v[vk]):
-                            #this is most likely a _PersistableRef
+                            # this is most likely a _PersistableRef
                             ref = _SigDictMeta.find_class(v[vk])().from_dict(v[vk])
                             v[vk] = catalog.find_entry(ref.id).get_reanimated()
             elif isinstance(v, (list, tuple)):
@@ -420,9 +430,9 @@ class _Persistable(object):
             retval = _PersistableRef(v)
         elif isinstance(v, collections.Iterable) and not isinstance(v, basestring):
             if isinstance(v, dict):
-                retval = {vk:(_PersistableRef(vv)
-                              if isinstance(vv, _Persistable)
-                              else vv) for vk, vv in v.items()}
+                retval = {vk: (_PersistableRef(vv)
+                               if isinstance(vv, _Persistable)
+                               else vv) for vk, vv in v.items()}
             elif isinstance(v, (list, tuple)):
                 retval = [(_PersistableRef(i) if isinstance(i, _Persistable) else i)
                           for i in v]
@@ -433,8 +443,8 @@ class _Persistable(object):
         return retval
         
     def obj_sig_dict(self):
-        return {self._class_name:self.__class__.__name__,
-                self._module_name:self.__class__.__module__}
+        return {self._class_name: self.__class__.__name__,
+                self._module_name: self.__class__.__module__}
         
     def persisted_persistable(self, o):
         return isinstance(o, dict) and self._persistable in o
@@ -482,9 +492,9 @@ class _Persistable(object):
         Notice that you never have to yield 'self'. The default implementation
         simply ends the iteration.
         """
-        #the following is just an oddity of Python; it needs to see a 'yield'
-        #in the method to make it a generator, but we don't actually ever
-        #need it to execute. So we protect it with the impossible test
+        # the following is just an oddity of Python; it needs to see a 'yield'
+        # in the method to make it a generator, but we don't actually ever
+        # need it to execute. So we protect it with the impossible test
         if 1 == 0:
             yield
     
@@ -499,7 +509,7 @@ class _Persistable(object):
         return
         
 
-#adapted from pickle.Unpickler
+# adapted from pickle.Unpickler
 def _find_class(module, name):
     __import__(module)
     mod = sys.modules[module]
@@ -507,7 +517,8 @@ def _find_class(module, name):
     return klass
 
 
-class _Dummy(object): pass
+class _Dummy(object):
+    pass
 
 
 class _CatalogEntry(_SignatureDict):
@@ -516,6 +527,7 @@ class _CatalogEntry(_SignatureDict):
     ATTRS_DICT = "_ATTR_DICT_"
     REANIM_OBJ = "_REANIM_OBJ_"
     _KIND_ = "_CatalogEntry"
+
     def __init__(self, o=None):
         super(_CatalogEntry, self).__init__()
         self[self.ORIG_ID] = self.compute_id(o)
@@ -582,8 +594,8 @@ class _Catalog(_SignatureDict):
     def to_dict(self):
         return self
     
-    def from_dict(self, aDict):
-        for k, v in aDict.items():
+    def from_dict(self, a_dict):
+        for k, v in a_dict.items():
             if _SigDictMeta.is_sigdict(v):
                 self[int(k)] = _CatalogEntry().from_dict(v)
         for ce in self.values():
@@ -610,7 +622,7 @@ def persist_to_dict(o, name=None):
     catalog = _Catalog()
     for p in o.find_persistables():
         catalog.add_entry(p)
-    d = {}
+    d = dict()
     d["PERSIST_TIMESTAMP"] = str(datetime.datetime.now())
     d["NAME"] = name
     d["SYS_PATH"] = sys.path[:]

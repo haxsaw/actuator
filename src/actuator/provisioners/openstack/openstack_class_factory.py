@@ -19,12 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
-This module contains simple factories for Openstack Neutron and Nova clients.
-It exists so that mocks can easily be supplied for testing.
+"""
+This module contains the constructors for shade cloud objects
 
 Created on 7 Sep 2014
-'''
+"""
+
 import shade
 import os_client_config
 

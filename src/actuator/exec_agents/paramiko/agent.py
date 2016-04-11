@@ -19,12 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
-Created on Mar 15, 2016
-
-@author: Tom Carroll
-'''
-
 import threading
 import socket
 import uuid
@@ -121,7 +115,7 @@ class PTaskProcessor(AbstractTaskProcessor):
             return
     
     def process_task(self, pea, task, host, user, password=None, priv_key_file=None, priv_key=None,
-                      dirty=False, timeout=20, **kwargs):
+                     dirty=False, timeout=20, **kwargs):
         assert isinstance(pea, ParamikoExecutionAgent)
         client = pea.get_connection(host, user, priv_key=priv_key, priv_key_file=priv_key_file,
                                     password=password, timeout=timeout)
@@ -171,7 +165,7 @@ class PTaskProcessor(AbstractTaskProcessor):
                 success = True
             else:
                 ecode = val
-        except:
+        except Exception as _:
             pass
         return success, ecode
     
@@ -202,7 +196,7 @@ class ScriptProcessor(PTaskProcessor):
     
     def _start_shell(self, client):
         sh = self._get_shell(client)
-        welcome = self._drain(sh)
+        _ = self._drain(sh)
         return sh
     
     def _test_creates(self, sh, creates):
@@ -248,7 +242,7 @@ class ScriptProcessor(PTaskProcessor):
         if not skip:
             script_path, sfile = os.path.split(script)
             tmp_script = "/tmp/%s" % sfile
-            #make sure we can create the script
+            # make sure we can create the script
             sh.send("touch %s\n" % tmp_script)
             self.output.append("".join(self._drain(sh)))
             success, ecode = self._was_success(sh)
@@ -256,11 +250,11 @@ class ScriptProcessor(PTaskProcessor):
                 raise ExecutionException("Unable to create the remote script file %s: %s"
                                          % (tmp_script, "error code %s" % ecode))
                 
-            #now transmit the script
+            # now transmit the script
             sh.send("cat > %s\n" % tmp_script)
             task_role = task.get_task_role()
             for l in f:
-                if proc_ns:  #if true, do replace pattern expansions before sending
+                if proc_ns:  # if true, do replace pattern expansions before sending
                     cv = _ComputableValue(l)
                     l = cv.expand(task_role, raise_on_unexpanded=True)
                 sh.sendall(l)
@@ -272,7 +266,7 @@ class ScriptProcessor(PTaskProcessor):
                 raise ExecutionException("Unable to transmit the script %s to the remote host: %s"
                                          % (tmp_script, "error code %s" % ecode))
             
-            #ensure the script is executable
+            # ensure the script is executable
             sh.sendall("chmod 755 %s\n" % tmp_script)
             self.output.append("".join(self._drain(sh)))
             success, ecode = self._was_success(sh)
@@ -280,15 +274,15 @@ class ScriptProcessor(PTaskProcessor):
                 raise ExecutionException("Could not make the remote script %s executable: %s"
                                          % (tmp_script, "error code %s" % ecode))
             
-            #execute the script
+            # execute the script
             remote_command = "%s %s" % (tmp_script, " ".join(parts[1:]))
             sh.sendall("%s\n" % remote_command)
             self.output.append("".join(self._drain(sh)))
             
-            #check exit status
+            # check exit status
             success, ecode = self._was_success(sh)
             
-            #remove the script
+            # remove the script
             sh.sendall("rm %s\n" % tmp_script)
             self.output.append("".join(self._drain(sh)))
         else:
@@ -303,9 +297,9 @@ class ScriptProcessor(PTaskProcessor):
 class CommandProcessor(ScriptProcessor):
     def _make_args(self, task):
         args = super(CommandProcessor, self)._make_args(task)
-        args.update( {"chdir": task.chdir,
-                      "executable": task.executable,
-                      "warn": task.warn} )
+        args.update({"chdir": task.chdir,
+                     "executable": task.executable,
+                     "warn": task.warn})
         return args
     
     def _format_command(self, command):
@@ -405,7 +399,7 @@ class CopyFileProcessor(PTaskProcessor):
     
     def _put_file(self, task, sftp, rem_path, abs_local_file=None, content=None, flo=None,
                   mode=None, owner=None, group=None):
-        #flo is a "file-like object" from which we get content and send it to the remote
+        # flo is a "file-like object" from which we get content and send it to the remote
         assert isinstance(sftp, SFTPClient)
         
         if content is not None:
@@ -428,7 +422,7 @@ class CopyFileProcessor(PTaskProcessor):
         if mode is not None:
             sftp.chmod(rem_path, mode)
         elif abs_local_file is not None:
-            #make the mode the same as the local file if not otherwise spec'd
+            # make the mode the same as the local file if not otherwise spec'd
             fstat = os.stat(abs_local_file)
             sftp.chmod(rem_path, fstat.st_mode)
             
@@ -440,8 +434,9 @@ class CopyFileProcessor(PTaskProcessor):
             sftp.chown(rem_path, owner, group)
         
         return True, ""
-    
-    def _set_dir_perms(self, sftp, rem_dir, local_dir, mode=None, owner=None,
+
+    @staticmethod
+    def _set_dir_perms(sftp, rem_dir, local_dir, mode=None, owner=None,
                        group=None):
         rstat = sftp.stat(rem_dir)
         if owner is not None or group is not None:
@@ -455,8 +450,9 @@ class CopyFileProcessor(PTaskProcessor):
         sftp.chmod(rem_dir, mode)
         
         return True, ""
-    
-    def _make_dir(self, sftp, rem_path):
+
+    @staticmethod
+    def _make_dir(sftp, rem_path):
         assert isinstance(sftp, SFTPClient)
         sftp.mkdir(rem_path)
         
@@ -503,7 +499,7 @@ class CopyFileProcessor(PTaskProcessor):
                         fmode = mode
                     self._put_file(task, sftp, rp, lp, mode=fmode, owner=owner, group=group)
                     
-            #now pass over the local dirs again in order to set all directory modes on the remote
+            # now pass over the local dirs again in order to set all directory modes on the remote
             for dirpath, _, _ in os.walk(src, followlinks=follow, topdown=False):
                 prefix = dirpath.split(src)[-1]
                 if os.path.isabs(prefix):
@@ -538,7 +534,7 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
                                                             content=content, mode=mode,
                                                             owner=owner, group=group)
         else:
-            #we have a file to copy
+            # we have a file to copy
             fstat = os.stat(abs_local_file)
             if mode is None:
                 mode = fstat.st_mode
@@ -602,8 +598,8 @@ class ParamikoExecutionAgent(ExecutionAgent):
                 sio = StringIO(priv_key)
                 priv_key = RSAKey.from_private_key(sio)
             conn.connect(hostname=host, username=user, timeout=timeout,
-                     pkey=priv_key, key_filename=priv_key_file,
-                     password=password)
+                         pkey=priv_key, key_filename=priv_key_file,
+                         password=password)
         except (BadHostKeyException, AuthenticationException) as e:
             raise ExecutionException("Encountered authentication problem: %s" % str(e))
         except SSHException as e:
@@ -613,8 +609,8 @@ class ParamikoExecutionAgent(ExecutionAgent):
                                      "create an SSH connection: %s" % str(e))
         return conn
 
-        #@FIXME Paramiko can't handle more than one channel on a single client
-        #so the following is commented out until that is corrected
+        # @FIXME Paramiko can't handle more than one channel on a single client
+        # so the following is commented out until that is corrected
 #         while not conn:
 #             wait_on_ipc = False
 #             with self.cache_lock:
@@ -670,8 +666,8 @@ class ParamikoExecutionAgent(ExecutionAgent):
         @param dirty: boolean, optional. If 'true' then the connection should be
             closed as it is somehow no longer usable
         """
-        #@FIXME once Paramiko can properly handle more than one
-        #channel on a client then we can use the code below
+        # @FIXME once Paramiko can properly handle more than one
+        # channel on a client then we can use the code below
         assert isinstance(conn, SSHClient)
         conn.close()
         return
@@ -688,4 +684,3 @@ class ParamikoExecutionAgent(ExecutionAgent):
     
     def _perform_with_args(self, task, processor, args, kwargs):
         return processor.process_task(self, *args, **kwargs)
-    
