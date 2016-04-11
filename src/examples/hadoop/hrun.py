@@ -33,24 +33,24 @@ tenant_env = "OS_TENANT"
 auth_env = "OS_AUTH"
 
 def do_it(uid, pwd, tenant, url, num_slaves=1):
-    #this is what's needed to use the models
-    infra = HadoopInfra("infra")
-    ns = HadoopNamespace()
-    cfg = HadoopConfig(remote_user="ubuntu",
-                       private_key_file="actuator-dev-key")
-    ns.create_slaves(num_slaves)
+    # this is what's needed to use the models
+    inf = HadoopInfra("infra")
+    namespace = HadoopNamespace()
+    conf = HadoopConfig(remote_user="ubuntu",
+                        private_key_file="actuator-dev-key")
+    namespace.create_slaves(num_slaves)
         
     os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5, cloud_name="trystack")
-    ao = ActuatorOrchestration(infra_model_inst=infra,
-                               provisioner=os_prov,
-                               namespace_model_inst=ns,
-                               config_model_inst=cfg)
+    orch = ActuatorOrchestration(infra_model_inst=inf,
+                                 provisioner=os_prov,
+                                 namespace_model_inst=namespace,
+                                 config_model_inst=conf)
     success = ao.initiate_system()
-    return success, infra, ns, cfg, ao
+    return success, inf, namespace, cfg, orch
     
 
 if __name__ == "__main__":
-    #this is all command line and environment processing overhead
+    # this is all command line and environment processing overhead
     if (not os.environ.get(user_env) or not os.environ.get(pass_env) or
             not os.environ.get(auth_env)):
         print "\n>>>Environment variables missing!"
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         print "%s" % (",".join(ops))
         print "/".join([o[0] for o in ops]), ": ",
         cmd = sys.stdin.readline().strip().lower()
-        if not cmd or cmd[0] not in  [o[0] for o in ops]:
+        if not cmd or cmd[0] not in [o[0] for o in ops]:
             print "Unrecognized command: %s" % cmd
         if cmd == quit_op[0]:
             print "goodbye"
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         elif cmd == teardown_op[0]:
             print "Tearing down; won't be able to re-run later"
             if not ao.provisioner:
-                ao.set_provisioner(OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5))
+                ao.set_provisioner(OpenstackProvisioner(cloud_name="trystack", num_threads=5))
             success = ao.teardown_system()
             if success:
                 print "\n...done! Your system has been de-commissioned"

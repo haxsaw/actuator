@@ -107,7 +107,7 @@ Instances of the class (and hence the model) are then created, and the instance 
 ```python
 from actuator.provisioners.openstack.openstack import OpenstackProvisioner
 inst = SingleOpenstackServer("actuator_ex1")
-provisioner = OpenstackProvisioner(uid, pwd, uid, url)
+provisioner = OpenstackProvisioner(cloud_name="citycloud")
 provisioner.provision_infra_model(inst)
 ```
 
@@ -972,7 +972,7 @@ for i in range(num_slaves):
   _ = ns.slaves[i]
 
 # make your provisioner
-os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=thread_count)
+os_prov = OpenstackProvisioner(cloud_name="citycloud", num_threads=thread_count)
   
 # make your orchestrator and run it
 ao = ActuatorOrchestration(infra_model_inst=infra,

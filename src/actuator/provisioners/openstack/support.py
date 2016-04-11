@@ -45,7 +45,7 @@ class OpenstackProvisioningRecord(BaseProvisioningRecord):
         self.secgroup_rule_ids = dict()
         self.server_ids = dict()
         self.port_ids = dict()
-        #keypairs are deliberately left out for now
+        # keypairs are deliberately left out for now
         
     def __getstate__(self):
         d = super(OpenstackProvisioningRecord, self).__getstate__()

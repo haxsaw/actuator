@@ -70,7 +70,7 @@ class SimpleInfra(InfraModel):
 
 def start_and_stop():
     infra = SimpleInfra("simple")
-    prov = OpenstackProvisioner("it", "doesn't", "matter", "now", num_threads=1, cloud_name="trystack")
+    prov = OpenstackProvisioner(num_threads=1, cloud_name="trystack")
     ao = ActuatorOrchestration(infra_model_inst=infra, provisioner=prov)
     _ = ao.initiate_system()
     print "Hit return when you want to tear down:\n",

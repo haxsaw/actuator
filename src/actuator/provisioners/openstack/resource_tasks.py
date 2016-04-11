@@ -40,15 +40,14 @@ _rt_domain = "resource_task_domain"
 
 
 class RunContext(object):
-    def __init__(self, record, username, password, tenant_name, auth_url, cloud_name=None):
-        self.username = username
-        self.password = password
-        self.tenant_name = tenant_name
-        self.auth_url = auth_url
+    def __init__(self, record, os_creds):
+        assert isinstance(os_creds, OpenstackCredentials)
+        self.os_creds = os_creds
         self.record = record
         self.maps = _OSMaps(self)
-        if cloud_name is not None:
-            self.cloud = ocf.get_shade_cloud(cloud_name)
+        if self.os_creds.cloud_name:
+            self.cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
+                                             config_files=self.os_creds.config_files)
         else:
             self.cloud = None
 
@@ -379,12 +378,9 @@ class ProvisionKeyPairTask(ProvisioningTask):
 
 
 class OpenstackCredentials(object):
-    def __init__(self, username, password, tenant_name, auth_url, cloud_name=None):
-        self.username = username
-        self.password = password
-        self.tenant_name = tenant_name
-        self.auth_url = auth_url
+    def __init__(self, cloud_name=None, config_files=None):
         self.cloud_name = cloud_name
+        self.config_files = config_files
 
 
 class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
@@ -482,11 +478,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
     def get_context(self):
         context = self.run_contexts.get(threading.current_thread())
         if context is None:
-            context = RunContext(self.record, self.os_creds.username,
-                                 self.os_creds.password,
-                                 self.os_creds.tenant_name,
-                                 self.os_creds.auth_url,
-                                 cloud_name=self.os_creds.cloud_name)
+            context = RunContext(self.record, self.os_creds)
             self.run_contexts[threading.current_thread()] = context
         return context
     
@@ -514,8 +506,7 @@ class OpenstackProvisioner(BaseProvisioner):
     """
     LOG_SUFFIX = "os_provisioner"
 
-    def __init__(self, username, password, tenant_name, auth_url, cloud_name=None,
-                 num_threads=5, log_level=LOG_INFO):
+    def __init__(self, cloud_name=None, config_files=None, num_threads=5, log_level=LOG_INFO):
         """
         @param username: String; the Openstack user name
         @param password: String; the Openstack password for username
@@ -528,7 +519,7 @@ class OpenstackProvisioner(BaseProvisioner):
         @keyword log_level: Optional; default LOG_INFO. One of the logging values
             from actuator: LOG_CRIT, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG.
         """
-        self.os_creds = OpenstackCredentials(username, password, tenant_name, auth_url, cloud_name=cloud_name)
+        self.os_creds = OpenstackCredentials(cloud_name=cloud_name, config_files=config_files)
         self.agent = None
         self.num_threads = num_threads
         root_logger.setLevel(log_level)

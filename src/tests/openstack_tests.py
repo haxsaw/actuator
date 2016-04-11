@@ -53,8 +53,7 @@ from actuator.infra import StaticServer
 
 
 def get_provisioner():
-    return OpenstackProvisioner("it", "just", "doesn't", "matter",
-                                log_level=LOG_INFO, cloud_name="wibble")
+    return OpenstackProvisioner(log_level=LOG_INFO, cloud_name="wibble")
 
 
 def test001():
@@ -622,13 +621,14 @@ def test041():
         assert False, "should have complained missing key arg"
     except ProvisionerException, _:
         assert True
-        
+
+
 class FauxEngine(object):
     def get_context(self):
         from actuator.provisioners.openstack.support import OpenstackProvisioningRecord
-        from actuator.provisioners.openstack.resource_tasks import RunContext
-        return RunContext(OpenstackProvisioningRecord(1), "it", "just", "doesn't", "matter",
-                          cloud_name="wobble")
+        from actuator.provisioners.openstack.resource_tasks import RunContext, OpenstackCredentials
+        creds = OpenstackCredentials(cloud_name="wibble")
+        return RunContext(OpenstackProvisioningRecord(1), creds)
     
     
 def test042():

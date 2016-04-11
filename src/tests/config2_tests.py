@@ -122,7 +122,7 @@ def test001():
     pwd = "doesn't"
     url = "matter"
     
-    os_prov = OpenstackProvisioner(uid, pwd, uid, url, num_threads=1, cloud_name="wibble")
+    os_prov = OpenstackProvisioner(num_threads=1, cloud_name="wibble")
     for i in range(5):
         _ = ns.slaves[i]
     ns.compute_provisioning_for_environ(infra)

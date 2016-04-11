@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Base classes for all Actuator provisioners.
-'''
+"""
 from actuator.infra import InfraModel
 
 
@@ -73,13 +73,12 @@ class BaseProvisioningRecord(object):
     """
     Captures the details of provisioning a single resource.
     """
-    def __init__(self, id):
-        self.id = id
+    def __init__(self, rid):
+        self.id = rid
         
     def __getstate__(self):
-        return {"id":self.id}
+        return {"id": self.id}
     
     def __setstate__(self, state):
         self.id = state["id"]
         del state["id"]
-        
