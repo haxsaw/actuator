@@ -40,22 +40,23 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
                         private_key_file="actuator-dev-key")
     namespace.create_slaves(num_slaves)
         
-    os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5, cloud_name="trystack")
+    # os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5, cloud_name="citycloud")
+    os_prov = OpenstackProvisioner(num_threads=1, cloud_name="citycloud")
     orch = ActuatorOrchestration(infra_model_inst=inf,
                                  provisioner=os_prov,
                                  namespace_model_inst=namespace,
                                  config_model_inst=conf)
-    success = ao.initiate_system()
+    success = orch.initiate_system()
     return success, inf, namespace, cfg, orch
     
 
 if __name__ == "__main__":
     # this is all command line and environment processing overhead
-    if (not os.environ.get(user_env) or not os.environ.get(pass_env) or
-            not os.environ.get(auth_env)):
-        print "\n>>>Environment variables missing!"
-        help()
-        sys.exit(1)
+    # if (not os.environ.get(user_env) or not os.environ.get(pass_env) or
+    #         not os.environ.get(auth_env)):
+    #     print "\n>>>Environment variables missing!"
+    #     help()
+    #     sys.exit(1)
         
     success = infra = ns = cfg = ao = None
     json_file = None

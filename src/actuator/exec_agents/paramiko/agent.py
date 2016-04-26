@@ -420,7 +420,7 @@ class CopyFileProcessor(PTaskProcessor):
             sftp.put(abs_local_file, rem_path)
             
         if mode is not None:
-            sftp.chmod(rem_path, mode)
+            sftp.chmod(rem_path, int(mode))
         elif abs_local_file is not None:
             # make the mode the same as the local file if not otherwise spec'd
             fstat = os.stat(abs_local_file)
@@ -462,6 +462,7 @@ class CopyFileProcessor(PTaskProcessor):
                       follow=False, force=True, group=None, mode=None, owner=None,
                       selevel="s0", serole=None, setype=None, seuser=None, src=None,
                       validate=None):
+
         if src is None and content is None:
             raise ExecutionException("Task %s can't run; neither src nor content were supplied"
                                      % task.name)
@@ -589,7 +590,7 @@ class ParamikoExecutionAgent(ExecutionAgent):
 #             raise ExecutionException("Can't get connection to host; one of priv_key, "
 #                                      "priv_key_file, or password must be supplied in "
 #                                      "order to connect")
-            
+
         try:
             conn = SSHClient()
             conn.load_system_host_keys()

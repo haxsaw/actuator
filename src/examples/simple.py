@@ -19,12 +19,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import sys
+import traceback
 from actuator import *   # @UnusedWildImport
 from actuator.provisioners.openstack.resource_tasks import (Server, SecGroup, SecGroupRule,
                                                             Network, Router, RouterGateway,
                                                             RouterInterface, Subnet, KeyPair,
                                                             FloatingIP, OpenstackProvisioner)
+
+# cloud_name = "trystack"
+cloud_name = "citycloud"
+
+
+if cloud_name == "trystack":
+    image = "ubuntu14.04-LTS"
+    flavor = "m1.small"
+    extern_netname = "public"
+    az = "nova"
+elif cloud_name == "citycloud":
+    image = "Ubuntu 14.04 - LTS - Trusty Tahr"
+    flavor = '2C-2GB'
+    extern_netname = "ext-net"  # do a
+    az = "Lon1"
+else:
+    raise Exception("I don't recognize clouds with the name %s" % cloud_name)
 
 
 pubkey = "actuator-dev-key.pub"
@@ -32,7 +49,7 @@ pubkey = "actuator-dev-key.pub"
 
 class SimpleInfra(InfraModel):
     with_infra_options(long_names=True)
-    fip_pool = "public"  # this is the name of the pool at TryStack
+    fip_pool = extern_netname  # this is the name of the pool
 
     #
     # connectivity
@@ -40,7 +57,7 @@ class SimpleInfra(InfraModel):
     subnet = Subnet("simple_subnet", ctxt.model.network, "192.168.10.0/24",
                     dns_nameservers=['8.8.8.8'])
     router = Router("simple_router")
-    gateway = RouterGateway("simple_gateway", ctxt.model.router, "public")
+    gateway = RouterGateway("simple_gateway", ctxt.model.router, extern_netname)
     interface = RouterInterface("simple_interface",
                                 ctxt.model.router,
                                 ctxt.model.subnet)
@@ -56,10 +73,11 @@ class SimpleInfra(InfraModel):
 
     #
     # server
-    server = Server("simple_server", "ubuntu14.04-LTS", "m1.small",
+    server = Server("simple_server", image, flavor,
                     nics=[ctxt.model.network],
                     security_groups=[ctxt.model.secgroup], key_name=ctxt.model.kp,
-                    availability_zone="nova")
+                    )
+                    # availability_zone=az)
 
     #
     # external access
@@ -70,10 +88,14 @@ class SimpleInfra(InfraModel):
 
 def start_and_stop():
     infra = SimpleInfra("simple")
-    prov = OpenstackProvisioner(num_threads=1, cloud_name="trystack")
+    prov = OpenstackProvisioner(num_threads=1, cloud_name=cloud_name)
     ao = ActuatorOrchestration(infra_model_inst=infra, provisioner=prov)
-    _ = ao.initiate_system()
-    print "Hit return when you want to tear down:\n",
+    success = ao.initiate_system()
+    if not success:
+        for t, et, ev, tb in ao.get_errors():
+            print "\nFAILED TASK: %s" % t.name
+            traceback.print_exception(et, ev, tb)
+    print "\nHit return when you want to tear down:\n",
     _ = sys.stdin.readline()
     ao.teardown_system()
 

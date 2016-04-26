@@ -36,7 +36,7 @@ external_connection = ResourceGroup("route_out",
                                     router=Router("ro_router"),
                                     gateway=RouterGateway("ro_gateway",
                                                           ctxt.comp.container.router,
-                                                          "public"),
+                                                          ctxt.nexus.ns.v.EXTNET),
                                     interface=RouterInterface("ro_inter",
                                                               ctxt.comp.container.router,
                                                               ctxt.comp.container.subnet))
@@ -65,11 +65,11 @@ def make_std_secgroup(name, desc="standard security group"):
 
 
 #name of the image we want to use
-ubuntu_img = "ubuntu14.04-LTS"
+# ubuntu_img = "ubuntu14.04-LTS"
 
 
 #common keyword args used for servers
-common_kwargs = {"key_name":ctxt.model.kp}
+common_kwargs = {"key_name": ctxt.model.kp}
 
 
 class HadoopInfra(InfraModel):
@@ -109,23 +109,24 @@ class HadoopInfra(InfraModel):
                                  to_port=ctxt.nexus.ns.v.NAMENODE_PORT)
     
     #HADOOP name node
-    name_node = Server("name_node", ubuntu_img, "m1.small",
+    name_node = Server("name_node", ctxt.nexus.ns.v.IMAGE, ctxt.nexus.ns.v.FLAVOR,
                        security_groups=[ctxt.model.namenode_secgroup.group],
                        nics=[ctxt.model.gateway.net], **common_kwargs)
     name_node_fip = FloatingIP("name_node_fip", ctxt.model.name_node,
                                ctxt.model.name_node.iface0.addr0,
-                               pool=fip_pool)
+                               pool=ctxt.nexus.ns.v.EXTNET)
+                               # pool=fip_pool)
     #HADOOP slaves
     slaves = MultiResourceGroup("slaves",
-                                 slave=Server("slave", ubuntu_img,
-                                              "m1.small",
+                                 slave=Server("slave", ctxt.nexus.ns.v.IMAGE,
+                                              ctxt.nexus.ns.v.FLAVOR,
                                               nics=[ctxt.model.gateway.net],
                                               security_groups=[ctxt.model.slave_secgroup.group],
                                               **common_kwargs),
                                  slave_fip=FloatingIP("sn_fip",
                                                       ctxt.comp.container.slave,
                                                       ctxt.comp.container.slave.iface0.addr0,
-                                                      pool=fip_pool))
+                                                      pool=ctxt.nexus.ns.v.EXTNET))
     
 
 def host_list(ctx_exp, sep_char=" "):
@@ -150,6 +151,11 @@ class HadoopNamespace(NamespaceModel):
     with_variables(*common_vars)
     with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)),
                    Var("NAMENODE_IP", HadoopInfra.name_node.iface0.addr0))
+    # set up cloud parameters
+    with_variables(Var("IMAGE", "Ubuntu 14.04 - LTS - Trusty Tahr"),
+                   Var("FLAVOR", "2C-2GB"),
+                   Var("EXTNET", "ext-net"),
+                   Var("AZ", "Lon1"))
     
     name_node = Role("name_node",
                      host_ref=HadoopInfra.name_node_fip)
@@ -181,4 +187,3 @@ class HadoopConfig(ConfigModel):
                               chdir="!{HADOOP_HOME}", repeat_count=3,
                               task_role=HadoopNamespace.name_node)
     with_dependencies(node_setup | slave_ip | format_hdfs)
-    

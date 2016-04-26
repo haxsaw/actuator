@@ -35,7 +35,7 @@ common_vars = [Var("USER", "ubuntu"),
                Var("HADOOP_TARBALL", "!{HADOOP_VER}.tar.gz", in_env=False),
                Var("HADOOP_URL",
                    "http://mirror.ox.ac.uk/sites/rsync.apache.org/hadoop/"
-                   "common/!{HADOOP_VER}/!{HADOOP_TARBALL}", in_env=False),
+                   "core/!{HADOOP_VER}/!{HADOOP_TARBALL}", in_env=False),
                Var("HADOOP_PREP", "!{BASE}/hadoop", in_env=False),
                Var("HADOOP_DATA_HOME", "!{HADOOP_PREP}/data", in_env=False),
                Var("HADOOP_DATA_XACTION", "!{HADOOP_DATA_HOME}/xaction", in_env=False),
@@ -73,7 +73,7 @@ class HadoopNodeConfig(ConfigModel):
     ping = PingTask("ping_to_check_alive", repeat_count=5)
     send_priv_key = CopyFileTask("send_priv_key", "!{HADOOP_PREP}/!{PRIV_KEY_NAME}",
                                  src=find_file(pkn, "."),
-                                 mode="0600"
+                                 mode=0600
                                  )
     update = CommandTask("update_linux",
                          "/usr/bin/sudo -h localhost /usr/bin/apt-get -y update",
@@ -106,7 +106,7 @@ class HadoopNodeConfig(ConfigModel):
     make_tracker_local = CommandTask("make_tracker_local", "/bin/mkdir -p !{HADOOP_TRACKER_LOCAL}",
                                      creates="!{HADOOP_TRACKER_LOCAL}",
                                      repeat_count=3)
-    fetch_hadoop = CommandTask("fetch_hadoop", "/usr/bin/wget -q !{HADOOP_URL}",
+    fetch_hadoop = CommandTask("fetch_hadoop", "/usr/bin/wget !{HADOOP_URL}",
                                chdir="!{HADOOP_PREP}",
                                repeat_count=3)
     unpack = CommandTask("unpack_hadoop", "/bin/tar -xf !{HADOOP_TARBALL}",
@@ -152,11 +152,11 @@ class HadoopNodeConfig(ConfigModel):
     #with_dependencies() is additive; the set dependencies are captured in
     #the metadata for the class, and evaluated in total at the proper time
     with_dependencies(ping | (reset & add_hostname))
-    
+
     with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop &
                                            copy_public_key & append_public_key) |
                       unpack | (send_env & send_core_site & send_hdfs_site &
-                       send_mapred_site))
+                      send_mapred_site))
     
     with_dependencies(add_hostname | update | jdk_install)
     
