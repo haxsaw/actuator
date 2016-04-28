@@ -755,7 +755,8 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                         "_parent", "get_path", "_get_item_ref_obj",
                         "get_containing_component",
                         "get_containing_component_ref"])
-              .union( frozenset(dir(_Persistable)).difference(frozenset(dir(_Dummy))) ))
+              .union(frozenset(dir(_Persistable)).difference(frozenset(dir(_Dummy)))))
+
     def __init__(self, name, obj=None, parent=None):
         """
         Initialize a new reference object.

@@ -458,9 +458,11 @@ def test29():
             cap.performed[-1] == ("ping_target", PingConfig.t3.name) and
             cap.pos("ping_target", PingConfig.t4.name) <
             cap.pos("ping_target", PingConfig.t2.name))
-    
+
+
 def test30():
     cap = Capture()
+
     class ElasticNamespace(NamespaceModel):
         ping_targets = MultiRole(Role("ping-target", host_ref=BogusServerRef()))
         pong_targets = MultiRole(Role("pong-target", host_ref=BogusServerRef()))
@@ -481,7 +483,8 @@ def test30():
     assert (len(ns.ping_targets) == 5 and
             (set(["0", "1", "2", "3", "4"]) == set(ns.ping_targets.keys())) and
             len(ns.pong_targets) == 0)
-            
+
+
 def test31():
     class VarCapture(ConfigTask, StructuralTask):
         def __init__(self, name, task_role, **kwargs):

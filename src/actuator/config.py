@@ -249,7 +249,7 @@ class ConfigTask(Task):
                     host = str(task_host)
             else:
                 host = "N/A"
-        except ConfigException as _:
+        except (ConfigException, AttributeError) as _:
             host = "N/A"
 
         return "(r:%s,h:%s)" % (role, host)

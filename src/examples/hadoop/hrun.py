@@ -36,10 +36,10 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
     # this is what's needed to use the models
     inf = HadoopInfra("infra")
     namespace = HadoopNamespace()
+    namespace.create_slaves(num_slaves)
     conf = HadoopConfig(remote_user="ubuntu",
                         private_key_file="actuator-dev-key")
-    namespace.create_slaves(num_slaves)
-        
+
     os_prov = OpenstackProvisioner(num_threads=10, cloud_name="citycloud")
     orch = ActuatorOrchestration(infra_model_inst=inf,
                                  provisioner=os_prov,

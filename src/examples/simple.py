@@ -51,6 +51,19 @@ class SimpleInfra(InfraModel):
     fip_pool = extern_netname  # this is the name of the pool
 
     #
+    # server
+    server = Server("simple_server", image, flavor,
+                    nics=[ctxt.model.network],
+                    security_groups=[ctxt.model.secgroup], key_name=ctxt.model.kp,
+                    availability_zone=az)
+
+    #
+    # external access
+    fip = FloatingIP("simple_fip", ctxt.model.server,
+                     ctxt.model.server.iface0.addr0,
+                     pool=fip_pool)
+
+    #
     # connectivity
     network = Network("simple_network")
     subnet = Subnet("simple_subnet", ctxt.model.network, "192.168.10.0/24",
@@ -69,19 +82,6 @@ class SimpleInfra(InfraModel):
     ssh_rule = SecGroupRule("ssh_rule", ctxt.model.secgroup,
                             ip_protocol="tcp", from_port=22, to_port=22)
     kp = KeyPair("simple_kp", "simple_kp", pub_key_file=pubkey)
-
-    #
-    # server
-    server = Server("simple_server", image, flavor,
-                    nics=[ctxt.model.network],
-                    security_groups=[ctxt.model.secgroup], key_name=ctxt.model.kp,
-                    availability_zone=az)
-
-    #
-    # external access
-    fip = FloatingIP("simple_fip", ctxt.model.server,
-                     ctxt.model.server.iface0.addr0,
-                     pool=fip_pool)
 
 
 def start_and_stop():
