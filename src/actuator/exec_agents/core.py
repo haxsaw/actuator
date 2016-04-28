@@ -110,6 +110,7 @@ class ExecutionAgent(TaskEngine):
     """
     exception_class = ExecutionException
     exec_agent = "exec_agent"
+
     def __init__(self, exec_model_instance=None, config_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
                  num_threads=5, do_log=False, no_delay=False, log_level=LOG_INFO):
@@ -166,7 +167,10 @@ class ExecutionAgent(TaskEngine):
         self.num_tasks_to_perform = None
         self.config_record = None
         self.graph = None
-        
+
+    def _logger_name(self):
+        return "te-ExecAgent"
+
     @classmethod
     def get_exec_domain(cls):
         return "exec-default"
@@ -216,10 +220,6 @@ class ExecutionAgent(TaskEngine):
         raise TypeError("Derived class must implement")
 
     def _perform_task(self, task, logfile=None):
-        #@FIXME: this is kind of crap. Because there's a separation between config
-        #tasks and their performance by the agent, we can't take advantage of the
-        #in-built task.perform() and task.reverse()'s management of the task.status
-        #attribute. this means we have to do it oursevles, and that's crap
         if task.status != task.UNSTARTED:
             return
         task.fix_arguments()
@@ -257,8 +257,11 @@ class ExecutionAgent(TaskEngine):
 #             if logfile:
 #                 logfile.write(">>>Result:\n{}\n".format(reply))
 #             result = json.loads(reply)
-
+            self.logger.debug("Core exec agent about to call _perform_with_args for %s %s",
+                              task.name, task.info())
             result = self._perform_with_args(task, processor, args, kwargs)
+            self.logger.debug("Core exec agent returned from _perform_with_args for %s %s",
+                              task.name, task.info())
             
             if logfile:
                 logfile.write(">>>Result:\n{}\n".format(json.dumps(result)))
@@ -304,7 +307,7 @@ class ExecutionAgent(TaskEngine):
             self.config_mi.update_nexus(self.namespace_mi.nexus)
             self.perform_tasks(completion_record)
         else:
-            #currently unreachable as is either is missing the object can't be created
+            # currently unreachable as is either is missing the object can't be created
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
         
     def perform_reverses(self, completion_record=None):
@@ -328,19 +331,19 @@ class ExecutionAgent(TaskEngine):
             for n in graph.nodes():
                 graph.node[n]["outs_traversed"] = 0
             self.stop = False
-            #start the workers
+            # start the workers
             logger.info("Starting workers...")
             for _ in range(self.num_threads):
                 worker = threading.Thread(target=self.reverse_process_tasks)
                 worker.start()
             logger.info("...workers started")
-            #queue the initial tasks
+            # queue the initial tasks
             for task in (t for t in graph.nodes() if graph.out_degree(t) == 0):
                 logger.debug("Queueing up %s named %s id %s for reversing" %
                              (task.__class__.__name__, task.name, str(task._id)))
                 self.task_queue.put((graph, task))
             logger.info("Initial tasks queued; waiting for completion")
-            #now wait to be signaled it finished
+            # now wait to be signaled it finished
             while not self.stop:
                 time.sleep(0.2)
             logger.info("Agent task reversing complete")

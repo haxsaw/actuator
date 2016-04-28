@@ -182,8 +182,8 @@ if __name__ == "__main__":
     
     cfg = HadoopNodeConfig(remote_user="ubuntu", default_task_role=ns.s,
                            private_key_file=pkn)
-    ea = AnsibleExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns)
+    ea = ParamikoExecutionAgent(config_model_instance=cfg,
+                                namespace_model_instance=ns)
     try:
         ea.perform_config()
         print "\n...all done!"

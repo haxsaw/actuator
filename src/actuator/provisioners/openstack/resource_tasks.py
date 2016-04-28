@@ -45,11 +45,15 @@ class RunContext(object):
         self.os_creds = os_creds
         self.record = record
         self.maps = _OSMaps(self)
+
+    @property
+    def cloud(self):
         if self.os_creds.cloud_name:
-            self.cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
-                                             config_files=self.os_creds.config_files)
+            cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
+                                        config_files=self.os_creds.config_files)
         else:
-            self.cloud = None
+            cloud = None
+        return cloud
 
 
 class ProvisioningTask(Task):
@@ -522,15 +526,18 @@ class OpenstackProvisioner(BaseProvisioner):
         self.os_creds = OpenstackCredentials(cloud_name=cloud_name, config_files=config_files)
         self.agent = None
         self.num_threads = num_threads
-        root_logger.setLevel(log_level)
+        self.log_level = log_level
+        # root_logger.setLevel(log_level)
         self.logger = root_logger.getChild(self.LOG_SUFFIX)
+        self.logger.setLevel(self.log_level)
         
     def _provision(self, inframodel_instance):
         self.logger.info("Starting to provision...")
         if self.agent is None:
             self.agent = ResourceTaskSequencerAgent(inframodel_instance,
                                                     self.os_creds,
-                                                    num_threads=self.num_threads)
+                                                    num_threads=self.num_threads,
+                                                    log_level=self.log_level)
         self.agent.perform_tasks()
         self.logger.info("...provisioning complete.")
         return self.agent.record

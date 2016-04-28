@@ -19,7 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import traceback
 from actuator import *   # @UnusedWildImport
 from actuator.provisioners.openstack.resource_tasks import (Server, SecGroup, SecGroupRule,
                                                             Network, Router, RouterGateway,
@@ -39,7 +38,7 @@ elif cloud_name == "citycloud":
     image = "Ubuntu 14.04 - LTS - Trusty Tahr"
     flavor = '2C-2GB'
     extern_netname = "ext-net"  # do a
-    az = "Lon1"
+    az = None
 else:
     raise Exception("I don't recognize clouds with the name %s" % cloud_name)
 
@@ -76,8 +75,7 @@ class SimpleInfra(InfraModel):
     server = Server("simple_server", image, flavor,
                     nics=[ctxt.model.network],
                     security_groups=[ctxt.model.secgroup], key_name=ctxt.model.kp,
-                    )
-                    # availability_zone=az)
+                    availability_zone=az)
 
     #
     # external access

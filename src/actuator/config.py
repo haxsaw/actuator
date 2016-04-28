@@ -170,8 +170,6 @@ class ConfigTask(Task):
     
     This class establishes the base instantiation and operational protocol
     for all tasks.
-    
-
     """
     def __init__(self, name, task_role=None, run_from=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
@@ -229,6 +227,32 @@ class ConfigTask(Task):
         self.private_key_file = None
         self._private_key_file = private_key_file
         self.delegate = delegate
+
+    def info(self):
+        try:
+            task_role = self.get_task_role()
+            if task_role:
+                if isinstance(task_role.name, AbstractModelReference):
+                    role = task_role.name.value()
+                else:
+                    role = str(task_role.name)
+            else:
+                role = "sysrole"
+        except ConfigException as _:
+            role = "sysrole"
+        try:
+            task_host = self.get_task_host()
+            if task_host:
+                if isinstance(task_host, AbstractModelReference):
+                    host = task_host.value()
+                else:
+                    host = str(task_host)
+            else:
+                host = "N/A"
+        except ConfigException as _:
+            host = "N/A"
+
+        return "(r:%s,h:%s)" % (role, host)
         
     def _get_attrs_dict(self):
         d = super(ConfigTask, self)._get_attrs_dict()

@@ -30,13 +30,14 @@ import shlex
 import os.path
 import subprocess32
 import tempfile
+import logging
 
 from paramiko import (SSHClient, SSHException, BadHostKeyException, AuthenticationException,
                       AutoAddPolicy, RSAKey, SFTPClient, SFTPAttributes)
 
 from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
-from actuator.utils import capture_mapping
+from actuator.utils import capture_mapping, root_logger
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
                                    LocalCommandTask)
@@ -560,6 +561,9 @@ class ParamikoExecutionAgent(ExecutionAgent):
         self.connection_cache = {}
         self.in_process_locks = {}
         self.cache_lock = threading.RLock()
+
+    def _logger_name(self):
+        return "ea-PEA"
         
     def get_connection(self, host, user, priv_key=None, priv_key_file=None, password=None,
                        timeout=5):
@@ -585,11 +589,8 @@ class ParamikoExecutionAgent(ExecutionAgent):
             various inabilities to connect to the specified host as the provided user.
         """
         conn = None
-        
-#         if priv_key is None and priv_key_file is None and password is None:
-#             raise ExecutionException("Can't get connection to host; one of priv_key, "
-#                                      "priv_key_file, or password must be supplied in "
-#                                      "order to connect")
+
+        self.logger.debug("Entering get_connection")
 
         try:
             conn = SSHClient()
@@ -608,9 +609,11 @@ class ParamikoExecutionAgent(ExecutionAgent):
         except socket.error as e:
             raise ExecutionException("Encountered socket error when trying to "
                                      "create an SSH connection: %s" % str(e))
+        self.logger.debug("Exiting get connection")
         return conn
 
-        # @FIXME Paramiko can't handle more than one channel on a single client
+        # @FIXME While Paramiko can handle more than one channel on a client, a bug
+        # in the underlying open ssh implementation (need reference) makes this unreliable
         # so the following is commented out until that is corrected
 #         while not conn:
 #             wait_on_ipc = False
@@ -669,8 +672,10 @@ class ParamikoExecutionAgent(ExecutionAgent):
         """
         # @FIXME once Paramiko can properly handle more than one
         # channel on a client then we can use the code below
+        self.logger.debug("Entering return_connection")
         assert isinstance(conn, SSHClient)
         conn.close()
+        self.logger.debug("Exiting return_connection")
         return
 #         assert isinstance(conn, SSHClient)
 #         if dirty:

@@ -24,7 +24,7 @@ import os
 import sys
 from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
-from actuator.utils import persist_to_dict, reanimate_from_dict
+from actuator.utils import persist_to_dict, reanimate_from_dict, LOG_DEBUG
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 
 user_env = "OS_USER"
@@ -40,13 +40,17 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
                         private_key_file="actuator-dev-key")
     namespace.create_slaves(num_slaves)
         
-    # os_prov = OpenstackProvisioner(uid, pwd, tenant, url, num_threads=5, cloud_name="citycloud")
-    os_prov = OpenstackProvisioner(num_threads=1, cloud_name="citycloud")
+    os_prov = OpenstackProvisioner(num_threads=10, cloud_name="citycloud")
     orch = ActuatorOrchestration(infra_model_inst=inf,
                                  provisioner=os_prov,
                                  namespace_model_inst=namespace,
-                                 config_model_inst=conf)
-    success = orch.initiate_system()
+                                 config_model_inst=conf,
+                                 post_prov_pause=10,
+                                 num_threads=20)
+    try:
+        success = orch.initiate_system()
+    except KeyboardInterrupt:
+        success = False
     return success, inf, namespace, cfg, orch
     
 

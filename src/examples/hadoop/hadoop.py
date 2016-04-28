@@ -153,7 +153,7 @@ class HadoopNamespace(NamespaceModel):
                    Var("NAMENODE_IP", HadoopInfra.name_node.iface0.addr0))
     # set up cloud parameters
     with_variables(Var("IMAGE", "Ubuntu 14.04 - LTS - Trusty Tahr"),
-                   Var("FLAVOR", "2C-2GB"),
+                   Var("FLAVOR", "1C-0.5GB"),
                    Var("EXTNET", "ext-net"),
                    Var("AZ", "Lon1"))
     

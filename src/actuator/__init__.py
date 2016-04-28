@@ -90,6 +90,7 @@ class ActuatorOrchestration(_Persistable):
     PERFORMING_DEPROV = 8
     ABORT_DEPROV = 9
     DEPROV_COMPLETE = 10
+
     def __init__(self, infra_model_inst=None, provisioner=None,
                  namespace_model_inst=None, config_model_inst=None,
                  log_level=LOG_INFO, no_delay=False, num_threads=5,
@@ -185,10 +186,10 @@ class ActuatorOrchestration(_Persistable):
         
         if self.config_model_inst is not None:
             self.config_ea = ParamikoExecutionAgent(config_model_instance=self.config_model_inst,
-                                                   namespace_model_instance=self.namespace_model_inst,
-                                                   num_threads=num_threads,
-                                                   no_delay=no_delay,
-                                                   log_level=log_level)
+                                                    namespace_model_instance=self.namespace_model_inst,
+                                                    num_threads=num_threads,
+                                                    no_delay=no_delay,
+                                                    log_level=log_level)
             
     def _get_attrs_dict(self):
         d = super(ActuatorOrchestration, self)._get_attrs_dict()
@@ -362,4 +363,3 @@ class ActuatorOrchestration(_Persistable):
         else:
             self.logger.info("No infra model or provisioner; skipping de-provisioning step")
         return did_teardown
-                

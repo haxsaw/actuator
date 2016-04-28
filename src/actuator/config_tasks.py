@@ -17,9 +17,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-'''
+"""
 Configuration tasks modeled after Ansible modules
-'''
+"""
 
 from actuator.config import ConfigTask, ConfigException
 from actuator.exec_agents.core import ExecutionException

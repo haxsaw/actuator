@@ -29,7 +29,7 @@ import time
 import traceback
 
 from actuator import ActuatorException
-from actuator.utils import root_logger, LOG_INFO, _Persistable
+from actuator.utils import root_logger, LOG_INFO, _Persistable, LOG_DEBUG
 from actuator.modeling import ModelComponent
 
 
@@ -133,6 +133,14 @@ class Task(Orable, ModelComponent):
                   "repeat_interval": self.repeat_interval,
                   "status": self.status})
         return d
+
+    def info(self):
+        """
+        Derived class should override; returns a string that should contain some info about
+        the task within parenthesis ()
+        :return: string containing parenthesized info about the task
+        """
+        return "()"
         
     def perform(self, engine):
         """
@@ -496,7 +504,7 @@ class TaskEngine(object):
         if not isinstance(model, GraphableModelMixin):
             raise TaskException("TaskEngine was not passed a kind "
                                 "of GraphableModelMixin; %s" % str(model))
-        root_logger.setLevel(log_level)
+        self.log_level = log_level
         self.model = model
         self.name = name
         self.num_threads = num_threads
@@ -512,6 +520,11 @@ class TaskEngine(object):
         self.num_tasks_to_perform = None
         self.threads = set()
         self._reset()
+        self.logger = root_logger.getChild(self._logger_name())
+        self.logger.setLevel(self.log_level)
+
+    def _logger_name(self):
+        return "TaskEngine"
         
     def _reset(self):
         # used to reset the processing state of the system so resumes/reverses
@@ -560,10 +573,10 @@ class TaskEngine(object):
     
     def make_format_func(self, task):
         ref = task.get_ref()
-        path = ".".join(ref.get_path()) if ref is not None else "CAN'T.DETERMINE"
+        path = ".".join(ref.get_path()) if ref is not None else "-system-"
 
         def fmtmsg(msg):
-            return "|".join([task.__class__.__name__, task.name, path,
+            return "|".join([task.__class__.__name__, task.name, task.info(), path,
                              str(task._id), msg])
         return fmtmsg
         
@@ -630,23 +643,25 @@ class TaskEngine(object):
         logger = root_logger.getChild(self.exec_agent)
         logger.info(fmtmsg("processing started"))
         if not self.no_delay:
-            time.sleep(random.uniform(0.2, 2.5))
+            time.sleep(random.uniform(0.2, 1.5))
         if not task.fixed:
             task.fix_arguments()
 
-        tec.try_count += 1
         if tec.status == TaskExecControl.FAIL_RETRY:
-            logger.warning("Completing {} sec delay before retrying task {}"
-                           .format((tec.try_count * task.repeat_interval),
-                                   task.name))
-            wait_until = (tec.try_count * task.repeat_interval) + tec.fail_time
+            delay = tec.try_count * task.repeat_interval
             now = time.time()
-            while now > wait_until and not self.stop:
+            wait_until = (tec.try_count * task.repeat_interval) + tec.fail_time
+            logger.warning(fmtmsg("Completing {} sec delay before retrying task (now:{}, until:{})"
+                                  .format(delay, now, wait_until)))
+            while now < wait_until and not self.stop:
                 time.sleep(0.2)
                 now = time.time()
             if self.stop:
                 tec.status = TaskExecControl.ABORT
                 return
+            logger.warning(fmtmsg("Completed waiting; retrying"))
+
+        tec.try_count += 1
         if self.do_log:
             logfile = open("{}.{}-try{}.txt".format(task.name, str(task._id)[-4:],
                                                     tec.try_count), "w")
@@ -713,7 +728,7 @@ class TaskEngine(object):
                     elif task.status == task.PERFORMED:
                         with self.node_lock:
                             self.num_tasks_to_perform -= 1
-                            logger.debug("Remaining tasks to perform: %s" %
+                            logger.info("Remaining tasks to perform: %s" %
                                          self.num_tasks_to_perform)
                             if self.num_tasks_to_perform == 0:
                                 self.stop = True
