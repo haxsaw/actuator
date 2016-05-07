@@ -286,6 +286,19 @@ class _CallableRef(_SignatureDict):
     _KIND_ = "_CallableRef"
     _CALLABLE_NAME_ = "_callable_name_"
     _CALLABLE_MODULE_ = "_callable_module_"
+
+
+class _InvokableAttrRecovery(_SignatureDict):
+    _KIND_ = "_InvokableAttrRecovery"
+    _VALUE_ = "_value_"
+    _SETTER_ = "_setter_"
+
+    def __init__(self, value, setter):
+        self[self._VALUE_] = value
+        self[self._SETTER_] = setter
+
+    def recover(self, obj):
+        object.__getattribute__(self[self._SETTER_])(self[self._VALUE_])
     
     
 class _PersistablesCyclesDeco(object):
@@ -388,6 +401,17 @@ class _Persistable(object):
                     raise UtilsException("Unknown kind of SigDict: %s" % retval[_SignatureDict._KIND_])
             elif isinstance(v, dict):
                 for vk, vv in v.items():
+                    # SHOULD FIX REANIM
+                    if _SigDictMeta.is_sigdict(vk):
+                        klass = _SigDictMeta.find_class(vk)
+                        if not klass:
+                            raise UtilsException("Couldn't find a class for dict k of kind %s" %
+                                                 _SigDictMeta.get_kind(vk))
+                        if klass is not _PersistedKeyAsAttr:
+                            raise UtilsException("During reanimation, got a SigDict class that can't be hashed and "
+                                                 "so can't be used as a dict key: %s" % klass._KIND_)
+                        o = klass().from_dict(vk)
+                        vk = o.get_kaa()
                     if _SigDictMeta.is_sigdict(vv):
                         klass = _SigDictMeta.find_class(vv)
                         if not klass:
@@ -430,9 +454,12 @@ class _Persistable(object):
             retval = _PersistableRef(v)
         elif isinstance(v, collections.Iterable) and not isinstance(v, basestring):
             if isinstance(v, dict):
-                retval = {vk: (_PersistableRef(vv)
-                               if isinstance(vv, _Persistable)
-                               else vv) for vk, vv in v.items()}
+                retval = {(_PersistedKeyAsAttr(vk) if isinstance(vk, _PersistedKeyAsAttr) else vk):
+                          (_PersistableRef(vv) if isinstance(vv, _Persistable) else vv)
+                          for vk, vv in v.items()}
+                # retval = {vk: (_PersistableRef(vv)
+                #                if isinstance(vv, _Persistable)
+                #                else vv) for vk, vv in v.items()}
             elif isinstance(v, (list, tuple)):
                 retval = [(_PersistableRef(i) if isinstance(i, _Persistable) else i)
                           for i in v]
@@ -507,7 +534,102 @@ class _Persistable(object):
                                      % (k, e.message))
             setattr(self, k, v)
         return
-        
+
+
+class _AbstractPerformable(object):
+    UNSTARTED = 1
+    PERFORMED = 2
+    REVERSED = 3
+
+    def get_status(self):
+        raise TypeError("Derived class must implement")
+
+    def set_status(self, status):
+        raise TypeError("Derived class must implement")
+
+    def perform(self, engine):
+        """
+        Perform the performable.
+
+        Do no override this method! Instead, override
+        L{_Performable._perform); that method is for specializing functionality.
+
+        @param engine: an instance of a L{TaskEngine}; this will get passed as the
+            sole argument to self._perform()
+        """
+        if self.get_status() == self.UNSTARTED:
+            self._perform(engine)
+            self.set_status(self.PERFORMED)
+
+    def _perform(self, engine):
+        """
+        Does the actual work in performing the performable.
+
+        Specific performable classes must override this method (and not call super())
+        and in their implemention perform the work needed for the performable.
+
+        The default implementation just raises TypeError
+
+        @raise TypeError: Raised by the default implementation; method must
+            be overridden.
+        """
+        raise TypeError("Derived class must implement")
+
+    def reverse(self, engine):
+        """
+        Undo whatever was done during the perform() method.
+
+        This allows the performable author to provide a means to undo the work that
+        was done during perform. This is so that when a system is being
+        de-provisioned/decomissioned, any cleanup or wrap-up tasks can be
+        performed before the system goes away. It also can provide the means to
+        define tasks that only do work during wrap-up; by not defining any
+        activity in perform, but defining work in wrap-up, a model can then
+        contain nodes that only do meaningful work during the deco lifecycle
+        phase of a system.
+
+        Don't override this method; instead, override L{_Performable._reverse}
+
+        @param engine: an instance of L{TaskEngine}. this will passed as the sole
+            argument to self._reverse()
+        """
+        if self.get_status() == self.PERFORMED:
+            self._reverse(engine)
+            self.set_status(self.REVERSED)
+
+    def _reverse(self, engine):
+        """
+        "undo" whatever was done in perform.
+
+        Subclasses should override this method to provide a way to "undo" what
+        was done in perform. If there is no need to "undo", this method may
+        be ignored. The default implementation does nothing.
+        """
+        return
+
+
+class _Performable(_AbstractPerformable):
+    UNSTARTED = 1
+    PERFORMED = 2
+    REVERSED = 3
+
+    def __init__(self, *args, **kwargs):
+        super(_Performable, self).__init__(*args, **kwargs)
+        self.status = self.UNSTARTED
+
+
+class _PersistablePerformable(_Persistable, _Performable):
+    """
+    Helper for common performables that are also persistable
+    """
+    def _get_attrs_dict(self):
+        d = super(_PersistablePerformable, self)._get_attrs_dict()
+        d["status"] = self.get_status()
+        return d
+
+    def finalize_reanimate(self):
+        self.set_status(self.status)
+
 
 # adapted from pickle.Unpickler
 def _find_class(module, name):

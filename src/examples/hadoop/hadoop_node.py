@@ -48,13 +48,13 @@ common_vars = [Var("USER", "ubuntu"),
                Var("HADOOP_HEAPSIZE", "1000"),
                Var("JAVA_HOME", "/usr/lib/jvm/java-7-openjdk-amd64"),
                Var("JAVA_VER", "openjdk-7-jre-headless", in_env=False),
-               #this next var is a default value only for testing
-               #this namespace model in isolation; the wrapper task
-               #should redefine NODNAME_IP to be an ip from the
-               #provisioned infra
+               # this next var is a default value only for testing
+               # this namespace model in isolation; the wrapper task
+               # should redefine NODNAME_IP to be an ip from the
+               # provisioned infra
                Var("NAMENODE_IP", "!{IP_ADDR}"),
-               #These Vars are also used by the infra model to specify the
-               #various ports used for Hadoop and its web interfaces
+               # These Vars are also used by the infra model to specify the
+               # various ports used for Hadoop and its web interfaces
                Var("NAMENODE_PORT", "50071"),
                Var("NAMENODE_WEBUI_PORT", "50070"),
                Var("JOBTRACKER_PORT", "50031"),
@@ -69,7 +69,7 @@ class DevNamespace(NamespaceModel):
     
 
 class HadoopNodeConfig(ConfigModel):
-    #first describe all the tasks; order isn't important
+    # first describe all the tasks; order isn't important
     ping = PingTask("ping_to_check_alive", repeat_count=5)
     send_priv_key = CopyFileTask("send_priv_key", "!{HADOOP_PREP}/!{PRIV_KEY_NAME}",
                                  src=find_file(pkn, "."),
@@ -124,8 +124,8 @@ class HadoopNodeConfig(ConfigModel):
                                   "cat !{TEMP_PUB_KEY} >> ~/.ssh/authorized_keys; rm !{TEMP_PUB_KEY}",
                                   repeat_count=3)
                                    
-    #template processing tasks
-    #compute the template search root from the current directory
+    # template processing tasks
+    # compute the template search root from the current directory
     search_root = os.path.join(os.getcwd(),
                                "{}-templates".format(hadoop_ver))
     send_env = ProcessCopyFileTask("send_env", "!{HADOOP_CONF_DIR}/hadoop-env.sh",
@@ -148,9 +148,9 @@ class HadoopNodeConfig(ConfigModel):
                                                          search_root),
                                            backup=True)
     
-    #now express the dependencies between the tasks. each call to
-    #with_dependencies() is additive; the set dependencies are captured in
-    #the metadata for the class, and evaluated in total at the proper time
+    # now express the dependencies between the tasks. each call to
+    # with_dependencies() is additive; the set dependencies are captured in
+    # the metadata for the class, and evaluated in total at the proper time
     with_dependencies(ping | (reset & add_hostname))
 
     with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop &
@@ -168,9 +168,9 @@ class HadoopNodeConfig(ConfigModel):
         
 
 if __name__ == "__main__":
-    #this is just to test out the above configs on a single host
-    #specifed by the user; normally this would be imported into the main
-    #hadoop model
+    # this is just to test out the above configs on a single host
+    # specifed by the user; normally this would be imported into the main
+    # hadoop model
     if len(sys.argv) < 2:
         print "Usage: %s <FQDN or IP addr to run config on>"
         sys.exit(1)
@@ -196,5 +196,3 @@ if __name__ == "__main__":
                    (t.name, str(t._id)))
             traceback.print_exception(et, ev, tb)
             print
-
-    

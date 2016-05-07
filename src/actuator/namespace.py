@@ -808,6 +808,7 @@ class MultiRoleGroup(MultiRole, VariableContainer):
         
 class NamespaceModelMeta(ModelBaseMeta):
     model_ref_class = ModelReference
+
     def __new__(cls, name, bases, attr_dict):
         cmapper = get_mapper(_namespace_mapper_domain)
         for k, v in attr_dict.items():

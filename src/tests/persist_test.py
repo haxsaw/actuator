@@ -21,13 +21,16 @@
 
 import json
 from itertools import chain
-from actuator import ctxt
+from actuator import ctxt, ActuatorOrchestration
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import Role, Var, NamespaceModel, MultiRole
 from actuator.task import TaskGroup
 from actuator.config import (Task, ConfigTask, ConfigModel, MultiTask,
                              with_dependencies, ConfigClassTask)
+from actuator.infra import InfraModel, MultiResource, StaticServer
 from actuator.task import _Dependency
+from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+
 
 def pdeps(deps):
     """
@@ -38,6 +41,7 @@ def pdeps(deps):
                                             str(d.from_task._id)[:4],
                                             d.to_task.name, d.to_task.__class__.__name__,
                                             str(d.to_task._id)[:4])
+
 
 def test01():
     """
@@ -50,10 +54,11 @@ def test01():
     d = json.loads(d_json)
     tp = reanimate_from_dict(d)
     assert (tp.name == "test1" and
-            tp.repeat_til_success == False and
+            tp.repeat_til_success is False and
             tp.repeat_count == 5 and
             tp.repeat_interval == 2)
-    
+
+
 def test02():
     """
     test02: check if TaskGroups persist/reanimate
@@ -70,7 +75,8 @@ def test02():
             "t1" in names and
             "t2" in names and
             tgp.args[0].name == "t1")
-    
+
+
 def test03():
     """
     test03: check if TaskGroups with a dependency can persist/reanimate
@@ -86,7 +92,8 @@ def test03():
             isinstance(tgp.args[0], _Dependency) and
             tgp.args[0].from_task.name == "t1" and
             tgp.args[0].to_task.name == "t2")
-    
+
+
 def test04():
     """
     test04: check more complex TaskGroups to ensure dependencies are reanimated
@@ -104,7 +111,8 @@ def test04():
             tgp.args[0].name == "t1" and
             tgp.args[1].from_task.name == "t2" and
             tgp.args[1].to_task.name == "t3")
-    
+
+
 def test05():
     """
     test05: more complex TaskGroup reanimations
@@ -125,6 +133,7 @@ def test05():
             tgp.args[2].from_task.name == "t1" and
             tgp.args[2].to_task.name == "t3")
 
+
 def test06():
     """
     test06: TaskGroup with no dependencies
@@ -142,6 +151,7 @@ def test06():
             tgp.args[0].name == "t1" and
             tgp.args[1].name == "t2" and
             tgp.args[2].name == "t3")
+
 
 def test07():
     """
@@ -163,6 +173,7 @@ def test07():
             unpacked[0].to_task.name == "t2" and
             unpacked[1].to_task.name == "t3")
 
+
 def test08():
     """
     test08: TaskGroup with parallel and serial tasks
@@ -182,7 +193,8 @@ def test08():
             unpacked[0].to_task.name == "t3" and
             tgp.args[0].args[0].name == "t1" and
             isinstance(tgp.args[0].args[1], _Dependency))
-    
+
+
 def test09():
     """
     test09: TaskGroup with repeated tasks
@@ -202,7 +214,8 @@ def test09():
             unpacked[1].from_task.name == "t1" and
             unpacked[0].to_task.name == "t2" and
             unpacked[1].to_task.name == "t3")
-    
+
+
 def test10():
     """
     test10: TaskGroup with dependency cycle; this shouldn't be possible
@@ -225,6 +238,7 @@ def test10():
             unpacked[2].from_task.name == "t3" and
             unpacked[2].to_task.name == "t1")
 
+
 def test11():
     """
     test11: Complex task group with loads o' tasks
@@ -246,9 +260,11 @@ def test11():
                  ("t6", "t9"), ("t6", "t10"), ("t8", "t9"),
                  ("t8", "t10")]))
 
+
 class CTNamespace(NamespaceModel):
     r1 = Role("r1")
     r2 = Role("r2")
+
 
 def test12():
     """
@@ -268,16 +284,18 @@ def test12():
             ctp.task_role == CTNamespace.r1 and
             ctp.run_from == CTNamespace.r2 and
             ctp.private_key_file == "somepath" and
-            ctp.repeat_til_success == False and
+            ctp.repeat_til_success is False and
             ctp.repeat_count == 5 and
             ctp.repeat_interval == 14)
-    
+
+
 class CC13(ConfigModel):
     ct = ConfigTask("ct13", task_role=CTNamespace.r1, run_from=CTNamespace.r2,
                     remote_user="willie", remote_pass="notonyourlife",
                     private_key_file="somepath", repeat_til_success=False,
                     repeat_count=5, repeat_interval=14)
-    
+
+
 def test13():
     """
     test13: try persisting/reanimating a config class; initial test
@@ -297,6 +315,7 @@ def test13():
             len(conf.get_dependencies()) == len(cp.get_dependencies()) and
             cp.ct.task_role.name.value() == "r1")
 
+
 def test14():
     """
     test14: try persisting a single Role
@@ -307,7 +326,8 @@ def test14():
     d = json.loads(d_json)
     rp = reanimate_from_dict(d)
     assert rp.name == "wibble"
-    
+
+
 def test15():
     """
     test15: persist a Role with Vars and make sure they come back properly
@@ -320,16 +340,20 @@ def test15():
     assert (rp.name == "wibble1" and rp.get_visible_vars() and
             rp.var_value("v1") == "summat")
 
+
 class NS16(NamespaceModel):
     grid = MultiRole(Role("node"))
+
     def gen_nodes(self, num):
         return [self.grid[i] for i in range(num)]
-    
+
+
 class CC16(ConfigModel):
     conf = MultiTask("node_fixer",
                      ConfigTask("fixer"),
                      NS16.q.grid.all(),
                      run_from="me")
+
 
 def test16():
     """
@@ -351,15 +375,18 @@ def test16():
             len(conf.get_graph().edges()) == len(cp.get_graph().edges()) and
             len(conf.get_graph().nodes()) != 0 and len(conf.get_graph().edges()) != 0 and
             cp.nexus.ns is not None)
-    
+
+
 class NS17(NamespaceModel):
     r1 = Role("r1")
+
 
 class CC17(ConfigModel):
     t1 = ConfigTask("t1", task_role=NS17.r1)
     t2 = ConfigTask("t2", task_role=NS17.r1)
     with_dependencies(t1 | t2)
-    
+
+
 def test17():
     """
     test17: persist a config model with dependencies & check they are correct upon reanimation
@@ -376,16 +403,19 @@ def test17():
     assert (len(cp.dependencies) == 1 and
             cp.dependencies[0].from_task is cp.t1.value() and
             cp.dependencies[0].to_task is cp.t2.value())
-            
+
+
 class NS18(NamespaceModel):
     r1 = Role("r1")
-    
+
+
 class CC18(ConfigModel):
     t1 = ConfigTask("t1", task_role=NS18.r1)
     t2 = ConfigTask("t2", task_role=NS18.r1)
     t3 = ConfigTask("t3", task_role=NS18.r1)
     with_dependencies(t1 | t2 | t3)
-    
+
+
 def test18():
     """
     test18: test reanimating more complex dependencies
@@ -405,15 +435,18 @@ def test18():
             deps[0].to_task is cp.t2.value() and
             deps[1].from_task is cp.t2.value() and
             deps[1].to_task is cp.t3.value())
-    
+
+
 class NS19(NamespaceModel):
     r1 = Role("r1")
-    
+
+
 class CC19(ConfigModel):
     t1 = ConfigTask("t1", task_role=NS19.r1)
     t2 = ConfigTask("t2", task_role=NS19.r1)
     t3 = ConfigTask("t3", task_role=NS19.r1)
     with_dependencies(t1 | (t2 & t3))
+
 
 def test19():
     """
@@ -434,19 +467,23 @@ def test19():
             deps[0].to_task is cp.t2.value() and
             deps[1].from_task is cp.t1.value() and
             deps[1].to_task is cp.t3.value())
-    
+
+
 class NS20(NamespaceModel):
     r = Role("r")
-    
+
+
 class NodeConf20(ConfigModel):
-    t1 = ConfigTask("t1",)
-    t2 = ConfigTask("t2",)
-    t3 = ConfigTask("t3",)
+    t1 = ConfigTask("t1", )
+    t2 = ConfigTask("t2", )
+    t3 = ConfigTask("t3", )
     with_dependencies(t1 | (t2 & t3))
-    
+
+
 class CC20(ConfigModel):
     t0 = ConfigClassTask("t0", NodeConf20, task_role=NS20.r)
-    
+
+
 def test20():
     """
     test20: test ConfigClassTask reanimation where the inner model has dependencies
@@ -462,19 +499,23 @@ def test20():
     cp = reanimate_from_dict(d)
     deps = cp.get_dependencies()
     assert len(deps) == 5
-    
+
+
 class NS21(NamespaceModel):
     r = Role("r")
-    
+
+
 class NodeConf21(ConfigModel):
-    t1 = ConfigTask("t1",)
-    t2 = ConfigTask("t2",)
-    t3 = ConfigTask("t3",)
+    t1 = ConfigTask("t1", )
+    t2 = ConfigTask("t2", )
+    t3 = ConfigTask("t3", )
     with_dependencies(t1 | t3, t2 | t3)
-    
+
+
 class CC21(ConfigModel):
     t0 = ConfigClassTask("t0", NodeConf21, task_role=NS21.r)
-    
+
+
 def test21():
     """
     test21: test ConfigClassTask reanimation where there a multiple entry tasks
@@ -499,26 +540,31 @@ def test21():
             deps[2].to_task is cp.t0.instance.t3.value() and
             deps[3].from_task is cp.t0.instance.t2.value() and
             deps[3].to_task is cp.t0.instance.t3.value())
-    
+
+
 class NS22(NamespaceModel):
     r = Role("r")
     slaves = MultiRole(Role("slave"))
+
     def grow_slaves(self, num):
         return [self.slaves[i] for i in range(num)]
-    
+
+
 class SlaveConf22(ConfigModel):
     t1 = ConfigTask("t1")
     t2 = ConfigTask("t2")
     t3 = ConfigTask("t3")
-    with_dependencies( (t1 & t2) | t3 )
-    
+    with_dependencies((t1 & t2) | t3)
+
+
 class GridConf22(ConfigModel):
     t01 = ConfigTask("t01", task_role=NS22.r)
     t02 = MultiTask("t02", ConfigClassTask("t02-a", SlaveConf22),
                     NS22.q.slaves.all())
     t03 = ConfigTask("t03", task_role=NS22.r)
     with_dependencies(t01 | t02 | t03)
-    
+
+
 def test22():
     """
     test22: test ConfigClassTask reanimation inside a MultiTask
@@ -536,16 +582,16 @@ def test22():
     deps = cp.get_dependencies()
     deps.sort(lambda x, y: cmp((x.from_task.name, x.to_task.name), (y.from_task.name, y.to_task.name)))
     assert len(deps) == 16
-    
-    
+
+
 class NS23(NamespaceModel):
     slaves = MultiRole(Role("slave"))
 
 
 class Conf23(ConfigModel):
     t1 = ConfigTask("t01", task_role=NS23.slaves["r1"])
-    
-    
+
+
 def test23():
     """
     test23: trying to break the use of of keyed references
@@ -570,15 +616,16 @@ def test23():
         obj = getattr(obj, a)
     assert obj()
     assert cp.t1.task_role.name.value() == 'slave_r1'
-    
-    
+
+
 class NS24(NamespaceModel):
     slaves = MultiRole(Role("slave"))
-    
+
+
 class Conf24(ConfigModel):
     t1 = ConfigTask("t01", task_role=ctxt.nexus.ns.slaves["r1"])
-    
-    
+
+
 def test24():
     """
     test24: check to see that context expressions that turn into refs with keys persist/reanimate
@@ -598,26 +645,26 @@ def test24():
     assert obj()
     assert conf.t1.task_role.name.value() == "slave_r1"
     assert isinstance(cp, ConfigModel)
-    obj = cp
+    # obj = cp
     obj = conf
     for a in ["t1", "task_role", "value"]:
         obj = getattr(obj, a)
     assert obj()
     assert cp.t1.task_role.name.value() == "slave_r1"
-    
-    
+
+
 class NS25(NamespaceModel):
     slaves = MultiRole(Role("slave"))
 
-    
+
 def refgen25(ctxt):
     return NS25.slaves['r2']
 
 
 class Conf25(ConfigModel):
     t1 = ConfigTask("t01", task_role=refgen25)
-    
-    
+
+
 def test25():
     """
     test25: see if we can persist/reanim a global callable
@@ -645,17 +692,50 @@ def test25():
     assert cp.t1.task_role.name.value() == "slave_r2"
 
 
-    
+class Inf26(InfraModel):
+    slaves = MultiResource(StaticServer("slave", "127.0.0.1"))
+
+
+class NS26(NamespaceModel):
+    slaves = MultiRole(Role("slave", host_ref=ctxt.nexus.inf.slaves[ctxt.comp.name]))
+
+
+def test26():
+    """
+    test26: trying to make post-reanimated models fail regular operations
+    """
+
+    i = Inf26("i26")
+    n = NS26()
+    _ = n.slaves[0]
+    p = OpenstackProvisioner(cloud_name="trystack")
+    ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n)
+    ao.initiate_system()
+    # n.set_infra_model(i)
+    # for c in chain(i.components(), n.components()):
+    #     c.fix_arguments()
+    # n.compute_provisioning_for_environ(i)
+
+    d = persist_to_dict(ao)
+    aop = reanimate_from_dict(d)
+    assert isinstance(aop, ActuatorOrchestration)
+    # aop.namespace_model_inst.compute_provisioning_for_environ(aop.infra_model_inst)
+    print(">>>Start teardown")
+    aop.set_provisioner(p)
+    aop.teardown_system()
+
+
 def do_all():
-    test25()
-    g = globals()
-    keys = list(g.keys())
-    keys.sort()
-    for k in keys:
-        v = g[k]
-        if k.startswith("test") and callable(v):
-            print "Running ", k
-            v()
-    
+    test26()
+    # g = globals()
+    # keys = list(g.keys())
+    # keys.sort()
+    # for k in keys:
+    #     v = g[k]
+    #     if k.startswith("test") and callable(v):
+    #         print "Running ", k
+    #         v()
+
+
 if __name__ == "__main__":
     do_all()

@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Support for creating Actuator configuration models.
-'''
+"""
 
 import itertools
 from collections import Iterable
@@ -35,11 +35,16 @@ from actuator.task import (TaskException, Task, _Dependency, _Cloneable,
 from actuator.utils import ClassModifier, process_modifiers, _Persistable, _find_class
 from actuator.infra import IPAddressable
 
-class ConfigException(TaskException): pass
+
+class ConfigException(TaskException):
+    pass
+
 
 _searchpath = "__searchpath__"
+
+
 @ClassModifier
-def with_searchpath(cls, *args, **kwargs):
+def with_searchpath(cls, *args, **_):
     """
     Currently unused
     """
@@ -49,7 +54,10 @@ def with_searchpath(cls, *args, **kwargs):
         setattr(cls, _searchpath, searchpath)
     searchpath.extend(list(args))
 
+
 _dependencies = "__dependencies__"
+
+
 @ClassModifier
 def with_dependencies(cls, *args, **kwargs):
     """
@@ -97,7 +105,8 @@ def with_dependencies(cls, *args, **kwargs):
         if not isinstance(arg, _Cloneable):
             raise ConfigException("Argument %s is not a dependency" % str(arg))
     deps.extend(list(args))
-    
+
+
 _config_options = "__config_options__"
 _default_task_role = "default_task_role"
 _remote_user = "remote_user"
@@ -105,6 +114,8 @@ _private_key_file = "private_key_file"
 _default_run_from = "default_run_from"
 _legal_options = set([_default_task_role, _remote_user, _private_key_file,
                       _default_run_from])
+
+
 @ClassModifier
 def with_config_options(cls, *args, **kwargs):
     """
@@ -141,19 +152,20 @@ def with_config_options(cls, *args, **kwargs):
         if k not in _legal_options:
             raise ConfigException("Unrecognized option: {}".format(k))
         opts[k] = v
-    
+
+
 _node_dict = "_node_dict"
 #
-#@FIXME at the moment, this capability doesn't make sense in the larger scheme of
-#config models; this is because although you could theoretically add a bunch of
-#tasks from some task library, you won't have access to the objects to enter
-#them into dependency expressions in any easy way. Even if you added the expressions
-#in the same library module and just added them with "with_dependencies", you
-#would still have an awkward time knintting those in to the overall dependency
-#structure of the config. So until that gets figured out this functionality
-#is off. Besides, it isn't working properly anyway, as the base metaclass
-#expects things to be dumped into the "__components" dict in the class,
-#not '_node_dict'
+# @FIXME at the moment, this capability doesn't make sense in the larger scheme of
+# config models; this is because although you could theoretically add a bunch of
+# tasks from some task library, you won't have access to the objects to enter
+# them into dependency expressions in any easy way. Even if you added the expressions
+# in the same library module and just added them with "with_dependencies", you
+# would still have an awkward time knintting those in to the overall dependency
+# structure of the config. So until that gets figured out this functionality
+# is off. Besides, it isn't working properly anyway, as the base metaclass
+# expects things to be dumped into the "__components" dict in the class,
+# not '_node_dict'
 #
 # @ClassModifier
 # def with_tasks(cls, *args, **kwargs):
@@ -162,7 +174,7 @@ _node_dict = "_node_dict"
 #         task_nodes = {}
 #         setattr(cls, _node_dict, task_nodes)
 #     task_nodes.update({v:k for k, v in kwargs.items()})
-    
+
 
 class ConfigTask(Task):
     """
@@ -171,6 +183,7 @@ class ConfigTask(Task):
     This class establishes the base instantiation and operational protocol
     for all tasks.
     """
+
     def __init__(self, name, task_role=None, run_from=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
                  repeat_til_success=True, repeat_count=1, repeat_interval=15,
@@ -253,17 +266,17 @@ class ConfigTask(Task):
             host = "N/A"
 
         return "(r:%s,h:%s)" % (role, host)
-        
+
     def _get_attrs_dict(self):
         d = super(ConfigTask, self)._get_attrs_dict()
-        d.update( {"task_role":self.task_role,
-                   "run_from":self.run_from,
-                   "remote_user":self.remote_user,
-                   "remote_pass":self.remote_pass,
-                   "private_key_file":self.private_key_file,
-                   "delegate":self.delegate} )
+        d.update({"task_role": self.task_role,
+                  "run_from": self.run_from,
+                  "remote_user": self.remote_user,
+                  "remote_pass": self.remote_pass,
+                  "private_key_file": self.private_key_file,
+                  "delegate": self.delegate})
         return d
-        
+
     def _find_persistables(self):
         for p in super(ConfigTask, self)._find_persistables():
             yield p
@@ -276,7 +289,7 @@ class ConfigTask(Task):
         if self.delegate and isinstance(self.delegate, _Persistable):
             for p in self.delegate.find_persistables():
                 yield p
-        
+
     def task_variables(self, for_env=False):
         """
         Return a dict with all the Vars that apply to this task according to
@@ -296,27 +309,27 @@ class ConfigTask(Task):
         the_vars = {}
         task_role = self.get_task_role()
         if task_role is not None:
-            the_vars = {k:v.get_value(task_role)
+            the_vars = {k: v.get_value(task_role)
                         for k, v in task_role.get_visible_vars().items()
                         if not for_env or (for_env and v.in_env)}
         return the_vars
-        
+
     def set_task_role(self, task_role):
         """
         Used internally; sets the Role to use as the task_role for the task.
         """
         self._task_role = task_role
-        
+
     def set_run_from(self, run_from):
         """
         Used internally; sets the Role to use as the run_from Role for the task.
         """
         self._run_from = run_from
-        
+
     def _set_delegate(self, delegate):
-        #internal
+        # internal
         self.delegate = delegate
-    
+
     def get_remote_user(self):
         """
         Return the effective remote user to use for this task.
@@ -327,7 +340,7 @@ class ConfigTask(Task):
                              if self.delegate is not None
                              else None))
         return remote_user
-    
+
     def get_remote_pass(self):
         """
         Return the effective remote password to use for this user.
@@ -338,7 +351,7 @@ class ConfigTask(Task):
                              if self.delegate is not None
                              else None))
         return remote_pass
-    
+
     def get_private_key_file(self):
         """
         Return the effective private key file to use for this task.
@@ -349,7 +362,7 @@ class ConfigTask(Task):
                                   if self.delegate is not None
                                   else None))
         return private_key_file
-        
+
     def get_task_host(self):
         """
         Return the host associated with the task_role for this task.
@@ -362,7 +375,7 @@ class ConfigTask(Task):
             host.fix_arguments()
             host = host.get_ip()
         return host
-    
+
     def get_task_role(self):
         """
         Return the Role associated with this task.
@@ -373,14 +386,14 @@ class ConfigTask(Task):
         else:
             mi = self.get_model_instance()
             if mi is not None:
-                #fetch the default task role for the entire model
-                #this can raise an exception if there isn't a
-                #default task role defined for the model
+                # fetch the default task role for the entire model
+                # this can raise an exception if there isn't a
+                # default task role defined for the model
                 comp = mi.get_task_role()
             else:
                 raise ConfigException("Can't find a task role for task {}".format(self.name))
         return comp
-    
+
     def get_run_from(self):
         """
         Return the Role associated with the run_from Role for this task
@@ -392,7 +405,7 @@ class ConfigTask(Task):
             mi = self.get_model_instance()
             comp = mi.get_run_from() if mi is not None else None
         return comp
-    
+
     def get_run_host(self):
         """
         Return the host associated with the run_from Role for this task.
@@ -404,23 +417,23 @@ class ConfigTask(Task):
         if isinstance(host, IPAddressable):
             host.fix_arguments()
             host = host.get_ip()
-        return host            
-        
+        return host
+
     def get_init_args(self):
         __doc__ = ModelComponent.__doc__  # @ReservedAssignment
         args, kwargs = super(ConfigTask, self).get_init_args()
-        kwargs.update( {"task_role":self._task_role,
-                        "run_from":self._run_from,
-                        "remote_user":self._remote_user,
-                        "remote_pass":self._remote_pass,
-                        "private_key_file":self._private_key_file
-                        } )
+        kwargs.update({"task_role": self._task_role,
+                       "run_from": self._run_from,
+                       "remote_user": self._remote_user,
+                       "remote_pass": self._remote_pass,
+                       "private_key_file": self._private_key_file
+                       })
         return args, kwargs
-        
+
     def _get_arg_value(self, arg):
         val = super(ConfigTask, self)._get_arg_value(arg)
         if isinstance(val, basestring):
-            #check if we have a variable to resolve
+            # check if we have a variable to resolve
             cv = _ComputableValue(val)
             try:
                 var_context = self.get_task_role()
@@ -436,7 +449,7 @@ class ConfigTask(Task):
             mi = self.get_model_instance()
             val = mi.get_namespace().get_inst_ref(val) if mi is not None else val
         return val
-            
+
     def _fix_arguments(self):
         super(ConfigTask, self)._fix_arguments()
         self.task_role = self._get_arg_value(self._task_role)
@@ -444,7 +457,7 @@ class ConfigTask(Task):
         self.remote_user = self._get_arg_value(self._remote_user)
         self.remote_pass = self._get_arg_value(self._remote_pass)
         self.private_key_file = self._get_arg_value(self._private_key_file)
-        
+
     def _perform(self, engine):
         """
         Perform the task. Must be overridden to actually work. Typically,
@@ -452,7 +465,7 @@ class ConfigTask(Task):
         the work themselves.
         """
         raise TypeError("Derived class must implement")
-    
+
     def _reverse(self, engine):
         """
         Undo whatever was done during the perform() method.
@@ -469,7 +482,7 @@ class ConfigTask(Task):
         Unlike perform(), the default implementation silently does nothing.
         """
         return
-        
+
 
 class StructuralTask(object):
     """
@@ -477,20 +490,21 @@ class StructuralTask(object):
     other tasks.
     """
     pass
-    
-    
+
+
 class RendezvousTask(ConfigTask, StructuralTask):
     """
     Internally used task for some of the container tasks; allows a common
     exit point to be identified for all tasks in the container.
     """
+
     def _perform(self, engine):
         return
-    
+
 
 class ConfigModelMeta(ModelBaseMeta):
     def __new__(cls, name, bases, attr_dict):
-        all_tasks = {v:k for k, v in attr_dict.items() if isinstance(v, ConfigTask)}
+        all_tasks = {v: k for k, v in attr_dict.items() if isinstance(v, ConfigTask)}
         attr_dict[_node_dict] = all_tasks
         if _config_options not in attr_dict:
             attr_dict[_config_options] = {}
@@ -502,14 +516,14 @@ class ConfigModelMeta(ModelBaseMeta):
         graph.add_nodes_from(newbie._node_dict.keys())
         if hasattr(newbie, _dependencies):
             deps = newbie.get_class_dependencies()
-            graph.add_edges_from( [d.edge() for d in deps] )
+            graph.add_edges_from([d.edge() for d in deps])
             try:
                 _ = nx.topological_sort(graph)
             except nx.NetworkXUnfeasible, _:
                 raise ConfigException("Task dependency graph contains a cycle")
         _Nexus._add_model_desc("cfg", newbie)
         return newbie
-    
+
 
 class ConfigModel(ModelBase, GraphableModelMixin):
     """
@@ -522,7 +536,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     """
     __metaclass__ = ConfigModelMeta
     ref_class = ModelInstanceReference
-    
+
     def __init__(self, namespace_model_instance=None, nexus=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
                  delegate=None, default_task_role=None, default_run_from=None):
@@ -574,7 +588,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             or a callable that takes a L{CallContext} and returns a reference
             to a Role.
         """
-        
+
         super(ConfigModel, self).__init__(nexus=nexus)
         self.namespace_model_instance = namespace_model_instance
         self.remote_user = remote_user
@@ -584,8 +598,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         self.default_run_from = default_run_from
         self.delegate = delegate
         clone_dict = {}
-        #NOTE! _node_dict is an inverted dictionary (the string keys are
-        #stored as values; it is added in the metaclass
+        # NOTE! _node_dict is an inverted dictionary (the string keys are
+        # stored as values; it is added in the metaclass
         for v, k in self._node_dict.items():
             if not isinstance(v, ConfigTask):
                 raise ConfigException("'%s' is not a task" % k)
@@ -596,10 +610,10 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             for etan in v._embedded_exittask_attrnames():
                 clone_dict[getattr(v, etan)] = getattr(clone, etan)
             setattr(self, k, clone)
-            _ = getattr(self, k)  #this primes the reference machinery
+            _ = getattr(self, k)  # this primes the reference machinery
         self.dependencies = [d.clone(clone_dict)
                              for d in self.get_class_dependencies()]
-        #default option values
+        # default option values
         opts = object.__getattribute__(self, _config_options)
         for k, v in opts.items():
             if k == _default_task_role and self.default_task_role is None:
@@ -610,20 +624,20 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                 self.private_key_file = v
             elif k == _default_run_from and self.default_run_from is None:
                 self.default_run_from = v
-                
+
     def _get_attrs_dict(self):
         d = super(ConfigModel, self)._get_attrs_dict()
-        d.update( namespace_model_instance=self.namespace_model_instance,
-                  remote_user=self.remote_user,
-                  remote_pass=self.remote_pass,
-                  private_key_file=self.private_key_file,
-                  default_task_role=self.default_task_role,
-                  default_run_from=self.default_run_from,
-                  delegate=self.delegate,
-                  dependencies=self.dependencies )
-        d.update( {k:v for k, v in self._comp_source().items()} )
+        d.update(namespace_model_instance=self.namespace_model_instance,
+                 remote_user=self.remote_user,
+                 remote_pass=self.remote_pass,
+                 private_key_file=self.private_key_file,
+                 default_task_role=self.default_task_role,
+                 default_run_from=self.default_run_from,
+                 delegate=self.delegate,
+                 dependencies=self.dependencies)
+        d.update({k: v for k, v in self._comp_source().items()})
         return d
-    
+
     def _find_persistables(self):
         for p in super(ConfigModel, self)._find_persistables():
             yield p
@@ -636,12 +650,12 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             if isinstance(o, _Persistable):
                 for p in o.find_persistables():
                     yield p
-                
+
     def _set_delegate(self, delegate):
         self.delegate = delegate
-        
+
     def _comp_source(self):
-        #remember, self._node_dict is an inverted dict
+        # remember, self._node_dict is an inverted dict
         d = {}
         for k in self._node_dict.values():
             v = getattr(self, k)
@@ -649,7 +663,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                 v = v.value()
             d[k] = v
         return d
-    
+
     def get_remote_user(self):
         """
         Compute the remote user to use for a task.
@@ -665,7 +679,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                              if self.delegate is not None
                              else None))
         return remote_user
-    
+
     def get_remote_pass(self):
         """
         Compute the remote_pass to use for the remote_user.
@@ -682,7 +696,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                              if self.delegate is not None
                              else None))
         return remote_pass
-    
+
     def get_private_key_file(self):
         """
         Compute the private_key_file to use for the remote_user.
@@ -696,7 +710,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                                   if self.delegate is not None
                                   else None))
         return private_key_file
-        
+
     def set_task_role(self, task_role):
         """
         Internal; sets the default_task_role for the model. Users generally
@@ -706,7 +720,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             raise ConfigException("A default task role was supplied that isn't some kind of model reference: %s" %
                                   str(task_role))
         self.default_task_role = task_role
-                
+
     def get_graph(self, with_fix=False):
         """
         Returns a NetworkX DiGraph object consisting of the tasks that are
@@ -730,9 +744,9 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         deps = self.get_dependencies()
         graph = nx.DiGraph()
         graph.add_nodes_from(nodes)
-        graph.add_edges_from( [d.edge() for d in deps] )
+        graph.add_edges_from([d.edge() for d in deps])
         return graph
-        
+
     def get_task_host(self):
         """
         Compute the IP address of the host for the task.
@@ -748,8 +762,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         if isinstance(host, IPAddressable):
             host.fix_arguments()
             host = host.get_ip()
-        return host        
-    
+        return host
+
     def get_task_role(self):
         """
         Compute the L{Role} to use for as the default task_role for this model.
@@ -761,12 +775,14 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             raise ConfigException("No default task role defined on the config model")
 
         if self.namespace_model_instance is None:
-            raise ConfigException("ConfigModel instance can't get a default task role from a Namespace model reference without an instance of that model")
-        
+            raise ConfigException(
+                "ConfigModel instance can't get a default task role from a Namespace model reference without an "
+                "instance of that model")
+
         comp_ref = self.namespace_model_instance.get_inst_ref(self.default_task_role)
         comp_ref.fix_arguments()
         return comp_ref.value()
-    
+
     def get_run_from(self):
         """
         Compute the L{Role} to use as the default run_from Role for this model.
@@ -784,7 +800,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             comp_ref.fix_arguments()
             comp = comp_ref.value()
         return comp
-    
+
     def get_run_host(self):
         """
         Compute the IP address of the host where the task is to run from.
@@ -801,7 +817,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             host.fix_arguments()
             host = host.get_ip()
         return host
-  
+
     def set_namespace(self, namespace):
         """
         Internal; sets the namespace to use for this config model so the
@@ -815,8 +831,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         self.namespace_model_instance = namespace
         self.namespace_model_instance.nexus.merge_from(self.nexus)
         self.nexus = self.namespace_model_instance.nexus
-        
-        
+
     def get_namespace(self):
         """
         Returns the namespace model instance for this config model.
@@ -824,7 +839,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         if not self.namespace_model_instance:
             self.namespace_model_instance = self.nexus.find_instance(NamespaceModel)
         return self.namespace_model_instance
-        
+
     def get_dependencies(self):
         """
         Returns a list of _Dependency objects that captures all the task
@@ -832,10 +847,10 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         """
         inst_nodes = [getattr(self, name).value() for name in self._node_dict.values()]
         return list(set(itertools.chain(list(itertools.chain(*[n.unpack()
-                                                           for n in inst_nodes
-                                                           if isinstance(n, _Unpackable)])),
-                                    *[d.unpack() for d in self.dependencies])))
-    
+                                                               for n in inst_nodes
+                                                               if isinstance(n, _Unpackable)])),
+                                        *[d.unpack() for d in self.dependencies])))
+
     @classmethod
     def get_class_dependencies(cls):
         """
@@ -849,7 +864,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         else:
             deps = []
         return deps
-    
+
     def get_tasks(self):
         """
         Returns a list of the L{ConfigTask} objects in the model.
@@ -868,6 +883,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
     or as a common library of tasks to be performed on multiple Roles.
     """
     _sep = "+=+=+=+"
+
     def __init__(self, name, cfg_class, init_args=None, **kwargs):
         """
         Create a new ConfigClassTask that wraps another config model
@@ -892,7 +908,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         self.dependencies = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
         self.graph = None
-        
+
     def _get_attrs_dict(self):
         d = super(ConfigClassTask, self)._get_attrs_dict()
         d.update(cfg_class="%s%s%s" % (self.cfg_class.__name__, self._sep,
@@ -903,7 +919,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
                  rendezvous=self.rendezvous.name,
                  graph=None)
         return d
-    
+
     def _find_persistables(self):
         for p in super(ConfigClassTask, self)._find_persistables():
             yield p
@@ -918,13 +934,13 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         for d in self.dependencies:
             for p in d.find_persistables():
                 yield p
-    
+
     def finalize_reanimate(self):
         super(ConfigClassTask, self).finalize_reanimate()
         self.rendezvous = RendezvousTask(self.rendezvous)
         klassname, modname = self.cfg_class.split(self._sep)
         self.cfg_class = _find_class(modname, klassname)
-        
+
     def get_graph(self, with_fix=False):
         """
         Return a new instance of the NetworkX DiGraph that represents the 
@@ -945,31 +961,31 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         else:
             graph = self.instance.get_graph()
         return graph
-    
+
     def _set_model_instance(self, mi):
-        #internal
+        # internal
         super(ConfigClassTask, self)._set_model_instance(mi)
         self.rendezvous._set_model_instance(mi)
-        
+
     def _perform(self, engine):
         """
         Null perform method for the wrapper itself.
         """
         return
-    
+
     def _or_result_class(self):
-        #internal
+        # internal
         return _Dependency
-    
+
     def get_init_args(self):
         __doc__ = ConfigTask.get_init_args.__doc__  # @ReservedAssignment
         args, kwargs = super(ConfigClassTask, self).get_init_args()
         args = args + (self.cfg_class,)
         kwargs["init_args"] = self._init_args
         return args, kwargs
-    
+
     def _fix_arguments(self):
-        #internal
+        # internal
         super(ConfigClassTask, self)._fix_arguments()
         self.init_args = self._get_arg_value(self._init_args)
         init_args = self.init_args if self.init_args else ()
@@ -993,10 +1009,10 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         This is always the internal rendezvous class,
         """
         return [self.rendezvous]
-    
+
     def _embedded_exittask_attrnames(self):
         return ["rendezvous"]
-    
+
     def unpack(self):
         """
         Returns the list of _Dependencies for the nodes in the wrapped config
@@ -1022,6 +1038,7 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
     takes a single L{CallContext} argument and returns a list of references
     to Roles.
     """
+
     def __init__(self, name, template, task_role_list, **kwargs):
         """
         Creates a new MultiTask object.
@@ -1044,19 +1061,19 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
         self.dependencies = []
         self.instances = []
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
-        
+
     def __len__(self):
         return len(self.instances)
-        
+
     def _get_attrs_dict(self):
         d = super(MultiTask, self)._get_attrs_dict()
         d.update(template=self.template,
-                task_role_list=list(self.task_role_list),
+                 task_role_list=list(self.task_role_list),
                  dependencies=self.dependencies,
                  instances=self.instances,
                  rendezvous=self.rendezvous.name)
         return d
-    
+
     def _find_persistables(self):
         for p in super(MultiTask, self)._find_persistables():
             yield p
@@ -1072,33 +1089,33 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
         for i in self.instances:
             for p in i.find_persistables():
                 yield p
-    
+
     def finalize_reanimate(self):
         self.rendezvous = RendezvousTask(self.rendezvous)
         self.task_role_list = set(self.task_role_list)
-        
+
     def _set_model_instance(self, mi):
         super(MultiTask, self)._set_model_instance(mi)
         self.rendezvous._set_model_instance(mi)
-        
+
     def _perform(self, engine):
         """
         Empty perform method for the MultiTask itself.
         """
         return
-    
+
     def _embedded_exittask_attrnames(self):
         return ["rendezvous"]
-        
+
     def _or_result_class(self):
         return _Dependency
-    
+
     def get_init_args(self):
         __doc__ = ConfigTask.get_init_args.__doc__  # @ReservedAssignment
         args, kwargs = super(MultiTask, self).get_init_args()
         args = args + (self._template, self._task_role_list)
         return args, kwargs
-    
+
     def _fix_arguments(self):
         super(MultiTask, self)._fix_arguments()
         self.rendezvous.fix_arguments()
@@ -1128,10 +1145,10 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
                                                  [_Dependency(xit, self.rendezvous)
                                                   for c in self.instances
                                                   for xit in c.exit_nodes()]))
-        
+
     def exit_nodes(self):
         return [self.rendezvous]
-    
+
     def unpack(self):
         """
         Unpacks the internal dependencies for the tasks that the MultiTask contains,
@@ -1140,16 +1157,16 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
         deps = list(self.dependencies)
         deps.extend(itertools.chain(*[c.unpack() for c in self.instances if isinstance(c, _Unpackable)]))
         return deps
-        
-    
+
+
 class NullTask(ConfigTask):
     """
     Non-functional task that's mostly good for testing
     """
+
     def __init__(self, name, path="", **kwargs):
         super(NullTask, self).__init__(name, **kwargs)
         self.path = path
-         
+
     def _perform(self, engine):
         return
-        

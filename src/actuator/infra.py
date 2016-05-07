@@ -337,6 +337,9 @@ class StaticServer(IPAddressable, Provisionable):
         
     def _fix_arguments(self):
         self.hostname_or_ip = self._get_arg_value(self._hostname_or_ip)
+
+    def finalize_reanimate(self):
+        self._hostname_or_ip = self.hostname_or_ip
         
     def get_init_args(self):
         __doc__ = Provisionable.get_init_args.__doc__

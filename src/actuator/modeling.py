@@ -30,6 +30,7 @@ import weakref
 
 from actuator.utils import ClassMapper, _Persistable, _find_class, KeyAsAttr
 
+
 class ActuatorException(Exception): pass
 
 
@@ -42,13 +43,13 @@ class _ValueAccessMixin(object):
         a polymorphic interface. 
         """
         raise TypeError("derived class must implement")
-    
-    
+
+
 class KeyItem(_ValueAccessMixin):
-    #internal
+    # internal
     def __init__(self, key):
         self.key = key if callable(key) else KeyAsAttr(key)
-        
+
     def value(self, ctx=None):
         """
         Returns the value of self.key. If key is a callable, then its return
@@ -66,7 +67,7 @@ class KeyItem(_ValueAccessMixin):
                 value = value.value()
         else:
             value = self.key
-        return value 
+        return value
 
 
 class ContextExpr(_Persistable):
@@ -80,20 +81,21 @@ class ContextExpr(_Persistable):
     ctxt to generate references into your various models. This supports both
     attribute access and key access on any Multi* objects
     """
+
     def __init__(self, *path):
         self._path = path
-        
+
     def __getattr__(self, item):
         return ContextExpr(item, *self._path)
-        
+
     def __getitem__(self, key):
         return ContextExpr(KeyItem(key), *self._path)
-    
+
     def _get_attrs_dict(self):
         d = super(ContextExpr, self)._get_attrs_dict()
         d["_path"] = self._path[:]
         return d
-        
+
     def __call__(self, ctx):
         ref = ctx
         for p in reversed(self._path):
@@ -104,8 +106,8 @@ class ContextExpr(_Persistable):
                 if callable(ref):
                     ref = ref(ctx)
         return ref
-        
-        
+
+
 ctxt = ContextExpr()
 
 
@@ -132,28 +134,29 @@ class CallContext(object):
         nexus.cfg is the config model. This allows logical navigation to other
         models in context expressions.
     """
+
     def __init__(self, model_inst, component):
         self.model = model_inst
         self.nexus = model_inst.nexus if model_inst is not None else None
         self.comp = component
         self.name = component._name if component else None
-        
+
 
 class _ArgumentProcessor(object):
     def _get_arg_value(self, arg):
         raise TypeError("Derived class must implement _get_arg_value()")
-        
-        
+
+
 class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
     """
     Base class for all modeling entities
     """
-    #this attribute flags to the clone() method if attrs are to be  cloned;
-    #derived classed can set this to false if they don't want to clone
-    #model attrs
+    # this attribute flags to the clone() method if attrs are to be  cloned;
+    # derived classed can set this to false if they don't want to clone
+    # model attrs
     clone_attrs = True
     _inst_map = weakref.WeakValueDictionary()
-    
+
     def __init__(self, name, *args, **kwargs):
         """
         Create a new modeling entity
@@ -176,13 +179,13 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         self._id = uuid.uuid4()
         """@ivar: public; internally generated unique id for this instance,
             a uuid.uuid4"""
-        self._inst_map[self._id] = self  #set up a weak ref to the inst cache
+        self._inst_map[self._id] = self  # set up a weak ref to the inst cache
         self._model_instance = model
         self.fixed = False
         """@ivar: public, read only. Indicates if the value of this entity
             has had its final computation (all refs resolved, callable args
             all called). Once fixed, callables won't be called again"""
-            
+
     def index_of(self, other):
         """
         Returns the index of the supplied object or None if the object is not
@@ -192,7 +195,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         entities they contain
         """
         return None
-            
+
     def _idx(self):
         """
         Returns the index of self in a parent collection, or None if not in an indexed collection
@@ -210,18 +213,18 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         return index
 
     idx = property(fget=_idx)
-            
+
     def _get_attrs_dict(self):
         d = super(AbstractModelingEntity, self)._get_attrs_dict()
-        d.update( {"name":self.name,
-                   "_id":str(self._id),
-                   "fixed":self.fixed,
-                   "_model_instance":self._model_instance} )
+        d.update({"name": self.name,
+                  "_id": str(self._id),
+                  "fixed": self.fixed,
+                  "_model_instance": self._model_instance})
         return d
-            
+
     def get_ref(self):
         return AbstractModelReference.find_ref_for_obj(self)
-        
+
     def _validate_args(self, referenceable):
         """
         CURRENTLY UNUSED: certain problems with finding references keep this private method out of use
@@ -246,7 +249,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
                     _ = arg(context)
                 except Exception, e:
                     raise ActuatorException("Argument validation failed; argument %d of %s failed to eval with: %s" %
-                                         (i, self.name, e.message))
+                                            (i, self.name, e.message))
         for kwname, kwvalue in kwargs.items():
             if isinstance(kwvalue, ContextExpr):
                 context = CallContext(referenceable, kwvalue)
@@ -254,11 +257,10 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
                     _ = arg(context)
                 except Exception, e:
                     raise ActuatorException("Argument validation failed; argument '%s' of %s failed to eval with: %s" %
-                                         (kwname, self.name, e.message))
+                                            (kwname, self.name, e.message))
             elif isinstance(kwvalue, AbstractModelingEntity):
                 kwvalue._validate_args(referenceable)
 
-        
     def fix_arguments(self):
         """
         Called internally when it time to fix arguments on the entity
@@ -273,7 +275,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             self.fixed = True
             self._fix_arguments()
         return self
-            
+
     def _refix_arguments(self):
         """
         Allows arguments to be fixed again.
@@ -284,7 +286,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         """
         self.fixed = False
         self.fix_arguments()
-    
+
     def _fix_arguments(self):
         """
         Derived classes override this to fix any arguments to themselves.
@@ -295,17 +297,17 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         provided as arguments so that the values to use can be computed by the callable.
         """
         raise TypeError("Derived class %s must implement fix_arguments()" % self.__class__.__name__)
-    
+
     def get_model_instance(self):
         """
         Returns the model instance this entity is a part of (if any)
         """
         return self._model_instance
-         
+
     def _set_model_instance(self, inst):
-        #private
+        # private
         self._model_instance = inst
-        
+
     def _container(self):
         """
         This returns the entity that contains self
@@ -325,14 +327,14 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             if isinstance(value, (MultiComponent, ModelBase, ComponentGroup)):
                 container = my_ref._parent
                 break
-            #this next line appears to be unreachable
+            # this next line appears to be unreachable
             my_ref = my_ref._parent
         return container
-    
+
     container = property(_container, doc=_container.__doc__)
-        
+
     def _get_arg_value(self, arg):
-        #internal
+        # internal
         if callable(arg):
             try:
                 if isinstance(arg, (SelectElement, RefSelectUnion)):
@@ -346,11 +348,11 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             except Exception, e:
                 t, v = sys.exc_info()[:2]
                 raise ActuatorException("Callable arg failed with: %s, %s, %s" %
-                                     (t, v, e.message)), None, sys.exc_info()[2]
+                                        (t, v, e.message)), None, sys.exc_info()[2]
         else:
             value = arg
         return value
-        
+
     def get_init_args(self):
         """
         Returns the arguments that were used to create this object
@@ -360,7 +362,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         contains the kwargs for this instance. Typically used when a copy of
         this object is to be made
         """
-        return ((self.name,), {"model":self._model_instance})
+        return (self.name,), {"model": self._model_instance}
 
     def get_class(self):
         """
@@ -369,7 +371,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         Override if you want to get a different class besides your own
         """
         return self.__class__
-        
+
     def clone(self, clone_into_class=None):
         """
         Make a copy of this object
@@ -388,25 +390,26 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         args, kwargs = self.get_init_args()
         new_args = [(arg.clone() if self.clone_attrs and isinstance(arg, AbstractModelingEntity) else arg)
                     for arg in args]
-        new_kwargs = {k:(v.clone() if self.clone_attrs and isinstance(v, AbstractModelingEntity) else v)
+        new_kwargs = {k: (v.clone() if self.clone_attrs and isinstance(v, AbstractModelingEntity) else v)
                       for k, v in kwargs.items()}
         clone_class = self.get_class() if clone_into_class is None else clone_into_class
         clone = clone_class(*new_args, **new_kwargs)
         clone._set_model_instance(self.get_model_instance())
         return clone
-    
-    
+
+
 class ModelComponent(AbstractModelingEntity):
     """
     Base class that is for any entity that will be a component of a model
     """
     pass
-    
-        
+
+
 class _ComputeModelComponents(object):
     """
     Mixin class; do not instantiate directly
     """
+
     def components(self):
         """
         Returns a set of component entities (instances of ModelComponent) in self
@@ -423,7 +426,7 @@ class _ComputeModelComponents(object):
             elif isinstance(v, _ComputeModelComponents):
                 all_components |= v.components()
         return all_components
-    
+
     def refs_for_components(self, my_ref=None):
         """
         Returns a set of model references for all ModelComponents within self.
@@ -434,7 +437,7 @@ class _ComputeModelComponents(object):
         the reference to 'self' itself. This will ensure that all references
         to relevant model components will be generated properly.
         
-        @keyword my_ref: The reference to self; defaults to None, as this 
+        @keyword my_ref: The model reference to self; defaults to None, as this
             usually starts with the model instance, and there's no reference
             to that object.
         """
@@ -455,11 +458,11 @@ class _ComputeModelComponents(object):
                 ref = getattr(self, k)
                 all_refs |= v.refs_for_components(my_ref=ref)
         return all_refs
-    
+
     def _comp_source(self):
-        #private; returns a dict of components; derived class must override
+        # private; returns a dict of components; derived class must override
         raise TypeError("Derived class must implement _comp_source")
-    
+
 
 class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
     """
@@ -469,6 +472,7 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
     determined by the kwargs supplied to it. This allows a group of components
     to be defined into a single reuseable unit.   
     """
+
     def __init__(self, name, **kwargs):
         """
         Create a new ComponentGroup
@@ -490,41 +494,44 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
             else:
                 raise TypeError("arg %s has a value that isn't a kind of AbstractModelingEntity: %s" % (k, str(v)))
         self._kwargs = kwargs
-        
+
     def _find_persistables(self):
         for p in super(ComponentGroup, self)._find_persistables():
             yield p
         for k in self._kwargs:
             for p in getattr(self, k).find_persistables():
                 yield p
-                
+
     def _get_attrs_dict(self):
         d = super(ComponentGroup, self)._get_attrs_dict()
+        # d["_kwargs"] = _kwargs = {}
         d["_kwargs"] = {}
         for k in self._kwargs:
-            d[k] = getattr(self, k)
+            comp = getattr(self, k)
+            # _kwargs[k] = comp
+            d[k] = comp
         return d
-        
+
     def _set_model_instance(self, inst):
         super(ComponentGroup, self)._set_model_instance(inst)
         for v in self._comp_source().values():
             v._set_model_instance(inst)
-        
+
     def _comp_source(self):
-        return {k:getattr(self, k) for k in self._kwargs}
-    
+        return {k: getattr(self, k) for k in self._kwargs}
+
     def get_init_args(self):
         __doc__ = AbstractModelingEntity.get_init_args.__doc__
-        return ((self.name,), self._comp_source())
-    
+        return (self.name,), self._comp_source()
+
     def _fix_arguments(self):
         for k, v in self.__dict__.items():
             if k in self._kwargs:
                 v.fix_arguments()
-        
+
     def _validate_args(self, referenceable):
         super(ComponentGroup, self)._validate_args(referenceable)
-    
+
 
 class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     """
@@ -535,6 +542,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     component is created for  that key. The key also becomes part of the name
     of the new component. 
     """
+
     def __init__(self, template_component):
         """
         Create a new MultiComponent instance
@@ -552,104 +560,110 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         super(MultiComponent, self).__init__("")
         self.template_component = template_component.clone()
         self._instances = {}
-        
+
+    def finalize_reanimate(self):
+        to_correct = dict(self._instances)
+        for k, v in to_correct.items():
+            del self._instances[k]
+            self._instances[KeyAsAttr(k)] = v
+
     def index_of(self, other):
-        return {v:k for k, v in self._instances.items()}.get(other)
-        
+        return {v: k for k, v in self._instances.items()}.get(other)
+
     def _find_persistables(self):
         for p in super(MultiComponent, self)._find_persistables():
             yield p
         for i in self._instances.values():
             for p in i.find_persistables():
                 yield p
-                
+
     def _get_attrs_dict(self):
         d = super(MultiComponent, self)._get_attrs_dict()
-        d.update( {"_instances":self._instances,
-                   "template_component":None} )
+        d.update({"_instances": self._instances,
+                  "template_component": None})
         return d
-        
+
     def _set_model_instance(self, inst):
         super(MultiComponent, self)._set_model_instance(inst)
         self.template_component._set_model_instance(inst)
-        
+
     def _fix_arguments(self):
         for i in self._instances.values():
             i.fix_arguments()
-            
-#     def refs_for_components(self, my_ref=None):
-#         result = {}
-#         if isinstance(self.template_component, ComponentGroup):
-#             ref = my_ref.__class__("container", obj=self, parent=my_ref)
-#             result = self.template_component.refs_for_components(my_ref=ref)
-#         return result
-        
+
+        #     def refs_for_components(self, my_ref=None):
+        #         result = {}
+        #         if isinstance(self.template_component, ComponentGroup):
+        #             ref = my_ref.__class__("container", obj=self, parent=my_ref)
+        #             result = self.template_component.refs_for_components(my_ref=ref)
+        #         return result
+
     def get_prototype(self):
         """
         Returns the object to make a copy of for a new key
         """
         return self.template_component
-        
+
     def get_init_args(self):
         __doc__ = AbstractModelingEntity.get_init_args.__doc__
         args = (self.template_component,)
         return (args, {})
-        
+
     def _validate_args(self, referenceable):
         super(MultiComponent, self)._validate_args(referenceable)
         proto = self.get_prototype()
-        
+
         proto._validate_args(referenceable)
-        
+
     def __len__(self):
         return len(self._instances)
-    
+
     def __iter__(self):
         return iter(self._instances)
-    
+
     def __nonzero__(self):
         return len(self._instances) != 0
-    
+
     def __contains__(self, key):
         # return key in self
         return self.has_key(key)
-        
+
     def iterkeys(self):
         """
         Returns an iterator for the keys for all instances
         """
         return self._instances.iterkeys()
-    
+
     def itervalues(self):
         """
         Returns an iterator for all the instances.
         """
         return (self.get(k) for k in self.iterkeys())
-    
+
     def iteritems(self):
         """
         Returns an iterator of all the (key, instance) pairs
         """
         return ((k, self.get(k)) for k in self.iterkeys())
-    
+
     def keys(self):
         """
         Returns an iterable of all keys used to generate instances of the template
         """
         return self._instances.keys()
-    
+
     def values(self):
         """
         Returns an iterable of references to all template instances generated for supplied keys
         """
         return [self.get(k) for k in self.keys()]
-    
+
     def items(self):
         """
         Returns an iterable so (key, ref) tuples for all keyed template instances
         """
         return [(k, self.get(k)) for k in self.keys()]
-    
+
     def has_key(self, key):
         """
         Returns True if an instance has been created for the supplied key, False otherwise
@@ -657,7 +671,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         @param key: an immutable key value
         """
         return self._instances.has_key(KeyAsAttr(key))
-    
+
     def get(self, key, default=None):
         """
         Returns a reference to the instance for key, otherwise returns default
@@ -668,10 +682,10 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         ref = AbstractModelReference.find_ref_for_obj(self)
         result = ref[key] if key in self else default
         return result
-    
+
     def _comp_source(self):
         return dict(self._instances)
-    
+
     def get_instance(self, key):
         """
         Returns an instance mapped to 'key'. If 'key' has been seen before, then
@@ -684,15 +698,15 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         if not inst:
             prototype = self.get_prototype()
             args, kwargs = prototype.get_init_args()
-            #args[0] is the name of the prototype
-            #we form a new logical name by appending the
-            #key to args[0] separated by an '_'
+            # args[0] is the name of the prototype
+            # we form a new logical name by appending the
+            # key to args[0] separated by an '_'
             logicalName = "%s_%s" % (args[0], str(key))
             inst = prototype.get_class()(logicalName, *args[1:], **kwargs)
             self._instances[key] = inst
             inst._set_model_instance(self.get_model_instance())
         return inst
-    
+
     def instances(self):
         """
         Returns a dict, key:component, for all instances created thus far.
@@ -700,7 +714,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         Does not return references, but the actual instances themselves
         """
         return dict(self._instances)
-    
+
 
 class MultiComponentGroup(MultiComponent):
     """
@@ -712,6 +726,7 @@ class MultiComponentGroup(MultiComponent):
     just a shortcut for making a ComponentGroup and then passing that component
     to MultiComponent.
     """
+
     def __new__(self, name, **kwargs):
         """
         Create a new instance of a MultiComponentGroup object.
@@ -728,7 +743,8 @@ class MultiComponentGroup(MultiComponent):
         return MultiComponent(group)
 
 
-class _Dummy(object): pass
+class _Dummy(object):
+    pass
 
 
 class AbstractModelReference(_ValueAccessMixin, _Persistable):
@@ -752,9 +768,9 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     _inst_cache = {}
     _inv_cache = {}
     _as_is = (frozenset(["__getattribute__", "__class__", "value", "_name", "_obj",
-                        "_parent", "get_path", "_get_item_ref_obj",
-                        "get_containing_component",
-                        "get_containing_component_ref"])
+                         "_parent", "get_path", "_get_item_ref_obj",
+                         "get_containing_component",
+                         "get_containing_component_ref"])
               .union(frozenset(dir(_Persistable)).difference(frozenset(dir(_Dummy)))))
 
     def __init__(self, name, obj=None, parent=None):
@@ -773,7 +789,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         self._name = name
         self._obj = obj
         self._parent = parent
-        
+
     def __new__(cls, name, obj=None, parent=None):
         """
         Take the data supplied and either return a new reference object, or
@@ -786,12 +802,12 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
             reference to 'obj'
         """
         key = AbstractModelReference._cache_key(name, obj, parent)
-        
+
         inst = AbstractModelReference._inst_cache.get(key)
         if inst is None:
             inst = super(AbstractModelReference, cls).__new__(cls, name, obj, parent)
             AbstractModelReference._inst_cache[key] = inst
-            
+
         if obj is not None:
             if isinstance(name, KeyAsAttr):
                 target = obj
@@ -802,23 +818,23 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                 except TypeError, _:
                     target = obj
             if target is not None:
-                #We can *never* store a single ref to None; too many things
-                #share this value
+                # We can *never* store a single ref to None; too many things
+                # share this value
                 AbstractModelReference._inv_cache[target] = inst
-            
+
         return inst
-    
+
     @classmethod
     def _cache_key(cls, name, obj, parent):
         return (cls, name, obj, parent)
-    
+
     def _get_attrs_dict(self):
         d = super(AbstractModelReference, self)._get_attrs_dict()
-        d.update( {"_name":self._name,
-                   "_obj":self._obj,
-                   "_parent":self._parent} )
+        d.update({"_name": self._name,
+                  "_obj": self._obj,
+                  "_parent": self._parent})
         return d
-    
+
     def _find_persistables(self):
         for p in super(AbstractModelReference, self)._find_persistables():
             yield p
@@ -828,13 +844,13 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         if self._parent is not None:
             for p in self._parent.find_persistables():
                 yield p
-    
+
     def finalize_reanimate(self):
         super(AbstractModelReference, self).finalize_reanimate()
         AbstractModelReference._inst_cache[AbstractModelReference._cache_key(self._name,
                                                                              self._obj,
                                                                              self._parent)] = self
-    
+
     @classmethod
     def find_ref_for_obj(cls, obj):
         """
@@ -849,7 +865,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         may be confused.
         """
         return AbstractModelReference._inv_cache.get(obj)
-    
+
     def get_containing_component(self):
         """
         For a refernce's value, return the L{ModelComponent} that contains the
@@ -888,7 +904,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                        if parent is not None
                        else None)
         return val
-    
+
     def get_containing_component_ref(self):
         """
         Like L{get_containing_component}, but returns the reference for the
@@ -896,7 +912,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         """
         comp = self.get_containing_component()
         return AbstractModelReference.find_ref_for_obj(comp)
-    
+
     def get_path(self):
         """
         Returns a list of strings that are all attribute accesses needed to
@@ -906,7 +922,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         """
         parent = self._parent
         return (parent.get_path() if parent is not None else []) + [self._name]
-    
+
     def __getattribute__(self, attrname):
         ga = super(AbstractModelReference, self).__getattribute__
         if attrname in AbstractModelReference._as_is:
@@ -919,16 +935,17 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                 theobj = object.__getattribute__(ga("_obj"), name)
             if hasattr(theobj, attrname):
                 value = getattr(theobj, attrname)
-                if not callable(value) and not attrname.startswith("_") and not isinstance(value, AbstractModelReference):
-                    #then wrap it with a new reference object
+                if not callable(value) and not attrname.startswith("_") and not isinstance(value,
+                                                                                           AbstractModelReference):
+                    # then wrap it with a new reference object
                     value = ga("__class__")(attrname, theobj, self)
             else:
                 raise AttributeError("%s instance has no attribute named %s" % (theobj.__class__.__name__, attrname))
         return value
-    
+
     def _get_item_ref_obj(self, theobj, key):
         raise TypeError("Derived class must implement _get_item_ref_obj()")
-    
+
     def __getitem__(self, key):
         ga = super(AbstractModelReference, self).__getattribute__
         theobj = object.__getattribute__(ga("_obj"), ga("_name"))
@@ -940,7 +957,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         else:
             raise TypeError("%s object doesn't support keyed access" % self.__class__)
         return value
-    
+
     def value(self, **kwargs):
         """
         Returns the value that underlies the reference. This may or may not
@@ -961,8 +978,8 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         return (obj
                 if isinstance(name, KeyAsAttr)
                 else object.__getattribute__(obj, name))
-    
-    
+
+
 class ModelReference(AbstractModelReference):
     """
     Instances of this class are generated whenever accesses are made to the
@@ -973,9 +990,10 @@ class ModelReference(AbstractModelReference):
     class; you never create them yourself. They are not generated for methods;
     methods are passed through as ususal.
     """
+
     def _get_item_ref_obj(self, theobj, key):
         return theobj.get_prototype()
-    
+
 
 class ModelInstanceReference(AbstractModelReference):
     """
@@ -983,15 +1001,16 @@ class ModelInstanceReference(AbstractModelReference):
     class instance. See the doc for L{AbstractModelReference} for the rest of
     the interface for this class.
     """
+
     def _get_item_ref_obj(self, theobj, key):
         return theobj.get_instance(key)
-    
+
     def __len__(self):
         value = self.value()
         if not hasattr(value, "__len__"):
             raise TypeError("object of type %s has no len()" % str(value))
         return len(value)
-    
+
     def __nonzero__(self):
         value = self.value()
         result = value is not None
@@ -1001,64 +1020,65 @@ class ModelInstanceReference(AbstractModelReference):
             else:
                 result = True
         return result
-    
+
     def __iter__(self):
         value = self.value()
         if not hasattr(value, "__iter__"):
             raise TypeError("object of type %s is not iterable" % str(value))
         return iter(value)
-    
+
     def __contains__(self, key):
         value = self.value()
         if not hasattr(value, "__contains__"):
             raise TypeError("object of type %s does not support 'in'" % str(value))
         return key in value
-    
-    
+
+
 class RefSelTest(object):
-    #internal
+    # internal
     def __init__(self, test_op, test_arg=None):
         self.test_op = test_op
         self.test_arg = test_arg
-        
-        
+
+
 class SelectElement(object):
-    #internal
+    # internal
     builder = None
+
     def __init__(self, name, ref, parent=None):
         self.name = name
         self.parent = parent
         self.ref = ref
         self.tests = []
-        
+
     def all(self):
         self.tests.append(RefSelTest(self.builder.ALL))
         return self
-    
+
     def key(self, key):
         self.tests.append(RefSelTest(self.builder.KEY, key))
         return self
-    
+
     def keyin(self, keyiter):
         self.tests.append(RefSelTest(self.builder.KEYIN, set(keyiter)))
         return self
-        
+
     def match(self, regexp_pattern):
         self.tests.append(RefSelTest(self.builder.PATRN,
-                                         re.compile(regexp_pattern)))
+                                     re.compile(regexp_pattern)))
         return self
-    
+
     def no_match(self, regexp_pattern):
         self.tests.append(RefSelTest(self.builder.NOT_PATRN,
-                                         re.compile(regexp_pattern)))
+                                     re.compile(regexp_pattern)))
         return self
-    
+
     def pred(self, predicate):
         if not callable(predicate):
             raise ActuatorException("The provided predicate isn't callable")
         self.tests.append(RefSelTest(self.builder.PRED, predicate))
         return self
-        
+
     def __getattr__(self, attrname):
         try:
             next_ref = getattr(self.ref, attrname)
@@ -1068,10 +1088,10 @@ class SelectElement(object):
             else:
                 raise
         return self.__class__(attrname, next_ref, parent=self)
-    
+
     def __call__(self, ctxt):
         return self.builder._execute(self, ctxt)
-    
+
     def _expand(self):
         if self.parent is not None:
             return self.parent._expand() + [self]
@@ -1080,7 +1100,7 @@ class SelectElement(object):
 
 
 class RefSelectBuilder(object):
-    #internal
+    # internal
     ALL = "all"
     KEY = "key"
     KEYIN = "keyin"
@@ -1088,39 +1108,40 @@ class RefSelectBuilder(object):
     NOT_PATRN = "not pattern"
     PRED = "predicate"
     filter_ops = [ALL, KEY, KEYIN, PATRN, NOT_PATRN, PRED]
+
     def __init__(self, model):
         super(RefSelectBuilder, self).__init__()
-        
+
         class LocalSelectElement(SelectElement):
             builder = self
-        
+
         self.element_class = LocalSelectElement
         self.model = model
-        self.test_map = {self.ALL:self._all_test,
-                         self.KEY:self._key_test,
-                         self.KEYIN:self._keyin_test,
-                         self.PATRN:self._pattern_test,
-                         self.NOT_PATRN:self._not_pattern_test,
-                         self.PRED:self._pred_test}
-        
+        self.test_map = {self.ALL: self._all_test,
+                         self.KEY: self._key_test,
+                         self.KEYIN: self._keyin_test,
+                         self.PATRN: self._pattern_test,
+                         self.NOT_PATRN: self._not_pattern_test,
+                         self.PRED: self._pred_test}
+
     def _all_test(self, key, test):
         return True
-    
+
     def _key_test(self, key, test):
         return key == test.test_arg
-    
+
     def _keyin_test(self, key, test):
         return key in {KeyAsAttr(k) for k in test.test_arg}
-    
+
     def _pattern_test(self, key, test):
         return test.test_arg.search(key)
-    
+
     def _not_pattern_test(self, key, test):
         return not test.test_arg.search(key)
-    
+
     def _pred_test(self, key, test):
         return test.test_arg(key)
-    
+
     def _do_test(self, key, element):
         key = KeyAsAttr(key)
         tests = element.tests[:]
@@ -1134,13 +1155,13 @@ class RefSelectBuilder(object):
     def __getattr__(self, attrname):
         ref = getattr(self.model, attrname)
         return self.element_class(attrname, ref)
-    
+
     def union(self, *exprs):
         for expr in exprs:
             if not isinstance(expr, self.element_class):
                 raise ActuatorException("The following arg is not a select expression: %s" % str(expr))
         return RefSelectUnion(self, *exprs)
-     
+
     def _execute(self, element, ctxt):
         work_list = element._expand()
         selected = [ctxt.model]
@@ -1154,25 +1175,25 @@ class RefSelectBuilder(object):
             selected = itertools.chain(*next_selected)
             work_list = work_list[1:]
         return set(selected)
-    
-    
+
+
 class RefSelectUnion(object):
     def __init__(self, builder, *exprs):
         self.builder = builder
         self.exprs = exprs
-        
+
     def __call__(self, ctxt):
         return set(itertools.chain(*[e(ctxt) for e in self.exprs]))
-    
-    
+
+
 class _ModelLookup(object):
     def __init__(self, klass):
         self.klass = klass
-    
+
     def __get__(self, inst, owner):
         return inst.find_instance(self.klass)
-    
-    
+
+
 class _Nexus(_Persistable):
     """
     Internal to Actuator
@@ -1186,34 +1207,35 @@ class _Nexus(_Persistable):
     expressions.
     """
     _sep = "+=+=+=+"
+
     def __init__(self):
         self.mapper = ClassMapper()
-        
+
     def _get_attrs_dict(self):
         d = super(_Nexus, self)._get_attrs_dict()
-        d["mapper"] = {"%s%s%s" % (c.__name__, self._sep, c.__module__):v
+        d["mapper"] = {"%s%s%s" % (c.__name__, self._sep, c.__module__): v
                        for c, v in self.mapper.items()}
         return d
-    
+
     def _find_persistables(self):
         for p in super(_Nexus, self)._find_persistables():
             yield p
         for v in self.mapper.values():
             for p in v.find_persistables():
                 yield p
-                
+
     def finalize_reanimate(self):
         for k in list(self.mapper.keys()):
             klassname, modname = k.split(self._sep)
             klass = _find_class(modname, klassname)
             self.mapper[klass] = self.mapper[k]
             del self.mapper[k]
-        
+
     @classmethod
     def _add_model_desc(cls, attrname, klass):
         if attrname not in cls.__dict__:
             setattr(cls, attrname, _ModelLookup(klass))
-        
+
     def capture_model_to_instance(self, model_class, instance):
         """
         Associate a model class to an instance of that class. Actually causes a series
@@ -1229,10 +1251,10 @@ class _Nexus(_Persistable):
                 break
             if issubclass(base, (ModelBase, _NexusMember)):
                 self.mapper[base] = instance
-        
+
     def find_instance(self, model_class):
         return self.mapper.get(model_class)
-    
+
     def merge_from(self, other_nexus):
         self.mapper.update(other_nexus.mapper)
 
@@ -1240,6 +1262,7 @@ class _Nexus(_Persistable):
 class ModelBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
+
     def __new__(cls, name, bases, attr_dict):
         components = {}
         for n, v in attr_dict.items():
@@ -1249,35 +1272,35 @@ class ModelBaseMeta(type):
         newbie = super(ModelBaseMeta, cls).__new__(cls, name, bases, attr_dict)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
-    
-    def __getattribute__(cls, attrname):  #  @NoSelf
+
+    def __getattribute__(cls, attrname):  # @NoSelf
         ga = super(ModelBaseMeta, cls).__getattribute__
         value = (cls.model_ref_class(attrname, obj=cls, parent=None)
                  if attrname in ga(ModelBaseMeta._COMPONENTS) and cls.model_ref_class
                  else ga(attrname))
         return value
-    
-    
+
+
 class _NexusMember(_Persistable):
     def __init__(self, nexus=None):
         super(_NexusMember, self).__init__()
         self.set_nexus(nexus)
-        
+
     def _get_attrs_dict(self):
         d = super(_NexusMember, self)._get_attrs_dict()
         d['nexus'] = self.nexus
         return d
-    
+
     def _find_persistables(self):
         for p in super(_NexusMember, self)._find_persistables():
             yield p
         for p in self.nexus.find_persistables():
             yield p
-                
+
     def set_nexus(self, nexus):
         self.nexus = nexus if nexus else _Nexus()
         self.nexus.capture_model_to_instance(self.__class__, self)
-        
+
     def update_nexus(self, new_nexus):
         if self.nexus and new_nexus:
             new_nexus.merge_from(self.nexus)
@@ -1289,7 +1312,7 @@ class ModelBase(_NexusMember, _ComputeModelComponents, _ArgumentProcessor):
     This is the common base class for all models
     """
     __metaclass__ = ModelBaseMeta
-    
+
     def get_inst_ref(self, model_ref):
         """
         Take a model ref object and get an associated model instance ref for

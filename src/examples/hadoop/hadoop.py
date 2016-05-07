@@ -24,9 +24,9 @@ from actuator.provisioners.openstack.resources import *  # @UnusedWildImport
 from hadoop_node import common_vars, HadoopNodeConfig, pkn
 from actuator.utils import find_file
 
-#This ResourceGroup is boilerplate for making Openstack resources available
-#externally. They are created outside an infra model to illustrate that they
-#can be factored out into a shared module of reusable components.
+#T his ResourceGroup is boilerplate for making Openstack resources available
+# externally. They are created outside an infra model to illustrate that they
+# can be factored out into a shared module of reusable components.
 external_connection = ResourceGroup("route_out",
                                     net=Network("ro_net"),
                                     subnet=Subnet("ro_subnet",
@@ -64,29 +64,29 @@ def make_std_secgroup(name, desc="standard security group"):
                          )
 
 
-#name of the image we want to use
+# name of the image we want to use
 # ubuntu_img = "ubuntu14.04-LTS"
 
 
-#common keyword args used for servers
+# common keyword args used for servers
 common_kwargs = {"key_name": ctxt.model.kp}
 
 
 class HadoopInfra(InfraModel):
     with_infra_options(long_names=True)
-    fip_pool = "public"  #attributes that aren't resources are ignored
-    #add the standard slave_secgroup and connectivity components
+    fip_pool = "public"  # attributes that aren't resources are ignored
+    # add the standard slave_secgroup and connectivity components
     slave_secgroup = make_std_secgroup("slave", desc="For Hadoop slaves")
     gateway = external_connection
     
     kp = KeyPair(pkn, pkn, pub_key_file=find_file("%s.pub" % pkn))
     
-    #create an additional secgroup for the namenode
+    # create an additional secgroup for the namenode
     namenode_secgroup = make_std_secgroup("namenode", desc="For Hadoop namenode")
-    #add additional rules specific to the Hadoop namenode secgroup
-    #note that we pick up the port numbers from the namespace model via a context expression;
-    #they could be hard-coded here, but by taking them from the namespace they can be changed on
-    #an instance by instance basis
+    # add additional rules specific to the Hadoop namenode secgroup
+    # note that we pick up the port numbers from the namespace model via a context expression;
+    # they could be hard-coded here, but by taking them from the namespace they can be changed on
+    # an instance by instance basis
     jobtracker_webui_rule = SecGroupRule("jobtracker_webui_rule",
                                          ctxt.model.namenode_secgroup.group,
                                          ip_protocol="tcp",
@@ -108,7 +108,7 @@ class HadoopInfra(InfraModel):
                                  from_port=ctxt.nexus.ns.v.NAMENODE_PORT,
                                  to_port=ctxt.nexus.ns.v.NAMENODE_PORT)
     
-    #HADOOP name node
+    # HADOOP name node
     name_node = Server("name_node", ctxt.nexus.ns.v.IMAGE, ctxt.nexus.ns.v.FLAVOR,
                        security_groups=[ctxt.model.namenode_secgroup.group],
                        nics=[ctxt.model.gateway.net], **common_kwargs)
@@ -116,7 +116,7 @@ class HadoopInfra(InfraModel):
                                ctxt.model.name_node.iface0.addr0,
                                pool=ctxt.nexus.ns.v.EXTNET)
                                # pool=fip_pool)
-    #HADOOP slaves
+    # HADOOP slaves
     slaves = MultiResourceGroup("slaves",
                                  slave=Server("slave", ctxt.nexus.ns.v.IMAGE,
                                               ctxt.nexus.ns.v.FLAVOR,

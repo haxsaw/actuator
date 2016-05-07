@@ -32,10 +32,11 @@ of subprocess, ensuring that Ansible behaves properly.
 """
 
 import sys
-#patch in the subprocess32 module so that it gets picked up
-#instead of the 2.7.x subprocess module
+# patch in the subprocess32 module so that it gets picked up
+# instead of the 2.7.x subprocess module
 import subprocess
 import subprocess32
+
 subprocess32._args_from_interpreter_flags = subprocess._args_from_interpreter_flags
 sys.modules["subprocess"] = subprocess32
 del subprocess
@@ -43,7 +44,6 @@ del subprocess
 import os
 import traceback
 import time
-
 
 from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
                       ctxt, ActuatorException, _Nexus)
@@ -64,8 +64,8 @@ from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
 from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
                    root_logger, adb, _Persistable)
 
-
 __version__ = "0.2.a2"
+
 
 class ActuatorOrchestration(_Persistable):
     """
@@ -164,62 +164,62 @@ class ActuatorOrchestration(_Persistable):
         if not (infra_model_inst is None or isinstance(infra_model_inst, InfraModel)):
             raise ExecutionException("infra_model_inst is no an instance of InfraModel")
         self.infra_model_inst = infra_model_inst
-        
+
         if not (provisioner is None or isinstance(provisioner, BaseProvisioner)):
-            raise ExecutionException("provisioner is not an instance of BaseProvisioner")        
+            raise ExecutionException("provisioner is not an instance of BaseProvisioner")
         self.provisioner = provisioner
-        
+
         if not (namespace_model_inst is None or isinstance(namespace_model_inst, NamespaceModel)):
             raise ExecutionException("namespace_model_inst is not an instance of NamespaceModel")
         self.namespace_model_inst = namespace_model_inst
-        
+
         if not (config_model_inst is None or isinstance(config_model_inst, ConfigModel)):
             raise ExecutionException("config_model_inst is not an instance of ConfigModel")
         self.config_model_inst = config_model_inst
-        
+
         self.log_level = log_level
         root_logger.setLevel(log_level)
         self.logger = root_logger.getChild("orchestrator")
         self.post_prov_pause = post_prov_pause
         self.status = self.NOT_STARTED
         self.tags = list(tags) if tags is not None else []
-        
+
         if self.config_model_inst is not None:
             self.config_ea = ParamikoExecutionAgent(config_model_instance=self.config_model_inst,
                                                     namespace_model_instance=self.namespace_model_inst,
                                                     num_threads=num_threads,
                                                     no_delay=no_delay,
                                                     log_level=log_level)
-            
+
     def _get_attrs_dict(self):
         d = super(ActuatorOrchestration, self)._get_attrs_dict()
-        d.update( {"log_level":self.log_level,
-                   "post_prov_pause":self.post_prov_pause,
-                   "status":self.status,
-                   "tags":self.tags,
-                   "infra_model_inst":self.infra_model_inst,
-                   "namespace_model_inst":self.namespace_model_inst,
-                   "config_model_inst":self.config_model_inst,
-                   "logger":None,
-                   "provisioner":None} )
+        d.update({"log_level": self.log_level,
+                  "post_prov_pause": self.post_prov_pause,
+                  "status": self.status,
+                  "tags": self.tags,
+                  "infra_model_inst": self.infra_model_inst,
+                  "namespace_model_inst": self.namespace_model_inst,
+                  "config_model_inst": self.config_model_inst,
+                  "logger": None,
+                  "provisioner": None})
         return d
-    
+
     def _find_persistables(self):
         for p in [self.infra_model_inst, self.config_model_inst, self.namespace_model_inst]:
             if p:
                 for q in p.find_persistables():
                     yield q
-                    
+
     def finalize_reanimate(self):
         self.logger = root_logger.getChild("orchestrator")
         if not hasattr(self, "provisioner"):
             self.provisioner = None
-            
+
     def set_provisioner(self, provisioner):
         if not isinstance(provisioner, BaseProvisioner):
-            raise ExecutionException("provisioner is not an instance of BaseProvisioner")        
+            raise ExecutionException("provisioner is not an instance of BaseProvisioner")
         self.provisioner = provisioner
-            
+
     def is_running(self):
         """
         Predicate method to call to check if the initiation is still running.
@@ -228,7 +228,7 @@ class ActuatorOrchestration(_Persistable):
         """
         return self.status in [self.PERFORMING_CONFIG, self.PERFORMING_EXEC,
                                self.PERFORMING_PROVISION]
-        
+
     def is_complete(self):
         """
         Predicate method to check if the run is complete with no error
@@ -236,7 +236,7 @@ class ActuatorOrchestration(_Persistable):
         @return: True is the run completed successfully; False otherwise
         """
         return self.status == self.COMPLETE
-    
+
     def get_errors(self):
         """
         Returns the error details of any failed tasks during initiation.
@@ -255,7 +255,7 @@ class ActuatorOrchestration(_Persistable):
             elif self.status == self.ABORT_CONFIG:
                 errors = self.config_ea.get_aborted_tasks()
         return errors
-                                               
+
     def initiate_system(self):
         """
         Stand up (initiate) the system from the models
@@ -300,14 +300,14 @@ class ActuatorOrchestration(_Persistable):
             _ = self.infra_model_inst.refs_for_components()
         else:
             self.logger.info("No infra model or provisioner; skipping provisioning step")
-            
+
         if self.config_model_inst is not None and self.namespace_model_inst is not None:
             pause = self.post_prov_pause
             if pause and did_provision:
                 self.logger.info("Pausing %d secs before starting config" % pause)
                 while pause:
                     time.sleep(5)
-                    pause = max(pause-5, 0)
+                    pause = max(pause - 5, 0)
                     self.logger.info("%d secs until config begins" % pause)
             try:
                 self.status = self.PERFORMING_CONFIG
@@ -328,11 +328,11 @@ class ActuatorOrchestration(_Persistable):
                     self.logger.critical("")
                 self.logger.critical("Aborting orchestration")
                 return False
-            
+
         self.logger.info("Orchestration complete")
         self.status = self.COMPLETE
         return True
-    
+
     def teardown_system(self):
         self.logger.info("Teardown orchestration starting")
         did_teardown = False
