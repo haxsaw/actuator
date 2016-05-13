@@ -220,7 +220,7 @@ class ExecutionAgent(TaskEngine):
         raise TypeError("Derived class must implement")
 
     def _perform_task(self, task, logfile=None):
-        if task.status != task.UNSTARTED:
+        if task.get_performance_status() != task.UNSTARTED:
             return
         task.fix_arguments()
         if isinstance(task, (NullTask, StructuralTask)):

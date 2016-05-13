@@ -29,7 +29,7 @@ import time
 import traceback
 
 from actuator import ActuatorException
-from actuator.utils import root_logger, LOG_INFO, _Persistable, LOG_DEBUG
+from actuator.utils import root_logger, LOG_INFO, _Persistable, LOG_DEBUG, _Performable
 from actuator.modeling import ModelComponent
 
 
@@ -86,16 +86,17 @@ class Orable(object):
         return []
     
     
-class Task(Orable, ModelComponent):
+# class Task(Orable, ModelComponent):
+class Task(Orable, ModelComponent, _Performable):
     """
     Base class for all tasks
     
     This class provides the base protocol for all tasks; it deals with
     dependencies, cloning, embedded tasks, task performance and unwinding.
     """
-    UNSTARTED = 1
-    PERFORMED = 2
-    REVERSED = 3
+    # UNSTARTED = 1
+    # PERFORMED = 2
+    # REVERSED = 3
 
     def __init__(self, name, repeat_til_success=True, repeat_count=1,
                  repeat_interval=15):
@@ -124,14 +125,14 @@ class Task(Orable, ModelComponent):
         self._repeat_count = repeat_count
         self.repeat_interval = None
         self._repeat_interval = repeat_interval
-        self.status = self.UNSTARTED
+        self.performance_status = self.UNSTARTED
         
     def _get_attrs_dict(self):
         d = super(Task, self)._get_attrs_dict()
         d.update({"repeat_til_success": self.repeat_til_success,
                   "repeat_count": self.repeat_count,
                   "repeat_interval": self.repeat_interval,
-                  "status": self.status})
+                  "performance_status": self.performance_status})
         return d
 
     def info(self):
@@ -145,35 +146,35 @@ class Task(Orable, ModelComponent):
     def perform(self, engine):
         """
         Perform the task.
-        
+
         Do no override this method! Instead, override
         L{Task._perform); this is the method for specializing functionality.
-                
+
         @param engine: an instance of a L{TaskEngine}; this will get passed as the
             sole argument to self._perform()
         """
-        if self.status == self.UNSTARTED:
+        if self.get_performance_status() == self.UNSTARTED:
             self._perform(engine)
-            self.status = self.PERFORMED
-            
+            self.set_performance_status(self.PERFORMED)
+
     def _perform(self, engine):
         """
         Does the actual work in performing the task.
-        
+
         Specific task classes must override this method (and not call super())
         and in their implemention perform the work needed for the task.
-        
+
         The default implementation just raises TypeError
-        
+
         @raise TypeError: Raised by the default implementation; method must
             be overridden.
         """
         raise TypeError("Derived class must implement")
-    
+
     def reverse(self, engine):
         """
         Undo whatever was done during the perform() method.
-        
+
         This allows the task author to provide a means to undo the work that
         was done during perform. This is so that when a system is being
         de-provisioned/decomissioned, any cleanup or wrap-up tasks can be
@@ -182,20 +183,20 @@ class Task(Orable, ModelComponent):
         activity in perform, but defining work in wrap-up, a model can then
         contain nodes that only do meaningful work during the deco lifecycle
         phase of a system.
-        
+
         Don't override this method; instead, override L{Task._reverse}
-        
+
         @param engine: an instance of L{TaskEngine}. this will passed as the sole
             argument to self._reverse()
         """
-        if self.status == self.PERFORMED:
+        if self.get_performance_status() == self.PERFORMED:
             self._reverse(engine)
-            self.status = self.REVERSED
-            
+            self.set_performance_status(self.REVERSED)
+
     def _reverse(self, engine):
         """
         "undo" whatever was done in perform.
-        
+
         Subclasses should override this method to provide a way to "undo" what
         was done in perform. If there is no need to "undo", this method may
         be ignored. The default implementation does nothing.
@@ -670,7 +671,7 @@ class TaskEngine(object):
         try:
             logger.info(fmtmsg("start %s-ing task" % direction))
             meth(task, logfile=logfile)
-            task.status = success_status
+            task.set_performance_status(success_status)
             tec.status = TaskExecControl.SUCCESS
             logger.info(fmtmsg("task successfully %s-ed" % direction))
         except Exception as e:
@@ -725,7 +726,7 @@ class TaskEngine(object):
                         # to be performed again, as it may very well have an implicit dependency
                         # on something else
                         self.task_queue.put((graph, tec))
-                    elif task.status == task.PERFORMED:
+                    elif task.get_performance_status() == task.PERFORMED:
                         with self.node_lock:
                             self.num_tasks_to_perform -= 1
                             logger.info("Remaining tasks to perform: %s" %
@@ -760,7 +761,7 @@ class TaskEngine(object):
                         # to be performed again, as it may very well have an implicit dependency
                         # on something else
                         self.task_queue.put((graph, tec))
-                    elif task.status == task.REVERSED:
+                    elif task.get_performance_status() == task.REVERSED:
                         with self.node_lock:
                             self.num_tasks_to_perform -= 1
                             logger.debug("Remaining tasks to reverse: %s" %

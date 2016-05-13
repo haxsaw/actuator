@@ -504,11 +504,11 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
 
     def _get_attrs_dict(self):
         d = super(ComponentGroup, self)._get_attrs_dict()
-        # d["_kwargs"] = _kwargs = {}
-        d["_kwargs"] = {}
+        d["_kwargs"] = _kwargs = {}
+        # d["_kwargs"] = {}
         for k in self._kwargs:
             comp = getattr(self, k)
-            # _kwargs[k] = comp
+            _kwargs[k] = comp
             d[k] = comp
         return d
 

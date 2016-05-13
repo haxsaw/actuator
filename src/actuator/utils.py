@@ -29,6 +29,7 @@ import pdb
 import datetime
 import collections
 import threading
+import types
 
 base_logger_name = "actuator"
 logging.basicConfig(format="%(levelname)s::%(asctime)s::%(name)s:: %(message)s")
@@ -117,7 +118,7 @@ class ClassModifier(object):
         class_locals = sys._getframe(1).f_locals
         modifiers = class_locals.setdefault(MODIFIERS, [])
         modifiers.append((self, args, kwargs))
-        
+
     def process(self, obj, *args, **kwargs):
         self.func(obj, *args, **kwargs)
 
@@ -288,18 +289,28 @@ class _CallableRef(_SignatureDict):
     _CALLABLE_MODULE_ = "_callable_module_"
 
 
-class _InvokableAttrRecovery(_SignatureDict):
-    _KIND_ = "_InvokableAttrRecovery"
+class ValueRecoverer(object):
+    def __init__(self, value, setter):
+        if not isinstance(setter, types.MethodType):
+            raise UtilsException("The provided setter, %s, is not an instance method" % setter)
+        self.value = value
+        self.setter = setter
+
+
+class _InvokableAttrRef(_SignatureDict):
+    _KIND_ = "_InvokableAttrRef"
     _VALUE_ = "_value_"
     _SETTER_ = "_setter_"
 
-    def __init__(self, value, setter):
-        self[self._VALUE_] = value
-        self[self._SETTER_] = setter
+    def __init__(self, recoverer):
+        if not isinstance(recoverer, ValueRecoverer):
+            raise UtilsException("The 'recoverer' argument must be an instance eof ValueRecoverer")
+        self[self._VALUE_] = recoverer.value
+        self[self._SETTER_] = recoverer.setter.im_func.__name__
 
     def recover(self, obj):
-        object.__getattribute__(self[self._SETTER_])(self[self._VALUE_])
-    
+        object.__getattribute__(obj, self[self._SETTER_])(self[self._VALUE_])
+
     
 class _PersistablesCyclesDeco(object):
     def __init__(self):
@@ -312,13 +323,11 @@ class _PersistablesCyclesDeco(object):
         def cycle_checker(persistable):
             if not hasattr(self.local, "visitation_set"):
                 self.local.visitation_set = set()
-            if persistable in self.local.visitation_set:
-                raise StopIteration
-            else:
-                self.local.visitation_set.add(persistable)
+            per_id = id(persistable)
+            if per_id not in self.local.visitation_set:
+                self.local.visitation_set.add(per_id)
                 for p in self.m(persistable):
                     yield p
-                self.local.visitation_set.remove(persistable)
         cycle_checker.__name__ = self.m.__name__
         cycle_checker.__doc__ = self.m.__doc__
         return cycle_checker
@@ -397,6 +406,10 @@ class _Persistable(object):
                     retval = retval.get_class()
                 elif isinstance(retval, _PersistedKeyAsAttr):
                     retval = retval.get_kaa()
+                elif isinstance(retval, _InvokableAttrRef):
+                    # these are passed out as is; the caller is responsible for
+                    # doing the right thing with the object
+                    pass
                 else:
                     raise UtilsException("Unknown kind of SigDict: %s" % retval[_SignatureDict._KIND_])
             elif isinstance(v, dict):
@@ -467,6 +480,8 @@ class _Persistable(object):
             retval = _ClassRef(v)
         elif isinstance(v, KeyAsAttr):
             retval = _PersistedKeyAsAttr(v)
+        elif isinstance(v, ValueRecoverer):
+            retval = _InvokableAttrRef(v)
         return retval
         
     def obj_sig_dict(self):
@@ -532,103 +547,35 @@ class _Persistable(object):
             except UtilsException, e:
                 raise UtilsException("Got an exception trying to recover attribute %s: %s"
                                      % (k, e.message))
-            setattr(self, k, v)
+            if isinstance(v, _InvokableAttrRef):
+                v.recover(self)
+            else:
+                setattr(self, k, v)
         return
 
 
 class _AbstractPerformable(object):
-    UNSTARTED = 1
-    PERFORMED = 2
-    REVERSED = 3
+    UNSTARTED = "unstarted"
+    PERFORMED = "performed"
+    REVERSED = "reversed"
 
-    def get_status(self):
+    def get_performance_status(self):
         raise TypeError("Derived class must implement")
 
-    def set_status(self, status):
+    def set_performance_status(self, status):
         raise TypeError("Derived class must implement")
-
-    def perform(self, engine):
-        """
-        Perform the performable.
-
-        Do no override this method! Instead, override
-        L{_Performable._perform); that method is for specializing functionality.
-
-        @param engine: an instance of a L{TaskEngine}; this will get passed as the
-            sole argument to self._perform()
-        """
-        if self.get_status() == self.UNSTARTED:
-            self._perform(engine)
-            self.set_status(self.PERFORMED)
-
-    def _perform(self, engine):
-        """
-        Does the actual work in performing the performable.
-
-        Specific performable classes must override this method (and not call super())
-        and in their implemention perform the work needed for the performable.
-
-        The default implementation just raises TypeError
-
-        @raise TypeError: Raised by the default implementation; method must
-            be overridden.
-        """
-        raise TypeError("Derived class must implement")
-
-    def reverse(self, engine):
-        """
-        Undo whatever was done during the perform() method.
-
-        This allows the performable author to provide a means to undo the work that
-        was done during perform. This is so that when a system is being
-        de-provisioned/decomissioned, any cleanup or wrap-up tasks can be
-        performed before the system goes away. It also can provide the means to
-        define tasks that only do work during wrap-up; by not defining any
-        activity in perform, but defining work in wrap-up, a model can then
-        contain nodes that only do meaningful work during the deco lifecycle
-        phase of a system.
-
-        Don't override this method; instead, override L{_Performable._reverse}
-
-        @param engine: an instance of L{TaskEngine}. this will passed as the sole
-            argument to self._reverse()
-        """
-        if self.get_status() == self.PERFORMED:
-            self._reverse(engine)
-            self.set_status(self.REVERSED)
-
-    def _reverse(self, engine):
-        """
-        "undo" whatever was done in perform.
-
-        Subclasses should override this method to provide a way to "undo" what
-        was done in perform. If there is no need to "undo", this method may
-        be ignored. The default implementation does nothing.
-        """
-        return
 
 
 class _Performable(_AbstractPerformable):
-    UNSTARTED = 1
-    PERFORMED = 2
-    REVERSED = 3
-
     def __init__(self, *args, **kwargs):
         super(_Performable, self).__init__(*args, **kwargs)
-        self.status = self.UNSTARTED
+        self.performance_status = self.UNSTARTED
 
+    def get_performance_status(self):
+        return self.performance_status
 
-class _PersistablePerformable(_Persistable, _Performable):
-    """
-    Helper for common performables that are also persistable
-    """
-    def _get_attrs_dict(self):
-        d = super(_PersistablePerformable, self)._get_attrs_dict()
-        d["status"] = self.get_status()
-        return d
-
-    def finalize_reanimate(self):
-        self.set_status(self.status)
+    def set_performance_status(self, status):
+        self.performance_status = status
 
 
 # adapted from pickle.Unpickler

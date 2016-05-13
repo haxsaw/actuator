@@ -68,6 +68,19 @@ class ProvisioningTask(Task):
         self._rsrc_by_id[rsrc._id] = rsrc
         self.rsrc_id = rsrc._id
 
+    def get_performance_status(self):
+        rsrc = self._rsrc_by_id.get(self.rsrc_id)
+        if not rsrc:
+            raise ProvisionerException("get_performance_status can't find resource %s by id while trying to determine its performance_status"
+                                       % self.rsrc_id)
+        return rsrc.get_performance_status()
+
+    def set_performance_status(self, status):
+        rsrc = self._rsrc_by_id.get(self.rsrc_id)
+        if not rsrc:
+            raise ProvisionerException("set_performance_status can't find resource %s by id while trying to determine its performance_status" % self.rsrc_id)
+        rsrc.set_performance_status(status)
+
     def _get_rsrc(self):
         return self._rsrc_by_id[self.rsrc_id]
     
@@ -168,13 +181,13 @@ class ProvisionSecGroupTask(ProvisioningTask):
 @capture_mapping(_rt_domain, SecGroupRule)
 class ProvisionSecGroupRuleTask(ProvisioningTask):
     def depends_on_list(self):
-        return ([self.rsrc.slave_secgroup]
-                if isinstance(self.rsrc.slave_secgroup, SecGroup)
+        return ([self.rsrc.secgroup]
+                if isinstance(self.rsrc.secgroup, SecGroup)
                 else [])
         
     def _perform(self, engine):
         run_context = engine.get_context()
-        sg_id = self.rsrc._get_arg_msg_value(self.rsrc.slave_secgroup,
+        sg_id = self.rsrc._get_arg_msg_value(self.rsrc.secgroup,
                                              SecGroup,
                                              "osid", "secgroup")
         response = run_context.cloud.create_security_group_rule(sg_id,

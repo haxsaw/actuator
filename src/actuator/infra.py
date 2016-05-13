@@ -23,7 +23,8 @@
 Support for creating Actuator infrastructure models
 '''
 
-from actuator.utils import ClassModifier, process_modifiers, _Persistable, KeyAsAttr
+from actuator.utils import (ClassModifier, process_modifiers, _Persistable, KeyAsAttr,
+                            _Performable)
 from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                ModelComponent, AbstractModelingEntity,
                                ModelInstanceReference,
@@ -33,7 +34,8 @@ from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                _Nexus)
 
 
-class InfraException(ActuatorException): pass
+class InfraException(ActuatorException):
+    pass
 
 
 _infra_options = "__infra_options__"
@@ -123,7 +125,8 @@ class MultiResourceGroup(_LNMixin, MultiComponentGroup):
         return MultiResource(group)
 
 
-class Provisionable(_LNMixin, ModelComponent):
+# class Provisionable(_LNMixin, ModelComponent):
+class Provisionable(_LNMixin, ModelComponent, _Performable):
     """
     This class serves as a marker class for any L{ModelComponent} derived
     class as something that can actually be provisioned.

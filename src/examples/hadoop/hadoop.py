@@ -76,13 +76,13 @@ class HadoopInfra(InfraModel):
     with_infra_options(long_names=True)
     fip_pool = "public"  # attributes that aren't resources are ignored
     # add the standard slave_secgroup and connectivity components
-    slave_secgroup = make_std_secgroup("slave", desc="For Hadoop slaves")
+    slave_secgroup = make_std_secgroup("slave_sg", desc="For Hadoop slaves")
     gateway = external_connection
     
     kp = KeyPair(pkn, pkn, pub_key_file=find_file("%s.pub" % pkn))
     
     # create an additional secgroup for the namenode
-    namenode_secgroup = make_std_secgroup("namenode", desc="For Hadoop namenode")
+    namenode_secgroup = make_std_secgroup("namenode_sg", desc="For Hadoop namenode")
     # add additional rules specific to the Hadoop namenode secgroup
     # note that we pick up the port numbers from the namespace model via a context expression;
     # they could be hard-coded here, but by taking them from the namespace they can be changed on
