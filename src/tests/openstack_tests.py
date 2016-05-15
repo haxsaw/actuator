@@ -1387,8 +1387,8 @@ def test079():
     """
     i79 = Infra79("79")
     i79p = persistence_helper(i79)
-    assert (i79p.sgr1.slave_secgroup.value() is i79p.sg.value() and
-            i79p.sgr2.slave_secgroup.value() is i79p.sg.value() and
+    assert (i79p.sgr1.secgroup.value() is i79p.sg.value() and
+            i79p.sgr2.secgroup.value() is i79p.sg.value() and
             i79p.sgr1.ip_protocol.value() == "tcp" and
             i79p.sgr2.from_port.value() == 80 and
             i79p.sgr1.to_port.value() == 8001 and

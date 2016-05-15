@@ -312,27 +312,6 @@ class _InvokableAttrRef(_SignatureDict):
         object.__getattribute__(obj, self[self._SETTER_])(self[self._VALUE_])
 
     
-class _PersistablesCyclesDeco(object):
-    def __init__(self):
-        self.local = threading.local()
-        self.m = None
-        
-    def __call__(self, m):
-        self.m = m
-
-        def cycle_checker(persistable):
-            if not hasattr(self.local, "visitation_set"):
-                self.local.visitation_set = set()
-            per_id = id(persistable)
-            if per_id not in self.local.visitation_set:
-                self.local.visitation_set.add(per_id)
-                for p in self.m(persistable):
-                    yield p
-        cycle_checker.__name__ = self.m.__name__
-        cycle_checker.__doc__ = self.m.__doc__
-        return cycle_checker
-        
-    
 class _Persistable(object):
     """
     Internal utility mixin that defines the persist/restore protocol
@@ -509,7 +488,6 @@ class _Persistable(object):
         """
         return {}
     
-    # @_PersistablesCyclesDeco()
     def find_persistables(self):
         """
         A generator that yields a stream of _Persistables, including self.

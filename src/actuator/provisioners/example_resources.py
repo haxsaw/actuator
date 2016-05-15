@@ -28,9 +28,12 @@ from actuator.infra import Provisionable
 class ProvisionableWithFixer(Provisionable):
     def _fix_arguments(self, provisioner=None):
         for k, v in self.__dict__.items():
-            # setattr(self, k[1:], self._get_arg_value(v))
             if k.startswith("_") and hasattr(self, k[1:]):
                 setattr(self, k[1:], self._get_arg_value(v))
+            elif hasattr(self, "_{}".format(k)):
+                pass
+            else:
+                setattr(self, k, self._get_arg_value(v))
 
 
 class Network(ProvisionableWithFixer):
@@ -61,7 +64,7 @@ class Server(ProvisionableWithFixer):
         # self.__dict__.update(kwargs)
         for k, v in kwargs.items():
             setattr(self, k, None)
-            setattr(self, "_{}.format(k)", v)
+            setattr(self, "_{}".format(k), v)
         self.kwargs = kwargs
 
     def _get_attrs_dict(self):
@@ -89,7 +92,7 @@ class Database(ProvisionableWithFixer):
         self.adminPassword = None
         for k, v in kwargs.items():
             setattr(self, k, None)
-            setattr(self, "_{}.format(k)", v)
+            setattr(self, "_{}".format(k), v)
         self.kwargs = kwargs
 
     def _get_attrs_dict(self):
@@ -118,7 +121,7 @@ class Queue(ProvisionableWithFixer):
         self.port = None
         for k, v in kwargs.items():
             setattr(self, k, None)
-            setattr(self, "_{}.format(k)", v)
+            setattr(self, "_{}".format(k), v)
         self.kwargs = kwargs
 
     def _get_attrs_dict(self):

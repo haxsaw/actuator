@@ -169,7 +169,14 @@ def test24():
 
 
 def test25():
-    assert MyInfra.grid[2].mem.value() == "8GB"
+    # assert MyInfra.grid[2]._mem.value() == "8GB"
+    # Since we've made the example objects work like real resources, we
+    # need to fix the values to access attributes as they are created; if not fixed
+    # we need to use the variations that have a leading '_'. HOWEVER, attributes that
+    # have a leading underscore don't get a model reference, they are returned as-is
+    # so the previous version of this test that could use value() won't work as
+    # you are actually getting the string.
+    assert MyInfra.grid[2]._mem == "8GB"
 
 
 def test26():
@@ -817,7 +824,11 @@ def test125():
 def test126():
     group_thing = ResourceGroup("group",
                                 reqhandler=Server("reqhandler", mem="8GB"),
-                                slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem))
+                                # ctxt expr below refers to the pre-fixed value of the attribute;
+                                # this is because this test doesn't exercise depedencies,
+                                # and there's no way to ensure that the Server being referenced
+                                # gets fixed before this server does
+                                slave=Server("grid", mem=ctxt.comp.container.reqhandler._mem))
 
     class CGTest8(InfraModel):
         group = group_thing
@@ -831,10 +842,14 @@ def test126():
 def test127():
     group_thing = ResourceGroup("group",
                                 reqhandler=Server("reqhandler", mem="8GB"),
-                                slave=Server("grid", mem=ctxt.comp.container.reqhandler.mem))
+                                # ctxt expr below refers to the pre-fixed value of the attribute;
+                                # this is because this test doesn't exercise depedencies,
+                                # and there's no way to ensure that the Server being referenced
+                                # gets fixed before this server does
+                                slave=Server("grid", mem=ctxt.comp.container.reqhandler._mem))
 
     class CGTest9(InfraModel):
-        top = Server("topper", mem=ctxt.model.group.reqhandler.mem)
+        top = Server("topper", mem=ctxt.model.group.reqhandler._mem)
         group = group_thing
 
     inst = CGTest9("ctg9")
@@ -882,7 +897,10 @@ def test131():
         server = Server("dummy", mem="8GB", adict={'a': 1, 'b': 2, 'c': 3})
 
     inst = Test131("t131")
-    assert inst.server.adict['a'] == 1
+    # these args are actually stored in an alternate attribute whose name
+    # starts with '_'. The official attribute only gets set after fixing,
+    # so we need to test the _ version if we don't fix
+    assert inst.server._adict['a'] == 1
 
 
 def test132():
@@ -899,7 +917,10 @@ def test132():
 
 def test133():
     def tfunc(context):
-        return context.model.server.mem
+        # these args are actually stored in an alternate attribute whose name
+        # starts with '_'. The official attribute only gets set after fixing,
+        # so we need to test the _ version if we don't fix
+        return context.model.server._mem
 
     class Test133(InfraModel):
         reqhandler = Server("dummy1", mem=tfunc)
@@ -919,6 +940,8 @@ def test134():
         with_resources(**components)
 
     inst = Test134("t134")
+    inst.server.fix_arguments()
+    inst.db.fix_arguments()
     assert inst.server.mem.value() == "16GB" and inst.db.wibble.value() == 9
 
 
@@ -1307,9 +1330,10 @@ def test162():
 
 def do_all():
     setup()
-    for k, v in globals().items():
-        if k.startswith("test") and callable(v):
-            v()
+    test25()
+    # for k, v in globals().items():
+    #     if k.startswith("test") and callable(v):
+    #         v()
 
 
 if __name__ == "__main__":
