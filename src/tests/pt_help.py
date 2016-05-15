@@ -39,5 +39,8 @@ def persistence_helper(ns_model=None, infra_model=None):
     d = persist_to_dict(orch)
     d_json = json.dumps(d)
     d = json.loads(d_json)
-    o2 = reanimate_from_dict(d)
+    try:
+        o2 = reanimate_from_dict(d)
+    except Exception as e:
+        raise
     return o2

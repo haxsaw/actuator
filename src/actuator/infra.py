@@ -145,6 +145,15 @@ class Provisionable(_LNMixin, ModelComponent, _Performable):
     #     self.other_deps = [d.fix_arguments() for d in self._other_deps
     #                        if isinstance(d, Provisionable)]
 
+    def _get_attrs_dict(self):
+        """
+        We need to add in this method as _Performable adds an attribute we need
+        to persist, and ModelComponent is a kind of _Persistable
+        """
+        d = super(Provisionable, self)._get_attrs_dict()
+        d["performance_status"] = self.performance_status
+        return d
+
     def get_display_name(self):
         """
         Returns the name to use in reports and displays.

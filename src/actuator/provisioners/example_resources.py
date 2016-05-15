@@ -28,88 +28,107 @@ from actuator.infra import Provisionable
 class ProvisionableWithFixer(Provisionable):
     def _fix_arguments(self, provisioner=None):
         for k, v in self.__dict__.items():
-            setattr(self, k, self._get_arg_value(v))
-            
-            
+            # setattr(self, k[1:], self._get_arg_value(v))
+            if k.startswith("_") and hasattr(self, k[1:]):
+                setattr(self, k[1:], self._get_arg_value(v))
+
+
 class Network(ProvisionableWithFixer):
     def __init__(self, name, ipv6=False, cidr=None):
         super(Network, self).__init__(name)
-        self.ipv6 = ipv6
-        self.cidr = cidr
-        
+        # self.ipv6 = ipv6
+        self._ipv6 = ipv6
+        self.ipv6 = None
+        # self.cidr = cidr
+        self._cidr = cidr
+        self.cidr = None
+
     def _get_attrs_dict(self):
         d = super(Network, self)._get_attrs_dict()
-        d.update( {"ipv6":self.ipv6,
-                   "cidr":self.cidr} )
+        d.update({"ipv6": self.ipv6,
+                  "cidr": self.cidr})
         return d
-    
+
     def get_init_args(self):
-        return ((self.name,), {"ipv6":self.ipv6,
-                               "cidr":self.cidr})
+        return (self.name,), {"ipv6": self.ipv6,
+                              "cidr": self.cidr}
 
 
 class Server(ProvisionableWithFixer):
     def __init__(self, name, **kwargs):
         super(Server, self).__init__(name)
         self.provisionedName = None
-        self.__dict__.update(kwargs)
+        # self.__dict__.update(kwargs)
+        for k, v in kwargs.items():
+            setattr(self, k, None)
+            setattr(self, "_{}.format(k)", v)
         self.kwargs = kwargs
-        
+
     def _get_attrs_dict(self):
         d = super(Server, self)._get_attrs_dict()
-        d.update( {"provisionedName":self.provisionedName,
-                   "kwargs":None} )
+        d.update({"provisionedName": self.provisionedName,
+                  "kwargs": None})
         for k in self.kwargs.keys():
             d[k] = getattr(self, k)
         return d
-        
+
     def get_init_args(self):
-        return ((self.name,), self.kwargs)
-    
-    
+        return (self.name,), self.kwargs
+
+
 class Database(ProvisionableWithFixer):
     def __init__(self, name, **kwargs):
         super(Database, self).__init__(name)
+        self._provisionedName = None
         self.provisionedName = None
+        self._port = None
         self.port = None
+        self._adminUser = None
         self.adminUser = None
+        self._adminPassword = None
         self.adminPassword = None
-        object.__getattribute__(self, "__dict__").update(kwargs)
+        for k, v in kwargs.items():
+            setattr(self, k, None)
+            setattr(self, "_{}.format(k)", v)
         self.kwargs = kwargs
-        
+
     def _get_attrs_dict(self):
         d = super(Database, self)._get_attrs_dict()
-        d.update( {"provisionedName":self.provisionedName,
-                   "port":self.port,
-                   "adminUser":self.adminUser,
-                   "adminPassword":self.adminPassword,
-                   "kwargs":None})
-        return d
-        
-    def get_init_args(self):
-        return ((self.name,), self.kwargs)
-    
-    
-class Queue(ProvisionableWithFixer):
-    def __init__(self, name, **kwargs):
-        super(Queue, self).__init__(name)
-        self.provisionedName = None
-        self.qmanager = None
-        self.host = None
-        self.port = None
-        object.__getattribute__(self, "__dict__").update(kwargs)
-        self.kwargs = kwargs
-        
-    def _get_attrs_dict(self):
-        d = super(Queue, self)._get_attrs_dict()
-        d.update( {"provisionedName":self.provisionedName,
-                   "qmanager":self.qmanager,
-                   "host":self.host,
-                   "port":self.port,
-                   "kwargs":None} )
+        d.update({"provisionedName": self.provisionedName,
+                  "port": self.port,
+                  "adminUser": self.adminUser,
+                  "adminPassword": self.adminPassword,
+                  "kwargs": None})
         return d
 
     def get_init_args(self):
-        return((self.name,), self.kwargs)
-    
-        
+        return (self.name,), self.kwargs
+
+
+class Queue(ProvisionableWithFixer):
+    def __init__(self, name, **kwargs):
+        super(Queue, self).__init__(name)
+        self._provisionedName = None
+        self.provisionedName = None
+        self._qmanager = None
+        self.qmanager = None
+        self._host = None
+        self.host = None
+        self._port = None
+        self.port = None
+        for k, v in kwargs.items():
+            setattr(self, k, None)
+            setattr(self, "_{}.format(k)", v)
+        self.kwargs = kwargs
+
+    def _get_attrs_dict(self):
+        d = super(Queue, self)._get_attrs_dict()
+        d.update({"provisionedName": self.provisionedName,
+                  "qmanager": self.qmanager,
+                  "host": self.host,
+                  "port": self.port,
+                  "kwargs": None})
+        return d
+
+    def get_init_args(self):
+        return (self.name,), self.kwargs

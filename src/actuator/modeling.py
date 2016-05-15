@@ -573,6 +573,9 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     def _find_persistables(self):
         for p in super(MultiComponent, self)._find_persistables():
             yield p
+        # yield self.template_component
+        for p in self.template_component.find_persistables():
+            yield p
         for i in self._instances.values():
             for p in i.find_persistables():
                 yield p
@@ -580,6 +583,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     def _get_attrs_dict(self):
         d = super(MultiComponent, self)._get_attrs_dict()
         d.update({"_instances": self._instances,
+                  # "template_component": self.template_component})
                   "template_component": None})
         return d
 

@@ -113,7 +113,7 @@ if __name__ == "__main__":
         elif cmd == teardown_op[0]:
             print "Tearing down; won't be able to re-run later"
             if not ao.provisioner:
-                ao.set_provisioner(OpenstackProvisioner(cloud_name="trystack", num_threads=5))
+                ao.set_provisioner(OpenstackProvisioner(cloud_name="citycloud", num_threads=5))
             success = ao.teardown_system()
             if success:
                 print "\n...done! Your system has been de-commissioned"

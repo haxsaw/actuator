@@ -344,6 +344,7 @@ class _Persistable(object):
     _version = "__VERSION__"
     _path = "__PATH__"
     _vernum = 1
+    _seen_sets = {}  # keys are thread names, values are sets of _Persistables seen in find_persistables
 
     def get_attrs_dict(self):
         ad = self._get_attrs_dict()
@@ -508,11 +509,35 @@ class _Persistable(object):
         """
         return {}
     
-    @_PersistablesCyclesDeco()
+    # @_PersistablesCyclesDeco()
     def find_persistables(self):
-        yield self
-        for p in self._find_persistables():
-            yield p
+        """
+        A generator that yields a stream of _Persistables, including self.
+
+        This method is a generator that yields a stream of _Persistables. These
+        are objects that are all subclasses of _Persistable, so each yielded object
+        may be interrogated for data that will allow it to be persisted.
+
+        The method
+        :return:
+        """
+        tname = threading.current_thread().name
+        make_seen = tname not in self._seen_sets
+        if make_seen:
+            seen = set()
+            self._seen_sets[tname] = seen
+        else:
+            seen = self._seen_sets[tname]
+        pid = id(self)
+        if pid not in seen:
+            seen.add(pid)
+            yield self
+            for p in self._find_persistables():
+                yield p
+        if make_seen:
+            seen.clear()
+            del self._seen_sets[tname]
+            del seen
             
     def _find_persistables(self):
         """

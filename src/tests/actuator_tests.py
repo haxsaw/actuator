@@ -140,7 +140,7 @@ def test07():
 
 
 class Infra7(InfraModel):
-    num_slaves = 20
+    num_slaves = 2
     master = Server("master", mem="8GB", net=ctxt.model.network)
     network = Network("net", cidr="192.168.6.0/24")
     clusters = MultiResourceGroup("cell",
@@ -160,10 +160,10 @@ class Infra7(InfraModel):
 
 def test08():
     """
-    Check that we can save/reanimate a MultiResourceGroup
+    test08: Check that we can save/reanimate a MultiResourceGroup
     """
     i0 = Infra7("i8")
-    i0.size(5)
+    i0.size(3)
     _ = i0.refs_for_components()
     op = persistence_helper(None, i0)
     i1 = op.infra_model_inst
@@ -608,14 +608,15 @@ def test27():
 
 
 def do_all():
-    g = globals()
-    keys = list(g.keys())
-    keys.sort()
-    for k in keys:
-        v = g[k]
-        if k.startswith("test") and callable(v):
-            print "Running ", k
-            v()
+    test05()
+    # g = globals()
+    # keys = list(g.keys())
+    # keys.sort()
+    # for k in keys:
+    #     v = g[k]
+    #     if k.startswith("test") and callable(v):
+    #         print "Running ", k
+    #         v()
 
 
 if __name__ == "__main__":
