@@ -46,7 +46,7 @@ import traceback
 import time
 
 from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
-                      ctxt, ActuatorException, _Nexus)
+                      ctxt, ActuatorException, _Nexus, CallContext)
 from infra import (InfraModel, InfraException, with_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup,
                    with_infra_options)

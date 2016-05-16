@@ -46,14 +46,15 @@ class _ModelRefSetAcquireable(object):
 
 
 class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
-    #Internal
+    # Internal
     #
-    #Mako-compatible replacement
+    # Mako-compatible replacement
     _prefix = r'\!{'
     _suffix = r'}'
     _replacement_pattern = re.compile("%s[a-zA-Z_]+[a-zA-Z0-9_]*%s" % (_prefix, _suffix))
     _prefix_len = 2
     _suffix_len = 1
+
     def __init__(self, value):
         """
         Create a new _ComputableValue instance
@@ -180,7 +181,7 @@ class Var(_ModelRefSetAcquireable, _Persistable):
             2. A string with a replacement pattern ( !{name} )
             3. A callable that returns one of the above strings. The callable
                 must take a single argument, a L{CallContext} instance that
-                describes context where the callable is being invoked
+                describes the context from which the callable is being invoked
             4. A AbstractModelReference that returns a string (that won't be
                 processed further)
         @param in_env: Optional; default True. Indicates whether the Var should

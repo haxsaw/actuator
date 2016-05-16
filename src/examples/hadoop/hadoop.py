@@ -24,7 +24,7 @@ from actuator.provisioners.openstack.resources import *  # @UnusedWildImport
 from hadoop_node import common_vars, HadoopNodeConfig, pkn
 from actuator.utils import find_file
 
-#T his ResourceGroup is boilerplate for making Openstack resources available
+# This ResourceGroup is boilerplate for making Openstack resources available
 # externally. They are created outside an infra model to illustrate that they
 # can be factored out into a shared module of reusable components.
 external_connection = ResourceGroup("route_out",
@@ -115,18 +115,17 @@ class HadoopInfra(InfraModel):
     name_node_fip = FloatingIP("name_node_fip", ctxt.model.name_node,
                                ctxt.model.name_node.iface0.addr0,
                                pool=ctxt.nexus.ns.v.EXTNET)
-                               # pool=fip_pool)
     # HADOOP slaves
     slaves = MultiResourceGroup("slaves",
-                                 slave=Server("slave", ctxt.nexus.ns.v.IMAGE,
-                                              ctxt.nexus.ns.v.FLAVOR,
-                                              nics=[ctxt.model.gateway.net],
-                                              security_groups=[ctxt.model.slave_secgroup.group],
-                                              **common_kwargs),
-                                 slave_fip=FloatingIP("sn_fip",
-                                                      ctxt.comp.container.slave,
-                                                      ctxt.comp.container.slave.iface0.addr0,
-                                                      pool=ctxt.nexus.ns.v.EXTNET))
+                                slave=Server("slave", ctxt.nexus.ns.v.IMAGE,
+                                             ctxt.nexus.ns.v.FLAVOR,
+                                             nics=[ctxt.model.gateway.net],
+                                             security_groups=[ctxt.model.slave_secgroup.group],
+                                             **common_kwargs),
+                                slave_fip=FloatingIP("sn_fip",
+                                                     ctxt.comp.container.slave,
+                                                     ctxt.comp.container.slave.iface0.addr0,
+                                                     pool=ctxt.nexus.ns.v.EXTNET))
     
 
 def host_list(ctx_exp, sep_char=" "):
@@ -147,13 +146,30 @@ def host_list(ctx_exp, sep_char=" "):
     return host_list_inner
 
 
+def get_flavor(cc):
+    """
+    This function illustrates how any arbitrary callable can be used to acquire
+    values for a Var. The callable will be invoked when the value for a variable is
+    required, and is passed an instance of actuator.modeling.CallContext which describes
+    the context from which the Var is being evaluated. For Vars, the callable should return
+    a string.
+
+    This example simply returns a hard-coded value, but it could alternatively consult an
+    external data source for the value to return.
+
+    :param cc: an instance of actuator.modeling.CallContext
+    :return: string; the flavor to use
+    """
+    return "1C-0.5GB"
+
+
 class HadoopNamespace(NamespaceModel):
     with_variables(*common_vars)
     with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)),
                    Var("NAMENODE_IP", HadoopInfra.name_node.iface0.addr0))
     # set up cloud parameters
     with_variables(Var("IMAGE", "Ubuntu 14.04 - LTS - Trusty Tahr"),
-                   Var("FLAVOR", "1C-0.5GB"),
+                   Var("FLAVOR", get_flavor),
                    Var("EXTNET", "ext-net"),
                    Var("AZ", "Lon1"))
     
