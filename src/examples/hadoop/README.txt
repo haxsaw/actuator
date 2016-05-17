@@ -98,7 +98,7 @@ module, where they can easily be imported and reused. This makes the infra
 model only contain the pieces that make it unique for this purpose.
 
 Another thing to note is that the Vars used in the namespace are actually from
-an external resource (they are imported from name_node.py). This was done so that
+an external resource (they are imported from hadoop_node.py). This was done so that
 it was easier to develop the single-node configuration model in a place where
 it could be bench-tested on fixed infra during its development (more on this
 below).

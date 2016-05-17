@@ -121,8 +121,7 @@ Actuator requires the following packages:
 You can find a discussion of the basic concepts and an overview of the use of Actuator [here](Tutorial.md).
 
 ## <a name="docs">Documentation</a>
-Currently, the only supplemental documentation are the epydoc-generated docs, the source html of which can be found
-[here](doc/html). The root document is index.html.
+You can find the epydoc-generated docs [here](https://cdn.rawgit.com/haxsaw/actuator/master/doc/html/index.html) and the source html can be found [here](doc/html).
 
 ## <a name="hadoop">Hadoop Example</a>
 A more significant example of Actuator's use can be found in the examples directory. It is a set of models that describe setting up a Hadoop cluster with an arbitrary number of slave nodes. You can see the readme and associated example files
