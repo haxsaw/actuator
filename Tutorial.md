@@ -700,9 +700,9 @@ class SimpleNamespace(NamespaceModel):
 ns = SimpleNamespace()
 ```
 
-We've established several Vars at the model level, one which includes a hard-coded IP to use for commands, in this case 'localhost', and a single role that will be the target of the files we want to copy. *NOTE*: Actuator uses [Ansible](https://pypi.python.org/pypi/ansible/1.7.2) under the covers for managing the execution of commands over ssh, and hence for this example to work it must be run on a *nix box that has appropriate ssh keys set up to allow for passwordless login.
+We've established several Vars at the model level, one which includes a hard-coded IP to use for commands, in this case 'localhost', and a single role that will be the target of the files we want to copy. *NOTE*: Actuator uses [Paramiko](https://pypi.python.org/pypi/paramiko) under the covers for managing the execution of commands over ssh, and hence for this example to work it must be run on a *nix box that has appropriate ssh keys set up to allow for passwordless login.
 
-Declaring tasks is a matter of creating one or more instances of various task classes which in many cases are Actuator analogs for Ansible modules. In this example, we'll declare two tasks: one which will remove any past files copied to the target (only really needed for non-dynamic hosts), and another that will copy the files to the target, in this case the Actuator package itself.
+Declaring tasks is a matter of creating one or more instances of various task classes. In this example, we'll declare two tasks: one which will remove any past files copied to the target (only really needed for non-dynamic hosts), and another that will copy the files to the target, in this case the Actuator package itself.
 
 ```python
 import os, os.path
@@ -726,9 +726,9 @@ This config model is set up to run the cleanup and copy tasks on whatever host i
 Once a a config model has been created, it can be given to an execution agent for processing against a specific namespace:
 
 ```python
-from actuator.exec_agents.ansible.agent import AnsibleExecutionAgent
+from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 cfg = SimpleConfig()
-ea = AnsibleExecutionAgent(config_model_instance=cfg,
+ea = ParamikoExecutionAgent(config_model_instance=cfg,
                            namespace_model_instance=ns)
 ea.perform_config()
 ```
@@ -778,32 +778,34 @@ with_dependencies( t3 | t4 | t5 )
 #or various combinations of the above
 ```
 
-The with_dependencies() function can take any number of dependency expressions and be invoked any number of times. It will collect all dependency expressions from all the arguments and each invocation and assemble a dependency graph that instructs it how to perform the config model's tasks. All tasks that don't appear an any dependency expression are performed immedicately.
+The with_dependencies() function can take any number of dependency expressions and be invoked any number of times. It will collect all dependency expressions from all the arguments and each invocation and assemble a dependency graph that instructs it how to perform the config model's tasks. All tasks that don't appear an any dependency expression are performed immediately.
 
 The above example illustrates how to arrange tasks in series, but what about tasks that can be performed in parallel? To indicate the eligibility of tasks to be performed in parallel, use the '&' operator in task dependency expressions. Using the same five tasks from above, the following would instruct Actuator to perform the identified tasks in parallel:
 
 ```python
-#Perform t1 first, then t2 and t3 together, and then t4 and t5 serially
+# Perform t1 first, then t2 and t3 together, and then t4 and t5 serially
 with_dependencies( t1 | (t2 & t3) | t4 | t5 )
-#the same, but with implicit parallelism
+# the same, but with implicit parallelism
 with_dependencies( t1 | t2, t1 | t3, t2 | t4, t3 | t4, t4 | t5 )
 
-#Perform t1 and t2 together, then t3, followed by t4 and t5 together
+# Perform t1 and t2 together, then t3, followed by t4 and t5 together
 with_dependencies( (t1 & t2) | t3 | (t4 & t5) )
-#the same, but with multiple expressions
+# the same, but with multiple expressions
 with_dependencies( (t1 & t2) | t3, t3 | (t4 & t5) )
-#the same, but with multiple invocations of with_dependencies
+# the same, but with multiple invocations of with_dependencies
 with_dependencies( (t1 & t2) | t3 )
 with_dependencies( t3 | (t4 & t5) )
 
-#Perform t1 then t2 in parallel with t3, all of which can be done in parallel with t4 then t5
+# Perform t1 then t2 in parallel with t3, all of which can be done
+# in parallel with t4 then t5
 with_dependencies( ((t1 | t2) & t3) & (t4 | t5) )
 
-#Perform t1..t5 in parallel, but then remember that t1 has to be done before t4 and add that
-#dependency in
+# Perform t1..t5 in parallel, but then remember that t1 has to be
+# done before t4 and add that
+# dependency in
 with_dependencies( t1 & t2 & t3 & t4 & t5 )
 with_dependencies( t1 | t4 )
-#the same, but after fixing your original oversight
+# the same, but after fixing your original oversight
 with_dependencies( (t1 | t4) & t2 & t3 & t5 )
 ```
 
@@ -829,9 +831,9 @@ class GridConfig(ConfigModel):
   with_dependencies(reset | copy)
 ```
 
-In the above example, the Namespace model has a role container 'grid' that can grow to define an aribitrary number of roles. For each grid node, we want to clear out a directory and then transfer a tarball to be unpacked in that same directory. To do this flexibly, we wrap the task we want to run on a group of roles in a MultiTask, providing a name for the MultiTask, a template task to apply to all the roles, and then a list of roles to apply the task to, in this case GridNamespacce.q.grid.all().
+In the above example, the Namespace model has a role container 'grid' that can grow to define an arbitrary number of roles. For each grid node, we want to clear out a directory and then transfer a tarball to be unpacked in that same directory. To do this flexibly, we wrap the task we want to run on a group of roles in a MultiTask, providing a name for the MultiTask, a template task to apply to all the roles, and then a list of roles to apply the task to, in this case GridNamespace.q.grid.all().
 
-The 'q' attribute of GridNamespace is supplied by all Actuator model base classes. It signals the start of a _reference selection expression_, which is a logical expression that yields a list of references to elements of a model. In this case, the expression will make the template task apply to every grid role that is generated in the namespace. Reference selection expressions will be gone into in more deal below.
+The 'q' attribute of GridNamespace is supplied by all Actuator model base classes. It signals the start of a _reference selection expression_, which is a logical expression that yields a list of references to elements of a model. In this case, the expression will make the template task apply to every grid role that is generated in the namespace. Reference selection expressions will be covered in more deal below.
 
 For the purposes of setting up dependencies, MultTasks can be treated like any other task; that is, they can appear in dependency expressions. The dependency system will ensure that all instances of the template task complete before the MultiTask itself completes.
 
@@ -995,3 +997,4 @@ for s in infra.slaves.values():
 ```
 
 This will show you the IPs for the provisioned resouprces. You can also inspect the model resources to determine the Openstack IDs for all provisioned resources. Likewise, the namespace can be inspected for any values determined by provisioning.
+

@@ -19,7 +19,19 @@ Actuator allows you to use Python to declaratively describe system infra, config
 
 ## <a name="intro">Intro</a>
 **Current status**
-- **12 Feb 2015:** Actuator can provision a limited set of items against Openstack clouds. It can create instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs. Not all options available via the Python Openstack client libraries are supported for each provisionable. Namespace models can drive the variable aspects of infra models successfully, and acquire information from the infra model such as IPs of a provisioned server. These can then be accessed by the configuration model, which has support of a small set of Ansible modules (specifically, ping, command, shell, script, and copy file), as well as a task that can process a template file through the namespace before it gets copied to a remote machine. Environment variables are populated from the namespace model for each configuration activity run on a remote system. Due to the direct dependency on Ansible, Actuator must itself run on a *nix box. A number of features over the Oct status have been added to make the environment more expressive.
+- **17 May 2016:** Actuator can provision a limited set of items against Openstack clouds. It can create
+instances, networks, subnets, routers (plus router gateways and interfaces), and floating IPs, and can include
+static hosts in a model. Namespace models can drive the variable aspects of infra models successfully, and
+acquire information from the infra model such as IPs of a provisioned server or floating IP. These can then
+be accessed by the configuration model, which provides a base set of tasks (specifically, ping, command,
+shell, script, local subprocess, and copy file), as well as a task that can process a template file through
+the namespace before it gets copied to a remote machine. Environment variables are populated from the
+namespace model for each configuration activity run on a remote system for all variables marked as "in_env".
+The orchestrator can not only stand up systems but tear them back down as well. Currently, Actuator must
+itself run on a *nix box, however since it no longer depends on Ansible, support for
+running directly on Windows may come at a future time. A model persistence capability has been added, which
+allows models that have been provisioned to be persisted to an external file. This file can be loaded later
+and the model re-animated, for either inspection or 
 
 Actuator seeks to provide an end-to-end set of tools for spinning up systems in the cloud, from provisioning the infra, defining the names that govern operation, configuring the infra for the software that is to be run, and then executing that system's code on the configured infra.
 
@@ -34,7 +46,10 @@ It does this by providing facilities that allow a system to be described as a co
 
 And while each model provides capabilties on their own, they can be inter-related to not only exchange information, but to allow instances of a model to tailor the content of other models.
 
-Actuator uses a Python *class* as the basis for defining a model, and the class serves as a logical description of the item being modeled; for instance a collection of infrastructure components for a system. These model classes can have both static and dynamic aspects, and can themselves be easily created within a factory function to make the classes' content highly variable.
+Actuator uses a Python *class* as the basis for defining a model, and the class serves as a logical
+description of the item being modeled; for instance a collection of infrastructure components for a system.
+These model classes can have both static and dynamic aspects, providing the means to declare systems with
+a different number of components from instance to instance.
 
 Actuator models can be related to each other so that their structure and data can inform and sometimes drive the content of other models.
 
@@ -95,10 +110,9 @@ Actuator requires the following packages:
   - [networkx](https://pypi.python.org/pypi/networkx), 1.9 minimum
   - [ipaddress](https://pypi.python.org/pypi/ipaddress), 1.0.4 minimum
   - [fake_factory](https://pypi.python.org/pypi/fake-factory) (to support running tests), 0.4.2 minimum
-  - [ansible](https://pypi.python.org/pypi/ansible/1.7.2), 1.7.2 minimum. Currently required for configuration tasks, but other config systems will be supported in the future
-  - [subprocess32](https://pypi.python.org/pypi/subprocess32), 3.2.6 minimum. MUST BE IMPORTED BEFORE ANY ANSIBLE MODULES
-  - [python_novaclient](https://pypi.python.org/pypi/python-novaclient), 2.18.1 minimum (for Openstack)
-  - [python_neutronclient](https://pypi.python.org/pypi/python-neutronclient), 2.3.7 minimum (for Openstack)
+  - [subprocess32](https://pypi.python.org/pypi/subprocess32), 3.2.6 minimum
+  - [paramiko](https://pypi.python.org/pypi/paramiko), 1.16.0 minimum
+  - [shade](https://pypi.python.org/pypi/shade), 1.17 minimum
   - [nose](https://pypi.python.org/pypi/nose), 1.3.4 minimum, for testing
   - [coverage](https://pypi.python.org/pypi/coverage), 3.7.1 minimum, for testing
   - [epydoc](https://pypi.python.org/pypi/epydoc), 3.0.1 minimum, documentation generation
@@ -122,4 +136,5 @@ The following projects and people have provided inspiration, ideas, or approache
 
 - [Elixir](http://elixir.ematia.de/trac/): Actuator's declarative style has been informed by Elixir's declarative ORM approach. Additionally, Actuator uses a similar mechanism to Elixir's for its "with_" functions that provide modifications to a modeling class (such as with_variables() and with_components()).
 - [Celery](http://www.celeryproject.org/): Actuator has re-used some of Celery's notation for describing dependencies between tasks and other entities.
-- [John Nolan](https://www.linkedin.com/pub/john-s-nolan/1/7/a8a), who provided a sounding board for ideas and spent time pairing on an initial implementation.
+- [John Nolan](https://www.linkedin.com/pub/john-s-nolan/1/7/a8a), who provided a sounding board for ideas
+and spent time pairing on an initial implementation of context expressions.
