@@ -9,26 +9,27 @@ Actuator allows you to use Python to declaratively describe system infra, config
   2. [Namespace Model](#ov_namespacemodel)
   3. [Configuration Model](#ov_configmodel)
   4. [Execution Model](#ov_execmodel)
-3. [Infra models](#inframodels)
+3. [Configuring for OpenStack](#os_config)
+4. [Infra models](#inframodels)
   1. [A simple Openstack example](#simple_openstack_example)
   2. [Multiple Resources](#multi_resources)
   3. [Resource Groups](#resource_groups)
   4. [Model References, Context Expressions, and the Nexus](#modrefs_ctxtexprs)
-4. [Namespace models](#nsmodels)
+5. [Namespace models](#nsmodels)
   1. [An example](#simplensexample)
   2. [Dynamic Namespaces](#dynamicns)
   3. [Var objects](#varobjs)
   4. [Variable setting and overrides](#overrides)
   5. [Variable references](#varrefs)
-5. [Configuration models](#configmodels)
+6. [Configuration models](#configmodels)
   1. [Declaring tasks](#taskdec)
   2. [Declaring dependencies](#taskdeps)
   3. [Dependency expressions](#depexp)
   4. [Auto-scaling tasks](#taskscaling)
   5. [Config classes as tasks](#classtasks)
   6. [Reference selection expressions](#refselect)
-6. Execution Models (yet to come)
-7. [Orchestration](#orchestration)-- putting it all together
+7. Execution Models (yet to come)
+8. [Orchestration](#orchestration)-- putting it all together
 
 ## <a name="intro">Intro</a>
 
@@ -75,6 +76,36 @@ Actuator then provides a number of support tools that can take instances of thes
 
 As may have been guessed, the key model in Actuator is the namespace model, as it serves as the focal point to tie all the other models together.
 
+##<a name="os_config">Configuring for OpenStack</a>
+
+Actuator uses the [shade](https://pypi.python.org/pypi/shade) package for accessing OpenStack clouds, which in turn uses [os-client-config](https://pypi.python.org/pypi/os-client-config) for acquiring information on how to connect to a cloud in order to make requests. The full documentation for os-client-config can be found [here](http://docs.openstack.org/developer/os-client-config/). In this following section, a short example will be provide to get you going. How this interacts with provisioning will be covered in later sections.
+
+The os-client-config package uses a YAML file, conventionally named **clouds.yml**, to store information as to the details of connecting to various clouds. You can fully specify your own cloud's details, or else use one of a number of pre-built specifications, providing only the additional information required.
+
+Here's an example of a clouds.yml file for connecting to [CityCloud](https://www.citycloud.com/):
+
+```yml
+clouds:
+    citycloud:
+        profile: citycloud
+        auth:
+            username: < your user name >
+            password: < your password >
+            project_name: < your project name >
+            domain_id: < your domain id for OpenStack >
+        region_name: Lon1  # or Sto2, Kna1, etc
+```
+
+How this gets filled out will differ from cloud to cloud; on CityCloud's control panel:
+
+- Users are created by clicking on the Account button in the upper right, and then on the "Add user" button on the Users tab
+- Projects are created by choosing Settings on the left-hand menu, and then "Manage projects" under Settings. From there you can click on "Create project"
+- On CityCloud, the domain_id seems to be associated with your account. One the left-hand menu, expand the API section, and then click on "Native Openstack API".
+
+You need to refer to the doc for your particular OpenStack implementation as well as the doc for os-client-config. To help you get the config right, Actuator includes a small test program in the src/examples directory, list_flavors.py. When run in the same directory as your cloud.yml file, it will attempt to connect to the cloud named as an argument to the program and list all the flavors offered by that cloud. Tinker with your clouds.yml file until you can successfully list flavors in your cloud.
+
+Os-client-config provides a list of pre-defined cloud profiles [here](http://docs.openstack.org/developer/os-client-config/vendor-support.html).
+
 ##<a name="inframodels">Infra models</a>
 
 Although the namespace model is the one that is most central in Actuator, it actually helps to start with the infra model as it not only is a little more accessible, but building an infra model first can yield immediate benefits. The infra model describes all the dynamically provisionable infra resources and describes how they relate to each other. The model can define groups of resources and resources that can be repeated an arbitrary number of times, allowing them to be nested in very complex configurations.
@@ -84,20 +115,28 @@ The best place to start is to develop a model that can be used to provision the 
 
 ```python
 from actuator import InfraModel, ctxt
-from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
-                                                         FloatingIP, Router,
-                                                         RouterGateway, RouterInterface)
+from actuator.provisioners.openstack.resources import (Server,
+                                                       Network,
+                                                       Subnet,
+                                                       FloatingIP,
+                                                       Router,
+                                                       RouterGateway,
+                                                       RouterInterface)
 
 class SingleOpenstackServer(InfraModel):
-  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small",
+                  nics=[ctxt.model.net])
   net = Network("actuator_ex1_net")
   fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
-  subnet = Subnet("actuator_ex1_subnet", ctxt.model.net, "192.168.23.0/24",
+  subnet = Subnet("actuator_ex1_subnet", ctxt.model.net,
+                  "192.168.23.0/24",
                   dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex1_router")
-  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
-  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
+  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router,
+                          "external")
+  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router,
+                           ctxt.model.subnet)
 ```
 
 The order of the resources in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note the use of 'ctxt.model.*' for some of the arguments; these constructions are called _context expressions_ as they result in instances of the ContextExpr class, which are used to defer the evaluation of a model reference until an instance of the model (the "context") is available to evaluate the expression against. 

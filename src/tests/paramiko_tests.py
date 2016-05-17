@@ -741,7 +741,6 @@ def test25():
 
 def do_all():
     setup_module()
-    test19()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

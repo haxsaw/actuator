@@ -134,16 +134,13 @@ class PTaskProcessor(AbstractTaskProcessor):
     def _drain(self, channel, until=None):
         if until is None:
             until = self.prompt
-        results = []
         prompt_seen = False
+        results = ""
         while channel.recv_ready() or not prompt_seen:
             chunk = channel.recv(self.read_chunk)
-            results.append(chunk)
-            if until in chunk:
-                prompt_seen = True
-            else:
-                prompt_seen = False
-        sio = StringIO("".join(results))
+            results += chunk
+            prompt_seen = until in results
+        sio = StringIO(results)
         return [l for l in sio]
     
     def _get_shell(self, client, width=200):
