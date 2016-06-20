@@ -566,7 +566,7 @@ def test019():
         copy = CopyFileTask("copy-file", "!{FILEPATH}",
                             content="This should be in !{RUSER}'s tmp\n")
         with_dependencies(make | remove | copy)
-         
+
     class CopyAllConfig(ConfigModel):
         with_config_options(**config_options)
         u1_copy = ConfigClassTask("u1-copy", CopyConfig,

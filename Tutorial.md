@@ -30,6 +30,10 @@ Actuator allows you to use Python to declaratively describe system infra, config
   6. [Reference selection expressions](#refselect)
 7. Execution Models (yet to come)
 8. [Orchestration](#orchestration)-- putting it all together
+  1. Initiating a system
+  2. Tearing a system down
+  3. Inspecting errors
+  4. Persisting models of initiated systems
 
 ## <a name="intro">Intro</a>
 
@@ -141,7 +145,7 @@ class SingleOpenstackServer(InfraModel):
 
 The order of the resources in the class isn't particularly important; the provisioner will take care of sorting out what needs to be done before what. Also note the use of 'ctxt.model.*' for some of the arguments; these constructions are called _context expressions_ as they result in instances of the ContextExpr class, which are used to defer the evaluation of a model reference until an instance of the model (the "context") is available to evaluate the expression against. 
 
-Instances of the class (and hence the model) are then created, and the instance is given to a provisioner which inspects the model instance and performs the necessary provsioning actions in the proper order.
+Instances of the class (and hence the model) are then created, and the instance is given to a provisioner which inspects the model instance and performs the necessary provisioning actions in the proper order.
 
 ```python
 from actuator.provisioners.openstack.openstack import OpenstackProvisioner
@@ -150,7 +154,7 @@ provisioner = OpenstackProvisioner(cloud_name="citycloud")
 provisioner.provision_infra_model(inst)
 ```
 
-Often, there's a lot of repeated boilerplate in an infra spec; in the above example the act of setting up a network, subnet, router, gateway, and router interface are all common resources needed to get access to provisioned infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll first recast the above example using with_resources():
+Often, there's a lot of repeated boilerplate in an infra spec; in the above example the network, subnet, router, gateway, and router interface are all common resources that need to be provisioned to get access to the infra from outside the cloud. Actuator provides two ways to factor out common groups of resources: providing a dictionary of resources to the with_resources function, and using the [ResourceGroup](#resource_groups) wrapper class to define a group of standard resources. We'll first recast the above example using with_resources():
 
 ```python
 gateway_components = {"net":Network("actuator_ex1_net"),
@@ -178,31 +182,34 @@ If you require a set of identical resources to be created in a model, the MultiR
 <a name="multiservers">&nbsp;</a>
 ```python
 from actuator import InfraModel, MultiResource, ctxt, with_resources
-from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
-                                                         FloatingIP, Router,
-                                                         RouterGateway, RouterInterface)
+from actuator.provisioners.openstack.resources import (Server,
+                                                       Network, Subnet,
+                                                       FloatingIP,
+                                                       RouterGateway,
+                                                       RouterInterface)
 
 class MultipleServers(InfraModel):
   #
-  #First, declare the common networking components with with_infra_components
+  # First, declare the common networking components with with_resources
   #
   with_resources(**gateway_components)
   #
-  #now declare the "foreman"; this will be the only server the outside world can
-  #reach, and it will pass off work requests to the workers. It will need a
-  #floating ip for the outside world to see it
+  # now declare the "foreman"; this will be the only server the outside
+  # world can reach, and it will pass off work requests to the workers.
+  # It will need a floating IP for the outside world to see it
   #
-  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
+  foreman = Server("foreman", "Ubuntu 13.10", "m1.small",
+                   nics=[ctxt.model.net])
   fip = FloatingIP("actuator_ex2_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
   #
-  #finally, declare the workers MultiResource
+  # finally, declare the workers MultiResource
   #
   workers = MultiResource(Server("worker", "Ubuntu 13.10", "m1.small",
                                   nics=[ctxt.model.net]))
 ```
 
-The *workers* MultiResource works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template resource is created:
+The *workers* MultiResource works like a dictionary in that it can be accessed with a key. For every new key that is used with workers, a new instance of the template resource is created; this is giving the instance identity, and it will acquire a name based on the key:
 
 ```python
 >>> inst2 = MultipleServers("two")
@@ -235,58 +242,71 @@ worker_4
 If you require a group of different resources to be provisioned as a unit, the ResourceGroup() wrapper provides a way to define a set of resources that will be provisioned as a whole. The following example shows how the boilerplate gateway resources could be expressed using a ResourceGroup().
 
 ```python
-gateway_component = ResourceGroup("gateway", net=Network("actuator_ex1_net"),
-                              subnet=Subnet("actuator_ex1_subnet", ctxt.comp.container.net,
-                                          "192.168.23.0/24", dns_nameservers=['8.8.8.8']),
-                              router=Router("actuator_ex1_router"),
-                              gateway=RouterGateway("actuator_ex1_gateway", ctxt.comp.container.router,
-                                                    "external"),
-                              rinter=RouterInterface("actuator_ex1_rinter", ctxt.comp.container.router,
-                                                     ctxt.comp.container.subnet))
+gateway_component = ResourceGroup("gateway",
+                     net=Network("actuator_ex1_net"),
+                     subnet=Subnet("actuator_ex1_subnet",
+                                   ctxt.comp.container.net,
+                                   "192.168.23.0/24",
+                                   dns_nameservers=['8.8.8.8']),
+                     router=Router("actuator_ex1_router"),
+                     gateway=RouterGateway("actuator_ex1_gateway",
+                                           ctxt.comp.container.router,
+                                           "external"),
+                     rinter=RouterInterface("actuator_ex1_rinter",
+                                            ctxt.comp.container.router,
+                                            ctxt.comp.container.subnet))
 
 
 class SingleOpenstackServer(InfraModel):
   gateway = gateway_component
-  server = Server("actuator1", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.gateway.net])
+  server = Server("actuator1", "Ubuntu 13.10", "m1.small",
+                  nics=[ctxt.model.gateway.net])
   fip = FloatingIP("actuator_ex1_float", ctxt.model.server,
                    ctxt.model.server.iface0.addr0, pool="external")
 ```
 
 The keyword args used in creating the ResourceGroup become the attributes of the instances of the group.
 
-If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. Any resource (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
+If you require a group of different resources to be provisioned together repeatedly, the MultiResourceGroup() wrapper provides a way to define a template of multiple resources that will be provisioned together. MultiResourceGroup() is simply a shorthand for wrapping a ResourceGroup in a MultiResource. Any resource (including ResourceGroups and MultiResources) can appear in a MultiResourceGroup.
 
 <a name="multigroups">&nbsp;</a>
 ```python
 from actuator import InfraModel, MultiResource, MultiResourceGroup, ctxt
-from actuator.provisioners.openstack.resources import (Server, Network, Subnet,
-                                                         FloatingIP, Router,
-                                                         RouterGateway, RouterInterface)
+from actuator.provisioners.openstack.resources import (Server, Network,
+                                                       Subnet,
+                                                       FloatingIP,
+                                                       Router,
+                                                       RouterGateway,
+                                                       RouterInterface)
 
 class MultipleGroups(InfraModel):
   #
-  #First, declare the common networking resources
+  # First, declare the common networking resources
   #
   with_resources(**gateway_components)
   #
-  #now declare the "foreman"; this will be the only server the outside world can
-  #reach, and it will pass off work requests to the leaders of clusters. It will need a
-  #floating ip for the outside world to see it
+  # now declare the "foreman"; this will be the only server the outside
+  # world can reach, and it will pass off work requests to the leaders
+  # of clusters. It will need a floating ip for the outside world to
+  # see it
   #
-  foreman = Server("foreman", "Ubuntu 13.10", "m1.small", nics=[ctxt.model.net])
+  foreman = Server("foreman", "Ubuntu 13.10", "m1.small",
+                   nics=[ctxt.model.net])
   fip = FloatingIP("actuator_ex3_float", ctxt.model.foreman,
                    ctxt.model.foreman.iface0.addr0, pool="external")
   #
-  #finally, declare a "cluster"; a leader that coordinates the workers in the
-  #cluster, which operate under the leader's direction
+  # finally, declare a "cluster"; a leader that coordinates the
+  # workers in the cluster, which operate under the leader's direction
   #
   cluster = MultiResourceGroup("cluster",
-                                leader=Server("leader", "Ubuntu 13.10", "m1.small",
+                                leader=Server("leader", "Ubuntu 13.10",
+                                              "m1.small",
                                               nics=[ctxt.model.net]),
-                                workers=MultiResource(Server("cluster_node",
-                                                              "Ubuntu 13.10",
-                                                              "m1.small",
-                                                              nics=[ctxt.model.net])))
+                                workers=MultiResource(
+                                           Server("cluster_node",
+                                                  "Ubuntu 13.10",
+                                                  "m1.small",
+                                                  nics=[ctxt.model.net])))
 ```
 
 The keyword args used in creating the ResourceGroup become the attributes of the instances of the group; hence the following expressions are fine:
@@ -317,9 +337,9 @@ This model will behave similarly to the MultiServer model above; that is, the *c
 ### <a name="modrefs_ctxtexprs">Model References, Context Expressions, and the Nexus</a>
 A few of the examples above have shown that accessing model attributes results in a reference object of some sort. These objects are the key to declaratively relating aspects of various models to one another. For instance, a reference to the attribute that stores the IP address of a provisioned server can be used as the value of a variable in the namespace model, and once the IP address is known, the variable will have a meaningful value.
 
-There are three different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between memebers is required in the middle of a model class definition, model references aren't yet available, and hence can't be used.
+There are three different ways to get references to parts of a model: first through the use of _model references_, which are direct attribute accesses to model or model instance objects. This approach can only be used after a model class has already been created; this means that if a reference between sibling members is required in the middle of a model class definition, model references aren't yet available, and hence can't be used.
 
-The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference. Additionally, context expressions provide a way to express references that include keyed lookups into Multi* wrappers, but will defer the lookup until needed. These two attributes allow context expressions to be used in a number of ways that a direct model or instance reference can't.
+The second method is through the use of _context expressions_. A context expression provides a way to express a reference to objects and models that don't exist yet-- the expression's evaluation is delayed until the reference it represents exists, and only then does the expression yield an actual reference. Additionally, context expressions provide a way to express references that include keyed lookups into Multi* wrappers, but will defer the lookup until needed. These two characteristics allow context expressions to be used in a number of ways that a direct model  reference can't.
 
 The third is via the _nexus_. The nexus is a concentration point for all of the models in a particular model set, and provides a way for one model to logically access a related model without actually knowing its name. This is useful when one model needs to generate a context expression to another model that may rely on context information such as the current component's name. All models contain a nexus, and the context object also contains a reference to the nexus that makes it easy to reach any other model in a model set in a context expression.
 
@@ -348,7 +368,7 @@ Likewise, you can create references to attributes on instances of the model clas
 >>>
 ```
 
-All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a resource or attribute of a model. _Model references_ are logical references into a model; there may not be an actual resource or attribute underlying the reference. _Model instance references_ (or "instance references") are references into an _instance_ of a model; they refer to an actual resource or attribute (although the value of either may not have been set yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
+All of these expressions result in a reference object, either a model reference or a model instance reference. _References_ are objects that serve as a logical "pointer" to a resource or attribute of a model. _Model references_ are logical references into a model; there may not be an actual resource or attribute underlying the reference. _Model instance references_ (or just "instance references") are references into an _instance_ of a model; they refer to an actual resource or attribute (although the value of either may not have been determined yet). Instance references can only be created relative to an instance of a model, or by transforming a model reference to an instance reference using an instance of a model. An example here will help:
 
 ```python
 #re-using the definition of SingleOpenstackServer from above...
@@ -384,6 +404,33 @@ actuator1
 ```
 Since model references are the means to make connections between models, we'll look at these in more detail in the section below on [namespace models](#nsmodels).
 
+##### When references are created
+Actuator always creates references when accessing model components via the model class. However, the value of non-model attributes are provide as-as when accessed:
+
+```python
+class T(InfraModel):
+    r = Router("actuator_ex1_router")
+    a = 5
+>>> T.r
+<actuator.modeling.ModelReference object at 0x7ff2f4aa3650>
+>>> T.r.name
+<actuator.modeling.ModelReference object at 0x7ff2f4aa34d0>
+>>> T.a
+5
+>>> 
+```
+So non-modelling data on a model class can be accessed as normal.
+
+There is one exception regarding the automatic creation of references, and that's when an attribute one a modelling component starts with '_'. In this case, the value of the attribute is provided as-is. Using the model class T from above:
+
+```python
+>>> t.r.admin_state_up
+<actuator.modeling.ModelInstanceReference object at 0x7ff2f4a524d0>
+>>> t.r._admin_state_up
+True
+```
+When objects outside of a model class are accessed, Actuator never creates model references.
+
 #### Context Expressions
 
 There are circumstances where model references either aren't possible or can't get the job done. For example, take this fragment of the the [SingleOpenstackServer](#simple_openstack_example) infra model example from above:
@@ -391,18 +438,32 @@ There are circumstances where model references either aren't possible or can't g
 ```python
 class SingleOpenstackServer(InfraModel):
   router = Router("actuator_ex1_router")
-  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
-  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
-  #etc...
+  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router,
+                          "external")
+  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router,
+                           ctxt.model.subnet)
+  # etc...
 ```
 
 The RouterGateway and RouterInterface resources both require a model reference to a Router resource as their second argument. Now, after the SingleOpenstackServer class is defined, this reference would be easy to obtain with an expression such as SingleOpenstackServer.router. However, within the class defintion, the class object doesn't exist yet, and so trying to use an expression like:
 
 ```python
-  gateway = RouterGateway("actuator_ex1_gateway", SingleOpenstackServer.router, "external")
+  gateway = RouterGateway("actuator_ex1_gateway",
+                          SingleOpenstackServer.router, "external")
 ```
 
 will yield a NameError exception saying that "SingleOpenstackServer" is not defined.
+
+Further, you simply can't supply the actual router object like the following:
+
+```python
+class SingleOpenstackServer(InfraModel):
+  router = Router("actuator_ex1_router")
+  gateway = RouterGateway("actuator_ex1_gateway", router,
+                          "external")
+```
+
+As that binds the RouterGateway to an actual Router instance, not a to-be-provisioned instance that will appear at a future time when the infra is provisioned. There are more subtle reasons why this is problematic, such as actually knowing where this instance is from, but the end result is the same-- an actual object poses more problems in modelling than it solves.
 
 This is where context expressions come in. Every time a component in a model is processed by Actuator (be it a resource or some other component), a processing context is created. The _context_ wraps up:
 
@@ -412,24 +473,27 @@ This is where context expressions come in. Every time a component in a model is 
 
 In a model class, the context is referred to by the global object *ctxt*, and the above three objects can be accessed via ctxt in the following way:
 
-- the model instance can be accessed via _ctxt.model_
-- the component itself can be accessed via _ctxt.comp_
-- the component's name can be accessed via _ctxt.name_
+- the model instance can be accessed with _ctxt.model_
+- the component itself can be accessed with _ctxt.comp_
+- the component's name can be accessed with _ctxt.name_
 
 These _context expressions_ provide a way to define a reference to another part of the model that will be evaluated only when the reference is needed. Repeating the infra model fragment from above:
 
 ```python
 class SingleOpenstackServer(InfraModel):
   net = Network("actuator_ex1_net")
-  subnet = Subnet("actuator_ex1_subnet", ctxt.model.net, "192.168.23.0/24",
+  subnet = Subnet("actuator_ex1_subnet", ctxt.model.net,
+                  "192.168.23.0/24",
                   dns_nameservers=['8.8.8.8'])
   router = Router("actuator_ex1_router")
-  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router, "external")
-  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router, ctxt.model.subnet)
-  #etc...
+  gateway = RouterGateway("actuator_ex1_gateway", ctxt.model.router,
+                          "external")
+  rinter = RouterInterface("actuator_ex1_rinter", ctxt.model.router,
+                           ctxt.model.subnet)
+  # etc...
 ```
 
-We can see that we can provide the required reference to SingleOpenstackServer's Router by creating a context expression that names the router attribute of the SingleOpenstackServer model via the ctxt object.
+We can see that when defining the RouterGateway, we can provide the required reference to SingleOpenstackServer's Router by creating a context expression that names the router attribute of the SingleOpenstackServer model via the ctxt object: *ctxt.model.router*. Likewise, the RouterInterface gets the needed reference to the router in the same way, along with a reference to the Subnet with *ctxt.model.subnet*.
 
 The context object _ctxt_ allows you to access any attribute of a model or component reachable from either the model or component. Hence, in the same way we were able to access first IP address on the first interface with:
 
@@ -446,7 +510,7 @@ ctxt.model.server.iface.addr0
 As mentioned previously, context expressions provide a way to express relationships between model components before the model is fully defined. Additionally, because they allow references to be evaluated later in processing, they are useful in certain circumstances in creating references between models. We'll see examples of these sorts of uses below.
 
 #### The Nexus
-While context expressions provide a convenient way to logically refer to components of the current model, sometimes what's needed is a reference to sibling model that still relies on data from the current context. Such references can often be made using a model reference as discussed above, but if any data from the current context is required these references can't be used. Or it might be convenient to not explicitly name a related model class, as there may be several polymophic models that can be used where a cross-model reference is required. It is such circumstances that the _nexus_ is useful.
+While context expressions provide a convenient way to logically refer to components of the current model, sometimes what's needed is a reference to a sibling model that still relies on data from the current context. Such references can often be made using a model reference as discussed above, but if any data from the current context is required these references can't be used. Or it might be convenient to not explicitly name a related model class, as there may be several polymophic models that can be used where a cross-model reference is required. It is such circumstances that the _nexus_ is useful.
 
 Each model contains an attribute named 'nexus', and the nexus attribute serves as an access point for a model to find any of its siblings. If we had a model named "model", then:
 
@@ -458,13 +522,13 @@ Each model contains an attribute named 'nexus', and the nexus attribute serves a
 Similarly, the nexus can be accessed via the model attribute of the 'ctxt' context object, like:
 
 ```python
-ctxt.model.nexus.inf  #the infra model
+ctxt.model.nexus.inf  # the infra model
 ```
 
 Or more briefly, the nexus can be accessed directly on the context object like so:
 
 ```python
-ctxt.nexus.inf is ctxt.model.nexus.inf  #yields the same reference
+ctxt.nexus.inf is ctxt.model.nexus.inf  # yields the same reference
 ```
 
 Once you have model reference via the nexus, references to any other member of the model can be carried out identically. For example, in the section above on the [ResourceGroup](#resource_group) container, an external ResourceGroup was created. If you needed a reference to the Network resource in the group inside the infra model, you could write:
@@ -492,15 +556,21 @@ Here's a trivial example that demonstrates the basic features of a namespace. It
 from actuator import Var, NamespaceModel, Role, with_variables
 
 class SOSNamespace(NamespaceModel):
-  with_variables(Var("COMP_SERVER_HOST", SingleOpenstackServer.server.iface0.addr0),
+  with_variables(Var("COMP_SERVER_HOST",
+                     SingleOpenstackServer.server.iface0.addr0),
                  Var("COMP_SERVER_PORT", '8081'),
-                 Var("EXTERNAL_APP_SERVER_IP", SingleOpenstackServer.fip.ip),
+                 Var("EXTERNAL_APP_SERVER_IP",
+                     SingleOpenstackServer.fip.ip),
                  Var("APP_SERVER_PORT", '8080'))
                  
-  app_server = (Role("app_server", host_ref=SingleOpenstackServer.server)
-                  .add_variable(Var("APP_SERVER_HOST", SingleOpenstackServer.server.iface0.addr0)))
+  app_server = (Role("app_server",
+                     host_ref=SingleOpenstackServer.server)
+                   .add_variable(
+                        Var("APP_SERVER_HOST",
+                            SingleOpenstackServer.server.iface0.addr0)))
                                 
-  compute_server = Role("compute_server", host_ref=SingleOpenstackServer.server)
+  compute_server = Role("compute_server",
+                        host_ref=SingleOpenstackServer.server)
 ```
 
 First, some global Vars (variables) are established that capture the host and port where the compute_server will be found, the external IP where the app_server will be found, and the port number where it can be contacted. While the ports are hard coded values, the host IPs are determined from the SingleOpenstackServer model by creating a model reference to the model attribute where the IP will become available. Since these Vars are defined at the model (global) level, they are visible to all roles.
@@ -921,9 +991,9 @@ ConfigClassTask can be used independently of the MultiTask wrapper; it is a firs
 
 ### <a name="refselect">Reference selection expressions</a>
 
-In the above sections on the MultiTask and ConfigClassTask, the notion of referencce selection expressions was introduced. This section will go into these expressions in more detail an explain how they can be used to select references. Although their primary use is to select namespace model role references, these expressions can be used with any model to select a set of references for a variety of purposes.
+In the above sections on the MultiTask and ConfigClassTask, the notion of referencce selection expressions was introduced. This section will go into these expressions in more detail and explain how they can be used to select references. Although their primary use is to select namespace model role references, these expressions can be used with any model to select a set of references for a variety of purposes.
 
-As mentioned above, a reference selection expression is initiated by accessing the 'q' attribute on a model class. After the 'q', attributes of the model and its objects can be performed just as if you were doing so in the model class itself. However, instead of generating a single model reference, such accesses further define an expression that will yield a list of references into the model.
+As mentioned above, a reference selection expression is initiated by accessing the 'q' attribute on a model class. After the 'q', attributes of the model and its objects can be accessed just as if you were doing so in the model class itself. However, instead of generating a single model reference, such accesses further define an expression that will yield a list of references into the model.
 
 Each attribute access in a reference selection expression will yield either a single-valued attribute (such as a Role in a NamespaceModel), or a collection of values as represented by wrappers such as MultiRole or MultiRoleGroup. In this latter case, it is possible to restrict the set of references selected through the use of test methods which will filter out unwanted references in the collection. In either case, such references may be followed by further attribute accesses into the model, and attributes will be accessed only on the items selected to this point.
 
@@ -948,42 +1018,44 @@ for city in ["NY", "LN", "TK", "SG", "HK", "SF"]:
 We can then construct the following expressions to select lists of role references from this model instance:
 
 ```python
-#list of leader Roles regardless of the instance of top
+# list of leader Roles regardless of the instance of top
 Contrived.q.top.all().leader
 
-#1-element list of leader Role for the top['NY'] instance
+# 1-element list of leader Role for the top['NY'] instance
 Contrived.q.top.key("NY").leader
 
-#list of all grid Roles under top['NY']
+# list of all grid Roles under top['NY']
 Contrived.q.top.key("NY").grid.all()
 
-#list of all grid Roles under top["NY"], top["LN"] and top["TK"]
+# list of all grid Roles under top["NY"], top["LN"] and top["TK"]
 Contrived.q.top.keyin(["NY", "LN", "TK"]).grid.all()
 
-#list of all leader Roles who's top key starts with 'S'
+# list of all leader Roles who's top key starts with 'S'
 Contrived.q.top.match("S.*").leader
 
-#list of all even numbered grid Roles for top["HK"]
+# list of all even numbered grid Roles for top["HK"]
 def even_test(key):
   return int(key) % 2 == 0
+  
 Contrived.q.top.key("HK").grid.pred(even_test)
 
-#list of the leader and all grid Roles for top["NY"]
+# list of the leader and all grid Roles for top["NY"]
 Contrived.q.union(Contrived.q.top.key("NY").leader,
                   Contrived.q.top.key("NY").grid.all())
                   
-#list of leaders where top key starts with S,
-#and the key is in "NY", "LN" (in other words, an empty list)
+# list of leaders where top key starts with S,
+# and the key is in "NY", "LN" (in other words, an empty list)
 Contrived.top.match("S.*").keyin(["NY", "LN"])
 ```
 
-The following tests are available to filter out unwanted references:
+The following tests are available to select desired references:
+
 - *all()* selects all items; this is actually the implicit action when naming an attribute that is a collection of items
 - *key(string)* only selects the items whose key matches the supplied string
 - *keyin(iterable)* only selects the items whose keys are in the supplied iterable of keys
 - *match(regex_string)* only selects items whose key matches the supplied regex string
 - *no_match(regex_string)* only selects items whose key doesn't match the supplied regex string
-- *pred(callable)* only selects items for which the supplied callable returns True. The callable is supplied with one argument, the key of the item it to determine if it should be included.
+- *pred(callable)* only selects items for which the supplied callable returns True. The callable is supplied with one argument, the key of the item the callable is to determine as to whether it should be selected.
 
 ## <a name="orchestration">Orchestration</a>
 Orchestration brings all of the models together and manages their processing in order to provision, configure and execute an instance of the system being modeled. Orchestration is flexible in that it can only do part of the job if that's requied; for instance, if you only need to have infra provisioned you can simply supply the infra model and let the orchestrator handle that, or alternatively if you have a namespace that's populated with fixed IP/hostnames for host_ref values for all Roles, you can have the orchestrator manage just the configuration tasks against the set of hosts in the namespace model. This allows you to use the orchestrator in variety of circumstances, such as config model development or provisioning of infra for other purposes, as well as standing up whole systems.
@@ -997,23 +1069,27 @@ from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from hadoop_models import HadoopInfra, HadoopNamespace, HadoopConfig
 
-# assume you have the Openstack user name (user_id), password (pwd), tenant (tenant),
-# auth url (url), number of slaves (num_slaves) for your cluster, and the number
-# of worker threads that should be started for provisioning and config tasks
-# (thread_count)
+# assume you have a correct clouds.yml file and you know the name of 
+# the cloud it it you wish touse, number of slaves (num_slaves) for
+# your cluster, and the number of worker threads that should be
+# started for provisioning and config tasks (thread_count)
+
+cname = "citycloud"
 
 # make your model instances
 infra = HadoopInfra("hadoop_infra")
 ns = HadoopNamespace()
-cfg = HadoopConfig(remote_user="ubuntu",   #replace with remote user
-                   private_key_file="actuator-dev-key")   #replace with priv key filename
+                   # replace with remote user
+cfg = HadoopConfig(remote_user="ubuntu",
+                   #replace with priv key filename
+                   private_key_file="actuator-dev-key")
                    
 # create the slaves you need
 for i in range(num_slaves):
   _ = ns.slaves[i]
 
 # make your provisioner
-os_prov = OpenstackProvisioner(cloud_name="citycloud", num_threads=thread_count)
+os_prov = OpenstackProvisioner(cloud_name=cname, num_threads=thread_count)
   
 # make your orchestrator and run it
 ao = ActuatorOrchestration(infra_model_inst=infra,
