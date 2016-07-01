@@ -45,6 +45,8 @@ import os
 import traceback
 import time
 
+from errator import narrate, get_narration
+
 from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
                       ctxt, ActuatorException, _Nexus, CallContext)
 from infra import (InfraModel, InfraException, with_resources, StaticServer,
@@ -256,6 +258,7 @@ class ActuatorOrchestration(_Persistable):
                 errors = self.config_ea.get_aborted_tasks()
         return errors
 
+    @narrate("While the orchestrator was initiating the system")
     def initiate_system(self):
         """
         Stand up (initiate) the system from the models
@@ -284,7 +287,7 @@ class ActuatorOrchestration(_Persistable):
                 self.logger.critical(">>> Provisioner failed "
                                      "with '%s'; failed resources shown below" % e.message)
                 if self.provisioner.agent is not None:
-                    for t, et, ev, tb in self.provisioner.agent.get_aborted_tasks():
+                    for t, et, ev, tb, _ in self.provisioner.agent.get_aborted_tasks():
                         self.logger.critical("Task %s named %s id %s" %
                                              (t.__class__.__name__, t.name, str(t._id)),
                                              exc_info=(et, ev, tb))
@@ -318,13 +321,14 @@ class ActuatorOrchestration(_Persistable):
                 self.status = self.ABORT_CONFIG
                 self.logger.critical(">>> Config exec agent failed with '%s'; "
                                      "failed tasks shown below" % e.message)
-                for t, et, ev, tb in self.config_ea.get_aborted_tasks():
+                for t, et, ev, tb, story in self.config_ea.get_aborted_tasks():
                     self.logger.critical("Task %s named %s id %s" %
                                          (t.__class__.__name__, t.name, str(t._id)),
                                          exc_info=(et, ev, tb))
                     self.logger.critical("Response: %s" % ev.response
                                          if hasattr(ev, "response")
                                          else "NO RESPONSE")
+                    self.logger.critical("Its story was:{}".format("\n".join(story)))
                     self.logger.critical("")
                 self.logger.critical("Aborting orchestration")
                 return False
@@ -352,7 +356,7 @@ class ActuatorOrchestration(_Persistable):
                 self.logger.critical(">>> De-provisioning failed "
                                      "with '%s'; failed resources shown below" % e.message)
                 if self.provisioner.agent is not None:
-                    for t, et, ev, tb in self.provisioner.agent.get_aborted_tasks():
+                    for t, et, ev, tb, _ in self.provisioner.agent.get_aborted_tasks():
                         self.logger.critical("Task %s named %s id %s" %
                                              (t.__class__.__name__, t.name, str(t._id)),
                                              exc_info=(et, ev, tb))

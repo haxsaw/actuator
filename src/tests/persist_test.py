@@ -20,6 +20,9 @@
 # SOFTWARE.
 
 import json
+
+from errator import reset_all_narrations, set_default_options
+
 from itertools import chain
 from actuator import ctxt, ActuatorOrchestration
 from actuator.utils import persist_to_dict, reanimate_from_dict
@@ -30,6 +33,15 @@ from actuator.config import (Task, ConfigTask, ConfigModel, MultiTask,
 from actuator.infra import InfraModel, MultiResource, StaticServer
 from actuator.task import _Dependency
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+
+
+def setup_module():
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
 
 
 def pdeps(deps):

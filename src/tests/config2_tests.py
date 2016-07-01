@@ -25,6 +25,8 @@ Created on Jan 15, 2015
 import time
 import threading
 
+from errator import set_default_options, reset_all_narrations
+
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
@@ -73,6 +75,15 @@ make_std_secgroup = ResourceGroup("make_std_secgroup",
 ubuntu_img = "Ubuntu 13.10"
 
 common_kwargs = {"key_name":"actuator-dev-key"}
+
+
+def setup_module():
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
 
 
 def host_list(ctx_exp, sep_char=" "):
@@ -132,7 +143,7 @@ def test001():
         os_prov.provision_infra_model(infra)
     except Exception, e:
         print "Provision failed with %s; details below" % e.message
-        for t, et, ev, tb in os_prov.agent.get_aborted_tasks():
+        for t, et, ev, tb, _ in os_prov.agent.get_aborted_tasks():
             print "prov task %s failed with:" % t.name
             traceback.print_exception(et, ev, tb)
             print
@@ -146,7 +157,7 @@ def test001():
         ea.perform_config()
     except Exception, e:
         print "Config failed with %s; details below" % e.message
-        for t, et, ev, tb in ea.get_aborted_tasks():
+        for t, et, ev, tb, _ in ea.get_aborted_tasks():
             print "task %s failed with:" % t.name
             traceback.print_exception(et, ev, tb)
             print
@@ -264,12 +275,12 @@ def test007():
 
 
 def do_all():
+    setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             print ">>>>>>>>Running test %s" % k
             v()
+    teardown_module()
             
 if __name__ == "__main__":
     do_all()
-
-        

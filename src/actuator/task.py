@@ -28,6 +28,8 @@ import threading
 import time
 import traceback
 
+from errator import narrate, get_narration, narrate_cm, reset_narration
+
 from actuator import ActuatorException
 from actuator.utils import root_logger, LOG_INFO, _Persistable, LOG_DEBUG, _Performable
 from actuator.modeling import ModelComponent
@@ -547,7 +549,7 @@ class TaskEngine(object):
             t.join()
             self.threads.remove(t)
         
-    def record_aborted_task(self, task, etype, value, tb):
+    def record_aborted_task(self, task, etype, value, tb, story):
         """
         Internal; used by a worker thread to report that it is giving up on
         performing a task.
@@ -556,8 +558,10 @@ class TaskEngine(object):
         @param etype: The aborting exception type
         @param value: The exception value
         @param tb: The exception traceback object, as returned by sys.exc_info()
+        @:param story: a list of strings, usually from from get_narration(), that gives the human readable
+            version of the exception
         """
-        self.aborted_tasks.append((task, etype, value, tb))
+        self.aborted_tasks.append((task, etype, value, tb, story))
         
     def has_aborted_tasks(self):
         """
@@ -584,7 +588,8 @@ class TaskEngine(object):
     def _reverse_task(self, task, logfile=None):
         # Actually reverse the task; the default asks the task to reverse itself
         task.reverse(self)
-        
+
+    @narrate(lambda s, g, t: "So the base task engine started reversing task {}".format(t.task.name))
     def reverse_task(self, graph, tec):
         """
         Internal, used to reverse a task in graph. Derived classes implement
@@ -611,7 +616,8 @@ class TaskEngine(object):
     def _perform_task(self, task, logfile=None):
         # Actually do the task; the default asks the task to perform itself.
         task.perform(self)
-        
+
+    @narrate(lambda s, g, t: "So the base task engine started performing task {}".format(t.task.name))
     def perform_task(self, graph, tec):
         """
         Internal, used to perform a task in graph. Derived classes implement
@@ -634,7 +640,7 @@ class TaskEngine(object):
         - free-form text message
         """
         self._task_runner(tec, "perform", Task.PERFORMED)
-        
+
     def _task_runner(self, tec, direction, success_status):
         assert isinstance(tec, TaskExecControl)
         task = tec.task
@@ -670,7 +676,9 @@ class TaskEngine(object):
             logfile = None
         try:
             logger.info(fmtmsg("start %s-ing task" % direction))
-            meth(task, logfile=logfile)
+            with narrate_cm(lambda n, d: "I tried performing task {} in the {} direction"
+                            .format(n, d), task.name, direction):
+                meth(task, logfile=logfile)
             task.set_performance_status(success_status)
             tec.status = TaskExecControl.SUCCESS
             logger.info(fmtmsg("task successfully %s-ed" % direction))
@@ -678,6 +686,8 @@ class TaskEngine(object):
             tec.fail_time = time.time()
             logger.warning(fmtmsg("task %s failed" % direction))
             msg = ">>>Task {} Exception for {}!".format(direction, task.name)
+            story = get_narration(from_here=True)
+            reset_narration(from_here=True)
             if logfile:
                 logfile.write("{}\n".format(msg))
             tb = sys.exc_info()[2]
@@ -692,7 +702,8 @@ class TaskEngine(object):
             else:
                 tec.status = TaskExecControl.FAIL_FINAL
                 logger.error(fmtmsg("max tries exceeded; task aborting"))
-                self.record_aborted_task(task, type(e), e, tb)
+                logger.error("The failure story is: {}".format("\n".join(story)))
+                self.record_aborted_task(task, type(e), e, tb, story)
                 self.abort_process_tasks()
             del tb
             sys.exc_clear()

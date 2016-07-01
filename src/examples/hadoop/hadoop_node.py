@@ -191,8 +191,10 @@ if __name__ == "__main__":
         print
         print "it blowed up with: ", e.message
         import traceback
-        for t, et, ev, tb in ea.get_aborted_tasks():
+        for t, et, ev, tb, story in ea.get_aborted_tasks():
             print ("Task %s (id %s) failed with the following:" %
                    (t.name, str(t._id)))
             traceback.print_exception(et, ev, tb)
             print
+            print ("And told the follow exception story: {}".format("\n".join(story)))
+            print("-----------\n")

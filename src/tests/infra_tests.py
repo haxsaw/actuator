@@ -22,6 +22,9 @@
 """
 Created on 4 Jun 2014
 """
+
+from errator import set_default_options, reset_all_narrations
+
 from actuator import (InfraModel, ctxt)
 from actuator.modeling import (ModelReference, ModelInstanceReference, AbstractModelReference,
                                AbstractModelingEntity)
@@ -34,7 +37,7 @@ from actuator.config import ConfigModel
 MyInfra = None
 
 
-def setup():
+def setup_module():
     global MyInfra
 
     class MyInfraLocal(InfraModel):
@@ -54,6 +57,13 @@ def setup():
                                                                   ncube=Server("ncube", mem="16GB")))
 
     MyInfra = MyInfraLocal
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
+
 
 
 def test01():
@@ -1329,7 +1339,7 @@ def test162():
 
 
 def do_all():
-    setup()
+    setup_module()
     test25()
     # for k, v in globals().items():
     #     if k.startswith("test") and callable(v):

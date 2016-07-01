@@ -23,6 +23,7 @@
 Base classes for all Actuator provisioners.
 """
 from actuator.infra import InfraModel
+from errator import narrate
 
 
 class ProvisionerException(Exception):
@@ -35,6 +36,7 @@ class BaseProvisioner(object):
     """
     Base class for all provisioners.
     """
+    @narrate(lambda _, imi: "When I was provisioning the inframodel '{}'".format(imi.name))
     def provision_infra_model(self, inframodel_instance):
         """
         Instructs the provisioner to do the work to provision the supplied

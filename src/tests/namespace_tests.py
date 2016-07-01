@@ -22,6 +22,9 @@
 '''
 Created on 7 Jun 2014
 '''
+
+from errator import reset_all_narrations, set_default_options
+
 from actuator import (Var, NamespaceModel, with_variables, NamespaceException,
                           Role, with_roles, MultiResource, 
                           MultiResourceGroup, ctxt, ActuatorException,
@@ -34,7 +37,8 @@ from actuator.provisioners.example_resources import Server
 
 MyNS = None
 
-def setup():
+
+def setup_module():
     global MyNS
     
     class FakeLogicalRef(AbstractModelReference):
@@ -70,6 +74,9 @@ def setup():
             super(MyNamespaceLocal, self).__init__()
             self.infra = FakeInfra()
     MyNS = MyNamespaceLocal
+
+    reset_all_narrations()
+    set_default_options(check=True)
     
 
 def test001():
@@ -921,7 +928,7 @@ def test079():
      
 
 def do_all():
-    setup()
+    setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

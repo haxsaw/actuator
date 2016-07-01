@@ -20,6 +20,9 @@
 # SOFTWARE.
 
 import json
+
+from errator import set_default_options, reset_all_narrations
+
 from actuator import (ActuatorOrchestration, ctxt, MultiResource, ResourceGroup,
                       MultiResourceGroup)
 from actuator import InfraModel
@@ -28,6 +31,15 @@ from actuator.utils import persist_to_dict, reanimate_from_dict, adb
 from actuator.namespace import (NamespaceModel, Role, Var, with_variables,
                                 MultiRole, RoleGroup, MultiRoleGroup)
 from pt_help import persistence_helper
+
+
+def setup_module():
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
 
 
 def test01():
@@ -608,6 +620,7 @@ def test27():
 
 
 def do_all():
+    setup_module()
     g = globals()
     keys = list(g.keys())
     keys.sort()

@@ -29,6 +29,7 @@ import sys
 import os, os.path
 
 from nose import SkipTest
+from errator import set_default_options, reset_all_narrations
 
 from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file
@@ -55,7 +56,13 @@ def find_ip():
 
 
 def setup_module():
-    pass
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
+
 
 config_options = dict(remote_user="lxle1",
                       private_key_file=find_file("lxle1-dev-key"))
@@ -175,7 +182,7 @@ def perform_and_complain(pea):
             print("Missing aborted task messages; need to find where they are!!")
         else:
             print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
+            for task, et, ev, tb, _ in pea.get_aborted_tasks():
                 print(">>>>>>Task %s:" % task.name)
                 traceback.print_exception(et, ev, tb, file=sys.stdout)
                 print()
@@ -744,6 +751,7 @@ def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
+    teardown_module()
             
 if __name__ == "__main__":
     do_all()

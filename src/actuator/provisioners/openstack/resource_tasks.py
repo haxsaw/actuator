@@ -35,6 +35,7 @@ from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.openstack.support import (_OSMaps,
                                                      OpenstackProvisioningRecord)
 from actuator.utils import (capture_mapping, get_mapper, root_logger, LOG_INFO)
+from errator import (narrate, narrate_cm, get_narration, reset_narration)
 
 _rt_domain = "resource_task_domain"
 
@@ -47,6 +48,7 @@ class RunContext(object):
         self.maps = _OSMaps(self)
 
     @property
+    @narrate("I was trying to load the cloud definitions file")
     def cloud(self):
         if self.os_creds.cloud_name:
             cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
@@ -108,17 +110,21 @@ class ProvisioningTask(Task):
 
 @capture_mapping(_rt_domain, Network)
 class ProvisionNetworkTask(ProvisioningTask):
+    @narrate(lambda s, _: "I started the provisioning task for the network {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
-        response = run_context.cloud.create_network(self.rsrc.get_display_name(),
-                                                    admin_state_up=self.rsrc.admin_state_up)
+        with narrate_cm("...and tried to create the network"):
+            response = run_context.cloud.create_network(self.rsrc.get_display_name(),
+                                                        admin_state_up=self.rsrc.admin_state_up)
         self.rsrc.set_osid(response["id"])
         run_context.record.add_network_id(self.rsrc._id, self.rsrc.osid)
-        
+
+    @narrate(lambda s, _: "I started the de-prov task for the network {}".format(s.rsrc.name))
     def _reverse(self, engine):
         run_context = engine.get_context()
         netid = self.rsrc.osid
-        run_context.cloud.delete_network(netid)
+        with narrate_cm("...and tried to delete the network"):
+            run_context.cloud.delete_network(netid)
         
         
 @capture_mapping(_rt_domain, Subnet)
@@ -127,20 +133,23 @@ class ProvisionSubnetTask(ProvisioningTask):
         return ([self.rsrc.network]
                 if isinstance(self.rsrc.network, Network)
                 else [])
-        
+
+    @narrate(lambda s, _: "I started the provisioning task for the subnet {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
-        response = run_context.cloud.create_subnet(self.rsrc._get_arg_msg_value(self.rsrc.network,
-                                                                                Network,
-                                                                                "osid",
-                                                                                "network"),
-                                                   self.rsrc.cidr, ip_version=self.rsrc.ip_version,
-                                                   subnet_name=self.rsrc.get_display_name(),
-                                                   dns_nameservers=self.rsrc.dns_nameservers,
-                                                   enable_dhcp=True)
+        with narrate_cm("...and tried to created the subnet"):
+            response = run_context.cloud.create_subnet(self.rsrc._get_arg_msg_value(self.rsrc.network,
+                                                                                    Network,
+                                                                                    "osid",
+                                                                                    "network"),
+                                                       self.rsrc.cidr, ip_version=self.rsrc.ip_version,
+                                                       subnet_name=self.rsrc.get_display_name(),
+                                                       dns_nameservers=self.rsrc.dns_nameservers,
+                                                       enable_dhcp=True)
         self.rsrc.set_osid(response["id"])
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
-        
+
+    @narrate(lambda s, _: "I started the de-prov task for the subnet {}".format(s.rsrc.name))
     def _reverse(self, engine):
         run_context = engine.get_context()
         # this may not be needed as the subnet may go with the network
@@ -162,20 +171,24 @@ class ProvisionSecGroupTask(ProvisioningTask):
 
     _sg_create_lock = threading.Lock()
 
+    @narrate(lambda s, _: "I started the provisioning task for the security group {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
         with self._sg_create_lock:
             # @FIXME: this lock is because nova isn't threadsafe for this
             # call, and until it is we have to single-thread through it
-            response = run_context.cloud.create_security_group(name=self.rsrc.get_display_name(),
-                                                               description=self.rsrc.description)
+            with narrate_cm("So I tried to create the security group"):
+                response = run_context.cloud.create_security_group(name=self.rsrc.get_display_name(),
+                                                                   description=self.rsrc.description)
         self.rsrc.set_osid(response["id"])
         run_context.record.add_secgroup_id(self.rsrc._id, self.rsrc.osid)
-        
+
+    @narrate(lambda s, _: "I started the de-prov task for the security group {}".format(s.rsrc.name))
     def _reverse(self, engine):
         run_context = engine.get_context()
         secgroup_id = self.rsrc.osid
-        run_context.cloud.delete_security_group(secgroup_id)
+        with narrate_cm("...and tried to delete the security group"):
+            run_context.cloud.delete_security_group(secgroup_id)
 
 
 @capture_mapping(_rt_domain, SecGroupRule)
@@ -184,17 +197,19 @@ class ProvisionSecGroupRuleTask(ProvisioningTask):
         return ([self.rsrc.secgroup]
                 if isinstance(self.rsrc.secgroup, SecGroup)
                 else [])
-        
+
+    @narrate(lambda s, _: "I started the provisioning task for the security group rule {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
         sg_id = self.rsrc._get_arg_msg_value(self.rsrc.secgroup,
                                              SecGroup,
                                              "osid", "secgroup")
-        response = run_context.cloud.create_security_group_rule(sg_id,
-                                                                port_range_min=self.rsrc.from_port,
-                                                                port_range_max=self.rsrc.to_port,
-                                                                protocol=self.rsrc.ip_protocol,
-                                                                remote_ip_prefix=self.rsrc.cidr)
+        with narrate_cm("And then tried to create the security group"):
+            response = run_context.cloud.create_security_group_rule(sg_id,
+                                                                    port_range_min=self.rsrc.from_port,
+                                                                    port_range_max=self.rsrc.to_port,
+                                                                    protocol=self.rsrc.ip_protocol,
+                                                                    remote_ip_prefix=self.rsrc.cidr)
         self.rsrc.set_osid(response["id"])
         run_context.record.add_secgroup_rule_id(self.rsrc._id, self.rsrc.osid)
         
@@ -220,14 +235,21 @@ class ProvisionServerTask(ProvisioningTask):
             for j, iface_addr in enumerate(v):
                 setattr(iface, "addr%d" % j, iface_addr['addr'])
 
+    @narrate(lambda s, _: "I started the provisioning task for the server {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
-        run_context.maps.refresh_images()
-        run_context.maps.refresh_flavors()
-        run_context.maps.refresh_networks()
-        args, kwargs = self.rsrc.get_fixed_args()
+        with narrate_cm("I tried to refresh the list of images that I can use"):
+            run_context.maps.refresh_images()
+        with narrate_cm("I tried to refresh the list of os flavors I can use"):
+            run_context.maps.refresh_flavors()
+        with narrate_cm("I tried to refresh the list of networks that exist"):
+            run_context.maps.refresh_networks()
+
+        with narrate_cm("I tried to get the already-fixed arguments to the server"):
+            args, kwargs = self.rsrc.get_fixed_args()
         _, image_name, flavor_name = args
-        name = self.rsrc.get_display_name()
+        with narrate_cm("I tried to get the display name of the server"):
+            name = self.rsrc.get_display_name()
         image = run_context.maps.image_map.get(image_name)
         if image is None:
             raise ProvisionerException("Image %s doesn't seem to exist" % image_name,
@@ -238,9 +260,10 @@ class ProvisionServerTask(ProvisioningTask):
                                        record=run_context.record)
         secgroup_list = []
         if self.rsrc.security_groups:
-            run_context.maps.refresh_secgroups()
+            with narrate_cm("I tried to refresh the list of existing security groups"):
+                run_context.maps.refresh_secgroups()
             for sgname in self.rsrc.security_groups:
-                sgname = self.rsrc._get_arg_msg_value(sgname, SecGroup, "osid", sgname)
+                sgname = self.rsrc._get_arg_msg_value(sgname, SecGroup, "osid", "sec group name/id")
                 sg = run_context.maps.secgroup_map.get(sgname)
                 if sg is None:
                     raise ProvisionerException("Security group %s doesn't seem to exist" % sgname,
@@ -251,28 +274,31 @@ class ProvisionServerTask(ProvisioningTask):
         nics_list = []
         if self.rsrc.nics:
             for nicname in self.rsrc.nics:
-                nicname = self.rsrc._get_arg_msg_value(nicname, Network, "osid", nicname)
+                nicname = self.rsrc._get_arg_msg_value(nicname, Network, "osid", "network name/id")
                 nic = run_context.maps.network_map.get(nicname)
                 if nic is None:
                     raise ProvisionerException("NIC %s doesn't seem to exist" % nicname,
                                                record=run_context.record)
-                # nics_list.append(nic)
                 nics_list.append({'net-id': nic["id"]})
             kwargs['nics'] = nics_list
             
         if isinstance(kwargs["key_name"], KeyPair):
             kwargs["key_name"] = kwargs["key_name"].get_key_name()
-            
-        srvr = run_context.cloud.create_server(name, image, flavor, **kwargs)
+
+        with narrate_cm("After getting all the arguments ready, I tried to create the server"):
+            srvr = run_context.cloud.create_server(name, image, flavor, **kwargs)
         self.rsrc.set_osid(srvr["id"])
         run_context.record.add_server_id(self.rsrc._id, self.rsrc.osid)
         
         # while not srvr.addresses:
-        while not srvr["addresses"]:
-            time.sleep(0.25)
-            srvr = run_context.cloud.get_server(srvr["id"])
-        self._process_server_addresses(srvr["addresses"])
+        with narrate_cm("After creating the server, I'm trying to get its addresses so I know I can finish processing"):
+            while not srvr["addresses"]:
+                time.sleep(0.25)
+                srvr = run_context.cloud.get_server(srvr["id"])
+        with narrate_cm("Finally, I'm processing the server's addresses"):
+            self._process_server_addresses(srvr["addresses"])
 
+    @narrate(lambda s, _: "I'm starting the de-prov task for the server {}".format(s.rsrc.name))
     def _reverse(self, engine):
         run_context = engine.get_context()
         run_context.cloud.delete_server(self.rsrc.osid)
@@ -280,18 +306,25 @@ class ProvisionServerTask(ProvisioningTask):
                 
 @capture_mapping(_rt_domain, Router)
 class ProvisionRouterTask(ProvisioningTask):
-    """depends on nothing"""
+    # depends on nothing
+
+    @narrate(lambda s, _: "I started the provisioning task for the router {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
-        reply = run_context.cloud.create_router(name=self.rsrc.get_display_name(),
-                                                admin_state_up=self.rsrc.admin_state_up)
+        with narrate_cm(lambda r: "Then I tried to actually create the router {}".format(r.get_display_name()),
+                        self.rsrc):
+            reply = run_context.cloud.create_router(name=self.rsrc.get_display_name(),
+                                                    admin_state_up=self.rsrc.admin_state_up)
         self.rsrc.set_osid(reply["id"])
         run_context.record.add_router_id(self.rsrc._id, self.rsrc.osid)
-        
+
+    @narrate(lambda s, _: "I started the de-prov task for the router {}".format(s.rsrc.name))
     def _reverse(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc.osid
-        run_context.cloud.delete_router(router_id)
+        with narrate_cm(lambda rid: "and then tried to delete the router with osid {}".format(rid),
+                        router_id):
+            run_context.cloud.delete_router(router_id)
 
 
 @capture_mapping(_rt_domain, RouterGateway)
@@ -300,13 +333,17 @@ class ProvisionRouterGatewayTask(ProvisioningTask):
         return ([self.rsrc.router]
                 if isinstance(self.rsrc.router, Router)
                 else [])
-        
+
+    @narrate(lambda s, _: "I started the provisioning task for the the router gateway {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
-        run_context.maps.refresh_networks()
+        with narrate_cm("First I have to refresh the network maps"):
+            run_context.maps.refresh_networks()
         ext_net = run_context.maps.network_map.get(self.rsrc.external_network_name)
-        run_context.cloud.update_router(router_id, ext_gateway_net_id=ext_net["id"])
+        with narrate_cm(lambda nid: "Then I tried to update the router with the gateway id {}".format(nid),
+                        ext_net["id"]):
+            run_context.cloud.update_router(router_id, ext_gateway_net_id=ext_net["id"])
         
     # no reversing; assume it goes with the router
 
@@ -320,29 +357,42 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
         if isinstance(self.rsrc.subnet, Subnet):
             deps.append(self.rsrc.subnet)
         return deps
-        
+
+    @narrate(lambda s, _: "I started the provisioning task for router interface {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
-        router = run_context.cloud.get_router(router_id)
+        with narrate_cm(lambda rid: "First I looked up the router with osid {}".format(rid),
+                        router_id):
+            router = run_context.cloud.get_router(router_id)
         snid = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
-        response = run_context.cloud.add_router_interface(router, subnet_id=snid)
+        with narrate_cm(lambda s, r: "Then I tried to add a router interface to router {} for "
+                                     "subnet {}".format(r, s),
+                        snid, str(router)):
+            response = run_context.cloud.add_router_interface(router, subnet_id=snid)
         self.rsrc.set_osid(response[u'port_id'])
         run_context.record.add_router_iface_id(self.rsrc._id, response[u'port_id'])
-        
+
+    @narrate(lambda s, _: "I started the de-prov task for the router interface {}".format(s.rsrc.name))
     def _reverse(self, engine):
         run_context = engine.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
-        router = run_context.cloud.get_router(router_id)
+        with narrate_cm(lambda r: "First I tried to look up the router with osid {}".format(r),
+                        router_id):
+            router = run_context.cloud.get_router(router_id)
         snid = self.rsrc._get_arg_msg_value(self.rsrc.subnet, Subnet, "osid", "subnet")
-        run_context.cloud.remove_router_interface(router, subnet_id=snid)
+        with narrate_cm(lambda s, r: "Then I tried to remove the interface for router {} "
+                                     "to subnet {}".format(r, s),
+                        str(router), snid):
+            run_context.cloud.remove_router_interface(router, subnet_id=snid)
 
 
 @capture_mapping(_rt_domain, FloatingIP)
 class ProvisionFloatingIPTask(ProvisioningTask):
     def depends_on_list(self):
         return [self.rsrc.server] if isinstance(self.rsrc.server, Server) else []
-        
+
+    @narrate(lambda s, _: "I started the provisioning task for floating ip {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
         self.rsrc._refix_arguments()
@@ -350,10 +400,15 @@ class ProvisionFloatingIPTask(ProvisioningTask):
         if associated_ip is not None:
             servername = self.rsrc._get_arg_msg_value(self.rsrc.server, Server,
                                                       "osid", "server")
-            server = run_context.cloud.get_server(servername)
+            with narrate_cm(lambda s: "I tried to server {} to associate it with the ip".format(s),
+                            servername):
+                server = run_context.cloud.get_server(servername)
         else:
             server = None
-        fip = run_context.cloud.create_floating_ip(network=self.rsrc.pool, server=server)
+        with narrate_cm(lambda s, p: "and then I tried to create the floating ip on pool {} for server {}"
+                                     .format(p, str(s)),
+                        self.rsrc.pool, str(server)):
+            fip = run_context.cloud.create_floating_ip(network=self.rsrc.pool, server=server)
         self.rsrc.set_addresses(fip["floating_ip_address"])
         self.rsrc.set_osid(fip["id"])
         run_context.record.add_floating_ip_id(self.rsrc._id, self.rsrc.osid)
@@ -370,7 +425,9 @@ class ProvisionFloatingIPTask(ProvisioningTask):
             
 @capture_mapping(_rt_domain, KeyPair)
 class ProvisionKeyPairTask(ProvisioningTask):
-    """KeyPairs depend on nothing"""
+    # KeyPairs depend on nothing
+
+    @narrate(lambda s, e: "I started the provisioning task for keypair {}".format(s.rsrc.name))
     def _perform(self, engine):
         run_context = engine.get_context()
         name = self.rsrc.get_key_name()
@@ -388,10 +445,14 @@ class ProvisionKeyPairTask(ProvisioningTask):
         kp = run_context.maps.keypair_map.get(name)
         if kp is not None:
             if self.rsrc.force:
-                run_context.cloud.delete_keypair(name)
-                run_context.cloud.create_keypair(name, public_key)
+                with narrate_cm("and since it was a forced create, I tried deleting the existing keypair first"):
+                    run_context.cloud.delete_keypair(name)
+                with narrate_cm("and after deleting the existing keypair (it was a forced create), I tried "
+                                "creating the keypair"):
+                    run_context.cloud.create_keypair(name, public_key)
         else:
-            run_context.cloud.create_keypair(name, public_key)
+            with narrate_cm("I started crearting a new key pair"):
+                run_context.cloud.create_keypair(name, public_key)
 
 
 class OpenstackCredentials(object):
@@ -419,7 +480,8 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
         self.record = OpenstackProvisioningRecord(uuid.uuid4())
         self.os_creds = os_creds
         self.rsrc_task_map = {}
-        
+
+    @narrate("I was asked to collect the tasks involved in provisioning the resources")
     def get_tasks(self):
         """
         Returns a list of all the tasks for provisioning the resources
@@ -432,28 +494,34 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
         @raise ProvisionerException: Raised if a resource is found for which
             there is no corresponding task.
         """
-        all_resources = set(self.infra_model.components())
+        with narrate_cm("I started by looking in the infra model for all the components that I have to provision"):
+            all_resources = set(self.infra_model.components())
         tasks = []
         self.logger.info("%s resources to provision" % len(all_resources))
-        class_mapper = get_mapper(_rt_domain)
+        with narrate_cm(lambda dname: "Now I'm getting the resource to task mapper for task domain {}".format(dname),
+                        _rt_domain):
+            class_mapper = get_mapper(_rt_domain)
         for rsrc in all_resources:
             if rsrc in self.rsrc_task_map:
                 tasks.append(self.rsrc_task_map[rsrc])
                 continue
             rsrc.fix_arguments()
-            task_class = class_mapper.get(rsrc.__class__)
-            if task_class is None:
-                ref = AbstractModelReference.find_ref_for_obj(rsrc)
-                path = ref.get_path() if ref is not None else "NO PATH"
-                raise self.exception_class("Could not find a task for resource "
-                                           "%s named %s at path %s" %
-                                           (rsrc.__class__.__name__,
-                                            rsrc.name, path))
+            with narrate_cm(lambda cls: "I was looking for the task class for resource class {}".format(cls.__name__),
+                            rsrc.__class__):
+                task_class = class_mapper.get(rsrc.__class__)
+                if task_class is None:
+                    ref = AbstractModelReference.find_ref_for_obj(rsrc)
+                    path = ref.get_path() if ref is not None else "NO PATH"
+                    raise self.exception_class("Could not find a task for resource "
+                                               "%s named %s at path %s" %
+                                               (rsrc.__class__.__name__,
+                                                rsrc.name, path))
             task = task_class(rsrc, repeat_count=self.repeat_count)
             tasks.append(task)
             self.rsrc_task_map[rsrc] = task
         return tasks
-    
+
+    @narrate("Then I started to get the dependencies between the resources")
     def get_dependencies(self):
         """
         Returns a list of _Dependency objects for the tasks in the model
@@ -477,16 +545,19 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
         dependencies = []
         for rsrc, task in rsrc_task_map.items():
             for d in task.depends_on_list():
-                if d not in rsrc_task_map:
-                    ref = AbstractModelReference.find_ref_for_obj(d)
-                    path = ref.get_path() if ref is not None else "NO PATH"
-                    raise self.exception_class("Resource {} named {} path {}"
-                                               " says it depends on {}, "
-                                               "but the latter isn't in the "
-                                               "list of all components"
-                                               .format(rsrc.__class__.__name__,
-                                                       rsrc.name, path,
-                                                       d.name))
+                with narrate_cm(lambda r:
+                                "I checked to see if resource {}, class {} is in my set of known resources"
+                                .format(r.name, r.__class__.__name__), rsrc):
+                    if d not in rsrc_task_map:
+                        ref = AbstractModelReference.find_ref_for_obj(d)
+                        path = ref.get_path() if ref is not None else "NO PATH"
+                        raise self.exception_class("Resource {} named {} path {}"
+                                                   " says it depends on {}, "
+                                                   "but the latter isn't in the "
+                                                   "list of all components"
+                                                   .format(rsrc.__class__.__name__,
+                                                           rsrc.name, path,
+                                                           d.name))
                 dtask = rsrc_task_map[d]
                 dependencies.append(dtask | task)
         self.logger.info("%d resource dependencies" % len(dependencies))
@@ -498,7 +569,8 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
             context = RunContext(self.record, self.os_creds)
             self.run_contexts[threading.current_thread()] = context
         return context
-    
+
+    @narrate(lambda _, t, **kw: "...when the OpenStack task engine was asked to start preforming task {}".format(t.name))
     def _perform_task(self, task, logfile=None):
         self.logger.info("Starting provisioning task %s named %s, id %s" %
                          (task.__class__.__name__, task.name, str(task._id)))
@@ -536,14 +608,19 @@ class OpenstackProvisioner(BaseProvisioner):
         @keyword log_level: Optional; default LOG_INFO. One of the logging values
             from actuator: LOG_CRIT, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG.
         """
-        self.os_creds = OpenstackCredentials(cloud_name=cloud_name, config_files=config_files)
+        with narrate_cm(lambda cn, cf:
+                        "When initializing the OpenStack provisioner for cloud {} and config_files {},"
+                        " I tried creating the credentials object"
+                        .format(cn, str(cf)), cloud_name, config_files):
+            self.os_creds = OpenstackCredentials(cloud_name=cloud_name, config_files=config_files)
         self.agent = None
         self.num_threads = num_threads
         self.log_level = log_level
         # root_logger.setLevel(log_level)
         self.logger = root_logger.getChild(self.LOG_SUFFIX)
         self.logger.setLevel(self.log_level)
-        
+
+    @narrate("I began the OpenStack-specific provisioning work")
     def _provision(self, inframodel_instance):
         self.logger.info("Starting to provision...")
         if self.agent is None:

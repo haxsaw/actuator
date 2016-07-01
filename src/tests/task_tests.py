@@ -24,18 +24,28 @@ Test the basic Task stuff
 '''
 import json
 
+from errator import reset_all_narrations, set_default_options
 
 from actuator.task import Task, TaskEngine, GraphableModelMixin, TaskException
 from actuator.utils import reanimate_from_dict, persist_to_dict, _Persistable
 
-#the callback_cache is used to help out with persistence/reanimation tests
-#it provides a place to store callables which can't be persisted but can
-#be looked up again and restored after a reanimate. THIS IS NOT GOOD GENERAL
-#practice, but is put in place to support some of the odd test tests here
+# the callback_cache is used to help out with persistence/reanimation tests
+# it provides a place to store callables which can't be persisted but can
+# be looked up again and restored after a reanimate. THIS IS NOT GOOD GENERAL
+# practice, but is put in place to support some of the odd test tests here
 #
-#keys are objects ids, values are 2-tuples of (perf_cb, rev_cb) from the
-#TestTask object
+# keys are objects ids, values are 2-tuples of (perf_cb, rev_cb) from the
+# TestTask object
 callback_cache = {}
+
+
+def setup_module():
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
+
 
 class TestTask(Task):
     def __init__(self, *args, **kwargs):
@@ -161,7 +171,7 @@ def test003():
     except Exception, e:
         print e.message
         import traceback
-        for t, et, ev, tb in te.get_aborted_tasks():
+        for t, et, ev, tb, _ in te.get_aborted_tasks():
             print ">>>Task ", t.name
             traceback.print_exception(et, ev, tb, limit=10)
         assert False, "aborting-- reversing task raised"
@@ -279,7 +289,7 @@ def test007():
     except TaskException, e:
         print ">>>FAILED! tracebacks as follows:"
         import traceback
-        for task, etype, value, tb in tep.get_aborted_tasks():
+        for task, etype, value, tb, _ in tep.get_aborted_tasks():
             print "----TB for task %s" % task.name
             traceback.print_exception(etype, value, tb)
     tasks.reverse()
@@ -291,6 +301,7 @@ def test007():
             rev_order.index("t007-4") < 5), str(rev_order)
 
 def do_all():
+    setup_module()
     globs = globals()
     tests = []
     for k, v in globs.items():
@@ -300,6 +311,7 @@ def do_all():
     for k in tests:
         print "Doing ", k
         globs[k]()
+    teardown_module()
             
 if __name__ == "__main__":
     do_all()

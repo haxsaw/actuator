@@ -30,6 +30,8 @@ end of the list of tests, and never inserted in between existing tests.
 
 import json
 
+from errator import set_default_options, reset_all_narrations
+
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
@@ -50,6 +52,15 @@ from actuator.provisioners.openstack.resources import (Server, Network,
 from actuator.utils import (LOG_INFO, find_file, persist_to_dict,
                             reanimate_from_dict)
 from actuator.infra import StaticServer
+
+
+def setup_module():
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
 
 
 def get_provisioner():
@@ -81,7 +92,7 @@ def test002():
     except Exception, _:
         print "provision failed; here are the exceptions"
         import traceback
-        for t, et, ev, tb in provisioner.agent.get_aborted_tasks():
+        for t, et, ev, tb, _ in provisioner.agent.get_aborted_tasks():
             print "Task %s" % t.name
             traceback.print_exception(et, ev, tb)
             print
@@ -973,7 +984,7 @@ def test057():
         et, ev, tb = sys.exc_info()
         print "UNEXEPECTED abort:"
         traceback.print_exception(et, ev, tb)
-        for t, et, ev, tb in  prov.agent.get_aborted_tasks():
+        for t, et, ev, tb, _ in  prov.agent.get_aborted_tasks():
             print "Aborted task %s" % t.name
             traceback.print_exception(et, ev, tb)
         raise
@@ -1473,6 +1484,7 @@ def test083():  #reating test063 but with persistence/reanimation
     
 
 def do_all():
+    setup_module()
     globs = globals()
     tests = []
     for k, v in globs.items():
@@ -1482,6 +1494,7 @@ def do_all():
     for k in tests:
         print "Doing ", k
         globs[k]()
+    teardown_module()
             
 if __name__ == "__main__":
     do_all()

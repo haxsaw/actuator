@@ -31,6 +31,9 @@ import os
 import os.path
 import stat
 import traceback
+
+from errator import set_default_options, reset_all_narrations
+
 from actuator import (NamespaceModel, Var, Role, ConfigModel, PingTask,
                       with_variables, ExecutionException, CommandTask,
                       ScriptTask, CopyFileTask, InfraModel, StaticServer,
@@ -41,10 +44,16 @@ from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.utils import find_file, LOG_DEBUG
 
 
-def setup():
+def setup_module():
     #make sure the private key is read-only for the owner
     pkeyfile = find_file("lxle1-dev-key")
     os.chmod(pkeyfile, stat.S_IRUSR|stat.S_IWUSR)
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
     
     
 user_home = os.path.expanduser("~lxle1")
@@ -71,7 +80,7 @@ def perform_and_complain(pea):
             print("Missing aborted task messages; need to find where they are!!")
         else:
             print("Here are the traces:")
-            for task, et, ev, tb in pea.get_aborted_tasks():
+            for task, et, ev, tb, _ in pea.get_aborted_tasks():
                 print(">>>>>>Task %s:" % task.name)
                 traceback.print_exception(et, ev, tb, file=sys.stdout)
                 print()
@@ -367,7 +376,7 @@ def test012():
         assert False, "this should have raised an exception about not finding var3"
     except (ExecutionException, AssertionError) as _:
         found_it = False
-        for _, _, value, _ in ea.get_aborted_tasks():
+        for _, _, value, _, _ in ea.get_aborted_tasks():
             if 'var3' in value.message:
                 found_it = True
                 break
@@ -677,10 +686,11 @@ def test023():
 
 
 def do_all():
-    setup()
+    setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
+    teardown_module()
             
 if __name__ == "__main__":
     do_all()

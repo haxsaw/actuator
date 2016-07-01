@@ -22,8 +22,10 @@
 '''
 Created on 7 Jun 2014
 '''
-from actuator import (MultiComponent, 
-                          MultiComponentGroup, ComponentGroup, ctxt)
+from errator import reset_all_narrations, set_default_options
+
+from actuator import (MultiComponent,
+                      MultiComponentGroup, ComponentGroup, ctxt)
 from actuator.infra import InfraModel, StaticServer, MultiResource
 from actuator.provisioners.example_resources import Server
 from actuator.modeling import CallContext
@@ -31,8 +33,13 @@ from actuator.namespace import Var, NamespaceModel, with_variables, Role,\
     MultiRole
 
 
-def setup():
-    pass
+def setup_module():
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
 
 
 def test001():
@@ -329,11 +336,10 @@ def test020():
     
 
 def do_all():
-    setup()
+    setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
     
 if __name__ == "__main__":
     do_all()
-    

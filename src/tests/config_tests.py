@@ -25,6 +25,8 @@ Created on 13 Jul 2014
 
 import threading
 
+from errator import set_default_options, reset_all_narrations
+
 from actuator import *
 from actuator.config import _Dependency, ConfigTask, StructuralTask,\
     with_config_options
@@ -34,7 +36,7 @@ MyConfig = None
 search_path = ["p1", "p2", "p3"]
 
 
-def setup():
+def setup_module():
     global MyConfig
     class MyTestConfig(ConfigModel):
         with_searchpath(*search_path)
@@ -43,6 +45,13 @@ def setup():
         with_dependencies(t1 | t2)
         
     MyConfig = MyTestConfig
+
+    reset_all_narrations()
+    set_default_options(check=True)
+
+
+def teardown_module():
+    reset_all_narrations()
     
     
 def make_dep_tuple_set(config):
@@ -423,7 +432,7 @@ def test28():
         print "Unexpected performance failure with: %s" % e.message
         print "problems:"
         import traceback
-        for t, et, ev, tb in ea.get_aborted_tasks():
+        for t, et, ev, tb, _ in ea.get_aborted_tasks():
             print ">>>Task %s" % t.name
             traceback.print_exception(et, ev, tb)
         assert False
@@ -700,7 +709,7 @@ def test40():
         print "Unexpected exception: %s" % e.message
         print "Aborted tasks:"
         import traceback
-        for t, et, ev, tb in ea.get_aborted_tasks():
+        for t, et, ev, tb, _ in ea.get_aborted_tasks():
             print ">>>Task %s" % t.name
             traceback.print_exception(et, ev, tb)
         assert False
@@ -856,7 +865,7 @@ def test45():
         ea.perform_config()
     except ExecutionException, e:
         import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
+        for task, etype, value, tb, _ in ea.get_aborted_tasks():
             print ">>>Task {} failed with the following:".format(task.name)
             traceback.print_exception(etype, value, tb)
             print
@@ -897,7 +906,7 @@ def test46():
         ea.perform_config()
     except ExecutionException, e:
         import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
+        for task, etype, value, tb, _ in ea.get_aborted_tasks():
             print ">>>Task {} failed with the following:".format(task.name)
             traceback.print_exception(etype, value, tb)
             print
@@ -955,7 +964,7 @@ def test47():
         ea.perform_config()
     except ExecutionException, e:
         import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
+        for task, etype, value, tb, _ in ea.get_aborted_tasks():
             print ">>>Task {} failed with the following:".format(task.name)
             traceback.print_exception(etype, value, tb)
             print
@@ -1001,7 +1010,7 @@ def test48():
         ea.perform_config()
     except ExecutionException, e:
         import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
+        for task, etype, value, tb, _ in ea.get_aborted_tasks():
             print ">>>Task {} failed with the following:".format(task.name)
             traceback.print_exception(etype, value, tb)
             print
@@ -1053,7 +1062,7 @@ def test49():
         ea.perform_config()
     except ExecutionException, e:
         import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
+        for task, etype, value, tb, _ in ea.get_aborted_tasks():
             print ">>>Task {} failed with the following:".format(task.name)
             traceback.print_exception(etype, value, tb)
             print
@@ -1118,7 +1127,7 @@ def test50():
         ea.perform_config()
     except ExecutionException, e:
         import traceback
-        for task, etype, value, tb in ea.get_aborted_tasks():
+        for task, etype, value, tb, _ in ea.get_aborted_tasks():
             print ">>>Task {} failed with the following:".format(task.name)
             traceback.print_exception(etype, value, tb)
             print
@@ -1146,10 +1155,11 @@ def test51():
     
 
 def do_all():
-    setup()
+    setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
+    teardown_module()
             
 if __name__ == "__main__":
     do_all()

@@ -25,6 +25,8 @@ This module contains resource classes for provisioning Openstack resources.
 import collections
 import ipaddress
 
+from errator import narrate
+
 from actuator.modeling import ContextExpr
 from actuator.infra import Provisionable, IPAddressable
 from actuator.provisioners.core import ProvisionerException
@@ -56,7 +58,21 @@ class _OpenstackProvisionableInfraResource(Provisionable):
         self.osid = osid
 
     @staticmethod
+    @narrate(lambda arg, klass, attrname, argname:
+             "I started looking for a value for '{}'; it's either '{}' or in {}.{}"
+             .format(argname, arg, klass, attrname))
     def _get_arg_msg_value(arg, klass, attrname, argname):
+        # This method encapsulates a repeated access pattern; sometimes an attribute on an object
+        # can be a plain string, sometimes an object from which we want to acquire a value from
+        # a particular attribute. This method generalizes the value acquisition process, testing
+        # if the value in question is an instance of a class from which we want to get the value
+        # of a single attribute, or if the value we have is already a string and that's fine as
+        # it is.
+        #
+        # arg is the value we need to examine; it may be the final value or an object where the value can be acquired
+        # klass is the possible type of arg if arg isn't just a plain string
+        # attrname is the name of the attribute to fetch from instances of klass to get our final value
+        # argname is used for reporting an error if we can't find what we're expecting
         value = arg
         if value is not None:
             if isinstance(value, klass):
