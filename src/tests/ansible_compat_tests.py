@@ -20,9 +20,9 @@
 # SOFTWARE.
 # from actuator.config import with_dependencies, MultiTask, ConfigClassTask
 
-'''
+"""
 Created on Oct 21, 2014
-'''
+"""
 
 import getpass
 import sys
@@ -45,9 +45,9 @@ from actuator.utils import find_file, LOG_DEBUG
 
 
 def setup_module():
-    #make sure the private key is read-only for the owner
+    # make sure the private key is read-only for the owner
     pkeyfile = find_file("lxle1-dev-key")
-    os.chmod(pkeyfile, stat.S_IRUSR|stat.S_IWUSR)
+    os.chmod(pkeyfile, stat.S_IRUSR | stat.S_IWUSR)
     reset_all_narrations()
     set_default_options(check=True)
 
@@ -63,11 +63,11 @@ def find_ip():
     hostname = socket.gethostname()
     get_ip = socket.gethostbyname(hostname)
     if get_ip == "127.0.0.1":
-        #try to find a better one; try a Linux convention
+        # try to find a better one; try a Linux convention
         hostname = "{}.local".format(hostname)
         try:
             get_ip = socket.gethostbyname(hostname)
-        except Exception, _:
+        except Exception as _:
             pass
     return get_ip
 
@@ -102,8 +102,8 @@ def test001():
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
       
       
@@ -118,8 +118,8 @@ def test002():
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
     
     
@@ -135,8 +135,8 @@ def test003():
                         repeat_count=1)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     try:
         perform_and_complain(ea)
         assert False, "this should have failed due to the bad ip address"
@@ -156,8 +156,8 @@ def test004():
         ping = CommandTask("cmd", "/bin/ls !{HOME}", task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
 
@@ -173,8 +173,8 @@ def test005():
                            task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
 
@@ -193,8 +193,8 @@ def test006():
                            repeat_count=1)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     try:
         perform_and_complain(ea)
         assert False, "this should have failed"
@@ -215,15 +215,15 @@ def test007():
                            task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
     
 
 def test008():
-    #NOTE: this will only work with nose if run from the actuator/src directory
-    #the test expects to find a directory named "tests" under the current
-    #directory
+    # NOTE: this will only work with nose if run from the actuator/src directory
+    # the test expects to find a directory named "tests" under the current
+    # directory
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
@@ -233,7 +233,7 @@ def test008():
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = ScriptTask("script", os.path.join(os.getcwd(), "tests", "test008.sh"),
-                           task_role=SimpleNamespace.cmd_target)
+                          task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
@@ -287,8 +287,8 @@ def test010():
                            task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
 
     perform_and_complain(ea)
         
@@ -304,7 +304,7 @@ def test011():
     
     class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
-    infra = SimpleInfra("simple")
+    _ = SimpleInfra("simple")
     
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp/!{FILE}"),
@@ -328,8 +328,8 @@ def test011():
     cfg = SimpleConfig()
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
     file_content = file("/tmp/test011.txt", "r").read()
     assert "summat or the other" == file_content
@@ -345,14 +345,13 @@ def test012():
     
     class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
-    infra = SimpleInfra("simple")
+    _ = SimpleInfra("simple")
     
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp/!{FILE}"),
                        Var("FILE", test_file),
                        Var("var1", "summat"),
                        Var("var2", "or"),
-#                        Var("var3", "the"),  #This one is to be missing
                        Var("var4", "other"))
         target = Role("target", host_ref=SimpleInfra.testbox)
     ns = SimpleNamespace()
@@ -369,8 +368,8 @@ def test012():
     cfg = SimpleConfig()
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     try:
         perform_and_complain(ea)
         assert False, "this should have raised an exception about not finding var3"
@@ -393,7 +392,7 @@ def test013():
     
     class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
-    infra = SimpleInfra("simple")
+    _ = SimpleInfra("simple")
     
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp/!{FILE}"),
@@ -417,8 +416,8 @@ def test013():
     cfg = SimpleConfig()
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
     file_content = [l.strip()
                     for l in file("/tmp/test013.txt", "r").readlines()]
@@ -435,7 +434,7 @@ def test014():
     
     class SimpleInfra(InfraModel):
         testbox = StaticServer("testbox", find_ip())
-    infra = SimpleInfra("simple")
+    _ = SimpleInfra("simple")
     
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PREFIX", ctxt.name),
@@ -461,8 +460,8 @@ def test014():
         _ = ns.target[i]
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               num_threads=5, no_delay=True, log_level=LOG_DEBUG)
+                                namespace_model_instance=ns,
+                                num_threads=5, no_delay=True, log_level=LOG_DEBUG)
     perform_and_complain(ea)
 
 
@@ -481,13 +480,13 @@ def test015():
                         private_key_file=find_file("lxle1-dev-key"))
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
       
 def test016():
-    "test016: try writing a file into another user's directory"
+    """test016: try writing a file into another user's directory"""
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"),
@@ -505,8 +504,8 @@ def test016():
                             )
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
       
@@ -525,8 +524,8 @@ def test017():
                         remote_pass="!{RPASS}")
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
       
@@ -542,19 +541,20 @@ def test018():
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping1 = PingTask("ping", task_role=SimpleNamespace.ping1_target,
-                        remote_user="!{RUSER1}",
-                        private_key_file=find_file("lxle1-dev-key"))
+                         remote_user="!{RUSER1}",
+                         private_key_file=find_file("lxle1-dev-key"))
         ping2 = PingTask("ping", task_role=SimpleNamespace.ping2_target)
     cfg = SimpleConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
       
 def test019():
     "test019: clear and copy files"
     the_ip = find_ip()
+
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", the_ip),
                        Var("RUSER1", "lxle1"),
@@ -563,9 +563,9 @@ def test019():
                        Var("DIRPATH", "/home/!{RUSER}/tmp"),
                        Var("FILEPATH", "!{DIRPATH}/!{TARGET}"))
         copy1_target = Role("copy1_target", host_ref=the_ip,
-                                 variables=[Var("RUSER", "!{RUSER1}")])
+                            variables=[Var("RUSER", "!{RUSER1}")])
         copy2_target = Role("copy2_target", host_ref=the_ip,
-                                 variables=[Var("RUSER", "!{RUSER2}")])
+                            variables=[Var("RUSER", "!{RUSER2}")])
     ns = SimpleNamespace()
      
     class CopyConfig(ConfigModel):
@@ -585,12 +585,11 @@ def test019():
         u2_copy = ConfigClassTask("u2-copy", CopyConfig,
                                   task_role=SimpleNamespace.copy2_target,
                                   remote_user="!{RUSER}")
-         
         
     cfg = CopyAllConfig()
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
       
@@ -598,24 +597,26 @@ def test020():
     "test020: write some data to a user's tmp dir based on config-level user"
     from datetime import datetime
     target = "/home/lxle1/tmp/020test.txt"
+
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("TARGET_FILE", target))
         copy_target = Role("copy-target", host_ref=find_ip())
     ns = SimpleNamespace()
     
     now_str = datetime.now().ctime()
+
     class SimpleConfig(ConfigModel):
         copy = CopyFileTask("cpf", "!{TARGET_FILE}",
                             task_role=SimpleNamespace.copy_target,
                             content="This content created at: {}\n".format(now_str),
                             )
-    #we're testing if setting the user stuff at this level works right
+    # we're testing if setting the user stuff at this level works right
     cfg = SimpleConfig(remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
       
@@ -624,6 +625,7 @@ def test021():
     from datetime import datetime
     target_dir = "/home/lxle1/tmp/test021"
     num_files = 5
+
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("TARGET_DIR", target_dir),
                        Var("COMPNUM", ctxt.name),
@@ -635,6 +637,7 @@ def test021():
         _ = ns.targets[i]
     
     now_str = datetime.now().ctime()
+
     class SimpleConfig(ConfigModel):
         clear = CommandTask("clear-previous", "/bin/rm -rf !{TARGET_DIR}",
                             task_role=SimpleNamespace.targets[0])
@@ -644,13 +647,13 @@ def test021():
                                                 content="Created at: {}\n".format(now_str)),
                            SimpleNamespace.q.targets.all())
         with_dependencies(clear | make | copies)
-    #we're testing if setting the user stuff at this level works right
+    # we're testing if setting the user stuff at this level works right
     cfg = SimpleConfig(remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
       
@@ -669,6 +672,7 @@ def test022():
     cfg.set_namespace(ns)
     ea = ParamikoExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
     assert ea._get_run_host(cfg.t) == "127.0.0.1"
+
 
 def test023():
     class NS023(NamespaceModel):

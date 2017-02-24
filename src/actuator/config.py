@@ -26,6 +26,7 @@ Support for creating Actuator configuration models.
 import itertools
 from collections import Iterable
 import networkx as nx
+from errator import narrate, narrate_cm
 from actuator.modeling import (ModelComponent, ModelReference,
                                AbstractModelReference, ModelInstanceReference,
                                ModelBase, ModelBaseMeta, _Nexus)
@@ -112,8 +113,8 @@ _default_task_role = "default_task_role"
 _remote_user = "remote_user"
 _private_key_file = "private_key_file"
 _default_run_from = "default_run_from"
-_legal_options = set([_default_task_role, _remote_user, _private_key_file,
-                      _default_run_from])
+_legal_options = {_default_task_role, _remote_user, _private_key_file,
+                  _default_run_from}
 
 
 @ClassModifier
@@ -290,6 +291,8 @@ class ConfigTask(Task):
             for p in self.delegate.find_persistables():
                 yield p
 
+    @narrate(lambda s, for_env=False: "...which requires getting all the Vars that apply to task {} for "
+                                "a specific host".format(s.name))
     def task_variables(self, for_env=False):
         """
         Return a dict with all the Vars that apply to this task according to
@@ -309,9 +312,10 @@ class ConfigTask(Task):
         the_vars = {}
         task_role = self.get_task_role()
         if task_role is not None:
-            the_vars = {k: v.get_value(task_role)
-                        for k, v in task_role.get_visible_vars().items()
-                        if not for_env or (for_env and v.in_env)}
+            with narrate_cm(lambda tr: "-and that role being '{}'".format(tr.name), task_role):
+                the_vars = {k: v.get_value(task_role)
+                            for k, v in task_role.get_visible_vars().items()
+                            if not for_env or (for_env and v.in_env)}
         return the_vars
 
     def set_task_role(self, task_role):
@@ -330,6 +334,8 @@ class ConfigTask(Task):
         # internal
         self.delegate = delegate
 
+    @narrate(lambda s: "...which requires task %s (%s) to determine what remote user name to use" %
+                       (s.name, s.__class__.__name__))
     def get_remote_user(self):
         """
         Return the effective remote user to use for this task.
@@ -341,6 +347,8 @@ class ConfigTask(Task):
                              else None))
         return remote_user
 
+    @narrate(lambda s: "...which requires task %s (%s) to determine what password to use" %
+                       (s.name, s.__class__.__name__))
     def get_remote_pass(self):
         """
         Return the effective remote password to use for this user.
@@ -352,6 +360,8 @@ class ConfigTask(Task):
                              else None))
         return remote_pass
 
+    @narrate(lambda s: "...which requires task %s (%s) to determine what private key file to use" %
+                       (s.name, s.__class__.__name__))
     def get_private_key_file(self):
         """
         Return the effective private key file to use for this task.
@@ -363,6 +373,8 @@ class ConfigTask(Task):
                                   else None))
         return private_key_file
 
+    @narrate(lambda s: "...which requires task %s (%s) to determine what host to run on" %
+                       (s.name, s.__class__.__name__))
     def get_task_host(self):
         """
         Return the host associated with the task_role for this task.
@@ -376,6 +388,8 @@ class ConfigTask(Task):
             host = host.get_ip()
         return host
 
+    @narrate(lambda s: "...which requires task %s (%s) to determine what role the task is associate with" %
+                       (s.name, s.__class__.__name__))
     def get_task_role(self):
         """
         Return the Role associated with this task.
@@ -394,6 +408,8 @@ class ConfigTask(Task):
                 raise ConfigException("Can't find a task role for task {}".format(self.name))
         return comp
 
+    @narrate(lambda s: "...which requires task %s (%s) to determine what role's perspective "
+                       "the task should be run from" % (s.name, s.__class__.__name__))
     def get_run_from(self):
         """
         Return the Role associated with the run_from Role for this task
@@ -406,6 +422,8 @@ class ConfigTask(Task):
             comp = mi.get_run_from() if mi is not None else None
         return comp
 
+    @narrate(lambda s: "...which requires task %s (%s) to determine what host the task should be run from" %
+                       (s.name, s.__class__.__name__))
     def get_run_host(self):
         """
         Return the host associated with the run_from Role for this task.
@@ -458,6 +476,7 @@ class ConfigTask(Task):
         self.remote_pass = self._get_arg_value(self._remote_pass)
         self.private_key_file = self._get_arg_value(self._private_key_file)
 
+    @narrate(lambda s, e: "...which leads to actually performing task %s" % s.name)
     def _perform(self, engine):
         """
         Perform the task. Must be overridden to actually work. Typically,
@@ -466,6 +485,7 @@ class ConfigTask(Task):
         """
         raise TypeError("Derived class must implement")
 
+    @narrate(lambda s, e: "...which leads to 'reversing' task %s" % s.name)
     def _reverse(self, engine):
         """
         Undo whatever was done during the perform() method.
@@ -664,6 +684,45 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             d[k] = v
         return d
 
+    def set_task_role(self, task_role):
+        """
+        Internal; sets the default_task_role for the model. Users generally
+        don't need to use this method.
+        """
+        if not isinstance(task_role, AbstractModelReference):
+            raise ConfigException("A default task role was supplied that isn't some kind of model reference: %s" %
+                                  str(task_role))
+        self.default_task_role = task_role
+
+    @narrate(lambda s, with_fix=False: "...and that led to asking the model %s for the task graph" % s.__class__.__name__)
+    def get_graph(self, with_fix=False):
+        """
+        Returns a NetworkX DiGraph object consisting of the tasks that are
+        in the model.
+
+        The graph returned is a clean instance of the graph that governs the
+        operation of configuration under the orchestrator. That means it
+        has none of the additional information added by the orchestration
+        system, such as what nodes have been performed or not. This method simply
+        provides a means to acquire the graph for visualization or other
+        information purposes.
+
+        @keyword with_fix: boolean; default False. Indicates whether or not
+            the nodes in the graph should have fix_arguments called on them
+            prior to asking for their dependencies.
+        """
+        nodes = self.get_tasks()
+        if with_fix:
+            for n in nodes:
+                n.fix_arguments()
+        deps = self.get_dependencies()
+        graph = nx.DiGraph()
+        graph.add_nodes_from(nodes)
+        graph.add_edges_from([d.edge() for d in deps])
+        return graph
+
+    @narrate(lambda s: "...which requires the config model %s to acquire the default remote user for a task" %
+                       s.__class__.__name__)
     def get_remote_user(self):
         """
         Compute the remote user to use for a task.
@@ -680,6 +739,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                              else None))
         return remote_user
 
+    @narrate(lambda s: "...which requires the config model %s to acquire the remote user's default "
+                       "password for a task" % s.__class__.__name__)
     def get_remote_pass(self):
         """
         Compute the remote_pass to use for the remote_user.
@@ -697,6 +758,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                              else None))
         return remote_pass
 
+    @narrate(lambda s: "...which requires the config model %s to acquire the name of the default key file to "
+                       "use for a task" % s.__class__.__name__)
     def get_private_key_file(self):
         """
         Compute the private_key_file to use for the remote_user.
@@ -711,42 +774,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                                   else None))
         return private_key_file
 
-    def set_task_role(self, task_role):
-        """
-        Internal; sets the default_task_role for the model. Users generally
-        don't need to use this method.
-        """
-        if not isinstance(task_role, AbstractModelReference):
-            raise ConfigException("A default task role was supplied that isn't some kind of model reference: %s" %
-                                  str(task_role))
-        self.default_task_role = task_role
-
-    def get_graph(self, with_fix=False):
-        """
-        Returns a NetworkX DiGraph object consisting of the tasks that are
-        in the model.
-        
-        The graph returned is a clean instance of the graph that governs the
-        operation of configuration under the orchestrator. That means it
-        has none of the additional information added by the orchestration
-        system, such as what nodes have been performed or not. This method simply
-        provides a means to acquire the graph for visualization or other
-        information purposes.
-        
-        @keyword with_fix: boolean; default False. Indicates whether or not
-            the nodes in the graph should have fix_arguments called on them
-            prior to asking for their dependencies.
-        """
-        nodes = self.get_tasks()
-        if with_fix:
-            for n in nodes:
-                n.fix_arguments()
-        deps = self.get_dependencies()
-        graph = nx.DiGraph()
-        graph.add_nodes_from(nodes)
-        graph.add_edges_from([d.edge() for d in deps])
-        return graph
-
+    @narrate(lambda s: "...which results in asking the config model %s for the default host for the task" %
+                       s.__class__.__name__)
     def get_task_host(self):
         """
         Compute the IP address of the host for the task.
@@ -764,6 +793,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             host = host.get_ip()
         return host
 
+    @narrate(lambda s: "...requiring config model %s to provide the default task role" % s.__class__.__name__)
     def get_task_role(self):
         """
         Compute the L{Role} to use for as the default task_role for this model.
@@ -783,6 +813,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         comp_ref.fix_arguments()
         return comp_ref.value()
 
+    @narrate(lambda s: "...requiring config model %s to provide the default run from role for a task" %
+                       s.__class__.__name__)
     def get_run_from(self):
         """
         Compute the L{Role} to use as the default run_from Role for this model.
@@ -801,6 +833,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             comp = comp_ref.value()
         return comp
 
+    @narrate(lambda s: "...resulting in config model %s providing the default run host for a task" %
+                       s.__class__.__name__)
     def get_run_host(self):
         """
         Compute the IP address of the host where the task is to run from.
@@ -840,6 +874,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             self.namespace_model_instance = self.nexus.find_instance(NamespaceModel)
         return self.namespace_model_instance
 
+    @narrate(lambda s: "...and this required the config model %s to compute its task dependencies" %
+                       s.__class__.__name__)
     def get_dependencies(self):
         """
         Returns a list of _Dependency objects that captures all the task
@@ -865,6 +901,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             deps = []
         return deps
 
+    @narrate(lambda s: "...which required getting the config tasks from the %s model" %
+                       s.__class__.__name__)
     def get_tasks(self):
         """
         Returns a list of the L{ConfigTask} objects in the model.

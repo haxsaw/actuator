@@ -36,7 +36,7 @@ class BaseProvisioner(object):
     """
     Base class for all provisioners.
     """
-    @narrate(lambda _, imi: "When I was provisioning the inframodel '{}'".format(imi.name))
+    @narrate(lambda _, imi: "...which caused the infra model {} to start the provisioning process".format(imi.name))
     def provision_infra_model(self, inframodel_instance):
         """
         Instructs the provisioner to do the work to provision the supplied

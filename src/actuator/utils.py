@@ -641,6 +641,8 @@ class _CatalogEntry(_SignatureDict):
     
 class _Catalog(_SignatureDict):
     _KIND_ = "_Catalog"
+    _KEY_ = "__KEY__"
+    _VALUE_ = "__VALUE__"
     
     def add_entry(self, persistable):
         if _CatalogEntry.compute_id(persistable) not in self:
@@ -665,8 +667,18 @@ class _Catalog(_SignatureDict):
     
     def to_dict(self):
         return self
+
+    def to_list(self):
+        return [{self._KEY_: k, self._VALUE_: v} for k, v in self.items()]
+
+    def from_list(self, a_list):
+        d = {}
+        for element in a_list:
+            d[element[self._KEY_]] = element[self._VALUE_]
+        return self.from_dict(d)
     
     def from_dict(self, a_dict):
+        # first, message the catalog array back into dict
         for k, v in a_dict.items():
             if _SigDictMeta.is_sigdict(v):
                 self[int(k)] = _CatalogEntry().from_dict(v)
@@ -683,7 +695,7 @@ class _Catalog(_SignatureDict):
     
 def reanimate_from_dict(d):
     catalog = _Catalog()
-    catalog.from_dict(d["CATALOG"])
+    catalog.from_list(d["CATALOG"])
     root = catalog.find_entry(_PersistableRef().from_dict(d["ROOT_OBJ"]).id)
     return root.get_reanimated()
     
@@ -695,10 +707,10 @@ def persist_to_dict(o, name=None):
     for p in o.find_persistables():
         catalog.add_entry(p)
     d = dict()
-    d["PERSIST_TIMESTAMP"] = str(datetime.datetime.now())
+    d["PERSIST_TIMESTAMP"] = str(datetime.datetime.utcnow())
     d["NAME"] = name
     d["SYS_PATH"] = sys.path[:]
     d["VERSION"] = 1
-    d["CATALOG"] = catalog.to_dict()
+    d["CATALOG"] = catalog.to_list()
     d["ROOT_OBJ"] = _PersistableRef(o)
     return d

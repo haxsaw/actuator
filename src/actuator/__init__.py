@@ -32,6 +32,7 @@ of subprocess, ensuring that Ansible behaves properly.
 """
 
 import sys
+import datetime
 # patch in the subprocess32 module so that it gets picked up
 # instead of the 2.7.x subprocess module
 import subprocess
@@ -185,6 +186,8 @@ class ActuatorOrchestration(_Persistable):
         self.post_prov_pause = post_prov_pause
         self.status = self.NOT_STARTED
         self.tags = list(tags) if tags is not None else []
+        self.initiate_start_time = None
+        self.initiate_end_time = None
 
         if self.config_model_inst is not None:
             self.config_ea = ParamikoExecutionAgent(config_model_instance=self.config_model_inst,
@@ -203,7 +206,9 @@ class ActuatorOrchestration(_Persistable):
                   "namespace_model_inst": self.namespace_model_inst,
                   "config_model_inst": self.config_model_inst,
                   "logger": None,
-                  "provisioner": None})
+                  "provisioner": None,
+                  "initiate_start_time": self.initiate_start_time,
+                  "initiate_end_time": self.initiate_end_time})
         return d
 
     def _find_persistables(self):
@@ -258,7 +263,7 @@ class ActuatorOrchestration(_Persistable):
                 errors = self.config_ea.get_aborted_tasks()
         return errors
 
-    @narrate("While the orchestrator was initiating the system")
+    @narrate("The orchestrator was asked to initiate the system")
     def initiate_system(self):
         """
         Stand up (initiate) the system from the models
@@ -269,6 +274,7 @@ class ActuatorOrchestration(_Persistable):
         
         @return: True if initiation was successful, False otherwise.
         """
+        self.initiate_start_time = str(datetime.datetime.utcnow())
         self.logger.info("Orchestration starting")
         did_provision = False
         if self.infra_model_inst is not None and self.provisioner is not None:
@@ -294,6 +300,7 @@ class ActuatorOrchestration(_Persistable):
                 else:
                     self.logger.critical("No further information")
                 self.logger.critical("Aborting orchestration")
+                self.initiate_end_time = str(datetime.datetime.utcnow())
                 return False
         elif self.infra_model_inst is not None:
             # we can at least fix up the args
@@ -331,10 +338,12 @@ class ActuatorOrchestration(_Persistable):
                     self.logger.critical("Its story was:{}".format("\n".join(story)))
                     self.logger.critical("")
                 self.logger.critical("Aborting orchestration")
+                self.initiate_end_time = str(datetime.datetime.utcnow())
                 return False
 
         self.logger.info("Orchestration complete")
         self.status = self.COMPLETE
+        self.initiate_end_time = str(datetime.datetime.utcnow())
         return True
 
     def teardown_system(self):

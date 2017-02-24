@@ -61,5 +61,6 @@ setup(name="actuator",
                         "fake_factory",
                         "nose",
                         "coverage",
-                        "netifaces"],
+                        "netifaces",
+                        "errator"],
       )

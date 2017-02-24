@@ -26,6 +26,7 @@ can retrieves and caches identifiers for Openstack resources that may be needed
 when provisioning infra for a model.
 """
 
+from errator import narrate
 from actuator.provisioners.core import BaseProvisioningRecord
 
 
@@ -175,7 +176,8 @@ class _OSMaps(object):
         self.refresh_routers()
         self.refresh_subnets()
         self.refresh_keypairs()
-        
+
+    @narrate("...which required refreshing the available keypairs map")
     def refresh_keypairs(self):
         """
         Refresh the keypairs map, keypair_map.
@@ -185,6 +187,7 @@ class _OSMaps(object):
         self.keypair_map = {kp["name"]: kp for kp in response}
         self.keypair_map.update({kp["id"]: kp for kp in response})
 
+    @narrate("...which required refreshing the available subnets map")
     def refresh_subnets(self):
         """
         Refresh the subnets map, subnet_map.
@@ -194,6 +197,7 @@ class _OSMaps(object):
         self.subnet_map = {d["name"]: d for d in response}
         self.subnet_map.update({d["id"]: d for d in response})
         
+    @narrate("...which required refreshing the available routers map")
     def refresh_routers(self):
         """
         Refresh the routers map, router_map
@@ -202,6 +206,7 @@ class _OSMaps(object):
         response = self.os_provisioner.cloud.list_routers()
         self.router_map = {d['id']: d for d in response}
         
+    @narrate("...which required refreshing the available networks map")
     def refresh_networks(self):
         """
         Refresh the networks map, network_map.
@@ -211,6 +216,7 @@ class _OSMaps(object):
         self.network_map = {n["name"]: n for n in networks}
         self.network_map.update({n["id"]: n for n in networks})
 
+    @narrate("...which required refreshing the available images map")
     def refresh_images(self):
         """
         Refresh the images map, image_map
@@ -220,6 +226,7 @@ class _OSMaps(object):
         self.image_map = {d["name"]: d for d in images}
         self.image_map.update({d["id"]: d for d in images})
 
+    @narrate("...which required refreshing the available flavors map")
     def refresh_flavors(self):
         """
         Refresh the flavors map, flavor_map
@@ -229,6 +236,7 @@ class _OSMaps(object):
         self.flavor_map = {f["name"]: f for f in flavors}
         self.flavor_map.update({f["id"]: f for f in flavors})
 
+    @narrate("...which required refreshing the available security groups map")
     def refresh_secgroups(self):
         """
         Refresh the sec groups map, secgroup_map

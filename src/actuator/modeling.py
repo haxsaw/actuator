@@ -52,7 +52,7 @@ class KeyItem(_ValueAccessMixin):
     def __init__(self, key):
         self.key = key if callable(key) else KeyAsAttr(key)
 
-    @narrate("So I tried to provide my key")
+    @narrate(lambda s, c=None: "...which required providing the value of the key {}".format(str(s.key)))
     def value(self, ctx=None):
         """
         Returns the value of self.key. If key is a callable, then its return
@@ -65,7 +65,7 @@ class KeyItem(_ValueAccessMixin):
             is always provided.
         """
         if callable(self.key):
-            with narrate_cm("...and my key is callable, so I invoked it with the given context to get a value"):
+            with narrate_cm("-and since the key is callable, it was invoked with the given context to get a value"):
                 value = self.key(ctx)
             if isinstance(value, AbstractModelReference):
                 value = value.value()
@@ -100,20 +100,23 @@ class ContextExpr(_Persistable):
         d["_path"] = self._path[:]
         return d
 
-    @narrate(lambda s, _: "I tried to get the reference for the context expr {}".format(str(reversed(s._path))))
+    @narrate(lambda s, _: "...which occasioned getting the reference "
+                          "for the context expr {}".format(str(reversed(s._path))))
     def __call__(self, ctx):
         ref = ctx
         for p in reversed(self._path):
             if isinstance(p, KeyItem):
-                with narrate_cm(lambda k: "Element '{}' is a key so I tried to index into "
+                with narrate_cm(lambda k: "-since element '{}' is a key it was used to index into "
                                           "the current reference".format(k),
                                 p):
                     ref = ref[p.value(ctx)]
             else:
-                with narrate_cm(lambda a: "I tried getting attribute '{}' from the ref".format(a),
+                with narrate_cm(lambda a: "-which resulted in trying to get attribute '{}' from "
+                                          "the context expr".format(a),
                                 p):
                     ref = getattr(ref, p)
-                with narrate_cm(lambda a: "The '{}' attribute yield a callable so I tried invoking it".format(a),
+                with narrate_cm(lambda a: "-and I found that the '{}' attribute yields a callable so I tried "
+                                          "invoking it".format(a),
                                 p):
                     if callable(ref):
                         ref = ref(ctx)
@@ -208,7 +211,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         """
         return None
 
-    @narrate(lambda s: "{} instance {} was asked to find its index in its parent "
+    @narrate(lambda s: "...when a {} instance {} was asked to find its index in its parent "
                        "collection".format(s.__class__.__name__, s.name))
     def _idx(self):
         """
@@ -236,7 +239,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
                   "_model_instance": self._model_instance})
         return d
 
-    @narrate(lambda s: "{} instance {} was asked to find a model reference to "
+    @narrate(lambda s: "...when a {} instance {} was asked to find a model reference to "
                        "itself".format(s.__class__.__name__, s.name))
     def get_ref(self):
         return AbstractModelReference.find_ref_for_obj(self)
@@ -277,7 +280,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             elif isinstance(kwvalue, AbstractModelingEntity):
                 kwvalue._validate_args(referenceable)
 
-    @narrate(lambda s: "So I can continue, the {} instance named {} was asked to fix the "
+    @narrate(lambda s: "...but in order to continue, the {} instance named {} was asked to fix the "
                        "values of its arguments".format(s.__class__.__name__, s.name))
     def fix_arguments(self):
         """
@@ -294,7 +297,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             self._fix_arguments()
         return self
 
-    @narrate(lambda s: "{} instance {} was asked to refix it's "
+    @narrate(lambda s: "...but in order to resolve final references, the {} instance {} was asked to refix it's "
                        "arguments".format(s.__class__.__name__, s.name))
     def _refix_arguments(self):
         """
@@ -328,7 +331,8 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         # private
         self._model_instance = inst
 
-    @narrate(lambda s: "{} instance {} was asked to find its container".format(s.__class__.__name__, s.name))
+    @narrate(lambda s: "...resulting in {} instance {} being asked "
+                       "to find its container".format(s.__class__.__name__, s.name))
     def _container(self):
         """
         This returns the entity that contains self
@@ -354,25 +358,24 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
 
     container = property(_container, doc=_container.__doc__)
 
-    @narrate(lambda s, a: "{} instance {} was asked to get the value of "
-                          "arg {}".format(s.__class__.__name__, s.name, a))
+    @narrate(lambda s, a: "-which occasioned {} instance {} to be asked to get the value of "
+                          "argument {}".format(s.__class__.__name__, s.name, str(a)))
     def _get_arg_value(self, arg):
         # internal
         if callable(arg):
             try:
                 if isinstance(arg, (SelectElement, RefSelectUnion)):
-                    with narrate_cm("...and since its callable, we tried to find the builder's model to build a call "
-                                    "context with"):
+                    with narrate_cm("-and since its callable, the builder's model was located so a call "
+                                    "context could be created"):
                         model = self.get_model_instance().nexus.find_instance(arg.builder.model)
                 else:
-                    with narrate_cm("...and since its callable, we tried to find the model to build a call"
-                                    " context with"):
+                    with narrate_cm("-and since its callable, the model was acquired to build a call context"):
                         model = self.get_model_instance()
-                with narrate_cm(lambda s: "...and then tried to find the model reference for {}".format(s.name), self):
+                with narrate_cm(lambda s: "-and then tried to find the model reference for {}".format(s.name), self):
                     ctx = CallContext(model, AbstractModelReference.find_ref_for_obj(self))
                 value = arg(ctx)
                 if isinstance(value, ModelInstanceReference):
-                    with narrate_cm(lambda val: "...and the callable argument resulted in a model reference with "
+                    with narrate_cm(lambda val: "-and the callable argument resulted in a model reference with "
                                                 "path '{}' so I tried to get its value".format(val.get_path()),
                                     value):
                         value = value.value()
@@ -403,8 +406,8 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         """
         return self.__class__
 
-    @narrate(lambda s, **kw: "{} instance {} tried to perform the base class "
-                             "clone of itself".format(s.__class__.__name__, s.name))
+    @narrate(lambda s, **kw: "...which lead {} instance {} to try to perform the basic operations to "
+                             "clone itself".format(s.__class__.__name__, s.name))
     def clone(self, clone_into_class=None):
         """
         Make a copy of this object
@@ -443,7 +446,8 @@ class _ComputeModelComponents(object):
     Mixin class; do not instantiate directly
     """
 
-    @narrate(lambda s: "An instance of {} was asked for the modeling components it contains".format(s.__class__.__name__))
+    @narrate(lambda s: "...which resulted in an instance of {} being asked "
+                       "for the modeling components it contains".format(s.__class__.__name__))
     def components(self):
         """
         Returns a set of component entities (instances of ModelComponent) in self
@@ -461,7 +465,7 @@ class _ComputeModelComponents(object):
                 all_components |= v.components()
         return all_components
 
-    @narrate(lambda s, **kw: "An instance of {} was asked for references to all components"
+    @narrate(lambda s, **kw: "...occasioning an instance of {} being asked for references to all components"
                              "it contains".format(s.__class__.__name__))
     def refs_for_components(self, my_ref=None):
         """
@@ -480,7 +484,7 @@ class _ComputeModelComponents(object):
         all_refs = set()
         for k, v in self._comp_source().items():
             if isinstance(v, ModelComponent):
-                with narrate_cm(lambda comp: "Component {} named {} was asked for its "
+                with narrate_cm(lambda comp: "-component {} named {} was asked for its "
                                              "reference".format(comp.__class__.__name__, comp.name),
                                 v):
                     if isinstance(k, KeyAsAttr):
@@ -488,19 +492,19 @@ class _ComputeModelComponents(object):
                     else:
                         all_refs.add(getattr(self if my_ref is None else my_ref, k))
             elif isinstance(self, MultiComponent):
-                with narrate_cm(lambda comp: "Component {} is a container so I asked for its "
+                with narrate_cm(lambda comp: "-component {} is a container so I asked for its "
                                              "components' references".format(comp.__class__.__name__),
                                 self):
                     ref = my_ref[k]
                     all_refs |= v.refs_for_components(my_ref=ref)
             elif isinstance(self, ComponentGroup):
-                with narrate_cm(lambda comp: "Component {} is group so I asked it for its "
+                with narrate_cm(lambda comp: "-component {} is a group so I asked it for its "
                                              "components' references".format(comp.__class__.__name__),
                                 self):
                     ref = getattr(my_ref, k)
                     all_refs |= v.refs_for_components(my_ref=ref)
             elif isinstance(v, _ComputeModelComponents):
-                with narrate_cm(lambda comp: "Component {} can compute its model components so I "
+                with narrate_cm(lambda comp: "-component {} can compute its model components so I "
                                              "asked for its components' references".format(comp.__class__.__name__),
                                 v):
                     ref = getattr(self, k)
@@ -544,7 +548,7 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         self._kwargs = kwargs
 
     def _find_persistables(self):
-        with narrate_cm(lambda s: "I'm getting all the persistables within {}".format(s.name)):
+        with narrate_cm(lambda s: "-which requires getting all the persistables within {}".format(s.name), self):
             for p in super(ComponentGroup, self)._find_persistables():
                 yield p
             for k in self._kwargs:
@@ -572,7 +576,8 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         __doc__ = AbstractModelingEntity.get_init_args.__doc__
         return (self.name,), self._comp_source()
 
-    @narrate(lambda s: "I asked the component group {} to fix its arguments".format(s.name))
+    @narrate(lambda s: "...which occasioned the group of components {} to fix "
+                       "its arguments".format(s.name))
     def _fix_arguments(self):
         for k, v in self.__dict__.items():
             if k in self._kwargs:
@@ -610,7 +615,8 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         self.template_component = template_component.clone()
         self._instances = {}
 
-    @narrate(lambda s: "I asked multicomponent {} to finalize its reanimation".format(s.name))
+    @narrate(lambda s: "...at which point multicomponent {} began to finalize its "
+                       "reanimation".format(s.name))
     def finalize_reanimate(self):
         to_correct = dict(self._instances)
         for k, v in to_correct.items():
@@ -621,8 +627,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return {v: k for k, v in self._instances.items()}.get(other)
 
     def _find_persistables(self):
-        with narrate_cm(lambda s: "I asked multicomponent {} to find its"
-                                  "persistables".format(s.name),
+        with narrate_cm(lambda s: "-which required multicomponent {} to find its persistables".format(s.name),
                         self):
             for p in super(MultiComponent, self)._find_persistables():
                 yield p
@@ -642,7 +647,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         super(MultiComponent, self)._set_model_instance(inst)
         self.template_component._set_model_instance(inst)
 
-    @narrate(lambda s: "I asked multicomponent {} to fix its arguments".format(s.name))
+    @narrate(lambda s: "...which resulted in multicomponent {} attempting to fix its arguments".format(s.name))
     def _fix_arguments(self):
         for i in self._instances.values():
             i.fix_arguments()
@@ -656,7 +661,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     def get_init_args(self):
         __doc__ = AbstractModelingEntity.get_init_args.__doc__
         args = (self.template_component,)
-        return (args, {})
+        return args, {}
 
     def _validate_args(self, referenceable):
         super(MultiComponent, self)._validate_args(referenceable)
@@ -721,7 +726,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         """
         return self._instances.has_key(KeyAsAttr(key))
 
-    @narrate(lambda s, k, **kw: "I asked multicomponent {} to fetch an instance with "
+    @narrate(lambda s, k, **kw: "...which required multicomponent {} to try to get an instance with "
                                 "key {}".format(s.name, k))
     def get(self, key, default=None):
         """
@@ -737,6 +742,8 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     def _comp_source(self):
         return dict(self._instances)
 
+    @narrate(lambda s, k: "...and then multicomponent {} was asked for a new or existing instance with "
+                          "key {}".format(s.name, k))
     def get_instance(self, key):
         """
         Returns an instance mapped to 'key'. If 'key' has been seen before, then
@@ -887,14 +894,16 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         return d
 
     def _find_persistables(self):
-        for p in super(AbstractModelReference, self)._find_persistables():
-            yield p
-        if self._obj is not None and isinstance(self._obj, _Persistable):
-            for p in self._obj.find_persistables():
+        with narrate_cm(lambda s: "-at which point model reference {} was asked to find its "
+                                  "persistables".format(s._name), self):
+            for p in super(AbstractModelReference, self)._find_persistables():
                 yield p
-        if self._parent is not None:
-            for p in self._parent.find_persistables():
-                yield p
+            if self._obj is not None and isinstance(self._obj, _Persistable):
+                for p in self._obj.find_persistables():
+                    yield p
+            if self._parent is not None:
+                for p in self._parent.find_persistables():
+                    yield p
 
     def finalize_reanimate(self):
         super(AbstractModelReference, self).finalize_reanimate()
@@ -917,6 +926,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         """
         return AbstractModelReference._inv_cache.get(obj)
 
+    @narrate(lambda s: "...which required locating {}'s containing component".format(s._name))
     def get_containing_component(self):
         """
         For a refernce's value, return the L{ModelComponent} that contains the
@@ -956,6 +966,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                        else None)
         return val
 
+    @narrate(lambda s: "...which required locating the containing component of reference {}".format(s._name))
     def get_containing_component_ref(self):
         """
         Like L{get_containing_component}, but returns the reference for the
@@ -964,6 +975,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         comp = self.get_containing_component()
         return AbstractModelReference.find_ref_for_obj(comp)
 
+    @narrate(lambda s: "...which resulted in trying to get the full path to the ref {}".format(s._name))
     def get_path(self):
         """
         Returns a list of strings that are all attribute accesses needed to
@@ -974,6 +986,10 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         parent = self._parent
         return (parent.get_path() if parent is not None else []) + [self._name]
 
+    @narrate(lambda s, a: "...which required getting the attribute {} from "
+                           "ref {} for an instance of {}".format(a,
+                                                                 object.__getattribute__(s, "_name"),
+                                                                 object.__getattribute__(s, "__class__").__name__))
     def __getattribute__(self, attrname):
         ga = super(AbstractModelReference, self).__getattribute__
         if attrname in AbstractModelReference._as_is:
@@ -997,6 +1013,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     def _get_item_ref_obj(self, theobj, key):
         raise TypeError("Derived class must implement _get_item_ref_obj()")
 
+    @narrate(lambda s, k: "...which necessitated retrieving an item in ref {} with key {}".format(s._name, k))
     def __getitem__(self, key):
         ga = super(AbstractModelReference, self).__getattribute__
         theobj = object.__getattribute__(ga("_obj"), ga("_name"))
@@ -1009,6 +1026,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
             raise TypeError("%s object doesn't support keyed access" % self.__class__)
         return value
 
+    @narrate(lambda s, **kw: "...which lead to trying to get the value of {}".format(s._name))
     def value(self, **kwargs):
         """
         Returns the value that underlies the reference. This may or may not
@@ -1114,16 +1132,19 @@ class SelectElement(object):
         self.tests.append(RefSelTest(self.builder.KEYIN, set(keyiter)))
         return self
 
+    @narrate(lambda s, r: "...which required setting up a regexp with {} as the pattern".format(r))
     def match(self, regexp_pattern):
         self.tests.append(RefSelTest(self.builder.PATRN,
                                      re.compile(regexp_pattern)))
         return self
 
+    @narrate(lambda s, r: "...which required setting up a no-match regexp with {} as the pattern".format(r))
     def no_match(self, regexp_pattern):
         self.tests.append(RefSelTest(self.builder.NOT_PATRN,
                                      re.compile(regexp_pattern)))
         return self
 
+    @narrate(lambda s, p: "...which required setting up a predicate match with {}".format(p))
     def pred(self, predicate):
         if not callable(predicate):
             raise ActuatorException("The provided predicate isn't callable")
@@ -1178,18 +1199,26 @@ class RefSelectBuilder(object):
     def _all_test(self, key, test):
         return True
 
+    @narrate(lambda s, k, t: "...which resulted in testing if key {} equals {}".format(k, t.test_arg))
     def _key_test(self, key, test):
         return key == test.test_arg
 
+    @narrate(lambda s, k, t: "...which resulted in testing if key {} is in {}".format(k, str(t)))
     def _keyin_test(self, key, test):
         return key in {KeyAsAttr(k) for k in test.test_arg}
 
+    @narrate(lambda s, k, t: "...which resulted in testing if key {} "
+                             "matches pattern {}".format(k, t.test_arg))
     def _pattern_test(self, key, test):
         return test.test_arg.search(key)
 
+    @narrate(lambda s, k, t: "...which resulted in testing if key {} "
+                             "doesn't match pattern {}".format(k, t.test_arg))
     def _not_pattern_test(self, key, test):
         return not test.test_arg.search(key)
 
+    @narrate(lambda s, k, t: "...which resulted in testing if key {} was true for"
+                             "predicate {}".format(k, str(t)))
     def _pred_test(self, key, test):
         return test.test_arg(key)
 
@@ -1213,6 +1242,8 @@ class RefSelectBuilder(object):
                 raise ActuatorException("The following arg is not a select expression: %s" % str(expr))
         return RefSelectUnion(self, *exprs)
 
+    @narrate(lambda s, e, c: "...at which point the reference query {} was run to get a set of "
+                             "components".format(".".join([object.__getattribute__(x, "name") for x in e._expand()])))
     def _execute(self, element, ctxt):
         work_list = element._expand()
         selected = [ctxt.model]
@@ -1233,6 +1264,7 @@ class RefSelectUnion(object):
         self.builder = builder
         self.exprs = exprs
 
+    @narrate("...finally leading to unioning the query result sets together")
     def __call__(self, ctxt):
         return set(itertools.chain(*[e(ctxt) for e in self.exprs]))
 
@@ -1264,10 +1296,11 @@ class _Nexus(_Persistable):
 
     def _get_attrs_dict(self):
         d = super(_Nexus, self)._get_attrs_dict()
-        d["mapper"] = {"%s%s%s" % (c.__name__, self._sep, c.__module__): v
+        d["mapper"] = {"%s%s%s" % (c.__name__, self._sep, c.__module__.replace(".", self._sep)): v
                        for c, v in self.mapper.items()}
         return d
 
+    @narrate("...which resulted in being asked to find persistables in the nexus")
     def _find_persistables(self):
         for p in super(_Nexus, self)._find_persistables():
             yield p
@@ -1275,9 +1308,11 @@ class _Nexus(_Persistable):
             for p in v.find_persistables():
                 yield p
 
+    @narrate("...which led to finalizing the reanimation of a nexus")
     def finalize_reanimate(self):
         for k in list(self.mapper.keys()):
-            klassname, modname = k.split(self._sep)
+            klassname, modname = k.split(self._sep, 1)
+            modname = modname.replace(self._sep, ".")
             klass = _find_class(modname, klassname)
             self.mapper[klass] = self.mapper[k]
             del self.mapper[k]

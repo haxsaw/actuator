@@ -27,7 +27,7 @@ from actuator import (ActuatorOrchestration, ctxt, MultiResource, ResourceGroup,
                       MultiResourceGroup)
 from actuator import InfraModel
 from actuator.provisioners.example_resources import Server, Network, Queue
-from actuator.utils import persist_to_dict, reanimate_from_dict, adb
+from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import (NamespaceModel, Role, Var, with_variables,
                                 MultiRole, RoleGroup, MultiRoleGroup)
 from pt_help import persistence_helper

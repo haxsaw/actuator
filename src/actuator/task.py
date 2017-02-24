@@ -589,17 +589,17 @@ class TaskEngine(object):
         # Actually reverse the task; the default asks the task to reverse itself
         task.reverse(self)
 
-    @narrate(lambda s, g, t: "So the base task engine started reversing task {}".format(t.task.name))
+    @narrate(lambda s, g, t: "...which has caused the base task engine to start reversing task {}".format(t.task.name))
     def reverse_task(self, graph, tec):
         """
         Internal, used to reverse a task in graph. Derived classes implement
         _reverse_task() to supply the actual mechanics for the underlying
         task execution system.
-        
+
         @param graph: an NetworkX DiGraph; needed to find the next tasks
             to queue when the current one is done
         @param tec: The TaskExecControl object containing the task to perform
-        
+
         LOGGING FORMAT:
         Some logging in this method embeds a sub-message in the log message. The
         fields in the sub message a separated by '|', and are as follows:
@@ -612,12 +612,12 @@ class TaskEngine(object):
         - free-form text message
         """
         self._task_runner(tec, "reverse", Task.REVERSED)
-    
+
     def _perform_task(self, task, logfile=None):
         # Actually do the task; the default asks the task to perform itself.
         task.perform(self)
 
-    @narrate(lambda s, g, t: "So the base task engine started performing task {}".format(t.task.name))
+    @narrate(lambda s, g, t: "...which caused the base task engine to begin performing task {}".format(t.task.name))
     def perform_task(self, graph, tec):
         """
         Internal, used to perform a task in graph. Derived classes implement
@@ -676,7 +676,7 @@ class TaskEngine(object):
             logfile = None
         try:
             logger.info(fmtmsg("start %s-ing task" % direction))
-            with narrate_cm(lambda n, d: "I tried performing task {} in the {} direction"
+            with narrate_cm(lambda n, d: "-which resulted in the task engine performing task {} in the {} direction"
                             .format(n, d), task.name, direction):
                 meth(task, logfile=logfile)
             task.set_performance_status(success_status)

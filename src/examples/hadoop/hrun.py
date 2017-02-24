@@ -26,6 +26,7 @@ from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.utils import persist_to_dict, reanimate_from_dict, LOG_DEBUG
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
+from hreport import capture_running, capture_terminated
 
 user_env = "OS_USER"
 pass_env = "OS_PASS"
@@ -65,6 +66,7 @@ if __name__ == "__main__":
     success = infra = ns = cfg = ao = None
     json_file = None
     quit = False
+    inst_id = None
     persist_op = "p=persist model"
     standup_op = "s=stand-up hadoop"
     rerun_op = "r=re-run stand-up"
@@ -103,7 +105,8 @@ if __name__ == "__main__":
                     num_slaves = None
             success, infra, ns, cfg, ao = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
             if success:
-                print "\n...done! You can reach the reach the assets at the following IPs:"
+                inst_id = capture_running(ao, "hadoop_demo")
+                print "\n...done! You can reach the assets at the following IPs:"
                 print ">>>namenode: %s" % infra.name_node_fip.get_ip()
                 print ">>>slaves:"
                 for s in infra.slaves.values():
@@ -116,6 +119,8 @@ if __name__ == "__main__":
                 ao.set_provisioner(OpenstackProvisioner(cloud_name="citycloud", num_threads=5))
             success = ao.teardown_system()
             if success:
+                if inst_id is not None:
+                    capture_terminated(ao, inst_id)
                 print "\n...done! Your system has been de-commissioned"
                 print "quitting now"
                 break

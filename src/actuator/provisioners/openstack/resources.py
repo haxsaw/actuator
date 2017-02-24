@@ -259,7 +259,8 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
             return retval 
         else:
             return super(Server, self).encode_attr(k, v)
-        
+
+    @narrate(lambda s, p=None: "...which resulted in fixing the arguments for server %s" % s.name)
     def _fix_arguments(self, provisioner=None):
         self.imageName = self._get_arg_value(self._imageName)
         self.flavorName = self._get_arg_value(self._flavorName)
@@ -283,7 +284,8 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         else:
             secgrps = self._get_arg_value(self._security_groups)
             if not isinstance(secgrps, collections.Iterable):
-                ProvisionerException("Processing the security_groups argument didn't yield a list")
+                ProvisionerException("Processing the security_groups argument on server %s "
+                                     "didn't yield a list" % self.name)
             self.security_groups = [self._get_arg_value(sg)
                                     for sg in secgrps]
             
