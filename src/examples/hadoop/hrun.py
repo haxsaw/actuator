@@ -26,12 +26,31 @@ from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.utils import persist_to_dict, reanimate_from_dict, LOG_DEBUG
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
-from hreport import capture_running, capture_terminated
+from prices import create_price_table
 
 user_env = "OS_USER"
 pass_env = "OS_PASS"
 tenant_env = "OS_TENANT"
 auth_env = "OS_AUTH"
+
+with_mongo = False
+inst_id = None  # gets set when we are to save in mongo
+with_zabbix = False
+zabbix_host_ids = []   # gets set if we inform zabbix of our new hosts
+template_list = ["Template App SSH Service", "Template ICMP Ping", "Template OS Linux"]
+
+
+def make_infra_for_forcast(num_slaves=1):
+    inf = HadoopInfra("forecast")
+    ns = HadoopNamespace()
+    ns.set_infra_model(inf)
+    for i in range(num_slaves):
+        _ = inf.slaves[i]
+    inf.compute_provisioning_from_refs(inf.refs_for_components())
+    for c in inf.components():
+        c.fix_arguments()
+    return inf
+
 
 def do_it(uid, pwd, tenant, url, num_slaves=1):
     # this is what's needed to use the models
@@ -57,11 +76,17 @@ def do_it(uid, pwd, tenant, url, num_slaves=1):
 
 if __name__ == "__main__":
     # this is all command line and environment processing overhead
-    # if (not os.environ.get(user_env) or not os.environ.get(pass_env) or
-    #         not os.environ.get(auth_env)):
-    #     print "\n>>>Environment variables missing!"
-    #     help()
-    #     sys.exit(1)
+    if len(sys.argv) == 2:
+        arg1 = sys.argv[1].lower()
+        with_mongo = "m" in arg1
+        with_zabbix = "z" in arg1
+
+    if with_zabbix:
+        print("Ensure that you've set the ZABBIX_SERVER environment var to the public IP of the server,")
+        print("and that ZABBIX_PRIVATE is set to the internal IP of the server")
+
+    if with_mongo:
+        print("Ensure that mongod is running")
         
     success = infra = ns = cfg = ao = None
     json_file = None
@@ -72,13 +97,14 @@ if __name__ == "__main__":
     rerun_op = "r=re-run stand-up"
     teardown_op = "t=teardown known system"
     load_op = "l=load persisted model"
+    forecast_op = "f=forecast"
     quit_op = "q=quit"
     uid = os.environ.get(user_env)
     pwd = os.environ.get(pass_env)
     tenant = os.environ.get(tenant_env, user_env)
     url = os.environ.get(auth_env)
     while not quit:
-        ops = [quit_op, load_op]
+        ops = [quit_op, load_op, forecast_op]
         if ao:
             ops.append(persist_op)
             ops.append(teardown_op)
@@ -93,24 +119,44 @@ if __name__ == "__main__":
         if cmd == quit_op[0]:
             print "goodbye"
             sys.exit(0)
-        elif cmd == standup_op[0]:
+        elif cmd in (standup_op[0], forecast_op[0]):
             num_slaves = None
-            while not num_slaves:
-                print "Enter a number of slaves to start:",
+            while num_slaves is None:
+                print "Enter a number of slaves to start: ",
                 num_slaves = sys.stdin.readline().strip()
                 try:
                     num_slaves = int(num_slaves)
                 except Exception, _:
                     print "%s isn't a number" % num_slaves
                     num_slaves = None
+            if cmd == forecast_op[0]:
+                inf = make_infra_for_forcast(num_slaves=num_slaves)
+                print("\nPrices for cluster with %d slaves:" % num_slaves)
+                print(create_price_table(inf))
+                print()
+                continue
             success, infra, ns, cfg, ao = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
             if success:
-                inst_id = capture_running(ao, "hadoop_demo")
-                print "\n...done! You can reach the assets at the following IPs:"
+                if with_mongo:
+                    from hreport import capture_running
+                    print("Storing model in Mongo...")
+                    inst_id = capture_running(ao, "hadoop_demo")
+                    print("...done")
+                if with_zabbix:
+                    print("Updating Zabbix with new hosts to monitor...")
+                    from zabint import Zabact
+                    za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
+                    zabbix_host_ids = za.register_servers_in_group("Linux servers", [infra.name_node_fip.value()] +
+                                                                   [s.slave_fip.value() for s in infra.slaves.values()],
+                                                                   templates=template_list)
+                    print("...done")
+                print "\nStandup complete! You can reach the assets at the following IPs:"
                 print ">>>namenode: %s" % infra.name_node_fip.get_ip()
                 print ">>>slaves:"
                 for s in infra.slaves.values():
                     print "\t%s" % s.slave_fip.get_ip()
+                print("\nExecution prices for this infra:\n")
+                print(create_price_table(infra))
             else:
                 print "Orchestration failed; see the log for error messages"
         elif cmd == teardown_op[0]:
@@ -119,8 +165,17 @@ if __name__ == "__main__":
                 ao.set_provisioner(OpenstackProvisioner(cloud_name="citycloud", num_threads=5))
             success = ao.teardown_system()
             if success:
-                if inst_id is not None:
+                if inst_id is not None and with_mongo:
+                    from hreport import capture_terminated
+                    print("Recording instance terminated in Mongo")
                     capture_terminated(ao, inst_id)
+                    print("...done")
+                if zabbix_host_ids and with_zabbix:
+                    print("Removing hosts from zabbix")
+                    from zabint import Zabact
+                    za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
+                    za.deregister_servers(zabbix_host_ids)
+                    print("...done")
                 print "\n...done! Your system has been de-commissioned"
                 print "quitting now"
                 break

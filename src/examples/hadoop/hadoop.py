@@ -22,7 +22,9 @@
 from actuator import *  # @UnusedWildImport
 from actuator.provisioners.openstack.resources import *  # @UnusedWildImport
 from hadoop_node import common_vars, HadoopNodeConfig, pkn
+from zabbix_agent import zabbix_agent_secgroup
 from actuator.utils import find_file
+from prices import (CORES1_MEM0_5_STO20, CORES2_MEM2_STO50)
 
 # This ResourceGroup is boilerplate for making Openstack resources available
 # externally. They are created outside an infra model to illustrate that they
@@ -72,11 +74,36 @@ def make_std_secgroup(name, desc="standard security group"):
 common_kwargs = {"key_name": ctxt.model.kp}
 
 
+def get_flavor(cc):
+    """
+    This function illustrates how any arbitrary callable can be used to acquire
+    values for a Var. The callable will be invoked when the value for a variable is
+    required, and is passed an instance of actuator.modeling.CallContext which describes
+    the context from which the Var is being evaluated. For Vars, the callable should return
+    a string.
+
+    This example simply returns a hard-coded value, but it could alternatively consult an
+    external data source for the value to return.
+
+    :param cc: an instance of actuator.modeling.CallContext
+    :return: string; the flavor to use
+    """
+    if cc.comp is not None and isinstance(cc.comp.value(), Provisionable):
+        if "name" in cc.comp.get_display_name():
+            result = CORES1_MEM0_5_STO20
+        else:
+            result = CORES2_MEM2_STO50
+    else:
+        result = ""
+    return result
+
+
 class HadoopInfra(InfraModel):
     with_infra_options(long_names=True)
     fip_pool = "public"  # attributes that aren't resources are ignored
     # add the standard slave_secgroup and connectivity components
     slave_secgroup = make_std_secgroup("slave_sg", desc="For Hadoop slaves")
+    zabbix_sg = zabbix_agent_secgroup
     gateway = external_connection
     
     kp = KeyPair(pkn, pkn, pub_key_file=find_file("%s.pub" % pkn))
@@ -109,8 +136,9 @@ class HadoopInfra(InfraModel):
                                  to_port=ctxt.nexus.ns.v.NAMENODE_PORT)
     
     # HADOOP name node
-    name_node = Server("name_node", ctxt.nexus.ns.v.IMAGE, ctxt.nexus.ns.v.FLAVOR,
-                       security_groups=[ctxt.model.namenode_secgroup.group],
+    name_node = Server("name_node", ctxt.nexus.ns.v.IMAGE, get_flavor,
+                       security_groups=[ctxt.model.namenode_secgroup.group,
+                       ctxt.model.zabbix_sg.zabbix_group],
                        nics=[ctxt.model.gateway.net], **common_kwargs)
     name_node_fip = FloatingIP("name_node_fip", ctxt.model.name_node,
                                ctxt.model.name_node.iface0.addr0,
@@ -118,9 +146,10 @@ class HadoopInfra(InfraModel):
     # HADOOP slaves
     slaves = MultiResourceGroup("slaves",
                                 slave=Server("slave", ctxt.nexus.ns.v.IMAGE,
-                                             ctxt.nexus.ns.v.FLAVOR,
+                                             get_flavor,
                                              nics=[ctxt.model.gateway.net],
-                                             security_groups=[ctxt.model.slave_secgroup.group],
+                                             security_groups=[ctxt.model.slave_secgroup.group,
+                                                              ctxt.model.zabbix_sg.zabbix_group],
                                              **common_kwargs),
                                 slave_fip=FloatingIP("sn_fip",
                                                      ctxt.comp.container.slave,
@@ -146,30 +175,13 @@ def host_list(ctx_exp, sep_char=" "):
     return host_list_inner
 
 
-def get_flavor(cc):
-    """
-    This function illustrates how any arbitrary callable can be used to acquire
-    values for a Var. The callable will be invoked when the value for a variable is
-    required, and is passed an instance of actuator.modeling.CallContext which describes
-    the context from which the Var is being evaluated. For Vars, the callable should return
-    a string.
-
-    This example simply returns a hard-coded value, but it could alternatively consult an
-    external data source for the value to return.
-
-    :param cc: an instance of actuator.modeling.CallContext
-    :return: string; the flavor to use
-    """
-    return "1C-0.5GB"
-
-
 class HadoopNamespace(NamespaceModel):
     with_variables(*common_vars)
     with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)),
                    Var("NAMENODE_IP", HadoopInfra.name_node.iface0.addr0))
     # set up cloud parameters
     with_variables(Var("IMAGE", "Ubuntu 14.04 - LTS - Trusty Tahr"),
-                   Var("FLAVOR", get_flavor),
+                   # Var("FLAVOR", get_flavor),
                    Var("EXTNET", "ext-net"),
                    Var("AZ", "Lon1"))
     

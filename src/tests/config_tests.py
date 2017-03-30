@@ -916,6 +916,7 @@ def test46():
             cap.pos("tp", "inner_task1") < cap.pos("tp", "inner_task2") and
             cap.pos("tp", "inner_task2") < cap.pos("tp", "inner_task3"))
 
+
 def test47():
     """
     test47: wrap a config class with a sequence of tasks in ConfigClassTask
@@ -944,6 +945,7 @@ def test47():
         _ = ns.task_role[i]
     
     cap = Capture()
+
     class InnerCfg(ConfigModel):
         t1 = ReportingTask("inner_task1", report=cap)
         t2 = ReportingTask("inner_task2", report=cap)
@@ -972,6 +974,7 @@ def test47():
 
     cap.performed.sort(lambda x,y: cmp(x[0], y[0]))
     assert len(cap.performed) == 9
+
 
 def test48():
     """
@@ -1152,14 +1155,36 @@ def test51():
     cfg.set_namespace(ns)
     
     assert "THREE" in cfg.t.task_variables() and "THREE" not in cfg.t.task_variables(for_env=True)
-    
+
+
+def test52():
+    class NS(NamespaceModel):
+        r = Role("me", host_ref="127.0.0.1")
+
+    class InnerCfg(ConfigModel):
+        t = NullTask("inner")
+
+    class MiddleCfg(ConfigModel):
+        t = ConfigClassTask("middle", cfg_class=InnerCfg)
+
+    class OuterCfg(ConfigModel):
+        t = MultiTask("outer", ConfigClassTask("wrapper", MiddleCfg),
+                      NS.q.r)
+
+    ns = NS()
+    cfg = OuterCfg()
+    cfg.set_namespace(ns)
+    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea.perform_config()
+
 
 def do_all():
     setup_module()
-    for k, v in globals().items():
-        if k.startswith("test") and callable(v):
-            v()
-    teardown_module()
+    test52()
+    # for k, v in globals().items():
+    #     if k.startswith("test") and callable(v):
+    #         v()
+    # teardown_module()
             
 if __name__ == "__main__":
     do_all()

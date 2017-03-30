@@ -20,8 +20,10 @@
 # SOFTWARE.
 
 import sys
+import os
 from actuator import *
 from actuator.utils import find_file
+from zabbix_agent import ZabbixConfig
 
 hadoop_ver = "hadoop-1.2.1"
 
@@ -59,7 +61,8 @@ common_vars = [Var("USER", "ubuntu"),
                Var("NAMENODE_WEBUI_PORT", "50070"),
                Var("JOBTRACKER_PORT", "50031"),
                Var("JOBTRACKER_WEBUI_PORT", "50030"),
-               Var("PRIV_KEY_NAME", pkn)]
+               Var("PRIV_KEY_NAME", pkn),
+               Var("ZABBIX_SERVER", os.environ.get("ZABBIX_SERVER"), in_env=False)]
 
 
 class DevNamespace(NamespaceModel):
@@ -78,6 +81,7 @@ class HadoopNodeConfig(ConfigModel):
     update = CommandTask("update_linux",
                          "/usr/bin/sudo -h localhost /usr/bin/apt-get -y update",
                          repeat_count=3)
+    zabbix_setup = ConfigClassTask("zabbix-install", ZabbixConfig)
     jdk_install = CommandTask("jdk_install",
                               "/usr/bin/sudo -h localhost "
                               "/usr/bin/apt-get -y install !{JAVA_VER}",
@@ -158,7 +162,7 @@ class HadoopNodeConfig(ConfigModel):
                       unpack | (send_env & send_core_site & send_hdfs_site &
                       send_mapred_site))
     
-    with_dependencies(add_hostname | update | jdk_install)
+    with_dependencies(add_hostname | update | jdk_install | zabbix_setup)
     
     with_dependencies(make_home | make_data_home | (make_transactions &
                                                     make_block_home))

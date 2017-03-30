@@ -388,7 +388,7 @@ class ConfigTask(Task):
             host = host.get_ip()
         return host
 
-    @narrate(lambda s: "...which requires task %s (%s) to determine what role the task is associate with" %
+    @narrate(lambda s: "...which requires task %s (%s) to determine what role the task is associated with" %
                        (s.name, s.__class__.__name__))
     def get_task_role(self):
         """
@@ -690,8 +690,10 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         don't need to use this method.
         """
         if not isinstance(task_role, AbstractModelReference):
-            raise ConfigException("A default task role was supplied that isn't some kind of model reference: %s" %
-                                  str(task_role))
+            task_role = AbstractModelReference.find_ref_for_obj(task_role)
+            if not isinstance(task_role, AbstractModelReference):
+                raise ConfigException("A default task role was supplied that isn't some kind of "
+                                      "model reference, and no reference can be found: %s" % str(task_role))
         self.default_task_role = task_role
 
     @narrate(lambda s, with_fix=False: "...and that led to asking the model %s for the task graph" % s.__class__.__name__)

@@ -466,7 +466,7 @@ class CopyFileProcessor(PTaskProcessor):
                                      % task.name)
             
         sftp = client.open_sftp()
-            
+
         if (src is not None and not os.path.isdir(src)) or content is not None:
             if src is not None and content is None and mode is None:
                 fstat = os.stat(src)

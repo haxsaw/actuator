@@ -1,4 +1,5 @@
 import getpass
+import datetime
 
 import pymongo
 import bson
@@ -16,6 +17,16 @@ def get_wrapper(d):
                     "version": 1,
                     "orchestrator": d}
     return wrapper_dict
+
+
+def find_running(obid):
+    l = list(actuator_db.running.find({"_id": bson.ObjectId(obid)}))
+    return l[0] if l else None
+
+
+def find_terminated(obid):
+    l = list(actuator_db.terminated.find({"_id": bson.ObjectId(obid)}))
+    return l[0] if l else None
 
 
 def capture_running(orchestrator, name=None):
@@ -41,7 +52,13 @@ def running_servers_by_app_instance(app_name):
     l = list(running.aggregate([{"$match": {"app": {"$eq": app_name}}},
                                 {"$unwind": "$orchestrator.CATALOG"},
                                 {"$group": {"_id": "$_id",
-                                            "count": {"$sum": {"$cond":
+                                            "username": {"$first": "$user"},
+                                            "app": {"$first": "$app"},
+                                            "init_start": {
+                                                "$addToSet": "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.initiate_start_time"},
+                                            "init_end": {
+                                                "$addToSet": "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.initiate_end_time"},
+                                            "server_count": {"$sum": {"$cond":
                                                                    [{"$and": [{"$eq": [
                                                                        "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
                                                                        "Server"]},
@@ -60,7 +77,11 @@ def servers_in_terminated_apps(app_name):
     l = list(terminated.aggregate([{"$match": {"app": {"$eq": app_name}}},
                                    {"$unwind": "$orchestrator.CATALOG"},
                                    {"$group": {"_id": "$_id",
-                                               "count": {"$sum": {"$cond":
+                                               "username": {"$first": "$user"},
+                                               "app": {"$first": "$app"},
+                                               "init_start": {"$addToSet": "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.initiate_start_time"},
+                                               "init_end": {"$addToSet": "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.initiate_end_time"},
+                                               "server_count": {"$sum": {"$cond":
                                                    [{"$and": [{"$eq": [
                                                        "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
                                                        "Server"]},
@@ -70,6 +91,7 @@ def servers_in_terminated_apps(app_name):
                                                     ]},
                                                     1,
                                                     0]}
-                                                   }}}]))
+                                                   }}}
+                                   ]))
 
     return l

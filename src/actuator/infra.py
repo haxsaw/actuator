@@ -125,7 +125,6 @@ class MultiResourceGroup(_LNMixin, MultiComponentGroup):
         return MultiResource(group)
 
 
-# class Provisionable(_LNMixin, ModelComponent):
 class Provisionable(_LNMixin, ModelComponent, _Performable):
     """
     This class serves as a marker class for any L{ModelComponent} derived
@@ -201,16 +200,16 @@ class InfraModel(ModelBase):
         """
         super(InfraModel, self).__init__()
         self.name = name
-        #set option defaults
+        # set option defaults
         self._long_names = False
-        #process options
+        # process options
         opts = self.__class__.__dict__.get(_infra_options)
         if opts:
             for k, v in opts.items():
                 if k == _long_names:
                     self._long_names = v
         ga = super(InfraModel, self).__getattribute__
-        #update self.__dict__ with clones of the model's components
+        # update self.__dict__ with clones of the model's components
         attrdict = self.__dict__
         for k, v in ga(InfraModelMeta._COMPONENTS).items():
             attrdict[k] = clone = v.clone()
@@ -246,16 +245,16 @@ class InfraModel(ModelBase):
         Returns a set with the unique resources to provision on this instance.
         """
         _resources = super(InfraModel, self).components()
-        #We need some place where we have a reasonable expectations
-        #that all logical refs have been eval'd against the model instance
-        #and hence we can tell every Provisionable that's out there so we
-        #can let them all know where the infra instance is.
+        # We need some place where we have a reasonable expectations
+        # that all logical refs have been eval'd against the model instance
+        # and hence we can tell every Provisionable that's out there so we
+        # can let them all know where the infra instance is.
         #
-        #this is kind of crap to do here, but there really isn't a better place
-        #unless we enforce some kind of stateful API that gives is a chance
-        #to call _set_model_instance(). This is a pretty cheap and harmless
-        #sideeffect, and one that isn't so bad that fixing it by introducing some
-        #sort of stateful API elements
+        # this is kind of crap to do here, but there really isn't a better place
+        # unless we enforce some kind of stateful API that gives is a chance
+        # to call _set_model_instance(). This is a pretty cheap and harmless
+        # sideeffect, and one that isn't so bad that fixing it by introducing some
+        # sort of stateful API elements
         for resource in _resources:
             resource._set_model_instance(self)
         return _resources
