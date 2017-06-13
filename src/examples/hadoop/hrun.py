@@ -27,6 +27,7 @@ from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.utils import persist_to_dict, reanimate_from_dict, LOG_DEBUG
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 from prices import create_price_table
+from hsimple import do_it
 
 user_env = "OS_USER"
 pass_env = "OS_PASS"
@@ -52,28 +53,6 @@ def make_infra_for_forcast(num_slaves=1):
     return inf
 
 
-def do_it(uid, pwd, tenant, url, num_slaves=1):
-    # this is what's needed to use the models
-    inf = HadoopInfra("infra")
-    namespace = HadoopNamespace()
-    namespace.create_slaves(num_slaves)
-    conf = HadoopConfig(remote_user="ubuntu",
-                        private_key_file="actuator-dev-key")
-
-    os_prov = OpenstackProvisioner(num_threads=10, cloud_name="citycloud")
-    orch = ActuatorOrchestration(infra_model_inst=inf,
-                                 provisioner=os_prov,
-                                 namespace_model_inst=namespace,
-                                 config_model_inst=conf,
-                                 post_prov_pause=10,
-                                 num_threads=20)
-    try:
-        success = orch.initiate_system()
-    except KeyboardInterrupt:
-        success = False
-    return success, inf, namespace, cfg, orch
-    
-
 if __name__ == "__main__":
     # this is all command line and environment processing overhead
     if len(sys.argv) == 2:
@@ -82,13 +61,14 @@ if __name__ == "__main__":
         with_zabbix = "z" in arg1
 
     if with_zabbix:
-        print("Ensure that you've set the ZABBIX_SERVER environment var to the public IP of the server,")
-        print("and that ZABBIX_PRIVATE is set to the internal IP of the server")
+        if not os.environ.get("ZABBIX_SERVER") or not os.environ.get("ZABBIX_PRIVATE"):
+            print("Ensure that you've set the ZABBIX_SERVER environment var to the public IP of the server,")
+            print("and that ZABBIX_PRIVATE is set to the internal IP of the server")
 
     if with_mongo:
         print("Ensure that mongod is running")
         
-    success = infra = ns = cfg = ao = None
+    success = infra = ns = ao = None
     json_file = None
     quit = False
     inst_id = None
@@ -99,10 +79,6 @@ if __name__ == "__main__":
     load_op = "l=load persisted model"
     forecast_op = "f=forecast"
     quit_op = "q=quit"
-    uid = os.environ.get(user_env)
-    pwd = os.environ.get(pass_env)
-    tenant = os.environ.get(tenant_env, user_env)
-    url = os.environ.get(auth_env)
     while not quit:
         ops = [quit_op, load_op, forecast_op]
         if ao:
@@ -135,13 +111,13 @@ if __name__ == "__main__":
                 print(create_price_table(inf))
                 print()
                 continue
-            success, infra, ns, cfg, ao = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
+            success, infra, ns, conf, ao = do_it(num_slaves=num_slaves)
             if success:
                 if with_mongo:
                     from hreport import capture_running
                     print("Storing model in Mongo...")
                     inst_id = capture_running(ao, "hadoop_demo")
-                    print("...done")
+                    print("...done. Instance id is '%s'" % inst_id)
                 if with_zabbix:
                     print("Updating Zabbix with new hosts to monitor...")
                     from zabint import Zabact
@@ -216,68 +192,3 @@ if __name__ == "__main__":
                     print "\t%s" % s.slave_fip.get_ip()
             else:
                 print "Orchestration failed; see the log for error messages"
-
-        
-#     args = [a.lower() for a in sys.argv]
-#     show_help = reduce(lambda x, a: x or a.startswith("-h"), args, False)
-#     if show_help:
-#         help()
-#         sys.exit(0)
-#         
-#     try:
-#         num_slaves = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-#     except Exception, e:
-#         print "you must supply an int arg for more slaves; error=%s" % e.message
-#         help()
-#         sys.exit(1)
-#         
-#     uid = os.environ.get(user_env)
-#     pwd = os.environ.get(pass_env)
-#     tenant = os.environ.get(tenant_env, user_env)
-#     url = os.environ.get(auth_env)
-#     
-#     success, infra, ns, cfg, ao = do_it(uid, pwd, tenant, url, num_slaves=num_slaves)
-#     if success:
-#         print "\n...done! You can reach the reach the assets at the following IPs:"
-#         print ">>>namenode: %s" % infra.name_node_fip.get_ip()
-#         print ">>>slaves:"
-#         for s in infra.slaves.values():
-#             print "\t%s" % s.slave_fip.get_ip()
-#     else:
-#         print "Orchestration failed; see the log for error messages"
-#     
-#     cmd = ""
-#     while cmd != 'q':
-#         print "Now what? r=re-run initiate, t=teardown system, q=quit"
-#         print "(r/t/q): "
-#         cmd = sys.stdin.readline()
-#         cmd = cmd.strip().lower()
-#         cmd = cmd[0] if len(cmd) else ""
-#         if cmd == "r":
-#             print "Re-running initiate"
-#             success = ao.initiate_system()
-#             if success:
-#                 print "\n...done! You can reach the reach the assets at the following IPs:"
-#                 print ">>>namenode: %s" % infra.name_node_fip.get_ip()
-#                 print ">>>slaves:"
-#                 for s in infra.slaves.values():
-#                     print "\t%s" % s.slave_fip.get_ip()
-#             else:
-#                 print "Orchestration failed; see the log for error messages"
-#         elif cmd == "t":
-#             print "Tearing down; won't be able to re-run later"
-#             success = ao.teardown_system()
-#             if success:
-#                 print "\n...done! Your system has been de-commissioned"
-#                 print "quitting now"
-#                 break
-#             else:
-#                 print "Orchestration failed; see the log for error messages"
-#         elif cmd == "q":
-#             print "goodbye"
-#             break
-#         elif cmd == "":
-#             continue
-#         else:
-#             print "Unrecognized command '%s'" % cmd
-
