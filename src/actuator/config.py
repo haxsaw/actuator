@@ -32,7 +32,7 @@ from actuator.modeling import (ModelComponent, ModelReference,
                                ModelBase, ModelBaseMeta, _Nexus)
 from actuator.namespace import _ComputableValue, NamespaceModel
 from actuator.task import (TaskException, Task, _Dependency, _Cloneable,
-                           _Unpackable, GraphableModelMixin)
+                           _Unpackable, GraphableModelMixin, TaskEventHandler)
 from actuator.utils import ClassModifier, process_modifiers, _Persistable, _find_class
 from actuator.infra import IPAddressable
 
@@ -552,14 +552,15 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     This class is used to define Actuator config models. Instances of the class
     will be married to a namespace such that the model can find the Roles
     associated with each task. Once an instance is made and associated with
-    a namespace the tasks in the model can be peformed.
+    a namespace the tasks in the model can be performed.
     """
     __metaclass__ = ConfigModelMeta
     ref_class = ModelInstanceReference
 
     def __init__(self, namespace_model_instance=None, nexus=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
-                 delegate=None, default_task_role=None, default_run_from=None):
+                 delegate=None, default_task_role=None, default_run_from=None,
+                 event_handler=None):
         """
         Create a new ConfigModel derived class instance.
         
@@ -607,9 +608,13 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             task_role. This can be a reference to a Role, a context expression,
             or a callable that takes a L{CallContext} and returns a reference
             to a Role.
-        """
+        @keyword event_handler: if supplied, a derived class of task.TaskEventHandler
 
+        """
+        if event_handler and not isinstance(event_handler, TaskEventHandler):
+            raise ConfigException("event_handler is not a kind of TaskEventHandler")
         super(ConfigModel, self).__init__(nexus=nexus)
+        self.event_handler = event_handler
         self.namespace_model_instance = namespace_model_instance
         self.remote_user = remote_user
         self.remote_pass = remote_pass
@@ -645,6 +650,9 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             elif k == _default_run_from and self.default_run_from is None:
                 self.default_run_from = v
 
+    def get_event_handler(self):
+        return self.event_handler
+
     def _get_attrs_dict(self):
         d = super(ConfigModel, self)._get_attrs_dict()
         d.update(namespace_model_instance=self.namespace_model_instance,
@@ -654,7 +662,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                  default_task_role=self.default_task_role,
                  default_run_from=self.default_run_from,
                  delegate=self.delegate,
-                 dependencies=self.dependencies)
+                 dependencies=self.dependencies,
+                 event_handler=None)
         d.update({k: v for k, v in self._comp_source().items()})
         return d
 

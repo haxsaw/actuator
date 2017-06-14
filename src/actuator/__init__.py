@@ -150,7 +150,7 @@ class ActuatorOrchestration(_Persistable):
             get associated with the orchestrator instance. These are generally
             useful when the orchestrator has been persisted as the tags can be
             used to identify orchestrators with particular tag values.
-            
+
         @raise ExecutionException: In the following circumstances this method
         will raise actuator.ExecutionException:
             - The value supplied for infra_model_inst is not an instance of
