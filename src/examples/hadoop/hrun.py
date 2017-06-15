@@ -22,12 +22,12 @@
 import json
 import os
 import sys
-from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
-from actuator.utils import persist_to_dict, reanimate_from_dict, LOG_DEBUG
-from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
+from actuator.utils import persist_to_dict, reanimate_from_dict
+from hadoop import HadoopInfra, HadoopNamespace
 from prices import create_price_table
 from hsimple import do_it
+from hevent import TaskEventManager
 
 user_env = "OS_USER"
 pass_env = "OS_PASS"
@@ -37,6 +37,7 @@ auth_env = "OS_AUTH"
 with_mongo = False
 inst_id = None  # gets set when we are to save in mongo
 with_zabbix = False
+with_viz = False
 zabbix_host_ids = []   # gets set if we inform zabbix of our new hosts
 template_list = ["Template App SSH Service", "Template ICMP Ping", "Template OS Linux"]
 
@@ -59,6 +60,7 @@ if __name__ == "__main__":
         arg1 = sys.argv[1].lower()
         with_mongo = "m" in arg1
         with_zabbix = "z" in arg1
+        with_viz = "v" in arg1
 
     if with_zabbix:
         if not os.environ.get("ZABBIX_SERVER") or not os.environ.get("ZABBIX_PRIVATE"):
@@ -67,6 +69,12 @@ if __name__ == "__main__":
 
     if with_mongo:
         print("Ensure that mongod is running")
+
+    if with_viz:
+        print("Visualisation activated")
+        handler = TaskEventManager()
+    else:
+        handler = None
         
     success = infra = ns = ao = None
     json_file = None
@@ -111,7 +119,7 @@ if __name__ == "__main__":
                 print(create_price_table(inf))
                 print()
                 continue
-            success, infra, ns, conf, ao = do_it(num_slaves=num_slaves)
+            success, infra, ns, conf, ao = do_it(num_slaves=num_slaves, handler=handler)
             if success:
                 if with_mongo:
                     from hreport import capture_running
@@ -185,7 +193,7 @@ if __name__ == "__main__":
             print "Re-running initiate"
             success = ao.initiate_system()
             if success:
-                print "\n...done! You can reach the reach the assets at the following IPs:"
+                print "\n...done! You can reach the assets at the following IPs:"
                 print ">>>namenode: %s" % infra.name_node_fip.get_ip()
                 print ">>>slaves:"
                 for s in infra.slaves.values():

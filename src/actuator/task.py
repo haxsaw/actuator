@@ -469,10 +469,11 @@ class GraphableModelMixin(object):
 
 class TaskExecControl(object):
     UNPERFORMED = 0
-    SUCCESS = 1
-    FAIL_RETRY = 2
-    FAIL_FINAL = 3
-    ABORT = 4
+    PERFORMING = 1
+    SUCCESS = 2
+    FAIL_RETRY = 3
+    FAIL_FINAL = 4
+    ABORT = 5
 
     def __init__(self, task):
         assert isinstance(task, Task)
@@ -521,36 +522,36 @@ class TaskEventHandler(object):
         """
         return
 
-    def task_starting(self, task):
+    def task_starting(self, tec):
         """
         Called to signal the engine is about to attempt to perform a task
 
-        :param task: a derived class of Task
+        :param tec: a TaskExecutionControl object
         """
         return
 
-    def task_finished(self, task):
+    def task_finished(self, tec):
         """
         Called to signal that the engine has successfully performed the task
 
-        :param task: a derived class of Task
+        :param tec: a TaskExecutionControl object
         """
         return
 
-    def task_failed(self, task, errtext):
+    def task_failed(self, tec, errtext):
         """
         Called to signal that the engine fatally failed to successfully perfrom the task
 
-        :param task: a derived class of Task
+        :param tec: a TaskExecutionControl object
         :param errtext: a list of strings that describe the error that occurred
         """
         return
 
-    def task_retry(self, task, errtext):
+    def task_retry(self, tec, errtext):
         """
         Called to signal that the engine failed to perform a task but will retry it
 
-        :param task: a derived class of Task
+        :param tec: a TaskExecutionControl object
         :param errtext: a list of strings that describe the error that occurred
         """
         return
@@ -767,18 +768,19 @@ class TaskEngine(object):
             logger.info(fmtmsg("start %s-ing task" % direction))
             with narrate_cm(lambda n, d: "-which resulted in the task engine performing task {} in the {} direction"
                             .format(n, d), task.name, direction):
+                tec.status = TaskExecControl.PERFORMING
                 if self.event_handler:
                     try:
-                        self.event_handler.task_starting(task)
+                        self.event_handler.task_starting(tec)
                     except Exception as e:
-                        logger.error("event_handler.task_started method raised %s; continuing task processing" % str(e))
+                        logger.error("event_handler.task_starting method raised %s; continuing task processing" % str(e))
                 meth(task, logfile=logfile)
 
             task.set_performance_status(success_status)
             tec.status = TaskExecControl.SUCCESS
             if self.event_handler:
                 try:
-                    self.event_handler.task_finished(task)
+                    self.event_handler.task_finished(tec)
                 except Exception as e:
                     logger.error("event_handler.task_finished method raised %s: continuing task processing" % str(e))
             logger.info(fmtmsg("task successfully %s-ed" % direction))
@@ -801,7 +803,7 @@ class TaskEngine(object):
                     traceback.print_exception(type(e), e, tb, file=logfile)
                 if self.event_handler:
                     try:
-                        self.event_handler.task_retry(task, story)
+                        self.event_handler.task_retry(tec, story)
                     except Exception as e:
                         logger.error("event_handler.task_retry raised %s; continuing task processing" % str(e))
             else:
@@ -811,7 +813,7 @@ class TaskEngine(object):
                 self.record_aborted_task(task, type(e), e, tb, story)
                 if self.event_handler:
                     try:
-                        self.event_handler.task_failed(task, story)
+                        self.event_handler.task_failed(tec, story)
                     except Exception as e:
                         logger.error("event_handler.task_failed raised %s; continuing task processing" % str(e))
                 self.abort_process_tasks()
@@ -843,7 +845,7 @@ class TaskEngine(object):
                     self.perform_task(graph, tec)
                     if tec.status == TaskExecControl.FAIL_RETRY:
                         # this means the task failed but hasn't reached its retry limit yet;
-                        # we'll push the task back onto the task queue so it get's a chance
+                        # we'll push the task back onto the task queue so it gets a chance
                         # to be performed again, as it may very well have an implicit dependency
                         # on something else
                         self.task_queue.put((graph, tec))

@@ -1,14 +1,17 @@
+import sys
 from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
+from hevent import TaskEventManager
 
 
-def do_it(num_slaves=1):
+def do_it(num_slaves=1, handler=None):
     inf = HadoopInfra("infra")
     namespace = HadoopNamespace()
     namespace.create_slaves(num_slaves)
     conf = HadoopConfig(remote_user="ubuntu",
-                        private_key_file="actuator-dev-key")
+                        private_key_file="actuator-dev-key",
+                        event_handler=handler)
     os_prov = OpenstackProvisioner(num_threads=10, cloud_name="citycloud")
 
     orch = ActuatorOrchestration(infra_model_inst=inf,
@@ -25,4 +28,7 @@ def do_it(num_slaves=1):
 
 
 if __name__ == "__main__":
-    do_it(1)
+    success, inf, ns, conf, orch = do_it(1)
+    sys.stdout.write("Hit ctrl-d to decommission")
+    sys.stdin.read()
+    orch.teardown_system()
