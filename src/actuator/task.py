@@ -88,7 +88,6 @@ class Orable(object):
         return []
     
     
-# class Task(Orable, ModelComponent):
 class Task(Orable, ModelComponent, _Performable):
     """
     Base class for all tasks
@@ -96,9 +95,6 @@ class Task(Orable, ModelComponent, _Performable):
     This class provides the base protocol for all tasks; it deals with
     dependencies, cloning, embedded tasks, task performance and unwinding.
     """
-    # UNSTARTED = 1
-    # PERFORMED = 2
-    # REVERSED = 3
 
     def __init__(self, name, repeat_til_success=True, repeat_count=1,
                  repeat_interval=15):

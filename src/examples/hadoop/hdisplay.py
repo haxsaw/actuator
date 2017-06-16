@@ -4,36 +4,51 @@ import networkx
 from networkx.drawing.nx_agraph import graphviz_layout
 from actuator.task import Task, TaskExecControl
 from kivy.uix.widget import Widget
+from kivy.uix.label import Label
 from kivy.properties import ObjectProperty
-from kivy.graphics import Color, Ellipse, Line, Triangle
+from kivy.graphics import Color, Ellipse, Line
 from kivy.base import EventLoop
 
 
-g = networkx.DiGraph()
-g.add_nodes_from([1, 2, 3, 4])
-g.add_edges_from([(1, 2), (1, 3), (3, 4), (2, 4)])
+def compute_pos(opos, xyrange, win_xysize):
+    xsize, ysize = win_xysize
+    xrange, yrange = xyrange
+    xpos = float(opos[0]) / float(xrange) * float(xsize)
+    ypos = float(opos[1]) / float(yrange) * float(ysize)
+    return xpos, ypos
 
 
 class MarkerWidget(Widget):
     win_xysize = ObjectProperty([None, None])
 
-    def __init__(self, pos, size, xyrange, win_xysize, color, **kwargs):
+    def __init__(self, opos, size, xyrange, win_xysize, color, select_handler, **kwargs):
         self.size = size
         self.xyrange = xyrange
         self.win_xysize = win_xysize
         self.color = color
         self.circle = None
-        self.bind(pos=self.redraw)
+        self.opos = opos
+        self.pos = self.adjust_pos_for_marker(self.opos, self.size, self.xyrange, self.win_xysize)
+        self.select_handler = select_handler
         self.bind(win_xysize=self.redraw)
         super(MarkerWidget, self).__init__(**kwargs)
-        self.pos = pos
+        self.redraw()
 
-    def redraw(self, *args):
-        xsize, ysize = self.win_xysize
-        xrange, yrange = self.xyrange
-        xpos = float(self.pos[0]) / float(xrange) * float(xsize)
-        ypos = float(self.pos[1]) / float(yrange) * float(ysize)
-        pos = (xpos, ypos)
+    @staticmethod
+    def adjust_pos_for_marker(opos, size, xyrange, win_xysize):
+        pos = compute_pos(opos, xyrange, win_xysize)
+        halfx = size[0] / 2.0
+        halfy = size[1] / 2.0
+        return pos[0] - halfx, pos[1] - halfy
+
+    def on_touch_down(self, touch):
+        xsize, ysize = self.size
+        if ((self.pos[0] - xsize <= touch.x <= self.pos[0] + xsize) and
+                (self.pos[1] - ysize <= touch.y <= self.pos[1] + ysize)):
+            self.select_handler.marker_selected(self)
+
+    def redraw(self, *_):
+        pos = self.pos = self.adjust_pos_for_marker(self.opos, self.size, self.xyrange, self.win_xysize)
         with self.canvas:
             Color(*self.color)
             if self.circle is None:
@@ -55,13 +70,9 @@ class LineWidget(Widget):
         super(LineWidget, self).__init__(**kwargs)
         self.win_xysize = win_xysize
 
-    def redraw(self, *args):
-        xsize, ysize = self.win_xysize
-        xrange, yrange = self.xyrange
-        startx = float(self.startxy[0]) / float(xrange) * float(xsize)
-        starty = float(self.startxy[1]) / float(yrange) * float(ysize)
-        endx = float(self.endxy[0]) / float(xrange) * float(xsize)
-        endy = float(self.endxy[1]) / float(yrange) * float(ysize)
+    def redraw(self, *_):
+        startx, starty = compute_pos(self.startxy, self.xyrange, self.win_xysize)
+        endx, endy = compute_pos(self.endxy, self.xyrange, self.win_xysize)
         with self.canvas:
             Color(*self.color)
             if self.line is None:
@@ -71,29 +82,54 @@ class LineWidget(Widget):
 
 
 class GT(App):
-    def __init__(self, g=None):
+    def __init__(self, g=None, label="unlabeled"):
         super(GT, self).__init__()
-        self.g = g
-        if self.g is not None:
-            self.positions = graphviz_layout(self.g, prog="dot")
-        self.xmax = max([p[0] for p in self.positions.values()]) + 30
-        self.ymax = max([p[1] for p in self.positions.values()]) + 30
-        self.bl = None
-        self.fig = None
-        self.ax = None
-        self.nav = None
-        self.markers = {}
-        self.lines = {}
+        self.g = self.xmax = self.ymax = self.bl = self.markers = self.lines = self.positions = \
+            self.label = self.label_widget = self.selected_label_widget = None
+        self.setup_for_graph(g, label)
 
-    def setup_for_graph(self, graph):
+    def marker_selected(self, marker):
+        nodes_by_marker = {v: k for k, v in self.markers.items()}
+        node = nodes_by_marker.get(marker)
+        if node is not None:
+            if isinstance(node, Task):
+                seltext = "%s %s" % (node.__class__.__name__, node.name)
+            else:
+                seltext = "node %s" % str(node)
+        else:
+            seltext = "Can't find node!"
+        self.selected_label_widget.text = seltext
+        self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
+
+    def clear_graph(self):
+        if self.bl:
+            for m in self.markers.values():
+                self.bl.remove_widget(m)
+            self.markers.clear()
+            for l in self.lines.values():
+                self.bl.remove_widget(l)
+            self.lines.clear()
+            self.positions.clear()
+            self.bl.remove_widget(self.label_widget)
+
+    def setup_for_graph(self, g, label="unlabeled"):
         """
         configures the app to run a particular graph
         @param graph: instance of networkx.DiGraph
         @return:
         """
-        self.g = graph
-        self.positions = graphviz_layout(self.g, prog="dot")
-        return self
+        self.g = g
+        if self.g is not None:
+            self.positions = graphviz_layout(self.g, prog="dot")
+        self.xmax = max([p[0] for p in self.positions.values()]) + 30
+        self.ymax = max([p[1] for p in self.positions.values()]) + 30
+        self.markers = {}
+        self.lines = {}
+        self.label = label
+        if self.label_widget:
+            self.label_widget.text = label
+        if self.selected_label_widget:
+            self.selected_label_widget.text = ""
 
     colors = {Task.UNSTARTED: (1.0, 1.0, 1.0),
               Task.PERFORMED: (0, 1.0, 0),
@@ -123,7 +159,7 @@ class GT(App):
         if mw is not None:
             if mw.win_xysize == screensize:
                 # then this is a replace; dump the node and recreate it, possibly with a new color
-                new_mw = MarkerWidget((x, y), (10, 10), (self.xmax, self.ymax), screensize, color)
+                new_mw = MarkerWidget((x, y), (10, 10), (self.xmax, self.ymax), screensize, color, self)
                 self.markers[node] = new_mw
                 self.bl.remove_widget(mw)
                 self.bl.add_widget(new_mw, index=0)
@@ -131,19 +167,19 @@ class GT(App):
                 # just update the screen size
                 mw.win_xysize = screensize
         else:
-            mw = MarkerWidget((x, y), (10, 10), (self.xmax, self.ymax), screensize, color)
+            mw = MarkerWidget((x, y), (10, 10), (self.xmax, self.ymax), screensize, color, self)
             self.markers[node] = mw
             self.bl.add_widget(mw, index=0)
 
-    def render_graph(self, *args):
+    def render_graph(self, *_):
         screensize = EventLoop.window.size
         for begin, end in self.g.edges():
             lw = self.lines.get((begin, end))
             if lw is None:
                 bx, by = self.positions[begin]
                 ex, ey = self.positions[end]
-                lw = LineWidget((bx + 5, by + 5), (ex + 5, ey + 5), (self.xmax, self.ymax),
-                                EventLoop.window.size, (1.0, 1.0, 1.0))
+                lw=LineWidget((bx, by), (ex, ey), (self.xmax, self.ymax),
+                                              EventLoop.window.size, (1.0, 1.0, 1.0))
                 self.lines[(begin, end)] = lw
                 self.bl.add_widget(lw)
             else:
@@ -152,21 +188,34 @@ class GT(App):
         for node in self.positions.keys():
             self.draw_node(node)
 
+        self.label_widget.pos = (self.label_widget.texture_size[0] / 2.0, -30)
+        self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
+
     def build(self):
         self.bl = Widget()
-        # Window.bind()
         self.bl.bind(size=self.render_graph)
+        self.label_widget = Label(text="%s graph progress" % self.label)
+        self.label_widget.pos = (self.label_widget.texture_size[0] / 2.0, -30)
+        self.bl.add_widget(self.label_widget)
+        self.selected_label_widget = Label(text="selection placeholder", halign="left")
+        self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
+        self.bl.add_widget(self.selected_label_widget)
 
         return self.bl
 
 
-def runnit(g):
-    app = GT(g)
+def runnit(g, label="no label"):
+    app = GT(g, label=label)
     app.run()
 
 
+# for great testing!
 if __name__ == "__main__":
-    # runnit(g)
+    # teensy graph
+    # g = networkx.DiGraph()
+    # g.add_nodes_from([1, 2, 3, 4])
+    # g.add_edges_from([(1, 2), (1, 3), (3, 4), (2, 4)])
+    # runnit(g, "tiny")
 
     # bigger graph
     d = json.loads(open("hadoop_graph.json", "r").read())
@@ -175,4 +224,4 @@ if __name__ == "__main__":
     g = networkx.DiGraph()
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
-    runnit(g)
+    runnit(g, "hadoop snapshot")

@@ -2,11 +2,10 @@ import sys
 from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
-from hevent import TaskEventManager
 
 
 def do_it(num_slaves=1, handler=None):
-    inf = HadoopInfra("infra")
+    inf = HadoopInfra("infra", event_handler=handler)
     namespace = HadoopNamespace()
     namespace.create_slaves(num_slaves)
     conf = HadoopConfig(remote_user="ubuntu",

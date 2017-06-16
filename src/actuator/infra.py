@@ -32,6 +32,7 @@ from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
                                ComponentGroup, MultiComponent,
                                MultiComponentGroup, AbstractModelReference,
                                _Nexus)
+from actuator.task import TaskEventHandler
 
 
 class InfraException(ActuatorException):
@@ -189,7 +190,7 @@ class InfraModel(ModelBase):
     __metaclass__ = InfraModelMeta
     ref_class = ModelInstanceReference
     
-    def __init__(self, name):
+    def __init__(self, name, event_handler=None):
         """
         Creates a new instance of an infra model.
         
@@ -198,8 +199,11 @@ class InfraModel(ModelBase):
         
         @param name: a logical name for the infra instance
         """
+        if event_handler is not None and not isinstance(event_handler, TaskEventHandler):
+            raise InfraException("event_handler is not a kind of TaskEventHandler")
         super(InfraModel, self).__init__()
         self.name = name
+        self.event_handler = event_handler
         # set option defaults
         self._long_names = False
         # process options
@@ -215,6 +219,9 @@ class InfraModel(ModelBase):
             attrdict[k] = clone = v.clone()
             clone._set_model_instance(self)
         self.provisioning_computed = False
+
+    def get_event_handler(self):
+        return self.event_handler
         
     def _get_attrs_dict(self):
         d = dict(self.__dict__)

@@ -24,13 +24,17 @@ class TaskEventManager(TaskEventHandler):
 
     def _fireup_display(self, model, graph):
         from hdisplay import GT
-        self.app = GT(graph)
+        self.app = GT(graph, label=model.__class__.__name__)
         self.app.run()
 
     def engine_starting(self, model, graph):
         if self.app is None:
             self.app_thread = threading.Thread(target=self._fireup_display, args=(model, graph))
             self.app_thread.start()
+        else:
+            self.app.clear_graph()
+            self.app.setup_for_graph(graph, label=model.__class__.__name__)
+            self.app.render_graph()
 
     def task_starting(self, tec):
         self.ted.task_event_received(tec)

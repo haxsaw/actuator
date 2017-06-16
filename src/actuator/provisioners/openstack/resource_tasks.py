@@ -473,6 +473,7 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
                  no_delay=True):
         self.logger = root_logger.getChild("os_prov_agent")
         self.infra_model = infra_model
+        self.event_handler = infra_model.get_event_handler()
         super(ResourceTaskSequencerAgent, self).__init__("{}-engine".format(infra_model.name),
                                                          self,
                                                          num_threads=num_threads,
@@ -482,6 +483,9 @@ class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
         self.record = OpenstackProvisioningRecord(uuid.uuid4())
         self.os_creds = os_creds
         self.rsrc_task_map = {}
+
+    def get_event_handler(self):
+        return self.event_handler
 
     @narrate("...and then it was required to collect the tasks to provision the resources")
     def get_tasks(self):
