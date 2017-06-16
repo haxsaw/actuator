@@ -909,7 +909,7 @@ class TaskEngine(object):
             try:
                 self.event_handler.engine_starting(self.model, self.graph)
             except Exception as e:
-                logger.error("event_handler rasied an exception in engine_starting: %s. Processing continuing" % str(e))
+                logger.error("event_handler raised an exception in engine_starting: %s. Processing continuing" % str(e))
 
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
@@ -962,6 +962,13 @@ class TaskEngine(object):
         logger.info(fmtmsg("Agent starting reverse processing of tasks"))
         if self.graph is None:
             self.graph = self.model.get_graph(with_fix=True)
+
+        if self.event_handler:
+            try:
+                self.event_handler.engine_starting(self.model, self.graph)
+            except Exception as e:
+                logger.error("event_handler raised an exception in engine_starting: %s. Processing continuing" % str(e))
+
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
             self.graph.node[n]["outs_traversed"] = 0

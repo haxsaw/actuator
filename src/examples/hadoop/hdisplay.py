@@ -1,4 +1,5 @@
 import json
+import math
 from kivy.app import App
 import networkx
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -6,7 +7,7 @@ from actuator.task import Task, TaskExecControl
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.properties import ObjectProperty
-from kivy.graphics import Color, Ellipse, Line
+from kivy.graphics import Color, Ellipse, Line, Triangle
 from kivy.base import EventLoop
 
 
@@ -16,6 +17,24 @@ def compute_pos(opos, xyrange, win_xysize):
     xpos = float(opos[0]) / float(xrange) * float(xsize)
     ypos = float(opos[1]) / float(yrange) * float(ysize)
     return xpos, ypos
+
+
+def rotate_point(pivot, point, angle):
+    # unpack things
+    pivotx, pivoty = pivot
+    pointx, pointy = point
+    # translate to origin
+    pointx -= pivotx
+    pointy -= pivoty
+    # compute trig values
+    s = math.sin(angle)
+    c = math.cos(angle)
+    # rotate
+    newx = pointx * c - pointy * s
+    newy = pointx * s + pointy * c
+    # translate back
+    return newx + pivotx, newy + pivoty
+
 
 
 class MarkerWidget(Widget):
@@ -67,6 +86,7 @@ class LineWidget(Widget):
         self.color = color
         self.bind(win_xysize=self.redraw)
         self.line = None
+        self.triangle = None
         super(LineWidget, self).__init__(**kwargs)
         self.win_xysize = win_xysize
 
@@ -75,10 +95,23 @@ class LineWidget(Widget):
         endx, endy = compute_pos(self.endxy, self.xyrange, self.win_xysize)
         with self.canvas:
             Color(*self.color)
+            if not startx - endx:
+                angle = math.radians(180)
+            else:
+                angle = math.atan((endy - starty) * 1.0 / (endx - startx) * 1.0) + \
+                        math.atan(90) * (1 if (endx - startx < 0) else -1)
             if self.line is None:
                 self.line = Line(points=[startx, starty, endx, endy])
+                p = [endx, endy]
+                p.extend(rotate_point((endx, endy), (endx-3, endy-10), angle))
+                p.extend(rotate_point((endx, endy), (endx+3, endy-10), angle))
+                self.triangle = Triangle(points=p)
             else:
                 self.line.points = [startx, starty, endx, endy]
+                p = [endx, endy]
+                p.extend(rotate_point((endx, endy), (endx-3, endy-10), angle))
+                p.extend(rotate_point((endx, endy), (endx+3, endy-10), angle))
+                self.triangle.points = p
 
 
 class GT(App):
@@ -197,7 +230,7 @@ class GT(App):
         self.label_widget = Label(text="%s graph progress" % self.label)
         self.label_widget.pos = (self.label_widget.texture_size[0] / 2.0, -30)
         self.bl.add_widget(self.label_widget)
-        self.selected_label_widget = Label(text="selection placeholder", halign="left")
+        self.selected_label_widget = Label(text="", halign="left")
         self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
         self.bl.add_widget(self.selected_label_widget)
 
