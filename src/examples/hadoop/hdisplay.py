@@ -36,7 +36,6 @@ def rotate_point(pivot, point, angle):
     return newx + pivotx, newy + pivoty
 
 
-
 class MarkerWidget(Widget):
     win_xysize = ObjectProperty([None, None])
 
@@ -78,6 +77,7 @@ class MarkerWidget(Widget):
 
 class LineWidget(Widget):
     win_xysize = ObjectProperty([None, None])
+    hlen = 13  # length of arrow head
 
     def __init__(self, startxy, endxy, xyrange, win_xysize, color, **kwargs):
         self.startxy = startxy
@@ -103,14 +103,14 @@ class LineWidget(Widget):
             if self.line is None:
                 self.line = Line(points=[startx, starty, endx, endy])
                 p = [endx, endy]
-                p.extend(rotate_point((endx, endy), (endx-3, endy-10), angle))
-                p.extend(rotate_point((endx, endy), (endx+3, endy-10), angle))
+                p.extend(rotate_point((endx, endy), (endx-3, endy-self.hlen), angle))
+                p.extend(rotate_point((endx, endy), (endx+3, endy-self.hlen), angle))
                 self.triangle = Triangle(points=p)
             else:
                 self.line.points = [startx, starty, endx, endy]
                 p = [endx, endy]
-                p.extend(rotate_point((endx, endy), (endx-3, endy-10), angle))
-                p.extend(rotate_point((endx, endy), (endx+3, endy-10), angle))
+                p.extend(rotate_point((endx, endy), (endx-3, endy-self.hlen), angle))
+                p.extend(rotate_point((endx, endy), (endx+3, endy-self.hlen), angle))
                 self.triangle.points = p
 
 
@@ -143,7 +143,8 @@ class GT(App):
                 self.bl.remove_widget(l)
             self.lines.clear()
             self.positions.clear()
-            self.bl.remove_widget(self.label_widget)
+            self.label_widget.text = ""
+            self.selected_label_widget.text = ""
 
     def setup_for_graph(self, g, label="unlabeled"):
         """
@@ -160,7 +161,7 @@ class GT(App):
         self.lines = {}
         self.label = label
         if self.label_widget:
-            self.label_widget.text = label
+            self.label_widget.text = "%s processing progress" % label
         if self.selected_label_widget:
             self.selected_label_widget.text = ""
 
@@ -192,7 +193,7 @@ class GT(App):
         if mw is not None:
             if mw.win_xysize == screensize:
                 # then this is a replace; dump the node and recreate it, possibly with a new color
-                new_mw = MarkerWidget((x, y), (10, 10), (self.xmax, self.ymax), screensize, color, self)
+                new_mw = MarkerWidget((x, y), (15, 10), (self.xmax, self.ymax), screensize, color, self)
                 self.markers[node] = new_mw
                 self.bl.remove_widget(mw)
                 self.bl.add_widget(new_mw, index=0)
@@ -200,7 +201,7 @@ class GT(App):
                 # just update the screen size
                 mw.win_xysize = screensize
         else:
-            mw = MarkerWidget((x, y), (10, 10), (self.xmax, self.ymax), screensize, color, self)
+            mw = MarkerWidget((x, y), (15, 10), (self.xmax, self.ymax), screensize, color, self)
             self.markers[node] = mw
             self.bl.add_widget(mw, index=0)
 
@@ -227,7 +228,7 @@ class GT(App):
     def build(self):
         self.bl = Widget()
         self.bl.bind(size=self.render_graph)
-        self.label_widget = Label(text="%s graph progress" % self.label)
+        self.label_widget = Label(text="%s processing progress" % self.label, halign="left")
         self.label_widget.pos = (self.label_widget.texture_size[0] / 2.0, -30)
         self.bl.add_widget(self.label_widget)
         self.selected_label_widget = Label(text="", halign="left")
