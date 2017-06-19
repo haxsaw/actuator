@@ -538,7 +538,6 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
             if mode is None:
                 mode = fstat.st_mode
             tf = tempfile.TemporaryFile()
-            assert isinstance(tf, file)
             for l in open(abs_local_file, "rb"):
                 cv = _ComputableValue(l)
                 tf.write(cv.expand(task.get_task_role(), raise_on_unexpanded=True))

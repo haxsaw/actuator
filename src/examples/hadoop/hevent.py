@@ -9,11 +9,11 @@ class TaskEventDispatcher(EventDispatcher):
         self.register_event_type("on_redraw_task")
         super(TaskEventDispatcher, self).__init__(**kwargs)
 
-    def task_event_received(self, tec):
-        self.dispatch('on_redraw_task', tec)
+    def task_event_received(self, tec, errtext=None):
+        self.dispatch('on_redraw_task', tec, errtext)
 
-    def on_redraw_task(self, tec):
-        self.tem.update_task(tec)
+    def on_redraw_task(self, tec, errtext=None):
+        self.tem.update_task(tec, errtext)
 
 
 class TaskEventManager(TaskEventHandler):
@@ -43,13 +43,13 @@ class TaskEventManager(TaskEventHandler):
         self.ted.task_event_received(tec)
 
     def task_retry(self, tec, errtext=None):
-        self.ted.task_event_received(tec)
+        self.ted.task_event_received(tec, errtext)
 
     def task_failed(self, tec, errtext=None):
-        self.ted.task_event_received(tec)
+        self.ted.task_event_received(tec, errtext)
 
-    def update_task(self, tec):
-        self.app.draw_node(tec)
+    def update_task(self, tec, errtext=None):
+        self.app.draw_node(tec, errtext)
 
     def update_graph(self):
         self.app.render_graph()

@@ -118,7 +118,7 @@ class GT(App):
     def __init__(self, g=None, label="unlabeled"):
         super(GT, self).__init__()
         self.g = self.xmax = self.ymax = self.bl = self.markers = self.lines = self.positions = \
-            self.label = self.label_widget = self.selected_label_widget = None
+            self.label = self.label_widget = self.node_errors = self.selected_label_widget = None
         self.setup_for_graph(g, label)
 
     def marker_selected(self, marker):
@@ -126,7 +126,8 @@ class GT(App):
         node = nodes_by_marker.get(marker)
         if node is not None:
             if isinstance(node, Task):
-                seltext = "%s %s" % (node.__class__.__name__, node.name)
+                error_text = ", ".join(self.node_errors.get(node, ["no errors"]))
+                seltext = "%s %s: %s" % (node.__class__.__name__, node.name, error_text)
             else:
                 seltext = "node %s" % str(node)
         else:
@@ -159,6 +160,7 @@ class GT(App):
         self.ymax = max([p[1] for p in self.positions.values()]) + 30
         self.markers = {}
         self.lines = {}
+        self.node_errors = {}
         self.label = label
         if self.label_widget:
             self.label_widget.text = "%s processing progress" % label
@@ -175,7 +177,7 @@ class GT(App):
               TaskExecControl.SUCCESS: (0, 1.0, 0)
               }
 
-    def draw_node(self, tec):
+    def draw_node(self, tec, errtext=None):
         if isinstance(tec, TaskExecControl):
             node = tec.task
             status = tec.status
@@ -185,6 +187,12 @@ class GT(App):
                 status = tec.performance_status
             else:   # this is nothing we can interpret; probably a number
                 status = TaskExecControl.FAIL_FINAL
+
+        if errtext:
+            self.node_errors[node] = errtext
+        else:
+            if node in self.node_errors:
+                del self.node_errors[node]
 
         x, y = self.positions[node]
         color = self.colors[status]
@@ -220,7 +228,7 @@ class GT(App):
                 lw.win_xysize = screensize
 
         for node in self.positions.keys():
-            self.draw_node(node)
+            self.draw_node(node, self.node_errors.get(node))
 
         self.label_widget.pos = (self.label_widget.texture_size[0] / 2.0, -30)
         self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
