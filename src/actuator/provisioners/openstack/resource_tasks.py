@@ -30,7 +30,7 @@ import string
 from actuator.modeling import AbstractModelReference
 from actuator.task import TaskEngine, GraphableModelMixin, Task
 from actuator.provisioners.openstack import openstack_class_factory as ocf
-from actuator.provisioners.core import BaseProvisioner
+from actuator.provisioners.core import BaseProvisioner, BaseTaskSequencerAgent
 from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.openstack.support import (_OSMaps,
                                                      OpenstackProvisioningRecord)
@@ -38,24 +38,6 @@ from actuator.utils import (capture_mapping, get_mapper, root_logger, LOG_INFO)
 from errator import (narrate, narrate_cm, get_narration, reset_narration)
 
 _rt_domain = "resource_task_domain"
-
-
-class RunContext(object):
-    def __init__(self, record, os_creds):
-        assert isinstance(os_creds, OpenstackCredentials)
-        self.os_creds = os_creds
-        self.record = record
-        self.maps = _OSMaps(self)
-
-    @property
-    @narrate(lambda s: "...which required loading the cloud definitions file '%s'" % (str(s.os_creds.cloud_name), ))
-    def cloud(self):
-        if self.os_creds.cloud_name:
-            cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
-                                        config_files=self.os_creds.config_files)
-        else:
-            cloud = None
-        return cloud
 
 
 class ProvisioningTask(Task):
@@ -463,131 +445,42 @@ class OpenstackCredentials(object):
         self.config_files = config_files
 
 
-class ResourceTaskSequencerAgent(TaskEngine, GraphableModelMixin):
-    no_punc = string.maketrans(string.punctuation, "_"*len(string.punctuation))
-    exception_class = ProvisionerException
-    exec_agent = "rsrc_provisioner"
-    repeat_count = 3
+class RunContext(object):
+    def __init__(self, record, os_creds):
+        assert isinstance(os_creds, OpenstackCredentials)
+        self.os_creds = os_creds
+        self.record = record
+        self.maps = _OSMaps(self)
 
+    @property
+    @narrate(lambda s: "...which required loading the cloud definitions file '%s'" % (str(s.os_creds.cloud_name), ))
+    def cloud(self):
+        if self.os_creds.cloud_name:
+            cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
+                                        config_files=self.os_creds.config_files)
+        else:
+            cloud = None
+        return cloud
+
+
+class RunContextFactory(object):
+    def __init__(self, record, os_creds):
+        self.os_creds = os_creds
+        self.record = record
+
+    def __call__(self):
+        return RunContext(self.record, self.os_creds)
+
+
+class ResourceTaskSequencerAgent(BaseTaskSequencerAgent):
     def __init__(self, infra_model, os_creds, num_threads=5, log_level=LOG_INFO,
                  no_delay=True):
-        self.logger = root_logger.getChild("os_prov_agent")
-        self.infra_model = infra_model
-        self.event_handler = infra_model.get_event_handler()
-        super(ResourceTaskSequencerAgent, self).__init__("{}-engine".format(infra_model.name),
-                                                         self,
-                                                         num_threads=num_threads,
-                                                         log_level=log_level,
-                                                         no_delay=no_delay)
-        self.run_contexts = {}  # keys are threads, values are RunContext objects
         self.record = OpenstackProvisioningRecord(uuid.uuid4())
         self.os_creds = os_creds
-        self.rsrc_task_map = {}
+        rcf = RunContextFactory(self.record, os_creds)
+        super(ResourceTaskSequencerAgent, self).__init__(infra_model, _rt_domain, rcf, num_threads=num_threads,
+                                                         log_level=log_level, no_delay=no_delay)
 
-    def get_event_handler(self):
-        return self.event_handler
-
-    @narrate("...and then it was required to collect the tasks to provision the resources")
-    def get_tasks(self):
-        """
-        Returns a list of all the tasks for provisioning the resources
-        
-        Looks to the resources in the infra_model and creates appropriate
-        tasks to provision each. Returns a list of the created tasks. A new
-        list with the same task will be returned for subsequent calls.
-        Raises an exception if a task can't be determined for a resource.
-        
-        @raise ProvisionerException: Raised if a resource is found for which
-            there is no corresponding task.
-        """
-        with narrate_cm("-starting by looking in the infra model for all the components that have to be provisioned"):
-            all_resources = set(self.infra_model.components())
-        tasks = []
-        self.logger.info("%s resources to provision" % len(all_resources))
-        with narrate_cm(lambda dname: "-which requires getting the resource to task mapper for task "
-                                      "domain {}".format(dname),
-                        _rt_domain):
-            class_mapper = get_mapper(_rt_domain)
-        for rsrc in all_resources:
-            if rsrc in self.rsrc_task_map:
-                tasks.append(self.rsrc_task_map[rsrc])
-                continue
-            rsrc.fix_arguments()
-            with narrate_cm(lambda cls: "-which requires looking for the task class for resource "
-                                        "class {}".format(cls.__name__),
-                            rsrc.__class__):
-                task_class = class_mapper.get(rsrc.__class__)
-                if task_class is None:
-                    ref = AbstractModelReference.find_ref_for_obj(rsrc)
-                    path = ref.get_path() if ref is not None else "NO PATH"
-                    raise self.exception_class("Could not find a task for resource "
-                                               "%s named %s at path %s" %
-                                               (rsrc.__class__.__name__,
-                                                rsrc.name, path))
-            task = task_class(rsrc, repeat_count=self.repeat_count)
-            tasks.append(task)
-            self.rsrc_task_map[rsrc] = task
-        return tasks
-
-    @narrate("...which required computing the dependencies between the resources")
-    def get_dependencies(self):
-        """
-        Returns a list of _Dependency objects for the tasks in the model
-        
-        This method creates and returns a list of _Dependency objects that
-        represent the dependencies in the resource provisioning graph. If the
-        method comes across a dependent resource that wasn't represented by
-        the tasks returned by get_tasks(), an exception is raised.
-        
-        @raise ProvisionerException: Raised if a dependency is discovered that
-            involves a resource not considered by get_tasks()
-        """
-        # now, self already contains a rsrc_task_map, but that's meant to be
-        # used as a cache for multiple calls to get_tasks so that the tasks
-        # returned are always tghe same. However, we can't assume in this
-        # method that get_tasks() has already been called, or that doing
-        # so causes the side-effect that self.rsrc_task_map gets populated
-        # (or that it even exists). So we get the tasks and construct our own
-        # map, just to be on the safe side.
-        rsrc_task_map = {task.rsrc: task for task in self.get_tasks()}
-        dependencies = []
-        for rsrc, task in rsrc_task_map.items():
-            for d in task.depends_on_list():
-                with narrate_cm(lambda r:
-                                "-first, resource {}, class {} is check to be in the set of known resources"
-                                .format(r.name, r.__class__.__name__), rsrc):
-                    if d not in rsrc_task_map:
-                        ref = AbstractModelReference.find_ref_for_obj(d)
-                        path = ref.get_path() if ref is not None else "NO PATH"
-                        raise self.exception_class("Resource {} named {} path {}"
-                                                   " says it depends on {}, "
-                                                   "but the latter isn't in the "
-                                                   "list of all components"
-                                                   .format(rsrc.__class__.__name__,
-                                                           rsrc.name, path,
-                                                           d.name))
-                dtask = rsrc_task_map[d]
-                dependencies.append(dtask | task)
-        self.logger.info("%d resource dependencies" % len(dependencies))
-        return dependencies
-        
-    def get_context(self):
-        context = self.run_contexts.get(threading.current_thread())
-        if context is None:
-            context = RunContext(self.record, self.os_creds)
-            self.run_contexts[threading.current_thread()] = context
-        return context
-
-    @narrate(lambda _, t, **kw: "...when the OpenStack task engine was asked to start preforming task {}".format(t.name))
-    def _perform_task(self, task, logfile=None):
-        self.logger.info("Starting provisioning task %s named %s, id %s" %
-                         (task.__class__.__name__, task.name, str(task._id)))
-        try:
-            task.perform(self)
-        finally:
-            self.logger.info("Completed provisioning task %s named %s, id %s" %
-                             (task.__class__.__name__, task.name, str(task._id)))
-                        
 
 class OpenstackProvisioner(BaseProvisioner):
     """
@@ -638,7 +531,8 @@ class OpenstackProvisioner(BaseProvisioner):
         self.agent.perform_tasks()
         self.logger.info("...provisioning complete.")
         return self.agent.record
-    
+
+    @narrate("...which initiated the Openstack deprovisioning work")
     def _deprovision(self, inframodel_instance, record=None):
         self.logger.info("Starting to deprovision...")
         if self.agent is None:

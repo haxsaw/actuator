@@ -146,7 +146,8 @@ class TemplatedServer(_VSphereProvisionableInfraResource, IPAddressable):
                   "server_ip": self.server_ip})
         return d
 
-
+# to be finished later
+#
 # class Server(_VSphereProvisionableInfraResource):
 #     def __init__(self, name, template_name, memoryMB, numCPUs, files,
 #                  network, **kwargs):
@@ -195,3 +196,5 @@ class TemplatedServer(_VSphereProvisionableInfraResource, IPAddressable):
 #     def get_fixed_args(self):
 #         return ((self.name, self.template_name, self.memoryMB, self.numCPUs,
 #                  self.files, self.network), {})
+
+__all__ = ["Datastore", "ResourcePool", "TemplatedServer"]

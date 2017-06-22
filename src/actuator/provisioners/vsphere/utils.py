@@ -1,6 +1,5 @@
 import time
-from pyVmomi import vim
-from pyVmomi import vmodl
+from pyVmomi import vim, vmodl
 
 
 def get_obj(content, vimtype, name):
@@ -22,17 +21,19 @@ def get_obj(content, vimtype, name):
 
 
 def wait_for_task(task):
-    """ wait for a vCenter task to finish """
-    task_done = False
+    """
+    wait for a vCenter task to finish
+    @return None if all went well, or hopefully a string if it failed
+    """
+    task_done = None
     while not task_done:
         if task.info.state == 'success':
-            return task.info.result
-
+            break
         if task.info.state == 'error':
-            print "there was an error"
-            task_done = True
+            task_done = task.info.result
         else:
             time.sleep(0.1)
+    return task_done
 
 
 def wait_for_tasks(service_instance, tasks):

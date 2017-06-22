@@ -1,5 +1,6 @@
 import random
 import time
+import threading
 from errator import narrate
 from pyVmomi import vim
 from pyVim import connect
@@ -97,8 +98,9 @@ class ProvisionTemplatedServer(ProvisioningTask):
         task = template.Clone(folder=datacenter.vmFolder,
                               name=self.dot2dash(self.rsrc.get_display_name()),
                               spec=clonespec)
-        # FIXME: we're not looking at returns here!
-        wait_for_task(task)
+        res = wait_for_task(task)
+        if res:
+            raise ProvisionerException("Creating the cloned VM faield with %s" % str(res))
 
         guest_ip = None
         while not guest_ip:
@@ -108,6 +110,7 @@ class ProvisionTemplatedServer(ProvisioningTask):
                 time.sleep(0.25)
         self.rsrc.set_ip(guest_ip)
 
+    @narrate(lambda s, _: "...and then the deprovision of %s started" % s.rsrc.name)
     def _reverse(self, engine):
         run_context = engine.get_context()
         vcenter = run_context.vcenter
@@ -118,9 +121,13 @@ class ProvisionTemplatedServer(ProvisioningTask):
             raise ProvisionerException("Can't find vm %s to deprovision it" % self.rsrc.get_display_name())
         if format(vm.runtime.powerState) == "poweredOn":
             t = vm.PowerOffVM_Task()
-            wait_for_task(t)
+            res = wait_for_task(t)
+            if res:
+                raise ProvisionerException("PowerOff VM task failed with %s" % str(res))
         t = vm.Destroy_Task()
-        wait_for_task(t)
+        res = wait_for_task(t)
+        if res:
+            raise ProvisionerException("Destroy VM task failed with %s" % str(res))
 
 
 class VSphereCredentials(object):
@@ -131,12 +138,15 @@ class VSphereCredentials(object):
 
 
 class VSphereRunContext(object):
+    ssl_patch_lock = threading.Lock()
+
     def __init__(self, credentials):
         assert isinstance(credentials, VSphereCredentials)
         self.credentials = credentials
         self._vcenter = None
 
     @property
+    @narrate("...which required the acquisition of a connection to vCenter")
     def vcenter(self):
         if not self._vcenter:
             try:
@@ -147,12 +157,16 @@ class VSphereRunContext(object):
                 if "SSL: CERTIFICATE_VERIFY_FAILED" in str(e):
                     try:
                         import ssl
-                        dc = ssl._create_default_https_context
-                        ssl._create_default_https_context = ssl._create_unverified_context
-                        si = connect.SmartConnect(host=self.credentials.host,
-                                                  user=self.credentials.username,
-                                                  pwd=self.credentials.pwd)
-                        ssl._create_default_https_context = dc
+                        with self.ssl_patch_lock:
+                            dc = None
+                            try:
+                                dc = ssl._create_default_https_context
+                                ssl._create_default_https_context = ssl._create_unverified_context
+                                si = connect.SmartConnect(host=self.credentials.host,
+                                                          user=self.credentials.username,
+                                                          pwd=self.credentials.pwd)
+                            finally:
+                                ssl._create_default_https_context = dc
                     except Exception as e1:
                         raise Exception(e1)
                 else:
@@ -207,6 +221,7 @@ class VSphereProvisioner(BaseProvisioner):
         self.agent.perform_tasks()
         self.logger.info("...provisioning complete")
 
+    @narrate("...which initiated the vSphere deprovisioning work")
     def _deprovision(self, inframodel_instance, record=None):
         self.logger.info("Starting to deprovision...")
         if self.agent is None:
@@ -214,3 +229,5 @@ class VSphereProvisioner(BaseProvisioner):
                                                    num_threads=self.num_threads, log_level=self.log_level)
         self.agent.perform_reverses()
         self.logger.info("...deprovisioning complete.")
+
+__all__ = ["VSphereCredentials", "VSphereProvisioner"]
