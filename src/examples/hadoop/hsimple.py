@@ -4,17 +4,21 @@ from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 
 
-def do_it(num_slaves=1, handler=None):
-    inf = HadoopInfra("infra", event_handler=handler)
+def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
+          infra_class=HadoopInfra,
+          provisioner=OpenstackProvisioner(num_threads=10, cloud_name="citycloud"),
+          overrides=()):
+    inf = infra_class("infra", event_handler=handler)
     namespace = HadoopNamespace()
+    namespace.add_override(*overrides)
     namespace.create_slaves(num_slaves)
     conf = HadoopConfig(remote_user="ubuntu",
-                        private_key_file="actuator-dev-key",
+                        private_key_file=pkf,
+                        remote_pass=rempass,
                         event_handler=handler)
-    os_prov = OpenstackProvisioner(num_threads=10, cloud_name="citycloud")
 
     orch = ActuatorOrchestration(infra_model_inst=inf,
-                                 provisioner=os_prov,
+                                 provisioner=provisioner,
                                  namespace_model_inst=namespace,
                                  config_model_inst=conf,
                                  post_prov_pause=10,

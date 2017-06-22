@@ -48,8 +48,10 @@ common_vars = [Var("USER", "ubuntu"),
                Var("HADOOP_HOME", "!{HADOOP_PREP}/!{HADOOP_VER}"),
                Var("HADOOP_CONF_DIR", "!{HADOOP_HOME}/conf"),
                Var("HADOOP_HEAPSIZE", "1000"),
+               # these two work only for CityCloud/Openstack
                Var("JAVA_HOME", "/usr/lib/jvm/java-7-openjdk-amd64"),
                Var("JAVA_VER", "openjdk-7-jre-headless", in_env=False),
+               # Ubuntu 10.04 on vSphere needs openjdk-8
                # this next var is a default value only for testing
                # this namespace model in isolation; the wrapper task
                # should redefine NODNAME_IP to be an ip from the
@@ -78,10 +80,11 @@ class HadoopNodeConfig(ConfigModel):
                                  src=find_file(pkn, "."),
                                  mode=0600
                                  )
-    update = CommandTask("update_linux",
-                         "/usr/bin/sudo -h localhost /usr/bin/apt-get -y update",
-                         repeat_count=3)
     zabbix_setup = ConfigClassTask("zabbix-install", ZabbixConfig)
+    update = CommandTask("update_all",
+                         "/usr/bin/sudo -h localhost "
+                         "/usr/bin/apt-get -y update",
+                         repeat_count=3)
     jdk_install = CommandTask("jdk_install",
                               "/usr/bin/sudo -h localhost "
                               "/usr/bin/apt-get -y install !{JAVA_VER}",
@@ -153,16 +156,16 @@ class HadoopNodeConfig(ConfigModel):
                                            backup=True)
     
     # now express the dependencies between the tasks. each call to
-    # with_dependencies() is additive; the set dependencies are captured in
+    # with_dependencies() is additive; the set of dependencies are captured in
     # the metadata for the class, and evaluated in total at the proper time
-    with_dependencies(ping | (reset & add_hostname))
+    with_dependencies(ping | update | (reset & add_hostname))
 
     with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop &
                                            copy_public_key & append_public_key) |
                       unpack | (send_env & send_core_site & send_hdfs_site &
-                      send_mapred_site))
+                                send_mapred_site))
     
-    with_dependencies(add_hostname | update | jdk_install | zabbix_setup)
+    with_dependencies(add_hostname | jdk_install | zabbix_setup)
     
     with_dependencies(make_home | make_data_home | (make_transactions &
                                                     make_block_home))
