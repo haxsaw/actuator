@@ -1,3 +1,24 @@
+#
+# Copyright (c) 2017 Tom Carroll
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import json
 import math
 from kivy.app import App
@@ -12,6 +33,29 @@ from kivy.base import EventLoop
 
 
 def compute_pos(opos, xyrange, win_xysize):
+    """
+    this method maps a position from one coordinate set to another
+
+    The method takes an original xy position (opos) that is expressed in
+    a coordinate space of absolute size named in xyrange and computes a new
+    xy postion that falls into the same relative postion in a new coordinate
+    space of size win_xysize. This allows data points that are in a range larger
+    than a window's actual size to be mapped to a position in that window at
+    relatively the same place. This effectively allows scaling up or down the
+    postioning of a coordinate, depending on the relative sizes described in
+    xyrange and win_xyrange.
+
+    @param opos: sequence of length 2 that are an x-y coordinate in the source
+        coordinate system
+    @param xyrange: sequence of length 2 that represent the absolute size of
+        the source coordinate system; that is, any value for opos would be able
+        to be found within this range.
+    @param win_xysize: sequence of length 2 that represents the destination
+        coordinate system size. THis is generally the size of window where
+        something should be drawn
+    @return: a 2-tuple of the mapped xy postion of the new point in the
+        win_xysize coordinate system
+    """
     xsize, ysize = win_xysize
     xrange, yrange = xyrange
     xpos = float(opos[0]) / float(xrange) * float(xsize)

@@ -653,6 +653,9 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     def get_event_handler(self):
         return self.event_handler
 
+    def set_event_handler(self, handler):
+        self.event_handler = handler
+
     def _get_attrs_dict(self):
         d = super(ConfigModel, self)._get_attrs_dict()
         d.update(namespace_model_instance=self.namespace_model_instance,

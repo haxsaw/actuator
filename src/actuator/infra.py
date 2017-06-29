@@ -222,10 +222,15 @@ class InfraModel(ModelBase):
 
     def get_event_handler(self):
         return self.event_handler
+
+    def set_event_handler(self, handler):
+        self.event_handler = handler
         
     def _get_attrs_dict(self):
         d = dict(self.__dict__)
         d.update(super(InfraModel, self)._get_attrs_dict())
+        # don't save the event_handler
+        d["event_handler"] = None
         return d
     
     def _find_persistables(self):

@@ -194,8 +194,16 @@ class _OSMaps(object):
         Keys are the subnet name, value is the neutron subnet dict.
         """
         response = self.os_provisioner.cloud.list_subnets()
-        self.subnet_map = {d["name"]: d for d in response}
-        self.subnet_map.update({d["id"]: d for d in response})
+        try:
+            self.subnet_map = {d["name"]: d for d in response}
+            self.subnet_map.update({d["id"]: d for d in response})
+        except TypeError:
+            if "subnets" in response:
+                response = response["subnets"]
+                self.subnet_map = {d["name"]: d for d in response}
+                self.subnet_map.update({d["id"]: d for d in response})
+            else:
+                raise
         
     @narrate("...which required refreshing the available routers map")
     def refresh_routers(self):
@@ -204,7 +212,14 @@ class _OSMaps(object):
         Keys are the Openstack ID for the router, values are the same ID
         """
         response = self.os_provisioner.cloud.list_routers()
-        self.router_map = {d['id']: d for d in response}
+        try:
+            self.router_map = {d['id']: d for d in response}
+        except TypeError:
+            if "routers" in response:
+                response = response["routers"]
+                self.router_map = {d['id']: d for d in response}
+            else:
+                raise
         
     @narrate("...which required refreshing the available networks map")
     def refresh_networks(self):
@@ -213,8 +228,16 @@ class _OSMaps(object):
         Keys are the network id, values are nova Network objects
         """
         networks = self.os_provisioner.cloud.list_networks()
-        self.network_map = {n["name"]: n for n in networks}
-        self.network_map.update({n["id"]: n for n in networks})
+        try:
+            self.network_map = {n["name"]: n for n in networks}
+            self.network_map.update({n["id"]: n for n in networks})
+        except TypeError:
+            if "networks" in networks:
+                networks = networks["networks"]
+                self.network_map = {n["name"]: n for n in networks}
+                self.network_map.update({n["id"]: n for n in networks})
+            else:
+                raise
 
     @narrate("...which required refreshing the available images map")
     def refresh_images(self):

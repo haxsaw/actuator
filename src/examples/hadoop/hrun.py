@@ -25,9 +25,10 @@ import sys
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from hadoop import HadoopInfra, HadoopNamespace
-from prices import create_price_table
+from prices import create_price_table, CITYCLOUD, RACKSPACE, VSPHERE
 from hsimple import do_it
 from hevent import TaskEventManager
+from vstest import VSHadoopInfra
 
 user_env = "OS_USER"
 pass_env = "OS_PASS"
@@ -42,8 +43,8 @@ zabbix_host_ids = []   # gets set if we inform zabbix of our new hosts
 template_list = ["Template App SSH Service", "Template ICMP Ping", "Template OS Linux"]
 
 
-def make_infra_for_forcast(num_slaves=1):
-    inf = HadoopInfra("forecast")
+def make_infra_for_forecast(num_slaves=1, infra_class=HadoopInfra):
+    inf = infra_class("forecast")
     ns = HadoopNamespace()
     ns.set_infra_model(inf)
     for i in range(num_slaves):
@@ -114,10 +115,18 @@ if __name__ == "__main__":
                     print "%s isn't a number" % num_slaves
                     num_slaves = None
             if cmd == forecast_op[0]:
-                inf = make_infra_for_forcast(num_slaves=num_slaves)
+                inf = make_infra_for_forecast(num_slaves=num_slaves)
                 print("\nPrices for cluster with %d slaves:" % num_slaves)
-                print(create_price_table(inf))
-                print()
+                for cloud in [CITYCLOUD, RACKSPACE]:
+                    print(">>>>>For %s:" % cloud)
+                    print(create_price_table(inf, for_cloud=cloud))
+                    print
+                # add in another for vsphere
+                inf = make_infra_for_forecast(num_slaves=num_slaves,
+                                              infra_class=VSHadoopInfra)
+                print(">>>>>For %s:" % VSPHERE)
+                print(create_price_table(inf, for_cloud=VSPHERE))
+                print
                 continue
             success, infra, ns, conf, ao = do_it(num_slaves=num_slaves, handler=handler)
             if success:
@@ -140,7 +149,7 @@ if __name__ == "__main__":
                 for s in infra.slaves.values():
                     print "\t%s" % s.slave_fip.get_ip()
                 print("\nExecution prices for this infra:\n")
-                print(create_price_table(infra))
+                print(create_price_table(infra, for_cloud=CITYCLOUD))
             else:
                 print "Orchestration failed; see the log for error messages"
         elif cmd == teardown_op[0]:
