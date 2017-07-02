@@ -196,6 +196,12 @@ class ActuatorOrchestration(_Persistable):
                                                     no_delay=no_delay,
                                                     log_level=log_level)
 
+    def set_event_handler(self, handler):
+        if self.infra_model_inst:
+            self.infra_model_inst.set_event_handler(handler)
+        if self.config_model_inst:
+            self.config_model_inst.set_event_handler(handler)
+
     def _get_attrs_dict(self):
         d = super(ActuatorOrchestration, self)._get_attrs_dict()
         d.update({"log_level": self.log_level,

@@ -398,7 +398,8 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         all_vars.update(self.overrides)
         modelrefs = set()
         for v in all_vars.values():
-            modelrefs |= v._get_model_refs()
+            if v is not None:
+                modelrefs |= v._get_model_refs()
         return modelrefs
     
     def add_variable(self, *args):

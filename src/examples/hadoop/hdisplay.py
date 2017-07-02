@@ -25,7 +25,11 @@ from kivy.app import App
 import networkx
 from networkx.drawing.nx_agraph import graphviz_layout
 from actuator.task import Task, TaskExecControl
+from actuator.provisioners.core import ProvisioningTask
+from actuator.config import ConfigTask
 from kivy.uix.widget import Widget
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.label import Label
 from kivy.properties import ObjectProperty
 from kivy.graphics import Color, Ellipse, Line, Triangle
@@ -162,22 +166,35 @@ class GT(App):
     def __init__(self, g=None, label="unlabeled"):
         super(GT, self).__init__()
         self.g = self.xmax = self.ymax = self.bl = self.markers = self.lines = self.positions = \
-            self.label = self.label_widget = self.node_errors = self.selected_label_widget = None
+            self.label = self.label_widget = self.node_errors = self.selected_label_widget = \
+            self.info = None
+        self.xoffset = 250
         self.setup_for_graph(g, label)
+        self.node_color = {}
 
     def marker_selected(self, marker):
         nodes_by_marker = {v: k for k, v in self.markers.items()}
         node = nodes_by_marker.get(marker)
         if node is not None:
             if isinstance(node, Task):
-                error_text = ", ".join(self.node_errors.get(node, ["no errors"]))
-                seltext = "%s %s: %s" % (node.__class__.__name__, node.name, error_text)
+                if isinstance(node, ConfigTask):
+                    try:
+                        role = node.get_task_role()
+                    except:
+                        role = None
+                    msg = "Task {}, role {}".format(node.name, role.name if role else "unknown role")
+                elif isinstance(node, ProvisioningTask):
+                    msg = "Task {}, resource {}".format(node.name, node.rsrc.name)
+                else:   # don't know what this is
+                    msg = "{} {}".format(node.__class__.__name__, node.name)
+                error_text = "\n".join(self.node_errors.get(node, ["no errors"]))
+                seltext = "{}\n{}".format(msg, error_text)
             else:
                 seltext = "node %s" % str(node)
         else:
             seltext = "Can't find node!"
         self.selected_label_widget.text = seltext
-        self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
+        self.adjust_labels()
 
     def clear_graph(self):
         if self.bl:
@@ -190,6 +207,7 @@ class GT(App):
             self.positions.clear()
             self.label_widget.text = ""
             self.selected_label_widget.text = ""
+            self.node_color.clear()
 
     def setup_for_graph(self, g, label="unlabeled"):
         """
@@ -207,7 +225,7 @@ class GT(App):
         self.node_errors = {}
         self.label = label
         if self.label_widget:
-            self.label_widget.text = "%s processing progress" % label
+            self.label_widget.text = "%s\nprocessing progress" % label
         if self.selected_label_widget:
             self.selected_label_widget.text = ""
 
@@ -240,7 +258,12 @@ class GT(App):
 
         x, y = self.positions[node]
         color = self.colors[status]
-        screensize = EventLoop.window.size
+        if color == self.colors[TaskExecControl.UNPERFORMED]:
+            color = self.node_color.get(node, self.colors[TaskExecControl.UNPERFORMED])
+        self.node_color[node] = color
+        screeny = EventLoop.window.size[1]
+        screenx = EventLoop.window.size[0] - self.info.size[0]
+        screensize = (screenx, screeny)
         mw = self.markers.get(node)
         if mw is not None:
             if mw.win_xysize == screensize:
@@ -258,14 +281,16 @@ class GT(App):
             self.bl.add_widget(mw, index=0)
 
     def render_graph(self, *_):
-        screensize = EventLoop.window.size
+        screeny = EventLoop.window.size[1]
+        screenx = EventLoop.window.size[0] - self.info.size[0]
+        screensize = (screenx, screeny)
         for begin, end in self.g.edges():
             lw = self.lines.get((begin, end))
             if lw is None:
                 bx, by = self.positions[begin]
                 ex, ey = self.positions[end]
-                lw=LineWidget((bx, by), (ex, ey), (self.xmax, self.ymax),
-                                              EventLoop.window.size, (1.0, 1.0, 1.0))
+                lw = LineWidget((bx, by), (ex, ey), (self.xmax, self.ymax),
+                                screensize, (1.0, 1.0, 1.0))
                 self.lines[(begin, end)] = lw
                 self.bl.add_widget(lw)
             else:
@@ -274,20 +299,36 @@ class GT(App):
         for node in self.positions.keys():
             self.draw_node(node, self.node_errors.get(node))
 
-        self.label_widget.pos = (self.label_widget.texture_size[0] / 2.0, -30)
-        self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
+        self.adjust_labels()
+
+    def resize_info(self, *args):
+        self.info.size = (self.xoffset, EventLoop.window.size[1])
+
+    def adjust_labels(self):
+        self.selected_label_widget.texture_update()
+        self.label_widget.pos = ((self.info.size[0] / 2 - self.label_widget.texture_size[0] / 2),
+                                 (self.info.size[1] / 2 - self.label_widget.texture_size[1] / 2))
+
+        ypos = (self.label_widget.pos[1] - (self.label_widget.texture_size[1] / 2) - 5 -
+                (self.selected_label_widget.texture_size[1] / 2))
+        self.selected_label_widget.pos = (-self.info.size[0] / 2 + self.selected_label_widget.texture_size[0] / 2, ypos)
 
     def build(self):
-        self.bl = Widget()
+        self.root = BoxLayout(spacing=3, orientation="horizontal")
+        self.bl = Widget(size_hint=(1, 1))
+        self.root.add_widget(self.bl)
         self.bl.bind(size=self.render_graph)
-        self.label_widget = Label(text="%s processing progress" % self.label, halign="left")
-        self.label_widget.pos = (self.label_widget.texture_size[0] / 2.0, -30)
-        self.bl.add_widget(self.label_widget)
-        self.selected_label_widget = Label(text="", halign="left")
-        self.selected_label_widget.pos = (self.selected_label_widget.texture_size[0] / 2.0, 0)
-        self.bl.add_widget(self.selected_label_widget)
+        self.info = RelativeLayout(size=(self.xoffset, EventLoop.window.size[1]), size_hint=(None, None))
+        self.root.add_widget(self.info)
+        self.label_widget = Label(text="%s\nprocessing progress" % self.label, halign="right")
+        self.label_widget.bind(size=lambda *_: self.label_widget.texture_size)
+        self.info.add_widget(self.label_widget)
+        self.selected_label_widget = Label(text="", halign="left", valign="top", text_size=(200, None))
+        self.info.add_widget(self.selected_label_widget)
+        EventLoop.window.bind(size=self.resize_info)
+        EventLoop.window.size = (1024, 768)
 
-        return self.bl
+        return self.root
 
 
 def runnit(g, label="no label"):

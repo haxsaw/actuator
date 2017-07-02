@@ -161,7 +161,7 @@ class HadoopNodeConfig(ConfigModel):
     with_dependencies(ping | update | (reset & add_hostname))
 
     with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop &
-                                           copy_public_key & append_public_key) |
+                                           (copy_public_key | append_public_key)) |
                       unpack | (send_env & send_core_site & send_hdfs_site &
                                 send_mapred_site))
     

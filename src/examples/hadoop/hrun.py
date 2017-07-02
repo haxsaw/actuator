@@ -187,6 +187,8 @@ if __name__ == "__main__":
                 else:
                     d = json.loads(json_dict)
                     ao = reanimate_from_dict(d)
+                    if with_viz:
+                        ao.set_event_handler(handler)
                     print "Orchestrator reanimated!"
         elif cmd == persist_op[0]:
             print "Enter name of the file to save to: ",

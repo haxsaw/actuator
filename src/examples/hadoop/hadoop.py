@@ -178,7 +178,8 @@ def host_list(ctx_exp, sep_char=" "):
 class HadoopNamespace(NamespaceModel):
     with_variables(*common_vars)
     with_variables(Var("SLAVE_IPS", host_list(ctxt.model.slaves)),
-                   Var("NAMENODE_IP", HadoopInfra.name_node.get_ip))
+                   Var("NAMENODE_IP", ctxt.nexus.inf.name_node.get_ip))
+                   # Var("NAMENODE_IP", HadoopInfra.name_node.get_ip))
     # set up cloud parameters
     with_variables(Var("IMAGE", "Ubuntu 14.04 - LTS - Trusty Tahr"),
                    # Var("FLAVOR", get_flavor),
@@ -186,7 +187,7 @@ class HadoopNamespace(NamespaceModel):
                    Var("AZ", "Lon1"))
     
     name_node = Role("name_node",
-                     host_ref=HadoopInfra.name_node_fip)
+                     host_ref=ctxt.nexus.inf.name_node_fip)
     slaves = MultiRole(Role("slave",
                             host_ref=ctxt.nexus.inf.slaves[ctxt.name].slave_fip,
                             variables=[Var("COMP_NAME", "slave_!{COMP_KEY}"),
