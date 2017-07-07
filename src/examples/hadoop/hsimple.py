@@ -29,6 +29,9 @@ def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
           infra_class=HadoopInfra,
           provisioner=OpenstackProvisioner(num_threads=10, cloud_name="citycloud"),
           overrides=()):
+    """
+    Stands up a hadoop infra and configures it
+    """
     inf = infra_class("infra", event_handler=handler)
     namespace = HadoopNamespace()
     namespace.add_override(*overrides)

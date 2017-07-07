@@ -155,7 +155,7 @@ class HadoopNodeConfig(ConfigModel):
                                                          search_root),
                                            backup=True)
     
-    # now express the dependencies between the tasks. each call to
+    # now express the dependencies between config tasks. each call to
     # with_dependencies() is additive; the set of dependencies are captured in
     # the metadata for the class, and evaluated in total at the proper time
     with_dependencies(ping | update | (reset & add_hostname))

@@ -21,6 +21,7 @@
 
 import threading
 from pyVim import connect
+from errator import narrate
 
 _mpl = threading.Lock()
 
@@ -44,5 +45,6 @@ def _real_get_vsphere_connection(host, user, pwd):
 
 #
 # monkey-patchable factory; replace with something else for testing
+@narrate(lambda h, u, p: "...so we tried to get a vsphere connection to {} for {}".format(h, u))
 def get_vsphere_connection(host, user, pwd):
     return _real_get_vsphere_connection(host, user, pwd)

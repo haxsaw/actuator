@@ -21,6 +21,7 @@
 Configuration tasks modeled after Ansible modules
 """
 
+from errator import narrate
 from actuator.config import ConfigTask, ConfigException
 from actuator.exec_agents.core import ExecutionException
 
@@ -72,7 +73,9 @@ class ScriptTask(ConfigTask):
         self._removes = removes
         self.proc_ns = None
         self._proc_ns = proc_ns
-        
+
+    @narrate(lambda s: "...so we asked {} task {} for its init "
+                       "args".format(s.__class__.__name__, s.name))
     def get_init_args(self):
         __doc__ = ConfigTask.get_init_args.__doc__
         args, kwargs = super(ScriptTask, self).get_init_args()
@@ -82,6 +85,8 @@ class ScriptTask(ConfigTask):
         kwargs["proc_ns"] = self._proc_ns
         return args, kwargs
 
+    @narrate(lambda s: "...so we asked {} task {} to fix "
+                       "its arguments".format(s.__class__.__name__, s.name))
     def _fix_arguments(self):
         super(ScriptTask, self)._fix_arguments()
         self.free_form = self._get_arg_value(self._free_form)
@@ -133,7 +138,9 @@ class CommandTask(ScriptTask):
         self._executable = executable
         self.warn = None
         self._warn = warn
-        
+
+    @narrate(lambda s: "...so we asked {} task {} for its init "
+                       "args".format(s.__class__.__name__, s.name))
     def get_init_args(self):
         args, kwargs = super(CommandTask, self).get_init_args()
         kwargs["chdir"] = self._chdir
@@ -141,6 +148,8 @@ class CommandTask(ScriptTask):
         kwargs["warn"] = self._warn
         return args, kwargs
 
+    @narrate(lambda s: "...so we asked {} task {} to fix "
+                       "its arguments".format(s.__class__.__name__, s.name))
     def _fix_arguments(self):
         super(CommandTask, self)._fix_arguments()
         self.chdir = self._get_arg_value(self._chdir)
@@ -255,7 +264,9 @@ class CopyFileTask(ConfigTask):
         self._src = src
         self.validate = None
         self._validate = validate
-        
+
+    @narrate(lambda s: "...so we asked {} task {} for its init "
+                       "args".format(s.__class__.__name__, s.name))
     def get_init_args(self):
         args, kwargs = super(CopyFileTask, self).get_init_args()
         args = args + (self._dest,)
@@ -277,7 +288,9 @@ class CopyFileTask(ConfigTask):
     
     def _get_content(self):
         return self._content
-    
+
+    @narrate(lambda s: "...so we asked {} task {} to fix "
+                       "its arguments".format(s.__class__.__name__, s.name))
     def _fix_arguments(self):
         super(CopyFileTask, self)._fix_arguments()
         self.dest = self._get_arg_value(self._dest)
@@ -337,12 +350,16 @@ class LocalCommandTask(ConfigTask):
         super(LocalCommandTask, self).__init__(name, **kwargs)
         self._command = command
         self.command = None
-        
+
+    @narrate(lambda s: "...so we asked {} task {} for its init "
+                       "args".format(s.__class__.__name__, s.name))
     def get_init_args(self):
         args, kwargs = super(LocalCommandTask, self).get_init_args()
         kwargs["command"] = self._command
         return args, kwargs
-    
+
+    @narrate(lambda s: "...so we asked {} task {} to fix "
+                       "its arguments".format(s.__class__.__name__, s.name))
     def _fix_arguments(self):
         super(LocalCommandTask, self)._fix_arguments()
         self.command = self._get_arg_value(self._command)

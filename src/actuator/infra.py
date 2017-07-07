@@ -19,10 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Support for creating Actuator infrastructure models
-'''
+"""
 
+from errator import narrate, narrate_cm
 from actuator.utils import (ClassModifier, process_modifiers, _Persistable, KeyAsAttr,
                             _Performable)
 from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
@@ -145,6 +146,8 @@ class Provisionable(_LNMixin, ModelComponent, _Performable):
     #     self.other_deps = [d.fix_arguments() for d in self._other_deps
     #                        if isinstance(d, Provisionable)]
 
+    @narrate(lambda s: "...and so we asked for the base init args "
+                       "from provisionable {}".format(s.name))
     def _get_attrs_dict(self):
         """
         We need to add in this method as _Performable adds an attribute we need
@@ -174,11 +177,6 @@ class InfraModelMeta(ModelBaseMeta):
         process_modifiers(new_class)
         new_class._class_refs_for_resources()
         _Nexus._add_model_desc("inf", new_class)
-        #
-        #@FIXME: The validation here has been suspended as there are some deeper
-        #design problems that have to be sorted out to fix it
-#         for resource in components.values():
-#             resource._validate_args(new_class)
         return new_class
             
 
@@ -225,7 +223,8 @@ class InfraModel(ModelBase):
 
     def set_event_handler(self, handler):
         self.event_handler = handler
-        
+
+    @narrate(lambda s: "...so we asked infra model %s for it attrs dict".format(s.name))
     def _get_attrs_dict(self):
         d = dict(self.__dict__)
         d.update(super(InfraModel, self)._get_attrs_dict())
@@ -234,10 +233,12 @@ class InfraModel(ModelBase):
         return d
     
     def _find_persistables(self):
-        for p in self.__dict__.values():
-            if isinstance(p, _Persistable):
-                for q in p.find_persistables():
-                    yield q
+        with narrate_cm(lambda s: "---so we started looking for persistables "
+                                  "in model {}".format(s.name), self):
+            for p in self.__dict__.values():
+                if isinstance(p, _Persistable):
+                    for q in p.find_persistables():
+                        yield q
         
     def validate_args(self):
         """
@@ -252,6 +253,7 @@ class InfraModel(ModelBase):
         """
         return self.provisioning_computed
     
+    @narrate(lambda s: "...which caused us to look for the components in {}".format(s.name))
     def components(self):
         """
         Returns a set with the unique resources to provision on this instance.
@@ -272,7 +274,9 @@ class InfraModel(ModelBase):
         return _resources
     
     resources = components
-    
+
+    @narrate(lambda s, mr, *kw: "...so we started computing provising for all "
+                                "model refs in {}".format(s.name))
     def compute_provisioning_from_refs(self, modelrefs, exclude_refs=None):
         """
         Take a collection of model reference objects and compute the Provisionables needed
@@ -296,6 +300,7 @@ class InfraModel(ModelBase):
                 _ = self.get_inst_ref(mr)
             
     @classmethod
+    @narrate("...which required us to find all the refs for each component in the infra model")
     def _class_refs_for_resources(cls, my_ref=None):
         all_refs = set()
         for k, v in cls.__dict__[InfraModelMeta._COMPONENTS].items():
@@ -329,6 +334,12 @@ class IPAddressable(object):
             can be passed in.
         """
         raise TypeError("Not implemented")
+
+    def get_cidr4(self):
+        """
+        Return a string in CIDR format for the IPv4 address
+        """
+        raise TypeError("Not implemented")
     
     
 class StaticServer(IPAddressable, Provisionable):
@@ -353,20 +364,24 @@ class StaticServer(IPAddressable, Provisionable):
         self.hostname_or_ip = None
         self._hostname_or_ip = hostname_or_ip
         
+    @narrate(lambda s: "...so we asked static server {} for its attr dict".format(s.name))
     def _get_attrs_dict(self):
         d = super(StaticServer, self)._get_attrs_dict()
         d["hostname_or_ip"] = self.hostname_or_ip
         return d
         
+    @narrate(lambda s: "...so we asked static server {} to fix its args".format(s.name))
     def _fix_arguments(self):
         self.hostname_or_ip = self._get_arg_value(self._hostname_or_ip)
 
+    @narrate(lambda s: "...so we asked static server {} finish reanimation".format(s.name))
     def finalize_reanimate(self):
         self._hostname_or_ip = self.hostname_or_ip
-        
+
+    @narrate(lambda s: "...so we asked static server {} for its init args".format(s.name))
     def get_init_args(self):
         __doc__ = Provisionable.get_init_args.__doc__
-        return ((self.name, self._hostname_or_ip), {})
+        return (self.name, self._hostname_or_ip), {}
     
     def get_ip(self, context=None):
         """

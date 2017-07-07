@@ -693,6 +693,7 @@ def do_all():
     setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
+            print(">>>>>>running %s" % k)
             v()
     teardown_module()
             

@@ -30,6 +30,7 @@ import datetime
 import collections
 import threading
 import types
+from errator import narrate
 
 base_logger_name = "actuator"
 logging.basicConfig(format="%(levelname)s::%(asctime)s::%(name)s:: %(message)s")
@@ -55,6 +56,8 @@ class ClassMapper(dict):
     Internal; used to map a class, and its derived classes, to some other object.
     Really just a kind of dict that has some more interesting properties.
     """
+    @narrate(lambda s, i: "...which resulted in a class mapper looking for the "
+                          "class associated with {}".format(i))
     def __getitem__(self, item):
         """
         This method differs from normal __getitem__ in that since item is expected to be
@@ -340,7 +343,8 @@ class _Persistable(object):
         Called after all attrs have been set on all persistables to do final recovery
         """
         return
-    
+
+    @narrate(lambda s, k, v, c: "...when the persisted value {} for key {} was recovered".format(v, k))
     def recover_attr_value(self, k, v, catalog):
         """
         Allows derived classes to customize reanimation.
@@ -423,7 +427,8 @@ class _Persistable(object):
                            if isinstance(o, _PersistableRef)
                            else o) for o in retval]
         return retval
-    
+
+    @narrate(lambda s, k, v: "...when the value {} for key {} was encoded for persistence".format(v, k))
     def encode_attr(self, k, v):
         """
         Encodes an attr into something that can be turned into json.
@@ -487,7 +492,8 @@ class _Persistable(object):
         anyway.
         """
         return {}
-    
+
+    @narrate("...when the base persistables collection method was activated")
     def find_persistables(self):
         """
         A generator that yields a stream of _Persistables, including self.
@@ -542,7 +548,8 @@ class _Persistable(object):
         # need it to execute. So we protect it with the impossible test
         if 1 == 0:
             yield
-    
+
+    @narrate("...when an object was asked to get its attrs set from a dict")
     def set_attrs_from_dict(self, d, catalog):
         for k, v in d.items():
             try:
@@ -691,15 +698,17 @@ class _Catalog(_SignatureDict):
                 if o is not None:
                     o.finalize_reanimate()
         return self
-    
-    
+
+
+@narrate("...which caused a persisted object to be reanimated from a dict")
 def reanimate_from_dict(d):
     catalog = _Catalog()
     catalog.from_list(d["CATALOG"])
     root = catalog.find_entry(_PersistableRef().from_dict(d["ROOT_OBJ"]).id)
     return root.get_reanimated()
     
-    
+
+@narrate("...which caused an object to be persisted to a dict")
 def persist_to_dict(o, name=None):
     if not isinstance(o, _Persistable):
         raise TypeError("the parameter must be a kind of _Persistable")

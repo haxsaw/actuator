@@ -27,6 +27,7 @@ import threading
 import time
 import json
 
+from errator import narrate
 from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
 from actuator.utils import LOG_INFO, root_logger
 from actuator.task import TaskEngine
@@ -174,9 +175,11 @@ class ExecutionAgent(TaskEngine):
     @classmethod
     def get_exec_domain(cls):
         return "exec-default"
-        
+
+    @narrate(lambda s, t: "...which required determining where {} task {} "
+                          "should run from".format(t.__class__.__name__, t.name))
     def _get_run_host(self, task):
-        #NOTE about task_role and run_from:
+        # NOTE about task_role and run_from:
         # the task role provides the focal point for tasks to be performed
         # in a system, but it is NOT necessarily the place where the task
         # runs. by default the task_role identifies where to run the task,
@@ -219,6 +222,8 @@ class ExecutionAgent(TaskEngine):
         """
         raise TypeError("Derived class must implement")
 
+    @narrate(lambda s, t, **kw: "...leading the excution agent to start the "
+                                "processing of {} task {}".format(t.__class__.__name__, t.name))
     def _perform_task(self, task, logfile=None):
         if task.get_performance_status() != task.UNSTARTED:
             return
@@ -292,7 +297,8 @@ class ExecutionAgent(TaskEngine):
                     self.reverse_task(graph, task)
             except Queue.Empty, _:
                 pass
-        
+
+    @narrate("...which started the performance of all configuration tasks")
     def perform_config(self, completion_record=None):
         """
         Start the agent working on the configuration tasks. This is the method
@@ -309,7 +315,8 @@ class ExecutionAgent(TaskEngine):
         else:
             # currently unreachable as is either is missing the object can't be created
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
-        
+
+    @narrate("...which started reverse processing of all configuration tasks")
     def perform_reverses(self, completion_record=None):
         """
         Traverses the graph in reverse to "unperform" the tasks.

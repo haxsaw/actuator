@@ -502,7 +502,7 @@ def test31():
             
         def _perform(self, engine):
             vv = self.get_model_instance().namespace_model_instance.comp.get_visible_vars()
-            self.vars.update({v.name:v.get_value(self.get_task_role())
+            self.vars.update({v.name: v.get_value(self.get_task_role())
                               for v in vv.values()})
         
     class SimpleNS(NamespaceModel):
@@ -511,7 +511,7 @@ def test31():
                        Var("TWO", "2"),
                        Var("THREE", "3"))
         comp = Role("test-comp", host_ref="!{ID}").add_variable(Var("ID", "right!"),
-                                                                    Var("THREE", "drei"))
+                                                                Var("THREE", "drei"))
         
     class SimpleCfg(ConfigModel):
         comp_task = VarCapture("varcap", SimpleNS.comp)
@@ -525,7 +525,8 @@ def test31():
             cfg.comp_task.vars["THREE"] == "drei" and
             cfg.comp_task.vars["ONE"] == "1" and
             cfg.comp_task.vars["TWO"] == "2")
-    
+
+
 def test32():
     class VarCapture(ConfigTask, StructuralTask):
         def __init__(self, name, task_role, **kwargs):

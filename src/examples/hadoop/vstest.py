@@ -1,10 +1,3 @@
-import sys
-from actuator import ActuatorOrchestration, ctxt
-from actuator.provisioners.vsphere.resources import *
-from actuator.infra import (InfraModel, MultiResourceGroup, with_infra_options)
-from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
-from actuator.namespace import Var
-from hevent import TaskEventManager
 #
 # Copyright (c) 2017 Tom Carroll
 #
@@ -25,6 +18,13 @@ from hevent import TaskEventManager
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import sys
+from actuator import ActuatorOrchestration, ctxt
+from actuator.provisioners.vsphere.resources import *
+from actuator.infra import (InfraModel, MultiResourceGroup, with_infra_options)
+from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
+from actuator.namespace import Var
+from hevent import TaskEventManager
 
 from hsimple import do_it
 

@@ -42,6 +42,7 @@ from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
                                    LocalCommandTask)
 from actuator.namespace import _ComputableValue
+from errator import narrate, narrate_cm
 
 
 _paramiko_domain = "PARAMIKO_AGENT"
@@ -64,13 +65,15 @@ class PTaskProcessor(AbstractTaskProcessor):
         prompt = base64.b64encode(str(uuid.uuid4()))[-7:-1]
         self.prompt = "actuator-%s-ready$ " % prompt
         self.output = []
-        
+
+    @narrate(lambda s, t, h: "...which started the generic arguments creation process "
+                             "for {} task {}".format(t.__class__.__name__, t.name))
     def make_args(self, task, hlist):
         """
         Set up the standard args for the task and then get any specific args for
         the particular task.
         
-        @param task: Some kind of L{actuator.config_tasks.ConfigTask object
+        @param task: Some kind of L{actuator.config_tasks.ConfigTask} object
         @param hlist: a sequence of strings that are either host names or IP addresses
             that the task is to apply to; this is a single host, but is a list
             for compatibility with other execution agents
@@ -92,18 +95,24 @@ class PTaskProcessor(AbstractTaskProcessor):
         if not user:
             raise ExecutionException("Unable to determine a remote user for task %s; can't continue" %
                                      user)
+        if hlist is None or len(hlist) is 0:
+            raise ExecutionException("There are no hosts to apply task {} to".format(task.name))
         seq = (task, hlist[0], user)
-        kwargs = {"password": task.get_remote_pass(),
-                  "priv_key_file": task.get_private_key_file(),
-                  "timeout": 20,
-                  "priv_key": None,
-                  "dirty": False}
-        kwargs.update(self._make_args(task))
+        with narrate_cm("...during which the collection of passwords and key files started"):
+            kwargs = {"password": task.get_remote_pass(),
+                      "priv_key_file": task.get_private_key_file(),
+                      "timeout": 20,
+                      "priv_key": None,
+                      "dirty": False}
+        with narrate_cm("...and then the collection of the task-specific arguments started"):
+            kwargs.update(self._make_args(task))
         return seq, kwargs
     
     def _make_args(self, task):
         return {}
-        
+
+    @narrate(lambda s, t, r, **kw: "...which then led to checking the result of {} task {}"
+                                   .format(t.__class__.__name__, t.name))
     def result_check(self, task, result, logfile=None):
         assert isinstance(result, _Result)
         if not result.success:
@@ -114,14 +123,19 @@ class PTaskProcessor(AbstractTaskProcessor):
                                      (task.name, result.stdout))
         else:
             return
-    
+
+    @narrate(lambda s, p, t, h, u, **kw: "...starting the Paramiko processing of {} task "
+                                         "{} against host {} for user {}".format(t.__class__.__name__, t.name, h, u))
     def process_task(self, pea, task, host, user, password=None, priv_key_file=None, priv_key=None,
                      dirty=False, timeout=20, **kwargs):
         assert isinstance(pea, ParamikoExecutionAgent)
-        client = pea.get_connection(host, user, priv_key=priv_key, priv_key_file=priv_key_file,
-                                    password=password, timeout=timeout)
+        with narrate_cm("...which required acquiring a Paramiko connection"):
+            client = pea.get_connection(host, user, priv_key=priv_key, priv_key_file=priv_key_file,
+                                        password=password, timeout=timeout)
+        result = False
         try:
-            result = self._process_task(client, task, **kwargs)
+            with narrate_cm("...leading to the task-specific processing"):
+                result = self._process_task(client, task, **kwargs)
         finally:
             pea.return_connection(host, user, client, dirty=dirty)
         return result
@@ -130,7 +144,8 @@ class PTaskProcessor(AbstractTaskProcessor):
         pass
     
     read_chunk = 4096
-    
+
+    @narrate("...which started the output draining process")
     def _drain(self, channel, until=None):
         if until is None:
             until = self.prompt
@@ -142,13 +157,15 @@ class PTaskProcessor(AbstractTaskProcessor):
             prompt_seen = until in results
         sio = StringIO(results)
         return [l for l in sio]
-    
+
+    @narrate("...requiring the acquistion of a Paramiko shell")
     def _get_shell(self, client, width=200):
         sh = client.invoke_shell(width=width)
         sh.send("PS1='%s'\n" % self.prompt)
         time.sleep(0.2)
         return sh
-    
+
+    @narrate("...and then required checking if the task was successful")
     def _was_success(self, channel):
         channel.send("echo $?\n")
         result = self._drain(channel)
@@ -166,7 +183,10 @@ class PTaskProcessor(AbstractTaskProcessor):
         except Exception as _:
             pass
         return success, ecode
-    
+
+    @narrate(lambda s, c, t: "...which required populating the environment for the task with the following values:\n{}"
+                             .format("\t\n".join(["{}={}".format(k, v)
+                                                  for k, v in t.task_variables(for_env=True).items()])))
     def _populate_environment(self, channel, task):
         env_dict = task.task_variables(for_env=True)
         for k, v in env_dict.items():
@@ -176,6 +196,7 @@ class PTaskProcessor(AbstractTaskProcessor):
 
 @capture_mapping(_paramiko_domain, PingTask)
 class PingProcessor(PTaskProcessor):
+    @narrate(lambda s, c, t, **kw: "...which led to performing ping task {} on {}".format(t.name, t.get_task_host()))
     def _process_task(self, client, task, **kwargs):
         sh = self._get_shell(client)
         sh.close()
@@ -185,30 +206,36 @@ class PingProcessor(PTaskProcessor):
     
 @capture_mapping(_paramiko_domain, ScriptTask)
 class ScriptProcessor(PTaskProcessor):
+    @narrate(lambda s, t: "...which required getting the remaining arguments for "
+                          "script processing task {}".format(t.name))
     def _make_args(self, task):
         args = {"free_form": task.free_form,
                 "creates": task.creates,
                 "removes": task.removes,
                 "proc_ns": task.proc_ns}
         return args
-    
+
+    @narrate("...leading to starting a shell")
     def _start_shell(self, client):
         sh = self._get_shell(client)
         _ = self._drain(sh)
         return sh
-    
+
+    @narrate(lambda s, sh, c: "...where first we check if the creates file '{}' is already there".format(c))
     def _test_creates(self, sh, creates):
         sh.sendall("test -e %s\n" % creates)
         self.output.append("".join(self._drain(sh)))
         success, ecode = self._was_success(sh)
         return success
 
+    @narrate(lambda s, sh, r: "...where first we check if the removes file '{}' is already gone".format(r))
     def _test_removes(self, sh, removes):
         sh.sendall("test ! -e %s\n" % removes)
         self.output.append("".join(self._drain(sh)))
         success, ecode = self._was_success(sh)
         return success
-        
+
+    @narrate(lambda s, c, t, **kw: "...which starts processing the script task {}".format(t.name))
     def _process_task(self, client, task, free_form=None, creates=None, removes=None,
                       proc_ns=False):
         assert isinstance(client, SSHClient)
@@ -293,20 +320,24 @@ class ScriptProcessor(PTaskProcessor):
 
 @capture_mapping(_paramiko_domain, CommandTask)
 class CommandProcessor(ScriptProcessor):
+    @narrate(lambda s, t: "...which required getting the remaining arguments for "
+                          "command processing task {}".format(t.name))
     def _make_args(self, task):
         args = super(CommandProcessor, self)._make_args(task)
         args.update({"chdir": task.chdir,
                      "executable": task.executable,
                      "warn": task.warn})
         return args
-    
+
+    @narrate(lambda s, c: "...at which point we needed to perform final formatting on command '{}'".format(c))
     def _format_command(self, command):
         parts = shlex.split(command)
         formatted = [parts[0]]
         for p in parts[1:]:
             formatted.append('"%s"' % p)
         return ' '.join(formatted)
-    
+
+    @narrate(lambda s, c, t, **kw: "...which starts processing the command task {}".format(t.name))
     def _process_task(self, client, task, free_form=None, creates=None, removes=None,
                       chdir=None, executable=None, warn=None, **kwargs):
         output = []
@@ -358,11 +389,14 @@ class ShellProcessor(CommandProcessor):
 
 @capture_mapping(_paramiko_domain, LocalCommandTask)
 class LocalCommandProcessor(PTaskProcessor):
+    @narrate(lambda s, t: "...which required getting the remaining arguments for "
+                          "local command processing task {}".format(t.name))
     def _make_args(self, task):
         assert isinstance(task, LocalCommandTask)
         args = {"command": task.command}
         return args
     
+    @narrate(lambda s, c, t, **kw: "...which starts processing the local command task {}".format(t.name))
     def _process_task(self, client, task, command=None):
         output = []
         args = shlex.split(command)
@@ -376,6 +410,8 @@ class LocalCommandProcessor(PTaskProcessor):
 
 @capture_mapping(_paramiko_domain, CopyFileTask)
 class CopyFileProcessor(PTaskProcessor):
+    @narrate(lambda s, t: "...which required getting the remaining arguments for "
+                          "copy file processing task {}".format(t.name))
     def _make_args(self, task):
         assert isinstance(task, CopyFileTask)
         args = {"dest": task.dest,
@@ -394,7 +430,8 @@ class CopyFileProcessor(PTaskProcessor):
                 "src": task.src,
                 "validate": task.validate}
         return args
-    
+
+    @narrate(lambda s, t, sftp, rp, **kw: "...leading to copying task {}'s file to {}".format(t.name, rp))
     def _put_file(self, task, sftp, rem_path, abs_local_file=None, content=None, flo=None,
                   mode=None, owner=None, group=None):
         # flo is a "file-like object" from which we get content and send it to the remote
@@ -434,28 +471,35 @@ class CopyFileProcessor(PTaskProcessor):
         return True, ""
 
     @staticmethod
+    @narrate("...which initiated setting the remote directory's perms")
     def _set_dir_perms(sftp, rem_dir, local_dir, mode=None, owner=None,
                        group=None):
         rstat = sftp.stat(rem_dir)
         if owner is not None or group is not None:
             owner = owner if owner is not None else rstat.st_uid
             group = group if group is not None else rstat.st_gid
-            sftp.chown(rem_dir, owner, group)
+            with narrate_cm(lambda o, g: "---which tried to set the owner/group to {}/{}".format(o, g),
+                            owner, group):
+                sftp.chown(rem_dir, owner, group)
             
         if mode is None:
             lstat = os.stat(local_dir)
             mode = lstat.st_mode
-        sftp.chmod(rem_dir, mode)
+        with narrate_cm(lambda m: "---which tried to set the mod to {}".format(m),
+                        mode):
+            sftp.chmod(rem_dir, mode)
         
         return True, ""
 
     @staticmethod
+    @narrate(lambda s, rp: "...leading to create the remote path {}".format(rp))
     def _make_dir(sftp, rem_path):
         assert isinstance(sftp, SFTPClient)
         sftp.mkdir(rem_path)
         
         return True, ""
     
+    @narrate(lambda s, c, t, **kw: "...which starts processing the copy file task {}".format(t.name))
     def _process_task(self, client, task, dest, backup=None, content=None, directory_mode=None,
                       follow=False, force=True, group=None, mode=None, owner=None,
                       selevel="s0", serole=None, setype=None, seuser=None, src=None,
@@ -516,6 +560,8 @@ class CopyFileProcessor(PTaskProcessor):
     
 @capture_mapping(_paramiko_domain, ProcessCopyFileTask)
 class ProcessCopyFileProcessor(CopyFileProcessor):
+    @narrate(lambda s, t: "...which required getting the remaining arguments for "
+                          "process copy file processing task {}".format(t.name))
     def _make_args(self, task):
         args = super(ProcessCopyFileProcessor, self)._make_args(task)
         if args["content"] is not None:
@@ -524,7 +570,9 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
                                          raise_on_unexpanded=True)
             args["content"] = expanded_content
         return args
-        
+
+    @narrate(lambda s, t, sftp, rp, **kw: "...which starts putting the processed file from "
+                                          "task {} to {}".format(t.name, rp))
     def _put_file(self, task, sftp, rem_path, abs_local_file=None, content=None, mode=None,
                   owner=None, group=None):
         if content is not None:
@@ -560,7 +608,8 @@ class ParamikoExecutionAgent(ExecutionAgent):
 
     def _logger_name(self):
         return "ea-PEA"
-        
+
+    @narrate(lambda s, h, u, **kw: "...leading to getting a Paramiko connection to {}".format(h))
     def get_connection(self, host, user, priv_key=None, priv_key_file=None, password=None,
                        timeout=5):
         """
@@ -653,7 +702,8 @@ class ParamikoExecutionAgent(ExecutionAgent):
 #                     ipc.release()
 #                     
 #         return conn
-        
+
+    @narrate(lambda s, h, u, c, **kw: "...which then allowed the connection to {} to be returned".format(h))
     def return_connection(self, host, user, conn, dirty=False):
         """
         Return a connection to the available list for this host/user pair. If the
@@ -683,6 +733,9 @@ class ParamikoExecutionAgent(ExecutionAgent):
     @classmethod
     def get_exec_domain(cls):
         return _paramiko_domain
-    
+
+    @narrate(lambda s, t, p, a, kw: "...starting the performance of {} task {} "
+                                    "with args {} and kwargs {}".format(t.__class__.__name__, t.name,
+                                                                        str(a), str(kw)))
     def _perform_with_args(self, task, processor, args, kwargs):
         return processor.process_task(self, *args, **kwargs)

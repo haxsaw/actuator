@@ -825,7 +825,9 @@ class TaskEngine(object):
         The the agent to abort performing any further tasks.
         """
         self.stop = True
-        
+
+    @narrate(lambda s: "...which started the task engine {} to "
+                       "process the perform queue".format(s.name))
     def process_perform_task_queue(self):
         """
         Tell the agent to start performing tasks; results in calls to
@@ -861,7 +863,9 @@ class TaskEngine(object):
                                         self.task_queue.put((graph, TaskExecControl(successor)))
             except Queue.Empty, _:
                 pass
-            
+
+    @narrate(lambda s: "...and then the task engine {} began to process the "
+                       "reverse task queue".format(s.name))
     def process_reverse_task_queue(self):
         """
         Tell the agent to start reverse processing tasks; re
@@ -896,7 +900,9 @@ class TaskEngine(object):
                                         self.task_queue.put((graph, TaskExecControl(predecessor)))
             except Queue.Empty, _:
                 pass
-            
+
+    @narrate(lambda s, **kw: "...which started the task engine {} in performing "
+                             "tasks".format(s.name))
     def perform_tasks(self, completion_record=None):
         self._reset()
         fmtmsg = lambda msg: "Task engine %s: %s" % (self.name, msg)
@@ -943,6 +949,8 @@ class TaskEngine(object):
             raise self.exception_class("Task(s) aborted causing engine to abort; "
                                        "see the engine's aborted_tasks list for details")
 
+    @narrate(lambda s, **kw: "...causing the task engine {} to start "
+                             "reverse processing the tasks".format(s.name))
     def perform_reverses(self, completion_record=None):
         """
         Traverses the graph in reverse to "unperform" the tasks.

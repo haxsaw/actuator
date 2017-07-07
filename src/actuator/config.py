@@ -292,7 +292,7 @@ class ConfigTask(Task):
                 yield p
 
     @narrate(lambda s, for_env=False: "...which requires getting all the Vars that apply to task {} for "
-                                "a specific host".format(s.name))
+                                      "a specific host".format(s.name))
     def task_variables(self, for_env=False):
         """
         Return a dict with all the Vars that apply to this task according to
@@ -961,6 +961,8 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         self.rendezvous = RendezvousTask("{}-rendezvous".format(name))
         self.graph = None
 
+    @narrate(lambda s: "...so we started to gather the base attrs for "
+                       "{} task {}".format(s.__class__.__name__, s.name))
     def _get_attrs_dict(self):
         d = super(ConfigClassTask, self)._get_attrs_dict()
         d.update(cfg_class="%s%s%s" % (self.cfg_class.__name__, self._sep,
@@ -972,6 +974,8 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
                  graph=None)
         return d
 
+    @narrate(lambda s: "...which led to finding all persistables contained in "
+                       "{} task {}".format(s.__class__.__name__, s.name))
     def _find_persistables(self):
         for p in super(ConfigClassTask, self)._find_persistables():
             yield p
@@ -987,12 +991,15 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
             for p in d.find_persistables():
                 yield p
 
+    @narrate(lambda s: "...and then we set out to finish reanimating "
+                       "{} task {}".format(s.__class__.__name__, s.name))
     def finalize_reanimate(self):
         super(ConfigClassTask, self).finalize_reanimate()
         self.rendezvous = RendezvousTask(self.rendezvous)
         klassname, modname = self.cfg_class.split(self._sep)
         self.cfg_class = _find_class(modname, klassname)
 
+    @narrate(lambda s, **kw: "...requiring the task graph for config class {}".format(s.name))
     def get_graph(self, with_fix=False):
         """
         Return a new instance of the NetworkX DiGraph that represents the 
@@ -1029,6 +1036,8 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         # internal
         return _Dependency
 
+    @narrate(lambda s: "...requiring {} task {} to provide its init args".format(s.__class__.__name__,
+                                                                                 s.name))
     def get_init_args(self):
         __doc__ = ConfigTask.get_init_args.__doc__  # @ReservedAssignment
         args, kwargs = super(ConfigClassTask, self).get_init_args()
@@ -1036,6 +1045,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         kwargs["init_args"] = self._init_args
         return args, kwargs
 
+    @narrate(lambda s: "...leading to the config class {} to fix its arguments".format(s.name))
     def _fix_arguments(self):
         # internal
         super(ConfigClassTask, self)._fix_arguments()
@@ -1065,6 +1075,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
     def _embedded_exittask_attrnames(self):
         return ["rendezvous"]
 
+    @narrate("...requiring the dependencies in the inner config model")
     def unpack(self):
         """
         Returns the list of _Dependencies for the nodes in the wrapped config
@@ -1117,6 +1128,7 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
     def __len__(self):
         return len(self.instances)
 
+    @narrate(lambda s: "...and so the attrs dict for multitask {} was requested".format(s.name))
     def _get_attrs_dict(self):
         d = super(MultiTask, self)._get_attrs_dict()
         d.update(template=self.template,
@@ -1127,20 +1139,22 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
         return d
 
     def _find_persistables(self):
-        for p in super(MultiTask, self)._find_persistables():
-            yield p
-        for p in self.template.find_persistables():
-            yield p
-        if self.task_role_list:
-            for tr in self.task_role_list:
-                for p in tr.find_persistables():
+        with narrate_cm(lambda s: "---so the persistables in multitask {} were "
+                                  "yielded".format(s.name), self):
+            for p in super(MultiTask, self)._find_persistables():
+                yield p
+            for p in self.template.find_persistables():
+                yield p
+            if self.task_role_list:
+                for tr in self.task_role_list:
+                    for p in tr.find_persistables():
+                        yield p
+            for d in self.dependencies:
+                for p in d.find_persistables():
                     yield p
-        for d in self.dependencies:
-            for p in d.find_persistables():
-                yield p
-        for i in self.instances:
-            for p in i.find_persistables():
-                yield p
+            for i in self.instances:
+                for p in i.find_persistables():
+                    yield p
 
     def finalize_reanimate(self):
         self.rendezvous = RendezvousTask(self.rendezvous)
@@ -1162,12 +1176,14 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
     def _or_result_class(self):
         return _Dependency
 
+    @narrate(lambda s: "...so multitask {} was asked to return its init args".format(s.name))
     def get_init_args(self):
         __doc__ = ConfigTask.get_init_args.__doc__  # @ReservedAssignment
         args, kwargs = super(MultiTask, self).get_init_args()
         args = args + (self._template, self._task_role_list)
         return args, kwargs
 
+    @narrate(lambda s: "...so multitask {} was asked to fix its args".format(s.name))
     def _fix_arguments(self):
         super(MultiTask, self)._fix_arguments()
         self.rendezvous.fix_arguments()
@@ -1201,6 +1217,7 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
     def exit_nodes(self):
         return [self.rendezvous]
 
+    @narrate(lambda s: "...requiring unpacking the dependencies of the tasks in multitask {}".format(s.name))
     def unpack(self):
         """
         Unpacks the internal dependencies for the tasks that the MultiTask contains,

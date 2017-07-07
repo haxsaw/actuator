@@ -21,8 +21,11 @@
 
 import time
 from pyVmomi import vim, vmodl
+from errator import narrate
 
 
+@narrate(lambda c, vt, n: "...which requires finding vsphere {} "
+                          "object {}".format(str(type(vt), n)))
 def get_obj(content, vimtype, name):
     """
     Finds an object of a particular type by a particular name
@@ -41,6 +44,7 @@ def get_obj(content, vimtype, name):
     return obj
 
 
+@narrate(lambda t: "...and then we had to wait for task {} to complete".format(str(t)))
 def wait_for_task(task):
     """
     wait for a vCenter task to finish
@@ -57,6 +61,7 @@ def wait_for_task(task):
     return task_done
 
 
+@narrate(lambda si, t: "...and then we started waiting for tasks {}".format(str(t)))
 def wait_for_tasks(service_instance, tasks):
     """Given the service instance si and tasks, it returns after all the
    tasks are complete

@@ -19,10 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Support for creating Actuator namespace models
-'''
+"""
 import re
+from errator import narrate, narrate_cm
 from actuator.utils import (ClassModifier, process_modifiers, capture_mapping,
                             get_mapper,  _Persistable)
 from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase,
@@ -73,13 +74,14 @@ class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
         return (isinstance(self.value, basestring) or
                 isinstance(self.value, (AbstractModelReference, ContextExpr)) or
                 self.value is None)
-        
+
     def _find_persistables(self):
-        for p in super(_ComputableValue, self)._find_persistables():
-            yield p
-        if isinstance(self.value, (ContextExpr, AbstractModelReference)):
-            for p in self.value.find_persistables():
+        with narrate_cm("...which required this computable value to find its persistables"):
+            for p in super(_ComputableValue, self)._find_persistables():
                 yield p
+            if isinstance(self.value, (ContextExpr, AbstractModelReference)):
+                for p in self.value.find_persistables():
+                    yield p
                 
     def _get_attrs_dict(self):
         d = super(_ComputableValue, self)._get_attrs_dict()
@@ -98,7 +100,8 @@ class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
         from a ModelComponent from elsewhere
         """
         return isinstance(self.value, AbstractModelReference)
-        
+
+    @narrate(lambda s, *a, **kw: "...and so the actual value of {} was asked for".format(s.value))
     def expand(self, context, allow_unexpanded=False, raise_on_unexpanded=False):
         """
         Begins the computation of the value of the object supplied in the
@@ -124,7 +127,9 @@ class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
         history = set([])
         return self._expand(context, history, allow_unexpanded=allow_unexpanded,
                             raise_on_unexpanded=raise_on_unexpanded)
-        
+
+    @narrate(lambda s, *a, **kw: "...resulting in the low-level value determination "
+                                 "process for {}".format(s.value))
     def _expand(self, context, history, allow_unexpanded=False,
                 raise_on_unexpanded=False):
         if isinstance(self.value, AbstractModelReference):
@@ -203,18 +208,22 @@ class Var(_ModelRefSetAcquireable, _Persistable):
         return self.value._is_value_persistable()
     
     def _find_persistables(self):
-        for p in super(Var, self)._find_persistables():
-            yield p
-        for p in self.value.find_persistables():
-            yield p
+        with narrate_cm(lambda s: "---so we started looking for persistables in Var {}".format(s.name),
+                        self):
+            for p in super(Var, self)._find_persistables():
+                yield p
+            for p in self.value.find_persistables():
+                yield p
     
     def _get_attrs_dict(self):
         d = super(Var, self)._get_attrs_dict()
-        d.update( {"name":self.name,
-                   "value":self.value,
-                   "in_env":self.in_env} )
+        d.update({"name": self.name,
+                  "value": self.value,
+                  "in_env": self.in_env})
         return d
 
+    @narrate(lambda s, c, **kw: "...which required getting the value of Var '{}' "
+                                "for context {}".format(s.name, c))
     def get_value(self, context, allow_unexpanded=False):
         """
         Get the value of Var evaluated from the perspective of a L{VariableContainer}
@@ -256,7 +265,7 @@ class Var(_ModelRefSetAcquireable, _Persistable):
     
 class VarFuture(_ValueAccessMixin):
     """
-    A wrapper that allows a Var to be treated like reference into a model. Supports
+    A wrapper that allows a Var to be treated like a reference into a model. Supports
     a value() method that allows deferring the computation of the variable until
     the value is needed. These are created by the future() method of
     L{VariableContainer}
@@ -271,7 +280,9 @@ class VarFuture(_ValueAccessMixin):
         """
         self.var = var
         self.context = context
-        
+
+    @narrate(lambda s, **kw: "...and that required computing the future value for "
+                             "Var {}".format(s.var.name))
     def value(self, allow_unexpanded=False):
         """
         Compute the value of the Var from the perspective of the context.
@@ -291,11 +302,13 @@ class VarReference(_ValueAccessMixin):
     def __init__(self, var_cont, var_name):
         self.var_cont = var_cont
         self.var_name = var_name
-            
+
+    @narrate(lambda s, **kw: "...and this required getting the Var value for "
+                             "reference {}".format(s.var_name))
     def __call__(self, allow_unexpanded=False):
-        #@FIXME: we probably should have a check here if the container
-        #has a var called var_name and raise a more useful exeception at
-        #this point
+        # @FIXME: we probably should have a check here if the container
+        # has a var called var_name and raise a more useful exeception at
+        # this point
         return self.var_cont.var_value(self.var_name,
                                        allow_unexpanded=allow_unexpanded)
     
@@ -347,19 +360,20 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
             self.add_variable(*variables)
         if overrides is not None:
             self.add_override(*overrides)
-            
+
+    @narrate("...which required the variable container to return its attrs dict")
     def _get_attrs_dict(self):
         d = super(VariableContainer, self)._get_attrs_dict()
-        persistable_vars = {v.name:(v if v._is_value_persistable()
-                                    else v.get_value(self, allow_unexpanded=True))
+        persistable_vars = {v.name: (v if v._is_value_persistable()
+                                     else v.get_value(self, allow_unexpanded=True))
                             for v in self.variables.values()}
-        persistable_overrides = {v.name:(v if v._is_value_persistable()
-                                         else v.get_value(self, allow_unexpanded=True))
+        persistable_overrides = {v.name: (v if v._is_value_persistable()
+                                          else v.get_value(self, allow_unexpanded=True))
                                  for v in self.overrides.values()}
-        d.update( {"variables":persistable_vars,
-                   "overrides":persistable_overrides,
-                   "parent_container":self.parent_container,
-                   "v":None} )
+        d.update({"variables": persistable_vars,
+                  "overrides": persistable_overrides,
+                  "parent_container": self.parent_container,
+                  "v": None})
         return d
     
     def recover_attr_value(self, k, v, catalog):
@@ -370,20 +384,22 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         return retval
     
     def _find_persistables(self):
-        for p in super(VariableContainer, self)._find_persistables():
-            yield p
-        for v in self.variables.values():
-            if v._is_value_persistable():
-                for p in v.find_persistables():
-                    yield p
-        for v in self.overrides.values():
-            if v._is_value_persistable():
-                for p in v.find_persistables():
-                    yield p
-        if self.parent_container:
-            for p in self.parent_container.find_persistables():
+        with narrate_cm("...which required the variable container to yield all persistables"):
+            for p in super(VariableContainer, self)._find_persistables():
                 yield p
-                
+            for v in self.variables.values():
+                if v._is_value_persistable():
+                    for p in v.find_persistables():
+                        yield p
+            for v in self.overrides.values():
+                if v._is_value_persistable():
+                    for p in v.find_persistables():
+                        yield p
+            if self.parent_container:
+                for p in self.parent_container.find_persistables():
+                    yield p
+
+    @narrate("...leading to the container finishing reanimation")
     def finalize_reanimate(self):
         for d in [self.variables, self.overrides]:
             for k, v in d.items():
@@ -392,7 +408,8 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
                     
     def _set_parent(self, parent):
         self.parent_container = parent
-    
+
+    @narrate("...requiring the container to return all model refs in variables")
     def _get_model_refs(self):
         all_vars = dict(self.variables)
         all_vars.update(self.overrides)
@@ -435,7 +452,9 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
                 raise TypeError("'%s' is not a Var" % str(v))
             self.overrides[v.name] = v
         return self
-            
+
+    @narrate(lambda s, n: "...so we starting looking for variable {} "
+                          "in container {}".format(n, str(s)))
     def find_variable(self, name):
         """
         Locates the named Var and the VariableContainer where it is defined.
@@ -459,7 +478,9 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         if value is None:
             value, provider = self.parent_container.find_variable(name) if self.parent_container else (None, None)
         return value, provider
-    
+
+    @narrate(lambda s, n, **kw: "...so container {} was asked for the "
+                                "value of Var {}".format(str(s), n))
     def var_value(self, name, allow_unexpanded=False):
         """
         Locate the named Var and return it's value relative to the current
@@ -482,7 +503,8 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     
     def get_context(self):
         return self
-    
+
+    @narrate(lambda s, n: "...generating a VarFuture for {} on {}".format(n, str(s)))
     def future(self, name):
         """
         Get a a L{VarFuture} object for the named Var.
@@ -517,6 +539,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         """
         return None
 
+    @narrate("...which required the container to return a dict of Vars it can see")
     def get_visible_vars(self):
         """
         Return all the Vars visible to this container
@@ -532,7 +555,10 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     
 
 _common_vars = "__common_vars__"
-def with_variables(cls, *args, **kwargs):
+
+
+@ClassModifier
+def with_variables(cls, *args, **_):
     """
     Used at the class level of a Namespace class model to set global Vars
     on the model. May be called repeatedly to set additional Vars.
@@ -544,11 +570,13 @@ def with_variables(cls, *args, **kwargs):
         vars_list = []
         setattr(cls, _common_vars, vars_list)
     vars_list.extend(list(args))
-with_variables = ClassModifier(with_variables)
 
 
 _common_roles = "__roles"
-def with_roles(cls, *args, **kwargs):
+
+
+@ClassModifier
+def with_roles(cls, *_, **kwargs):
     """
     Used at the class level of a Namespace class model to add Roles to the
     model. Role, RoleGroup, MultiRole, and MultiRoleGroup may be added to
@@ -557,11 +585,11 @@ def with_roles(cls, *args, **kwargs):
     """
     for k, v in kwargs.items():
         setattr(cls, k, v)
-with_roles = ClassModifier(with_roles)
 
 
 class ModelInstanceFinderMixin(object):
-    #relies on the protocol for both ModelComponent and VariableContainer
+    # relies on the protocol for both ModelComponent and VariableContainer
+    @narrate("...necessitating locating the model instance relative to this object")
     def get_model_instance(self):
         """
         Locate the Namespace model instance that self is a part of.
@@ -613,7 +641,8 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         self._host_ref = host_ref
         if variables is not None:
             self.add_variable(*variables)
-            
+
+    @narrate(lambda s, **kw: "...which required a clone of role {} to be created".format(s.name))
     def clone(self, clone_into_class=None):
         """
         Create a copy of the initial state of this Role
@@ -633,47 +662,54 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         return d
     
     def _find_persistables(self):
-        for p in super(Role, self)._find_persistables():
-            yield p
-        if isinstance(self.host_ref, _Persistable):
-            for p in self.host_ref.find_persistables():
+        with narrate_cm(lambda s: "...so we looked for persistables "
+                                  "in role {}".format(s.name), self):
+            for p in super(Role, self)._find_persistables():
                 yield p
-    
+            if isinstance(self.host_ref, _Persistable):
+                for p in self.host_ref.find_persistables():
+                    yield p
+
+    @narrate(lambda s, a: "...which requried role {} to compute the final value"
+                          "of {}".format(s.name, str(a)))
     def _get_arg_value(self, arg):
-        #internal
+        # internal
         val = super(Role, self)._get_arg_value(arg)
         if isinstance(val, basestring):
-            #check if we have a variable to resolve
+            # check if we have a variable to resolve
             cv = _ComputableValue(val)
             val = cv.expand(self)
         elif isinstance(val, ModelReference) and self.find_infra_model():
             val = self.find_infra_model().get_inst_ref(val).value()
         return val
-            
+
+    @narrate(lambda s: "...and so role {} was asked to fix its args".format(s.name))
     def _fix_arguments(self):
-        #internal
+        # internal
         host_ref = self._get_arg_value(self._host_ref)
         if not isinstance(host_ref, AbstractModelReference):
-            #@FIXME: The problem here is that it won't always be possible
-            #to find a ref object of some kind. If the value supplied was
-            #a hard-coded string or variable override, then there will
-            #never be a ref object available for it. In that case we
-            #need to return the object that was already there. This is
-            #probably going to happen more often that we'd like
+            # @FIXME: The problem here is that it won't always be possible
+            # to find a ref object of some kind. If the value supplied was
+            # a hard-coded string or variable override, then there will
+            # never be a ref object available for it. In that case we
+            # need to return the object that was already there. This is
+            # probably going to happen more often that we'd like
             tmp_ref = AbstractModelReference.find_ref_for_obj(self._get_arg_value(host_ref))
             if tmp_ref is not None:
                 host_ref = tmp_ref
         self.host_ref = host_ref
-            
+
+    @narrate(lambda s: "...at which point role {} was asked for its init args".format(s.name))
     def get_init_args(self):
         __doc__ = ModelComponent.__doc__
         _, kwargs = super(Role, self).get_init_args()
-        kwargs.update({"host_ref":self._host_ref,
-                       "variables":self.variables.values(),})
-        return ((self.name,), kwargs)
-        
+        kwargs.update({"host_ref": self._host_ref,
+                       "variables": self.variables.values()})
+        return (self.name,), kwargs
+
+    @narrate(lambda s: "...resulting in role {} being asked for its model refs".format(s.name))
     def _get_model_refs(self):
-        #internal
+        # internal
         modelrefs = super(Role, self)._get_model_refs()
         if self.host_ref is not None:
             modelrefs.add(self.host_ref)
@@ -697,6 +733,7 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
             c._set_model_instance(mi)
             c._set_parent(self)
 
+    @narrate(lambda s, **kw: "...and so the role group {} was asked to clone itself".format(s.name))
     def clone(self, clone_into_class=None):
         """
         Create a copy of the initial state of this RoleGroup
@@ -714,7 +751,8 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
         clone.add_override(*self.overrides.values())
         
         return clone
-    
+
+    @narrate(lambda s: "...leading to the role group {} to be asked for its model refs".format(s.name))
     def _get_model_refs(self):
         modelrefs = super(RoleGroup, self)._get_model_refs()
         for c in self.components():
@@ -750,6 +788,7 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
         for c in self.instances().values():
             c._set_model_instance(mi)
             
+    @narrate(lambda s, **kw: "...and so the multi role {} was asked to clone itself".format(s.name))
     def clone(self, clone_into_class=None):
         """
         Create a copy of the initial state of the MultiRole. This is generally
@@ -766,7 +805,9 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
         clone.add_variable(*self.variables.values())
         clone.add_override(*self.overrides.values())
         return clone
-    
+
+    @narrate(lambda s, k: "...whereupon multi role {} was asked to create a new "
+                          "instance with key {}".format(s.name, k))
     def get_instance(self, key):
         """
         Returns an instance of the template identified by the 'key'.
@@ -870,15 +911,17 @@ class NamespaceModel(VariableContainer, ModelBase):
     def __new__(cls, *args, **kwargs):
         inst = super(NamespaceModel, cls).__new__(cls, *args, **kwargs)
         return inst
-    
+
     def _find_persistables(self):
-        for p in super(NamespaceModel, self)._find_persistables():
-            yield p
-        for v in self._roles.values():
-            if isinstance(v, _Persistable):
-                for p in v.find_persistables():
-                    yield p
-    
+        with narrate_cm("---then the namespace model was asked to find all its persistables"):
+            for p in super(NamespaceModel, self)._find_persistables():
+                yield p
+            for v in self._roles.values():
+                if isinstance(v, _Persistable):
+                    for p in v.find_persistables():
+                        yield p
+
+    @narrate("...resulting the namespace model being asked for its attrs dict")
     def _get_attrs_dict(self):
         d = super(NamespaceModel, self)._get_attrs_dict()
         ga = super(NamespaceModel, self).__getattribute__
@@ -889,7 +932,8 @@ class NamespaceModel(VariableContainer, ModelBase):
     
     def _comp_source(self):
         return self.get_roles()
-    
+
+    @narrate("...causing the namespace model to be asked for its model refs")
     def _get_model_refs(self):
         modelrefs = super(NamespaceModel, self)._get_model_refs()
         for c in self._roles.values():
@@ -928,7 +972,9 @@ class NamespaceModel(VariableContainer, ModelBase):
             raise NamespaceException("A different infra model has already been supplied")
         infra_model.nexus.merge_from(self.nexus)
         self.nexus = infra_model.nexus
-    
+
+    @narrate("...which started the namespace model to begin to compute provisioning for the "
+             "given infra instance")
     def compute_provisioning_for_environ(self, infra_instance, exclude_refs=None):
         """
         Computes the provisioning needed for an instance of a namespace model.
@@ -958,7 +1004,8 @@ class NamespaceModel(VariableContainer, ModelBase):
         self.infra.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
         return set([p for p in self.infra.components()
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
-        
+
+    @narrate("...and then some roles were added to the namespace model")
     def add_roles(self, **kwargs):
         """
         Add a group of plain Roles to the model instance.

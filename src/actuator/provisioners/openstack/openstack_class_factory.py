@@ -27,6 +27,7 @@ Created on 7 Sep 2014
 
 import shade
 import os_client_config
+from errator import narrate
 
 
 # support for the acquiring shade cloud objects configured with os_client_config
@@ -41,6 +42,7 @@ def _real_get_os_cloud(cloud_name, config_files=None, vendor_files=None, overrid
 
 # public function for getting a shade.OpenStackCloud-like object. Tests may assign a mock implementation
 # to this function name to support testing
+@narrate(lambda cn, **kw: "...which required acquiring a OpenStack cloud object for cloud {}".format(cn))
 def get_shade_cloud(cloud_name, config_files=None, vendor_files=None, override_defaults=None,
                     force_ipv4=None, envvar_prefix=None, secure_files=None):
     return _real_get_os_cloud(cloud_name, config_files=config_files, vendor_files=vendor_files,
