@@ -242,9 +242,9 @@ def test008():
 
         
 def test009():
-    #NOTE: this will only work with nose if run from the actuator/src directory
-    #the test expects to find a directory named "tests" under the current
-    #directory
+    # NOTE: this will only work with nose if run from the actuator/src directory
+    # the test expects to find a directory named "tests" under the current
+    # directory
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("DEST", "/tmp"),
                        Var("PKG", "actuator"))

@@ -32,7 +32,7 @@ fake.seed(22)
 
 
 class FakeOSServer(object):
-    addresses = {"eth0":[{"addr":"127.0.0.1"}]}
+    addresses = {"eth0": [{"addr": "127.0.0.1"}]}
 
 
 class MockKeypair(dict):
@@ -68,7 +68,7 @@ class ServerResult(dict):
     def __init__(self, name):
         super(ServerResult, self).__init__()
         self["id"] = fake.md5()
-        self["addresses"] = {u"network":[{u'addr':fake.ipv4()}]}
+        self["addresses"] = {u"network": [{u'addr': fake.ipv4()}]}
         self["name"] = name
 
 
@@ -89,13 +89,10 @@ class SecGroupResult(dict):
 class SecGroupRuleResult(dict):
     def __init__(self):
         super(SecGroupRuleResult, self).__init__()
-        # self.id = fake.md5()
         self["id"] = fake.md5()
 
 
 class MockOSCloud(object):
-    _keypairs_dict = {n: MockKeypair(n, "startingkey") for n in [u"actuator-dev-key",
-                                                                 u"test-key"]}
     _networks_list = [NetworkResult(n) for n in (u'wibbleNet', u'wibble', u'test1Net', u'network',
                                                  u'external')]
     _image_list = [ImageResult(n) for n in (u'CentOS 6.5 x86_64', u'Ubuntu 13.10',
@@ -110,8 +107,8 @@ class MockOSCloud(object):
         self.name = name
         self.kwargs = kwargs
 
-    ### MOCK CLOUD METHODS
-    def create_network(self, name, admin_state_up=True):
+    # MOCK CLOUD METHODS
+    def create_network(self, _, admin_state_up=True):
         return {"id": self._networks_list[0]["id"]}
 
     def delete_network(self, _):

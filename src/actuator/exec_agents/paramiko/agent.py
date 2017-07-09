@@ -540,7 +540,7 @@ class CopyFileProcessor(PTaskProcessor):
                         fmode = fstat.st_mode
                     else:
                         fmode = mode
-                    self._put_file(task, sftp, rp, lp, mode=fmode, owner=owner, group=group)
+                    self._put_file(task, sftp, rp, abs_local_file=lp, mode=fmode, owner=owner, group=group)
                     
             # now pass over the local dirs again in order to set all directory modes on the remote
             for dirpath, _, _ in os.walk(src, followlinks=follow, topdown=False):
