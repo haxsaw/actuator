@@ -1349,13 +1349,13 @@ class ModelBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
 
-    def __new__(cls, name, bases, attr_dict):
+    def __new__(mcs, name, bases, attr_dict):
         components = {}
         for n, v in attr_dict.items():
             if isinstance(v, AbstractModelingEntity):
                 components[n] = v
-        attr_dict[cls._COMPONENTS] = components
-        newbie = super(ModelBaseMeta, cls).__new__(cls, name, bases, attr_dict)
+        attr_dict[mcs._COMPONENTS] = components
+        newbie = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
 
