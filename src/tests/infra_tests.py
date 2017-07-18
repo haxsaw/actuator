@@ -1288,7 +1288,7 @@ def test160():
         pass
 
     t1 = T1("t1")
-    ns = NS()
+    ns = NS("ns1")
     ns.set_infra_model(t1)
     assert t1.nexus.ns is ns
 
@@ -1308,8 +1308,8 @@ def test161():
         pass
 
     i1 = I1("i1")
-    ns = NS()
-    cfg = CF()
+    ns = NS("ns")
+    cfg = CF("cf")
     ns.set_infra_model(i1)
     cfg.set_namespace(ns)
     assert (cfg.nexus.ns is ns and cfg.nexus.inf is i1 and
@@ -1331,8 +1331,8 @@ def test162():
         pass
 
     i1 = I1("i1")
-    ns = NS()
-    cfg = CF()
+    ns = NS("ns")
+    cfg = CF("cm")
     ns.set_infra_model(i1)
     cfg.set_namespace(ns)
     assert (cfg.nexus.inf.server is i1.server)

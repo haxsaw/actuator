@@ -80,7 +80,7 @@ class HadoopNodeConfig(ConfigModel):
                                  src=find_file(pkn, "."),
                                  mode=0600
                                  )
-    zabbix_setup = ConfigClassTask("zabbix-install", ZabbixConfig)
+    zabbix_setup = ConfigClassTask("zabbix-install", ZabbixConfig, init_args=("zabbix-config",))
     update = CommandTask("update_all",
                          "/usr/bin/sudo -h localhost "
                          "/usr/bin/apt-get -y update",

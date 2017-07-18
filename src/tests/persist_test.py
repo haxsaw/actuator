@@ -312,8 +312,8 @@ def test13():
     """
     test13: try persisting/reanimating a config class; initial test
     """
-    conf = CC13()
-    ns = CTNamespace()
+    conf = CC13("cm")
+    ns = CTNamespace("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -371,8 +371,8 @@ def test16():
     """
     test16: persist a config model with a MultiTask
     """
-    conf = CC16()
-    ns = NS16()
+    conf = CC16("cm")
+    ns = NS16("cm")
     ns.gen_nodes(5)
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
@@ -403,8 +403,8 @@ def test17():
     """
     test17: persist a config model with dependencies & check they are correct upon reanimation
     """
-    conf = CC17()
-    ns = NS17()
+    conf = CC17("cm")
+    ns = NS17("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -432,8 +432,8 @@ def test18():
     """
     test18: test reanimating more complex dependencies
     """
-    conf = CC18()
-    ns = NS18()
+    conf = CC18("cm")
+    ns = NS18("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -464,8 +464,8 @@ def test19():
     """
     test19: test reanimating more complex dependencies
     """
-    conf = CC19()
-    ns = NS19()
+    conf = CC19("cm")
+    ns = NS19("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -493,15 +493,15 @@ class NodeConf20(ConfigModel):
 
 
 class CC20(ConfigModel):
-    t0 = ConfigClassTask("t0", NodeConf20, task_role=NS20.r)
+    t0 = ConfigClassTask("t0", NodeConf20, task_role=NS20.r, init_args=("out2in",))
 
 
 def test20():
     """
     test20: test ConfigClassTask reanimation where the inner model has dependencies
     """
-    conf = CC20()
-    ns = NS20()
+    conf = CC20("cm")
+    ns = NS20("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -525,15 +525,15 @@ class NodeConf21(ConfigModel):
 
 
 class CC21(ConfigModel):
-    t0 = ConfigClassTask("t0", NodeConf21, task_role=NS21.r)
+    t0 = ConfigClassTask("t0", NodeConf21, task_role=NS21.r, init_args=("out2in",))
 
 
 def test21():
     """
     test21: test ConfigClassTask reanimation where there a multiple entry tasks
     """
-    conf = CC21()
-    ns = NS21()
+    conf = CC21("cm")
+    ns = NS21("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -571,7 +571,7 @@ class SlaveConf22(ConfigModel):
 
 class GridConf22(ConfigModel):
     t01 = ConfigTask("t01", task_role=NS22.r)
-    t02 = MultiTask("t02", ConfigClassTask("t02-a", SlaveConf22),
+    t02 = MultiTask("t02", ConfigClassTask("t02-a", SlaveConf22, init_args=("grid2slave",)),
                     NS22.q.slaves.all())
     t03 = ConfigTask("t03", task_role=NS22.r)
     with_dependencies(t01 | t02 | t03)
@@ -581,8 +581,8 @@ def test22():
     """
     test22: test ConfigClassTask reanimation inside a MultiTask
     """
-    conf = GridConf22()
-    ns = NS22()
+    conf = GridConf22("cm")
+    ns = NS22("ns")
     conf.set_namespace(ns)
     ns.grow_slaves(2)
     for c in chain(ns.components(), conf.components()):
@@ -608,8 +608,8 @@ def test23():
     """
     test23: trying to break the use of of keyed references
     """
-    conf = Conf23()
-    ns = NS23()
+    conf = Conf23("cm")
+    ns = NS23("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -642,8 +642,8 @@ def test24():
     """
     test24: check to see that context expressions that turn into refs with keys persist/reanimate
     """
-    conf = Conf24()
-    ns = NS24()
+    conf = Conf24("cm")
+    ns = NS24("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -681,8 +681,8 @@ def test25():
     """
     test25: see if we can persist/reanim a global callable
     """
-    conf = Conf25()
-    ns = NS25()
+    conf = Conf25("cm")
+    ns = NS25("ns")
     conf.set_namespace(ns)
     for c in chain(ns.components(), conf.components()):
         c.fix_arguments()
@@ -718,15 +718,11 @@ def test26():
     """
 
     i = Inf26("i26")
-    n = NS26()
+    n = NS26("ns")
     _ = n.slaves[0]
     p = OpenstackProvisioner(cloud_name="trystack")
     ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n)
     ao.initiate_system()
-    # n.set_infra_model(i)
-    # for c in chain(i.components(), n.components()):
-    #     c.fix_arguments()
-    # n.compute_provisioning_for_environ(i)
 
     d = persist_to_dict(ao)
     aop = reanimate_from_dict(d)
@@ -738,15 +734,14 @@ def test26():
 
 
 def do_all():
-    test26()
-    # g = globals()
-    # keys = list(g.keys())
-    # keys.sort()
-    # for k in keys:
-    #     v = g[k]
-    #     if k.startswith("test") and callable(v):
-    #         print "Running ", k
-    #         v()
+    g = globals()
+    keys = list(g.keys())
+    keys.sort()
+    for k in keys:
+        v = g[k]
+        if k.startswith("test") and callable(v):
+            print "Running ", k
+            v()
 
 
 if __name__ == "__main__":

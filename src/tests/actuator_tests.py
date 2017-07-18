@@ -194,9 +194,9 @@ def test09():
     test09: check basic namespace persist/reanimate as part of a orchestrator
     """
     i9 = Infra7("i9")
-    ns9 = NS9()
+    ns9 = NS9("ns")
     ns9p = persistence_helper(ns9, i9).namespace_model_inst
-    assert ns9p
+    assert ns9p and ns9p.name == "ns"
 
 
 def test10():
@@ -204,7 +204,7 @@ def test10():
     test10: check that nexus is consistent across models (infra and namespace)
     """
     i10 = Infra7("i10")
-    ns10 = NS9()
+    ns10 = NS9("ns9")
     op = persistence_helper(ns10, i10)
     assert op.namespace_model_inst.nexus is op.infra_model_inst.nexus
 
@@ -217,7 +217,7 @@ def test11():
     """
     test11: check if a simple Role can be reanimated
     """
-    ns11 = NS11()
+    ns11 = NS11("ns11")
     op = persistence_helper(ns11, None)
     nsm = op.namespace_model_inst
     assert (nsm.r and
@@ -235,7 +235,7 @@ def test12():
     """
     test12: check if a namespace role with a variable can be reanimated
     """
-    ns12 = NS12()
+    ns12 = NS12("ns12")
     op = persistence_helper(ns12, None)
     nsm = op.namespace_model_inst
     assert (nsm.r.get_visible_vars() and
@@ -255,7 +255,7 @@ def test13():
     test13: check if a namespace role that has a host_ref to an inframodel server reanimates
     """
     infra = Infra13("13")
-    ns = NS13()
+    ns = NS13("ns13")
     op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     im = op.infra_model_inst
@@ -275,7 +275,7 @@ def test14():
     test14: check if a role Var that get's it value from a model ref reanimates
     """
     infra = Infra14("14")
-    ns = NS14()
+    ns = NS14("ns14")
     op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     im = op.infra_model_inst
@@ -295,7 +295,7 @@ def test15():
     test15: check if a server that get's its IP from a role's vars reanimates
     """
     infra = Infra15("15")
-    ns = NS15()
+    ns = NS15("ns15")
     op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     assert im.s.ip.value() == "127.0.0.1"
@@ -315,7 +315,7 @@ def test16():
     test16: server gets IP from a role var but the var is declared globally; reanimate?
     """
     infra = Infra16("16")
-    ns = NS16()
+    ns = NS16("ns16")
     op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     assert im.s.ip.value() == "192.168.6.14"
@@ -334,7 +334,7 @@ def test17():
     test17: get a host ref from a context expression, persist/reanimate
     """
     infra = Infra17("17")
-    ns = NS17()
+    ns = NS17("ns17")
     op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     assert nsm.r.host_ref.value() == "192.168.6.22"
@@ -353,7 +353,7 @@ def test18():
     test18: have a Var get its value for a ctxt expr; persist/reanimate
     """
     infra = Infra18("18")
-    ns = NS18()
+    ns = NS18("ns18")
     op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     assert nsm.r.v.IP.value() == "192.168.6.14"
@@ -372,7 +372,7 @@ def test19():
     test19: multirole/resource persist save
     """
     infra = Infra19("19")
-    ns = NS19()
+    ns = NS19("ns19")
     for i in range(5):
         _ = ns.nodes[i]
     op = persistence_helper(ns, infra)
@@ -403,7 +403,7 @@ def test20():
     test20: mode with RoleGroup; test persist/reanimate
     """
     infra = Infra20("20")
-    ns = NS20()
+    ns = NS20("ns20")
     op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     nsm = op.namespace_model_inst
@@ -435,7 +435,7 @@ def test21():
     test21: test RoleGroup with MultiRole persists/reanimates properly
     """
     infra = Infra21("21")
-    ns = NS21()
+    ns = NS21("ns21")
     num = 10
     for i in range(num):
         _ = ns.cluster.slaves[i]
@@ -474,7 +474,7 @@ def test22():
     test22: check that MultiRoleGroup persists/reanimates properly
     """
     infra = Infra22("22")
-    ns = NS22()
+    ns = NS22("ns22")
     num = 5
     for i in range(num):
         cluster = ns.clusters[i]
@@ -505,7 +505,7 @@ def test23():
     """
     test23: check that we determine indexes properly before persist and after reanimate
     """
-    ns = NS23()
+    ns = NS23("ns23")
     num = 5
     for i in range(num):
         cluster = ns.clusters[i]
@@ -537,7 +537,7 @@ def test24():
     """
     test24: like test23, but move the IDX variable to the global level
     """
-    ns = NS24()
+    ns = NS24("ns24")
     num = 2
     for i in range(num):
         cluster = ns.clusters[i]
@@ -573,7 +573,7 @@ def test25():
     """
     test25: check that other callables are handled properly in persist/reanimate for Vars on roles
     """
-    ns = NS25()
+    ns = NS25("ns25")
     assert ns.r.v.wut() == ns.tester()
     op = persistence_helper(ns, None)
     nsm = op.namespace_model_inst
@@ -590,7 +590,7 @@ def test26():
     """
     test26: check other callables are handled properly in persist/reanimate for Vars on models
     """
-    ns = NS26()
+    ns = NS26("ns26")
     assert (ns.v.wut() == ns.tester() and
             ns.r.v.wut() == ns.tester())
     op = persistence_helper(ns, None)
@@ -613,7 +613,7 @@ def test27():
     test27: check Vars that use model refs persist/reanimate properly
     """
     infra = Infra27("27")
-    ns = NS27()
+    ns = NS27("ns27")
     op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
     assert (nsm.v.name() == infra.s_name)

@@ -241,6 +241,7 @@ def test015():
     result = qexp(ctxt)
     assert len(result) == 21
 
+
 def test016():
     class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
@@ -264,6 +265,7 @@ def test016():
     result = qexp(ctxt)
     assert len(result) == 20
 
+
 def test017():
     class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
@@ -274,7 +276,8 @@ def test017():
         assert False, "This should have complained about 'cluster' not being an attribute"
     except AttributeError, e:
         assert "cluster" in e.message.lower()
-        
+
+
 def test018():
     class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
@@ -282,7 +285,8 @@ def test018():
                                        workers=MultiComponent(Server("worker", mem="8GB")))
     infra = Infra1("infra")
     assert infra.nexus
-    
+
+
 def test019():
     class InfraIPTest(InfraModel):
         s = StaticServer("sommat", "127.0.0.1")
@@ -294,26 +298,29 @@ def test019():
         with_variables(Var("ADDY", ctxt.nexus.inf.s.get_ip))
         r = Role("bogus")
         
-    ns = IPTest()
+    ns = IPTest("ns")
     ns.set_infra_model(infra)
     
     v, o = ns.find_variable("ADDY")
     assert v.get_value(ns.r) == "127.0.0.1"
-    
+
+
 def host_list(ctx_exp, sep_char=" "):
     def host_list_inner(ctx):
         hlist = list(ctx_exp(ctx))
-        #this next line is needed as the framework isn't doing the
-        #arg fixing for us
+        # this next line is needed as the framework isn't doing the
+        # arg fixing for us
         _ = [h.host_ref.fix_arguments() for h in hlist]
         ip_list = [h.host_ref.get_ip() for h in hlist]
         return sep_char.join(ip_list)
     return host_list_inner
 
+
 def test020():
     class IPFactory(object):
         def __init__(self):
             self.host = 0
+
         def __call__(self, ctx=None):
             self.host += 1
             return "192.168.1.%d" % self.host
@@ -326,7 +333,7 @@ def test020():
     class Namespace20(NamespaceModel):
         with_variables(Var("EXPR", host_list(ctxt.model.q.s)))
         s = MultiRole(Role("dude", host_ref=Infra20.slaves[ctxt.name]))
-    ns = Namespace20()
+    ns = Namespace20("ns")
     ns.set_infra_model(infra)
     for i in range(5):
         ns.s[i].fix_arguments()

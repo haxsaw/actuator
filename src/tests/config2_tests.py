@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Created on Jan 15, 2015
-'''
+"""
 import time
 import threading
 
@@ -32,9 +32,9 @@ from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
 ocf.get_shade_cloud = ost_support.mock_get_shade_cloud
 
-from actuator import (InfraModel, ProvisionerException, MultiResourceGroup,
-                      MultiResource, ctxt, Var, ResourceGroup, Role,
-                      MultiRole, NullTask, LOG_DEBUG, LOG_INFO, ConfigModel,
+from actuator import (InfraModel, MultiResourceGroup,
+                      ctxt, Var, ResourceGroup, Role,
+                      MultiRole, NullTask, LOG_DEBUG, ConfigModel,
                       MultiTask, ConfigClassTask, ExecutionException)
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.provisioners.openstack.resources import (Server, Network,
@@ -43,38 +43,37 @@ from actuator.provisioners.openstack.resources import (Server, Network,
                                                         SecGroupRule, RouterGateway,
                                                         RouterInterface)
 from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
-from actuator.modeling import AbstractModelReference
 from actuator.exec_agents.core import ExecutionAgent
 
 
 external_connection = ResourceGroup("route_out",
-                                     net=Network("ro_net"),
-                                     subnet=Subnet("ro_subnet",
-                                                   ctxt.comp.container.net,
-                                                   u"192.168.23.0/24",
-                                                   dns_nameservers=[u'8.8.8.8']),
-                                     router=Router("ro_router"),
-                                     gateway=RouterGateway("ro_gateway",
-                                                           ctxt.comp.container.router,
-                                                           "external"),
-                                     interface=RouterInterface("ro_inter",
-                                                               ctxt.comp.container.router,
-                                                               ctxt.comp.container.subnet))
+                                    net=Network("ro_net"),
+                                    subnet=Subnet("ro_subnet",
+                                                  ctxt.comp.container.net,
+                                                  u"192.168.23.0/24",
+                                                  dns_nameservers=[u'8.8.8.8']),
+                                    router=Router("ro_router"),
+                                    gateway=RouterGateway("ro_gateway",
+                                                          ctxt.comp.container.router,
+                                                          "external"),
+                                    interface=RouterInterface("ro_inter",
+                                                              ctxt.comp.container.router,
+                                                              ctxt.comp.container.subnet))
 
 make_std_secgroup = ResourceGroup("make_std_secgroup",
-                              group=SecGroup("group", "standard security group"),
-                              ping_rule=SecGroupRule("ping_rule",
-                                                     ctxt.comp.container.group,
-                                                     ip_protocol="icmp",
-                                                     from_port=-1, to_port=-1),
-                              ssh_rule=SecGroupRule("ssh_rule",
-                                                    ctxt.comp.container.group,
-                                                    ip_protocol="tcp",
-                                                    from_port=22, to_port=22))
+                                  group=SecGroup("group", "standard security group"),
+                                  ping_rule=SecGroupRule("ping_rule",
+                                                         ctxt.comp.container.group,
+                                                         ip_protocol="icmp",
+                                                         from_port=-1, to_port=-1),
+                                  ssh_rule=SecGroupRule("ssh_rule",
+                                                        ctxt.comp.container.group,
+                                                        ip_protocol="tcp",
+                                                        from_port=22, to_port=22))
 
 ubuntu_img = "Ubuntu 13.10"
 
-common_kwargs = {"key_name":"actuator-dev-key"}
+common_kwargs = {"key_name": "actuator-dev-key"}
 
 
 def setup_module():
@@ -95,11 +94,11 @@ def host_list(ctx_exp, sep_char=" "):
 def test001():
     class Infra1(InfraModel):
         fip_pool = "external"
-        #add the standard secgroup and connectivity components
+        # add the standard secgroup and connectivity components
         gateway = external_connection
         slave_secgroup = make_std_secgroup
         
-        #HADOOP slaves
+        # HADOOP slaves
         slaves = MultiResourceGroup("slaves",
                                      slave=Server("slave", ubuntu_img,
                                                   "m1.small",
@@ -119,15 +118,15 @@ def test001():
                                 host_ref=ctxt.nexus.inf.slaves[ctxt.name].slave_fip,
                                 variables=[Var("COMP_NAME", "slave_!{COMP_KEY}"),
                                            Var("COMP_KEY", ctxt.name)]))
-    ns = Namespace()
+    ns = Namespace("ns")
         
     class InnerConfig(ConfigModel):
         task = NullTask("inner_task", "summat")
     
     class Config(ConfigModel):
-        do_it = MultiTask("multi", ConfigClassTask("suite", InnerConfig),
+        do_it = MultiTask("multi", ConfigClassTask("suite", InnerConfig, init_args=("c2inner",)),
                           Namespace.q.slaves.all())
-    cfg = Config()
+    cfg = Config("cm")
     
     uid = "it"
     pwd = "doesn't"
@@ -166,17 +165,18 @@ def test001():
     assert (cfg.do_it.value().instances[0].instance.task.get_task_role().host_ref is not None and
             cfg.do_it.value().instances[0].instance.task.get_task_host() is not None and
             isinstance(cfg.do_it.value().instances[0].instance.task.get_task_host(),
-                           basestring))
+                       basestring))
 
 
 def test002():
     """
     test002: check that we properly catch the wrong type for the config model
     """
-    class Infra2(InfraModel): pass
+    class Infra2(InfraModel):
+        pass
     
     try:
-        aea = ParamikoExecutionAgent(config_model_instance=Infra2("i2"))
+        _ = ParamikoExecutionAgent(config_model_instance=Infra2("i2"))
         assert False, "should have complained about wrong type for config_model_instance"
     except ExecutionException, _:
         assert True
@@ -192,12 +192,13 @@ def test003():
         pass
     
     try:
-        aea = ParamikoExecutionAgent(namespace_model_instance=Infra3("i3"))
+        _ = ParamikoExecutionAgent(namespace_model_instance=Infra3("i3"))
         assert False, "should have complained about wrong type for namespace_model_instance"
     except ExecutionException, _:
         assert True
     except Exception, e:
         assert False, "Wrong exception raised: %s" % e.message
+
 
 def test004():
     """
@@ -207,7 +208,7 @@ def test004():
         pass
     
     try:
-        aea = ParamikoExecutionAgent(infra_model_instance=NS4())
+        aea = ParamikoExecutionAgent(infra_model_instance=NS4("ns"))
         assert False, "should have complained about wrong type for infra_model_instance"
     except ExecutionException, _:
         assert True
@@ -225,8 +226,8 @@ def test005():
     class NS5(NamespaceModel):
         pass
 
-    ea = ExecutionAgent(config_model_instance=Config5(),
-                        namespace_model_instance=NS5())
+    ea = ExecutionAgent(config_model_instance=Config5("cm"),
+                        namespace_model_instance=NS5("ns"))
     try:
         ea.reverse_task({}, {})
         assert True
@@ -244,8 +245,8 @@ def test006():
     class NS6(NamespaceModel):
         pass
 
-    ea = ExecutionAgent(config_model_instance=Config6(),
-                        namespace_model_instance=NS6())
+    ea = ExecutionAgent(config_model_instance=Config6("cm"),
+                        namespace_model_instance=NS6("ns"))
     ea.abort_process_tasks()
     assert ea.stop, "Processing state not set to stop"
 
@@ -259,8 +260,8 @@ def test007():
 
     class NS7(NamespaceModel):
         pass
-    ea = ExecutionAgent(config_model_instance=Config7(),
-                        namespace_model_instance=NS7())
+    ea = ExecutionAgent(config_model_instance=Config7("cm"),
+                        namespace_model_instance=NS7("ns"))
 
     def wait_and_abort(ea):
         time.sleep(0.5)

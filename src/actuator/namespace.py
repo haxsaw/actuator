@@ -636,7 +636,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
             defined on this Role
         @keyword model: Used internally only
         """
-        super(Role, self).__init__(name, model_instance=model)
+        super(Role, self).__init__(name, model=model)
         self.host_ref = None
         self._host_ref = host_ref
         if variables is not None:
@@ -864,7 +864,7 @@ class NamespaceModelMeta(ModelBaseMeta):
         return newbie
     
 
-class NamespaceModel(VariableContainer, ModelBase):
+class NamespaceModel(ModelBase, VariableContainer):
     """
     Base class for Namespace model classes.
     
@@ -879,7 +879,7 @@ class NamespaceModel(VariableContainer, ModelBase):
     __metaclass__ = NamespaceModelMeta
     ref_class = ModelInstanceReference
 
-    def __init__(self):
+    def __init__(self, name, **kwargs):
         """
         Create a new instance of the namespace model that can be further
         customized with different Var values.
@@ -888,7 +888,7 @@ class NamespaceModel(VariableContainer, ModelBase):
         be overridden as long as you call super().__init__() in the derived
         class's __init__() method.
         """
-        super(NamespaceModel, self).__init__()
+        super(NamespaceModel, self).__init__(name, **kwargs)
         components = set()
         clone_map = {}
         for k, v in self.__class__.__dict__.items():

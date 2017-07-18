@@ -199,8 +199,8 @@ class InfraModel(ModelBase):
         """
         if event_handler is not None and not isinstance(event_handler, TaskEventHandler):
             raise InfraException("event_handler is not a kind of TaskEventHandler")
-        super(InfraModel, self).__init__()
-        self.name = name
+        super(InfraModel, self).__init__(name)
+        # self.name = name
         self.event_handler = event_handler
         # set option defaults
         self._long_names = False

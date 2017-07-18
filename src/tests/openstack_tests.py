@@ -475,15 +475,17 @@ def test029():
 
 def test030():
     prov = get_provisioner()
+
     class IPTest(InfraModel):
         server = Server("simple", u"Ubuntu 13.10", "m1.small",
                         key_name="perseverance_dev_key")
         server_fip = FloatingIP("server_fip", ctxt.model.server,
                                 ctxt.model.server.iface0.addr0, pool="external")
     inst = IPTest("iptest")
+
     class IPNamespace(NamespaceModel):
         with_variables(Var("SERVER_IP", IPTest.server_fip.ip))
-    ns = IPNamespace()
+    ns = IPNamespace("ns")
     ns.compute_provisioning_for_environ(inst)
     prov.provision_infra_model(inst)
     assert ns.future("SERVER_IP").value()

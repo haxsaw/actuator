@@ -185,9 +185,9 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             entity is a part of. Users don't have to specify this value, and
             generally can't anyway
         """
-        model = kwargs.get("model_instance")
-        if "model_instance" in kwargs:
-            kwargs.pop("model_instance")
+        model = kwargs.get("model")
+        if "model" in kwargs:
+            kwargs.pop("model")
         super(AbstractModelingEntity, self).__init__(*args, **kwargs)
         self.name = name
         "@ivar: publically available name attr for this entity"
@@ -1393,7 +1393,7 @@ class _NexusMember(_Persistable):
         self.set_nexus(new_nexus)
 
 
-class ModelBase(_NexusMember, _ComputeModelComponents, _ArgumentProcessor):
+class ModelBase(AbstractModelingEntity, _NexusMember, _ComputeModelComponents, _ArgumentProcessor):
     """
     This is the common base class for all models
     """
@@ -1426,5 +1426,5 @@ class ModelBase(_NexusMember, _ComputeModelComponents, _ArgumentProcessor):
         return value
 
     def _get_arg_value(self, arg):
-        proc = AbstractModelingEntity("", model_instance=self)
+        proc = AbstractModelingEntity("", model=self)
         return proc._get_arg_value(arg)

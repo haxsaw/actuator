@@ -95,12 +95,12 @@ def test001():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()))
         ping_target = Role("ping-target", host_ref=find_ip())
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
        
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm")
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -111,12 +111,12 @@ def test002():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()))
         ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
           
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm")
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -127,13 +127,13 @@ def test003():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", "not.an.ip.addy"))
         ping_target = Role("ping-target", host_ref="!{PING_TARGET}")
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
           
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         repeat_count=1)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -149,12 +149,12 @@ def test004():
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("HOME", user_home))
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
           
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls !{HOME}", task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -165,13 +165,13 @@ def test005():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()))
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
           
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir=user_home,
                            task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -184,14 +184,14 @@ def test006():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()))
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
           
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/wibble", chdir=user_home,
                            task_role=SimpleNamespace.cmd_target,
                            repeat_count=1)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -207,13 +207,13 @@ def test007():
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
           
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -228,13 +228,13 @@ def test008():
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
            
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = ScriptTask("script", os.path.join(os.getcwd(), "tests", "test008.sh"),
                           task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
@@ -249,7 +249,7 @@ def test009():
         with_variables(Var("DEST", "/tmp"),
                        Var("PKG", "actuator"))
         copy_target = Role("copy_target", host_ref=find_ip())
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
     
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
@@ -262,7 +262,7 @@ def test009():
                             repeat_count=1)
         with_dependencies(cleanup | copy)
         
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
@@ -278,14 +278,14 @@ def test010():
         with_variables(Var("CMD_TARGET", find_ip()),
                        Var("WHERE", "/bin"))
         cmd_target = Role("cmd-target", host_ref=SimpleInfra.testbox)
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
     ns.compute_provisioning_for_environ(infra)
           
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -314,7 +314,7 @@ def test011():
                        Var("var3", "the"),
                        Var("var4", "other"))
         target = Role("target", host_ref=SimpleInfra.testbox)
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
         
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
@@ -325,7 +325,7 @@ def test011():
                                       task_role=SimpleNamespace.target,
                                       repeat_count=1)
         with_dependencies(reset | process)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
@@ -354,7 +354,7 @@ def test012():
                        Var("var2", "or"),
                        Var("var4", "other"))
         target = Role("target", host_ref=SimpleInfra.testbox)
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
         
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
@@ -365,7 +365,7 @@ def test012():
                                       task_role=SimpleNamespace.target,
                                       repeat_count=1)
         with_dependencies(reset | process)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
@@ -402,7 +402,7 @@ def test013():
                        Var("var3", "the"),
                        Var("var4", "other"))
         target = Role("target", host_ref=SimpleInfra.testbox)
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
         
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
@@ -413,7 +413,7 @@ def test013():
                                       task_role=SimpleNamespace.target,
                                       repeat_count=1)
         with_dependencies(reset | process)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
@@ -441,7 +441,7 @@ def test014():
                        Var("DEST", "/tmp/!{PREFIX}-!{FILE}"),
                        Var("FILE", test_file))
         target = MultiRole(Role("target", host_ref=SimpleInfra.testbox))
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
     
     class SingleCopy(ConfigModel):
         reset = CommandTask("014_reset", "/bin/rm -f !{DEST}", removes="!{DEST}")
@@ -451,10 +451,10 @@ def test014():
         
     class MultiCopy(ConfigModel):
         with_config_options(**config_options)
-        task_suite = MultiTask("all-copies", ConfigClassTask("one-copy", SingleCopy),
+        task_suite = MultiTask("all-copies", ConfigClassTask("one-copy", SingleCopy, init_args=("w",)),
                                SimpleNamespace.q.target.all())
         
-    cfg = MultiCopy()
+    cfg = MultiCopy("cm")
     
     for i in range(5):
         _ = ns.target[i]
@@ -471,14 +471,14 @@ def test015():
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"))
         ping_target = Role("ping-target", host_ref=find_ip())
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
        
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         remote_user="!{RUSER}",
                         private_key_file=find_file("lxle1-dev-key"))
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -492,7 +492,7 @@ def test016():
                        Var("RUSER", "lxle1"),
                        Var("HOME", user_home))
         copy_target = Role("ping-target", host_ref=find_ip())
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
        
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
@@ -502,7 +502,7 @@ def test016():
                             private_key_file=find_file("lxle1-dev-key"),
                             content="This shouldn't get written!\n",
                             )
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -516,13 +516,13 @@ def test017():
                        Var("RUSER", "lxle1"),
                        Var("RPASS", file("/home/lxle1/Documents/pass", "r").read().strip()))
         ping_target = Role("ping-target", host_ref=find_ip())
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
        
     class SimpleConfig(ConfigModel):
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         remote_user="!{RUSER}",
                         remote_pass="!{RPASS}")
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -536,7 +536,7 @@ def test018():
                        Var("RUSER1", "lxle1"))
         ping1_target = Role("ping1-target", host_ref=find_ip())
         ping2_target = Role("ping2-target", host_ref=find_ip())
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
        
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
@@ -544,7 +544,7 @@ def test018():
                          remote_user="!{RUSER1}",
                          private_key_file=find_file("lxle1-dev-key"))
         ping2 = PingTask("ping", task_role=SimpleNamespace.ping2_target)
-    cfg = SimpleConfig()
+    cfg = SimpleConfig("cm", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -566,7 +566,7 @@ def test019():
                             variables=[Var("RUSER", "!{RUSER1}")])
         copy2_target = Role("copy2_target", host_ref=the_ip,
                             variables=[Var("RUSER", "!{RUSER2}")])
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
      
     class CopyConfig(ConfigModel):
         make = CommandTask("make", "/bin/mkdir -p !{DIRPATH}",
@@ -581,12 +581,14 @@ def test019():
         u1_copy = ConfigClassTask("u1-copy", CopyConfig,
                                   task_role=SimpleNamespace.copy1_target,
                                   remote_user="!{RUSER}",
-                                  private_key_file=find_file("lxle1-dev-key"))
+                                  private_key_file=find_file("lxle1-dev-key"),
+                                  init_args=("inner",))
         u2_copy = ConfigClassTask("u2-copy", CopyConfig,
                                   task_role=SimpleNamespace.copy2_target,
-                                  remote_user="!{RUSER}")
+                                  remote_user="!{RUSER}",
+                                  init_args=("inner",))
         
-    cfg = CopyAllConfig()
+    cfg = CopyAllConfig("cm")
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -601,7 +603,7 @@ def test020():
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("TARGET_FILE", target))
         copy_target = Role("copy-target", host_ref=find_ip())
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
     
     now_str = datetime.now().ctime()
 
@@ -611,7 +613,7 @@ def test020():
                             content="This content created at: {}\n".format(now_str),
                             )
     # we're testing if setting the user stuff at this level works right
-    cfg = SimpleConfig(remote_user="lxle1",
+    cfg = SimpleConfig("cm", remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
@@ -632,7 +634,7 @@ def test021():
                        Var("FILE_NAME", "!{TARGET_DIR}/!{COMPNUM}-target.txt"))
         targets = MultiRole(Role("pseudo-role", host_ref=find_ip()))
         
-    ns = SimpleNamespace()
+    ns = SimpleNamespace("ns")
     for i in range(num_files):
         _ = ns.targets[i]
     
@@ -648,7 +650,7 @@ def test021():
                            SimpleNamespace.q.targets.all())
         with_dependencies(clear | make | copies)
     # we're testing if setting the user stuff at this level works right
-    cfg = SimpleConfig(remote_user="lxle1",
+    cfg = SimpleConfig("cm", remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
@@ -661,13 +663,13 @@ def test022():
     class NS022(NamespaceModel):
         def_role = Role("def_role", host_ref="127.0.0.1")
         r = Role("r", host_ref="8.8.8.8")
-    ns = NS022()
+    ns = NS022("ns")
     
     class C022(ConfigModel):
         with_config_options(**config_options)
         with_config_options(default_run_from=NS022.def_role)
         t = NullTask("null", task_role=NS022.r)
-    cfg = C022()
+    cfg = C022("cm")
     
     cfg.set_namespace(ns)
     ea = ParamikoExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
@@ -678,11 +680,11 @@ def test023():
     class NS023(NamespaceModel):
         def_role = Role("def_role", host_ref="127.0.0.1")
         r = Role("r", host_ref="8.8.8.8")
-    ns = NS023()
+    ns = NS023("ns")
     
     class C023(ConfigModel):
         t = NullTask("null", task_role=NS023.r, run_from=NS023.def_role)
-    cfg = C023()
+    cfg = C023("cm")
     
     cfg.set_namespace(ns)
     ea = ParamikoExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)

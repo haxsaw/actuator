@@ -78,14 +78,14 @@ class TestNamespaceModel(NamespaceModel):
 
 def test01():
     """
-    Test acquiring a Paramiko connection referring to a priv key file
+    test01: Test acquiring a Paramiko connection referring to a priv key file
     """
     user = "lxle1"
     pkey_file = find_file("lxle1-dev-key")
     host = socket.gethostname()
     
     cm = TestConfigModel("test01")
-    nm = TestNamespaceModel()
+    nm = TestNamespaceModel("ns'")
     
     pea = ParamikoExecutionAgent(config_model_instance=cm,
                                  namespace_model_instance=nm)
@@ -97,7 +97,7 @@ def test01():
     
 def test02():
     """
-    Test acquiring a Paramiko connection using a priv key
+    test02: Test acquiring a Paramiko connection using a priv key
     """
     user = "lxle1"
     pkey_file = find_file("lxle1-dev-key")
@@ -105,7 +105,7 @@ def test02():
     host = find_ip()
 
     cm = TestConfigModel("test02")
-    nm = TestNamespaceModel()
+    nm = TestNamespaceModel("ns")
     
     pea = ParamikoExecutionAgent(config_model_instance=cm,
                                  namespace_model_instance=nm)
@@ -117,14 +117,14 @@ def test02():
 
 def test03():
     """
-    Test acquiring a Paramiko connection using a password
+    test03: Test acquiring a Paramiko connection using a password
     """
     user = "lxle1"
     password = open("/home/lxle1/Documents/pass", "r").read().strip()
     host = find_ip()
 
     cm = TestConfigModel("test03")
-    nm = TestNamespaceModel()
+    nm = TestNamespaceModel("ns")
     
     pea = ParamikoExecutionAgent(config_model_instance=cm,
                                  namespace_model_instance=nm)
@@ -136,14 +136,14 @@ def test03():
     
 def test04():
     """
-    Test re-acquiring the same Paramiko connection for the same user/host
+    test04Test re-acquiring the same Paramiko connection for the same user/host
     """
     user = "lxle1"
     password = open("/home/lxle1/Documents/pass", "r").read().strip()
     host = find_ip()
 
     cm = TestConfigModel("test03")
-    nm = TestNamespaceModel()
+    nm = TestNamespaceModel("ns")
     
     pea = ParamikoExecutionAgent(config_model_instance=cm,
                                  namespace_model_instance=nm)
@@ -160,13 +160,12 @@ def test05():
     host = find_ip()
 
     cm = TestConfigModel("test03")
-    nm = TestNamespaceModel()
+    nm = TestNamespaceModel("ns")
     
     pea = ParamikoExecutionAgent(config_model_instance=cm,
                                  namespace_model_instance=nm)
     conn = pea.get_connection(host, user, password=password)
-#     assert conn.invoke_shell() is not conn.invoke_shell()
-    
+
     
 class SingleRoleNS(NamespaceModel):
     with_variables(Var("CMD_TARGET", find_ip()),
@@ -196,13 +195,13 @@ def test06():
     class NS06(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()))
         target = Role('target', host_ref=find_ip())
-    ns = NS06()
+    ns = NS06("ns")
     
     class C06(ConfigModel):
         with_config_options(remote_user="lxle1",
                             private_key_file=find_file("lxle1-dev-key"))
         ping = PingTask("ping", task_role=NS06.target)
-    cfg = C06()
+    cfg = C06("cm")
     
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -218,7 +217,7 @@ def test07():
         with_config_options(remote_user="lxle1",
                             private_key_file=find_file("lxle1-dev-key"))
         ls = CommandTask("list", "ls -l", task_role=SingleRoleNS.target)
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C07("list")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -236,7 +235,7 @@ def test08():
         ls1 = CommandTask("list1", "ls -l", task_role=SingleRoleNS.target)
         ls2 = CommandTask("list2", "ls -l /tmp", task_role=SingleRoleNS.target)
 
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C08("double list")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -258,7 +257,7 @@ def test09():
                              chdir="/tmp")
         with_dependencies(rm1 | touch1)
 
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C09("remove/create")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -281,7 +280,7 @@ def test10():
         ls = CommandTask("ls", "ls -l", task_role=SingleRoleNS.target,
                          chdir="/wibble")
     
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C10("bad chdir")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -300,23 +299,24 @@ def test11():
     test11: check that the 'creates' kwarg causes the task to be skipped
     """
     to_remove = "/tmp/xyz"
+
     class C11(ConfigModel):
         with_config_options(**config_options)
         touch = CommandTask("touch", "touch /tmp/abc",
                             task_role=SingleRoleNS.target,
                             creates="/tmp/xyz")
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C11("create skip")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
-    #now create the /tmp/xyz file
+    # now create the /tmp/xyz file
     try:
-        os.remove("/tmp/xyz")
+        os.remove(to_remove)
     except:
         pass
-    f = open("/tmp/xyz", "w")
+    f = open(to_remove, "w")
     f.close()
     
     try:
@@ -329,7 +329,7 @@ def test11():
     except:
         raise
     else:
-        assert os.path.exists("/tmp/xyz")
+        assert os.path.exists(to_remove)
         assert not os.path.exists("/tmp/abc")
         
         
@@ -341,7 +341,7 @@ def test11a():
         with_config_options(**config_options)
         touch = CommandTask("touch", "touch /tmp/def", task_role=SingleRoleNS.target,
                             creates="/tmp/def")
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C11a("create doesn't exist")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -370,7 +370,7 @@ def test12():
                          task_role=SingleRoleNS.target,
                          removes="/tmp/jkl")
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C12("remove skip")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -398,7 +398,7 @@ def test13():
         script = ScriptTask("script13",
                             os.path.join(here, "test013.sh"),
                             task_role=SingleRoleNS.target)
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C13("run test13 script")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -422,7 +422,7 @@ def test13a():
                             os.path.join(here, "test013a.sh"),
                             task_role=SingleRoleNS.target,
                             proc_ns=True)
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C13a("run test13a script")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -446,7 +446,7 @@ def test14():
                          chdir="/tmp",
                          task_role=SingleRoleNS.target)
     
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C14("shell task")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -464,7 +464,7 @@ def test15():
                            task_role=SingleRoleNS.target,
                            executable="/bin/dash")
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C15("alt shell")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -482,7 +482,7 @@ def test16():
                            task_role=SingleRoleNS.target,
                            chdir="/tmp")
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C16("echo-1")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -500,6 +500,7 @@ def test17():
     test17: Run a shell with shell metachars and see they are respected
     """
     thefile = "/tmp/test17"
+
     class C17(ConfigModel):
         with_config_options(**config_options)
         task = ShellTask("echo-2", "/bin/echo $PATH > !{SINK_FILE}",
@@ -510,7 +511,7 @@ def test17():
                          task_role=SingleRoleNS.target)
         with_dependencies(task | check | rm)
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     ns.add_variable(Var("SINK_FILE", thefile))
     cfg = C17("echo-2")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
@@ -537,7 +538,7 @@ def test18():
         with_config_options(remote_user=rem_user)
         ping = PingTask("system-keys-ping", task_role=SingleRoleNS.target)
  
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C18("system-creds-check")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -564,7 +565,7 @@ def test19():
                                   task_role=SingleRoleNS.target)
         with_dependencies(cp | check1 | diff | rm | check2)
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C19("local command and simple copy")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -578,6 +579,7 @@ def test20():
     """
     there = os.path.join("/tmp", this_file)
     my_content = open(__file__, "r").read()
+
     class C20(ConfigModel):
         with_config_options(**config_options)
         cp = CopyFileTask("sendit", there, content=my_content,
@@ -592,7 +594,7 @@ def test20():
                                   task_role=SingleRoleNS.target)
         with_dependencies(cp | check1 | diff | rm | check2)
 
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C20("copy content from memory")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -606,6 +608,7 @@ def test21():
     """
     dir_to_copy = here
     dest = os.path.join("/tmp", os.path.split(here)[-1])
+
     class C21(ConfigModel):
         with_config_options(**config_options)
         check1 = LocalCommandTask("check gone", "/usr/bin/test ! -e %s" % dest,
@@ -619,7 +622,7 @@ def test21():
         
         with_dependencies(check1 | cp | check2 | rm)
 
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C21("copy directory with root")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -634,6 +637,7 @@ def test22():
     dir_to_copy = "%s/" % here
     dest = "/tmp/terst"
     this_new = os.path.join(dest, this_file)
+
     class C22(ConfigModel):
         with_config_options(**config_options)
         check1 = LocalCommandTask("check gone", "/usr/bin/test ! -e %s" % dest,
@@ -648,7 +652,7 @@ def test22():
                          task_role=SingleRoleNS.target)
         with_dependencies(check1 | mkdir | cp | check2 | rm)
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C22("copy directory without root")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -660,8 +664,9 @@ def test23():
     """
     test23: ensure nested directory hierarchies copy
     """
-    srcdir, _ = os.path.split(here) #assumes src/tests dir structure
+    srcdir, _ = os.path.split(here) # assumes src/tests dir structure
     dest = "/tmp"
+
     class C23(ConfigModel):
         with_config_options(**config_options)
         check1 = LocalCommandTask("check gone",
@@ -676,7 +681,7 @@ def test23():
                          task_role=SingleRoleNS.target)
         with_dependencies(check1 | cp | check2 | rm)
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C23("deep copy")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -690,6 +695,7 @@ def test24():
     """
     dest = os.path.join("/tmp", this_file)
     fmode = 0700
+
     class C24(ConfigModel):
         with_config_options(**config_options)
         check1 = LocalCommandTask("check gone",
@@ -705,7 +711,7 @@ def test24():
         rm = CommandTask("rm", "rm %s" % dest, task_role=SingleRoleNS.target)
         with_dependencies(check1 | cp | check2 | rm)
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C24("set file mode")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
@@ -721,6 +727,7 @@ def test25():
     dest = "/tmp"
     to_check = os.path.join(dest, tests)
     fmode = 0700
+
     class C25(ConfigModel):
         with_config_options(**config_options)
         check1 = LocalCommandTask("check gone",
@@ -737,13 +744,12 @@ def test25():
                          task_role=SingleRoleNS.target)
         with_dependencies(check1 | cp | check2 | rm)
         
-    ns = SingleRoleNS()
+    ns = SingleRoleNS("ns")
     cfg = C25("set dir mode")
     pea = ParamikoExecutionAgent(config_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
-
 
 
 def do_all():

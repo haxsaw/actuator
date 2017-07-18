@@ -557,7 +557,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     __metaclass__ = ConfigModelMeta
     ref_class = ModelInstanceReference
 
-    def __init__(self, namespace_model_instance=None, nexus=None,
+    def __init__(self, name, namespace_model_instance=None, nexus=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
                  delegate=None, default_task_role=None, default_run_from=None,
                  event_handler=None):
@@ -613,7 +613,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         """
         if event_handler and not isinstance(event_handler, TaskEventHandler):
             raise ConfigException("event_handler is not a kind of TaskEventHandler")
-        super(ConfigModel, self).__init__(nexus=nexus)
+        super(ConfigModel, self).__init__(name, nexus=nexus)
         self.event_handler = event_handler
         self.namespace_model_instance = namespace_model_instance
         self.remote_user = remote_user
@@ -945,7 +945,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
             instance of a model class, but the model class itself. This wrapper
             will take care of making an instance when one is needed.
         @keyword init_args: Iterable. The positional arguments to pass to the
-            model class when an instance it to be made.
+            model class when an instance is to be made.
         @keyword **kwargs: See L{ConfigTask} for the remaining keyword arguments
             available to tasks. These will be available to the instance of the
             wrapped config model as this wrapper serves as the model's delegate.
@@ -1014,7 +1014,9 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
             elif self.instance is not None:
                 graph = self.graph = self.instance.get_graph(with_fix=with_fix)
             else:
-                init_args = self.init_args if self.init_args else ()
+                init_args = self._get_arg_value(self._init_args)
+                if not init_args:
+                    init_args = ()
                 instance = self.cfg_class(*init_args)
                 graph = instance.get_graph()
         else:

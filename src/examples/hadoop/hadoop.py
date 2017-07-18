@@ -203,7 +203,7 @@ class HadoopConfig(ConfigModel):
     select_all = HadoopNamespace.q.union(HadoopNamespace.q.name_node,
                                          HadoopNamespace.q.slaves.all())
     node_setup = MultiTask("node_setup",
-                           ConfigClassTask("setup_suite", HadoopNodeConfig),
+                           ConfigClassTask("setup_suite", HadoopNodeConfig, init_args=("node-setup",)),
                            select_all)
     slave_ip = ShellTask("slave_ips",
                          "for i in localhost !{SLAVE_IPS}; do echo $i; done"

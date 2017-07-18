@@ -32,11 +32,11 @@ def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
     """
     Stands up a hadoop infra and configures it
     """
-    inf = infra_class("infra", event_handler=handler)
-    namespace = HadoopNamespace()
+    inf = infra_class("hadoop-infra", event_handler=handler)
+    namespace = HadoopNamespace("hadoop-ns")
     namespace.add_override(*overrides)
     namespace.create_slaves(num_slaves)
-    conf = HadoopConfig(remote_user="ubuntu",
+    conf = HadoopConfig("hadoop-conf", remote_user="ubuntu",
                         private_key_file=pkf,
                         remote_pass=rempass,
                         event_handler=handler)
