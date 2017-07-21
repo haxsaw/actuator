@@ -23,38 +23,21 @@
 Base package for Actuator.
 
 Contains most of the imported symbols from sub-packages and the orchestrator.
-
-NOTE: be sure to import this package before importing any Ansible modules.
-Actuator requires Python 3.2 semantics for the subprocess module in order for
-Ansible to work the way it needs to, and by importing Actuator first, it can
-patch in subprocess32 (a drop-in replacement for subprocess) to be used instead
-of subprocess, ensuring that Ansible behaves properly.
 """
 
-import sys
 import datetime
-# patch in the subprocess32 module so that it gets picked up
-# instead of the 2.7.x subprocess module
-import subprocess
-import subprocess32
+import collections
 
-subprocess32._args_from_interpreter_flags = subprocess._args_from_interpreter_flags
-sys.modules["subprocess"] = subprocess32
-del subprocess
-
-import os
-import traceback
 import time
-
-from errator import narrate, get_narration
-
-from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup,
-                      ctxt, ActuatorException, _Nexus, CallContext)
+from errator import narrate
+from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup, ModelReference,
+                      ctxt, ActuatorException, _Nexus, CallContext, ModelBaseMeta, ModelBase,
+                      ModelComponent, ModelInstanceReference, AbstractModelingEntity)
 from infra import (InfraModel, InfraException, with_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup,
                    with_infra_options)
-from namespace import (Var, NamespaceModel, with_variables, NamespaceException,
-                       Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup)
+from namespace import (Var, NamespaceModel, with_variables, NamespaceException, VariableContainer,
+                       Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup, _common_vars)
 from task import (TaskGroup)
 from config import (ConfigModel, with_searchpath, with_dependencies,
                     ConfigException, MultiTask, NullTask,
@@ -65,9 +48,119 @@ from exec_agents.paramiko.agent import ParamikoExecutionAgent
 from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                           CopyFileTask, ProcessCopyFileTask)
 from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
-                   root_logger, adb, _Persistable)
+                   root_logger, adb, _Persistable, process_modifiers)
 
 __version__ = "0.2.a2"
+
+
+class ServiceMeta(ModelBaseMeta):
+    model_ref_class = ModelReference
+
+    def __new__(cls, name, bases, attr_dict):
+        newbie = super(ServiceMeta, cls).__new__(cls, name, bases, attr_dict,
+                                                 as_component=(AbstractModelingEntity,
+                                                               ModelBaseMeta))
+        process_modifiers(newbie)
+        _Nexus._add_model_desc("app", newbie)
+        return newbie
+
+
+class Service(ModelComponent, ModelBase, VariableContainer):
+    __metaclass__ = ServiceMeta
+    ref_class = ModelInstanceReference
+    infra = InfraModel
+    namespace = NamespaceModel
+    config = ConfigModel
+
+    def __init__(self, name, infra=(("_UNNAMED_",), {}), namespace=(("_UNNAMED_"), {}),
+                 config=(("_UNNAMED_"), {}), services=None):
+        super(Service, self).__init__(name)
+
+        if isinstance(infra, InfraModel):
+            # @FIXME: should we clone the infra model here?
+            self.infra = infra
+        elif isinstance(infra, collections.Iterable):
+            self.infra = self.infra.value()(*infra[0], **infra[1])
+        else:
+            raise ActuatorException("the 'infra' arg is not a kind of InfraModel nor an iterable")
+        self._infra = infra
+
+        if isinstance(namespace, NamespaceModel):
+            self.namespace = namespace
+        elif isinstance(namespace, collections.Iterable):
+            self.namespace = self.namespace.value()(*namespace[0], **namespace[1])
+        else:
+            raise ActuatorException("the 'namespace' arg is not a kind of NamespaceModel nor an interable")
+        self._namespace = namespace
+
+        if isinstance(config, ConfigModel):
+            self.config = config
+        elif isinstance(config, collections.Iterable):
+            self.config = self.config.value()(*config[0], **config[1])
+        else:
+            raise ActuatorException("the 'config' arg is not a kind of ConfigModel nor an iterable")
+        self._config = config
+
+        self.infra.nexus.merge_from(self.nexus)
+        self.namespace.set_infra_model(self.infra.value())
+        self.config.set_namespace(self.namespace.value())
+        self.nexus = self.config.nexus.value()
+
+        components = set()
+        for k, v in self.__dict__.items():
+            if isinstance(v, (NamespaceModel, Service)):
+                components.add(v)
+            if isinstance(v, VariableContainer):
+                v._set_parent(self)
+        for c in components:
+            c._set_parent(self)
+        if _common_vars in self.__class__.__dict__:
+            self.add_variable(*self.__class__.__dict__[_common_vars])
+
+    def get_init_args(self):
+        return ((self.name,),
+                {"infra": (self._infra.value()
+                           if isinstance(self._infra, ModelInstanceReference)
+                           else self._infra),
+                 "namespace": (self._namespace.value()
+                               if isinstance(self._namespace, ModelInstanceReference)
+                               else self._namespace),
+                 "config": (self._config.value()
+                            if isinstance(self._config, ModelInstanceReference)
+                            else self._config),
+                 "services": None})
+
+    def _fix_arguments(self):
+        self.namespace.compute_provisioning_for_environ(self.infra.value())
+
+    def _get_attrs_dict(self):
+        d = super(Service, self)._get_attrs_dict()
+        d.update({"name": self.name,
+                  "infra": self.infra.value(),
+                  "_infra": (self._infra.value()
+                             if isinstance(self._infra, ModelInstanceReference)
+                             else self._infra),
+                  "namespace": self.namespace.value(),
+                  "_namespace": (self._namespace.value()
+                                 if isinstance(self._namespace, ModelInstanceReference)
+                                 else self._namespace),
+                  "config": self.config.value(),
+                  "_config": (self._config.value()
+                              if isinstance(self._config, ModelInstanceReference)
+                              else self._config),
+                  "services": None,
+                  "nexus": self.nexus})
+        return d
+
+    def _find_persistables(self):
+        for p in super(Service, self)._find_persistables():
+            yield p
+
+        for p in [self.infra, self._infra, self.namespace, self._namespace,
+                  self.config, self._config, self.nexus]:
+            if p and not isinstance(p, collections.Iterable):
+                for q in p.find_persistables():
+                    yield q
 
 
 class ActuatorOrchestration(_Persistable):

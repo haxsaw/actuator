@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Base Actuator modeling support
-'''
+"""
 import uuid
 import sys
 import re
@@ -33,7 +33,8 @@ from errator import narrate, narrate_cm
 from actuator.utils import ClassMapper, _Persistable, _find_class, KeyAsAttr
 
 
-class ActuatorException(Exception): pass
+class ActuatorException(Exception):
+    pass
 
 
 class _ValueAccessMixin(object):
@@ -1002,8 +1003,9 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                 theobj = object.__getattribute__(ga("_obj"), name)
             if hasattr(theobj, attrname):
                 value = getattr(theobj, attrname)
-                if not callable(value) and not attrname.startswith("_") and not isinstance(value,
-                                                                                           AbstractModelReference):
+                if (not callable(value) and
+                        not attrname.startswith("_") and
+                        (not isinstance(value, AbstractModelReference) or isinstance(theobj, ModelBase))):
                     # then wrap it with a new reference object
                     value = ga("__class__")(attrname, theobj, self)
             else:
@@ -1349,10 +1351,10 @@ class ModelBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
 
-    def __new__(mcs, name, bases, attr_dict):
+    def __new__(mcs, name, bases, attr_dict, as_component=(AbstractModelingEntity,)):
         components = {}
         for n, v in attr_dict.items():
-            if isinstance(v, AbstractModelingEntity):
+            if isinstance(v, as_component):
                 components[n] = v
         attr_dict[mcs._COMPONENTS] = components
         newbie = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
@@ -1417,6 +1419,9 @@ class ModelBase(AbstractModelingEntity, _NexusMember, _ComputeModelComponents, _
             else:
                 ref = getattr(ref, p)
         return ref if ref != self else None
+
+    def _fix_arguments(self):
+        return
 
     def __getattribute__(self, attrname):
         ga = super(ModelBase, self).__getattribute__

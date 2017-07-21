@@ -499,7 +499,12 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
             with replacement patterns in the returned value.
         """
         v, _ = self.find_variable(name)
-        return v.get_value(self.get_context(), allow_unexpanded=allow_unexpanded)
+        val = v.get_value(self.get_context(), allow_unexpanded=allow_unexpanded)
+        if val is None and not allow_unexpanded and self.get_context().parent_container is not None:
+            val = self.get_context().parent_container.var_value(name,
+                                                                allow_unexpanded=allow_unexpanded)
+        return val
+        # return v.get_value(self.get_context(), allow_unexpanded=allow_unexpanded)
     
     def get_context(self):
         return self
@@ -854,7 +859,7 @@ class NamespaceModelMeta(ModelBaseMeta):
 
     def __new__(cls, name, bases, attr_dict):
         cmapper = get_mapper(_namespace_mapper_domain)
-        for k, v in attr_dict.items():
+        for k, v in list(attr_dict.items()):
             if isinstance(v, (ComponentGroup, MultiComponent, MultiComponentGroup)):
                 mapped_class = cmapper[v.__class__]
                 attr_dict[k] = v.clone(clone_into_class=mapped_class)
