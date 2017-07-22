@@ -1275,7 +1275,7 @@ class _ModelLookup(object):
     def __init__(self, klass):
         self.klass = klass
 
-    def __get__(self, inst, owner):
+    def __get__(self, inst, _):
         return inst.find_instance(self.klass)
 
 

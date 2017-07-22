@@ -26,7 +26,7 @@ Support for creating Actuator infrastructure models
 from errator import narrate, narrate_cm
 from actuator.utils import (ClassModifier, process_modifiers, _Persistable, KeyAsAttr,
                             _Performable)
-from actuator.modeling import (ActuatorException,ModelBaseMeta, ModelBase,
+from actuator.modeling import (ActuatorException, ModelBaseMeta, ModelBase,
                                ModelComponent, AbstractModelingEntity,
                                ModelInstanceReference,
                                _ComputeModelComponents, ModelReference,
@@ -42,9 +42,11 @@ class InfraException(ActuatorException):
 
 _infra_options = "__infra_options__"
 _long_names = "long_names"
-_recognized_options = set([_long_names])
+_recognized_options = {_long_names}
+
+
 @ClassModifier
-def with_infra_options(cls, *args, **kwargs):
+def with_infra_options(cls, *_, **kwargs):
     """
     Available options:
     @keyword long_names: boolean, defaults to False. This option provides info
@@ -70,12 +72,11 @@ def with_infra_options(cls, *args, **kwargs):
 
 
 @ClassModifier
-def with_resources(cls, *args, **kwargs):
+def with_resources(cls, *_, **kwargs):
     """
     This function attaches additional resources onto a class object.
 
     :param cls: a new class object
-    :param args: no positional args are recognized
     :param kwargs: dict of names and associated components to provision; must
         all be derived from AbstractModelingEntity
     :return: None
@@ -90,8 +91,9 @@ def with_resources(cls, *args, **kwargs):
         components[k] = v
     return
 
+
 class _LongnameProp(object):
-    def __get__(self, inst, owner):
+    def __get__(self, inst, _):
         mi = inst.get_model_instance()
         ref = AbstractModelReference.find_ref_for_obj(inst)
         ln = ".".join(([mi.name] if mi else ["NONE"]) +
@@ -122,7 +124,7 @@ class MultiResourceGroup(_LNMixin, MultiComponentGroup):
     """
     A specialization of the L{MultiComponentGroup} class
     """
-    def __new__(self, name, **kwargs):
+    def __new__(cls, name, **kwargs):
         group = ResourceGroup(name, **kwargs)
         return MultiResource(group)
 
@@ -172,8 +174,8 @@ class Provisionable(_LNMixin, ModelComponent, _Performable):
 class InfraModelMeta(ModelBaseMeta):
     model_ref_class = ModelReference
 
-    def __new__(cls, name, bases, attr_dict):
-        new_class = super(InfraModelMeta, cls).__new__(cls, name, bases, attr_dict)
+    def __new__(mcs, name, bases, attr_dict):
+        new_class = super(InfraModelMeta, mcs).__new__(mcs, name, bases, attr_dict)
         process_modifiers(new_class)
         new_class._class_refs_for_resources()
         _Nexus._add_model_desc("inf", new_class)
@@ -285,7 +287,7 @@ class InfraModel(ModelBase):
         
         @param modelrefs: an iterable of InfraModelReference instances for the model this
             SystemSpec instance is for
-        @keyword exclude_refs: an iterable of InfraModelReference instances whioh should not
+        @param exclude_refs: an iterable of InfraModelReference instances whioh should not
             be considered when computing Provisionables (this will be skipped)
         """
         if self.provisioning_computed:
@@ -305,7 +307,7 @@ class InfraModel(ModelBase):
         all_refs = set()
         for k, v in cls.__dict__[InfraModelMeta._COMPONENTS].items():
             if isinstance(v, Provisionable):
-                if isinstance(k, KeyAsAttr):  #this probably isn't possible
+                if isinstance(k, KeyAsAttr):  # this probably isn't possible
                     all_refs.add(my_ref[k])
                 else:
                     all_refs.add(getattr(cls if my_ref is None else my_ref, k))

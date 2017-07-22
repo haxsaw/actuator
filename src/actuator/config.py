@@ -60,7 +60,7 @@ _dependencies = "__dependencies__"
 
 
 @ClassModifier
-def with_dependencies(cls, *args, **kwargs):
+def with_dependencies(cls, *args, **_):
     """
     Express dependencies between tasks to ensure their proper execution order
     
@@ -118,7 +118,7 @@ _legal_options = {_default_task_role, _remote_user, _private_key_file,
 
 
 @ClassModifier
-def with_config_options(cls, *args, **kwargs):
+def with_config_options(cls, *_, **kwargs):
     """
     Set up options to apply to the config model as a whole
     
@@ -523,12 +523,12 @@ class RendezvousTask(ConfigTask, StructuralTask):
 
 
 class ConfigModelMeta(ModelBaseMeta):
-    def __new__(cls, name, bases, attr_dict):
+    def __new__(mcs, name, bases, attr_dict):
         all_tasks = {v: k for k, v in attr_dict.items() if isinstance(v, ConfigTask)}
         attr_dict[_node_dict] = all_tasks
         if _config_options not in attr_dict:
             attr_dict[_config_options] = {}
-        newbie = super(ConfigModelMeta, cls).__new__(cls, name, bases, attr_dict)
+        newbie = super(ConfigModelMeta, mcs).__new__(mcs, name, bases, attr_dict)
         process_modifiers(newbie)
         for v, k in getattr(newbie, _node_dict).items():
             setattr(newbie, k, v)
@@ -708,7 +708,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                                       "model reference, and no reference can be found: %s" % str(task_role))
         self.default_task_role = task_role
 
-    @narrate(lambda s, with_fix=False: "...and that led to asking the model %s for the task graph" % s.__class__.__name__)
+    @narrate(lambda s, with_fix=False: "...and that led to asking the model %s for the "
+                                       "task graph" % s.__class__.__name__)
     def get_graph(self, with_fix=False):
         """
         Returns a NetworkX DiGraph object consisting of the tasks that are
@@ -1191,6 +1192,7 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
         self.rendezvous.fix_arguments()
         self.template = self._get_arg_value(self._template)
         self.task_role_list = self._get_arg_value(self._task_role_list)
+        comp_refs = []
         if isinstance(self.task_role_list, AbstractModelReference):
             try:
                 keys = self.task_role_list.keys()

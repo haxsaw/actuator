@@ -35,13 +35,14 @@ from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup, Model
                       ModelComponent, ModelInstanceReference, AbstractModelingEntity)
 from infra import (InfraModel, InfraException, with_resources, StaticServer,
                    ResourceGroup, MultiResource, MultiResourceGroup,
-                   with_infra_options)
+                   with_infra_options, InfraModelMeta)
 from namespace import (Var, NamespaceModel, with_variables, NamespaceException, VariableContainer,
-                       Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup, _common_vars)
+                       Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup, _common_vars,
+                       NamespaceModelMeta)
 from task import (TaskGroup)
 from config import (ConfigModel, with_searchpath, with_dependencies,
                     ConfigException, MultiTask, NullTask,
-                    ConfigClassTask, with_config_options)
+                    ConfigClassTask, with_config_options, ConfigModelMeta)
 from provisioners.core import ProvisionerException, BaseProvisioner
 from exec_agents.core import ExecutionAgent, ExecutionException
 from exec_agents.paramiko.agent import ParamikoExecutionAgent
@@ -56,12 +57,18 @@ __version__ = "0.2.a2"
 class ServiceMeta(ModelBaseMeta):
     model_ref_class = ModelReference
 
-    def __new__(cls, name, bases, attr_dict):
-        newbie = super(ServiceMeta, cls).__new__(cls, name, bases, attr_dict,
+    def __new__(mcs, name, bases, attr_dict):
+        newbie = super(ServiceMeta, mcs).__new__(mcs, name, bases, attr_dict,
                                                  as_component=(AbstractModelingEntity,
                                                                ModelBaseMeta))
+        if "infra" in attr_dict and not isinstance(attr_dict["infra"], InfraModelMeta):
+            raise ActuatorException("The 'infra' attribute is not a kind of InfraModel class")
+        if "namespace" in attr_dict and not isinstance(attr_dict["namespace"], NamespaceModelMeta):
+            raise ActuatorException("The 'namespace' attribute is not a kind of NamespaceModel class")
+        if "config" in attr_dict and not isinstance(attr_dict["config"], ConfigModelMeta):
+            raise ActuatorException("The 'config' attribute is not a kind of ConfigModel class")
         process_modifiers(newbie)
-        _Nexus._add_model_desc("app", newbie)
+        _Nexus._add_model_desc("svc", newbie)
         return newbie
 
 
@@ -72,33 +79,60 @@ class Service(ModelComponent, ModelBase, VariableContainer):
     namespace = NamespaceModel
     config = ConfigModel
 
-    def __init__(self, name, infra=(("_UNNAMED_",), {}), namespace=(("_UNNAMED_"), {}),
-                 config=(("_UNNAMED_"), {}), services=None):
+    def __init__(self, name, infra=(("_UNNAMED_",), {}), namespace=(("_UNNAMED_",), {}),
+                 config=(("_UNNAMED_",), {}), services=None):
+        """
+        Creates a new instance of a service model
+        :param name: string; name of the service model
+        :param infra: optional; if specified, can be either an instance of an InfraModel, or a
+            list [[], {}], which contains positional and keyword arguments, used as the
+            arguments that are passed to self.infra, which must be some kind of InfraModel class.
+            NOTE: the first element in the list must have at least a string, used as the name for
+            the infra model
+        :param namespace: optional; if specified, can be either an instance of a NamespaceModel,
+            or a can be a list [[], {}], which contains positional and keyword arguments, used as
+            the arguments that are passed to self.namespace, which must be some kind of NamespaceModel
+            class. NOTE: the first element of the list must have at least a string, used as the name
+            for the namespace model
+        :param config: optional; if specified, can be either an instance of a ConfigModel, or can be a
+            list [[], {}], which contains  positional and keyword arguments, used as the arguments
+            that are passed to self.config, which must be some kind of ConfigModel class. NOTE:
+            the first element of the list must have at least a string, used as the name of the
+            config model
+        :param services:
+        """
         super(Service, self).__init__(name)
+
+        if services is None:
+            self.services = {}
+        else:
+            self.services = dict(services)
+
+        self.service_roster = {}
 
         if isinstance(infra, InfraModel):
             # @FIXME: should we clone the infra model here?
             self.infra = infra
-        elif isinstance(infra, collections.Iterable):
+        elif isinstance(infra, collections.Sequence):
             self.infra = self.infra.value()(*infra[0], **infra[1])
         else:
-            raise ActuatorException("the 'infra' arg is not a kind of InfraModel nor an iterable")
+            raise ActuatorException("the 'infra' arg is not a kind of InfraModel nor a sequence")
         self._infra = infra
 
         if isinstance(namespace, NamespaceModel):
             self.namespace = namespace
-        elif isinstance(namespace, collections.Iterable):
+        elif isinstance(namespace, collections.Sequence):
             self.namespace = self.namespace.value()(*namespace[0], **namespace[1])
         else:
-            raise ActuatorException("the 'namespace' arg is not a kind of NamespaceModel nor an interable")
+            raise ActuatorException("the 'namespace' arg is not a kind of NamespaceModel nor a sequence")
         self._namespace = namespace
 
         if isinstance(config, ConfigModel):
             self.config = config
-        elif isinstance(config, collections.Iterable):
+        elif isinstance(config, collections.Sequence):
             self.config = self.config.value()(*config[0], **config[1])
         else:
-            raise ActuatorException("the 'config' arg is not a kind of ConfigModel nor an iterable")
+            raise ActuatorException("the 'config' arg is not a kind of ConfigModel nor a sequence")
         self._config = config
 
         self.infra.nexus.merge_from(self.nexus)
@@ -106,14 +140,26 @@ class Service(ModelComponent, ModelBase, VariableContainer):
         self.config.set_namespace(self.namespace.value())
         self.nexus = self.config.nexus.value()
 
-        components = set()
+        for k, v in self.__class__.__dict__.items():
+            if isinstance(v, ServiceMeta):
+                # then we have an inner service to instantiate; look for the args
+                if k not in self.services:
+                    raise ActuatorException("No init args for service '{}'".format(k))
+                args = self.services[k]
+                if isinstance(args, Service):
+                    newsvc = args
+                elif isinstance(args, collections.Sequence):
+                    newsvc = getattr(self, k).value()(*args[0], **args[1])
+                else:
+                    raise ActuatorException("services entry for service '{}' isn't an instance "
+                                            "of a kind of a Service or sequence of args".format(k))
+                setattr(self, k, newsvc)
+                self.service_roster[k] = newsvc
+
         for k, v in self.__dict__.items():
-            if isinstance(v, (NamespaceModel, Service)):
-                components.add(v)
             if isinstance(v, VariableContainer):
                 v._set_parent(self)
-        for c in components:
-            c._set_parent(self)
+
         if _common_vars in self.__class__.__dict__:
             self.add_variable(*self.__class__.__dict__[_common_vars])
 
@@ -132,6 +178,8 @@ class Service(ModelComponent, ModelBase, VariableContainer):
 
     def _fix_arguments(self):
         self.namespace.compute_provisioning_for_environ(self.infra.value())
+        for v in self.service_roster.values():
+            v.namespace.compute_provisioning_for_environ(v.infra.value())
 
     def _get_attrs_dict(self):
         d = super(Service, self)._get_attrs_dict()

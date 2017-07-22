@@ -1,4 +1,5 @@
 import json
+from errator import reset_all_narrations, set_default_options
 from actuator import Service, ctxt
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
@@ -7,11 +8,16 @@ from actuator.modeling import ModelReference, ModelInstanceReference
 from actuator.utils import persist_to_dict, reanimate_from_dict
 
 
-class AppInfra(InfraModel):
-    server = StaticServer("server", ctxt.nexus.app.v.SERVER_IP)
+def setup_module():
+    reset_all_narrations()
+    set_default_options(check=True)
 
 
-class AppNamespace(NamespaceModel):
+class TestInfra(InfraModel):
+    server = StaticServer("server", ctxt.nexus.svc.v.SERVER_IP)
+
+
+class TestNamespace(NamespaceModel):
     with_variables(Var("NS-GLOBAL", "global"))
 
     role = Role("role", host_ref=ctxt.nexus.inf.server,
@@ -19,35 +25,35 @@ class AppNamespace(NamespaceModel):
                            Var("buried2", None)])
 
 
-class AppConfig(ConfigModel):
+class TestConfig(ConfigModel):
     task = NullTask("task", task_role=ctxt.nexus.ns.role)
 
 
-class AppApp(Service):
-    server_ip = ctxt.nexus.app.infra.server.hostname_or_ip
+class TestSvc(Service):
+    server_ip = ctxt.nexus.svc.infra.server.hostname_or_ip
     with_variables(Var("WIBBLE", "hiya"),
                    Var("buried", server_ip),
                    Var("SERVER_IP", "127.0.0.1"))
-    infra = AppInfra
-    namespace = AppNamespace
-    config = AppConfig
+    infra = TestInfra
+    namespace = TestNamespace
+    config = TestConfig
     non_model = 1
 
 
 def get_simple_instance():
-    return AppApp("appapp", infra=[["infra"], {}],
-                  namespace=[["namespace"], {}],
-                  config=[["config"], {}])
+    return TestSvc("testsvc", infra=[["infra"], {}],
+                   namespace=[["namespace"], {}],
+                   config=[["config"], {}])
 
 
 def test001():
     """
     test001: check that we get proper refs for app class attributes
     """
-    assert isinstance(AppApp.infra, ModelReference), "infra isn't a model reference"
-    assert isinstance(AppApp.namespace, ModelReference), "namespace isn't a model reference"
-    assert isinstance(AppApp.config, ModelReference), "config isn't a model reference"
-    assert isinstance(AppApp.non_model, int), "non_model isn't a plain value"
+    assert isinstance(TestSvc.infra, ModelReference), "infra isn't a model reference"
+    assert isinstance(TestSvc.namespace, ModelReference), "namespace isn't a model reference"
+    assert isinstance(TestSvc.config, ModelReference), "config isn't a model reference"
+    assert isinstance(TestSvc.non_model, int), "non_model isn't a plain value"
 
 
 def test002():
@@ -203,7 +209,7 @@ def test015():
     """
     a = get_simple_instance()
     pargs, kwargs = a.get_init_args()
-    assert pargs == ("appapp",)
+    assert pargs == ("testsvc",)
 
 
 def test016():
@@ -253,6 +259,139 @@ def test18():
     assert a.infra.server.name.value() == a_clone.infra.server.name.value()
     assert a.config.task.name.value() == a_clone.config.task.name.value()
     assert a.infra.server.hostname_or_ip.value() == a_clone.infra.server.hostname_or_ip.value()
+
+
+def test19():
+    """
+    test19: check we can tell when we have the wrong kind of value for the infra class attr
+    """
+    try:
+        class T19a(Service):
+            infra = 1
+        assert False, "this should have raised with infra = 1"
+    except Exception as e:
+        assert "'infra' attribute" in str(e)
+    try:
+        class T19b(Service):
+            infra = TestNamespace
+        assert False, "this should have raised with infra = TestNamespace"
+    except Exception as e:
+        assert "'infra' attribute" in str(e)
+    try:
+        class T19c(Service):
+            infra = TestInfra("wibble")
+        assert False, "this should have raised with infra = TestInfra('wibble')"
+    except Exception as e:
+        assert "'infra' attribute" in str(e)
+
+
+def test20():
+    """
+    test20: check we can tell when we have the wrong kind of value for the namespace class attr
+    """
+    try:
+        class T20a(Service):
+            namespace = 1
+        assert False, "this should have raised with namespace = 1"
+    except Exception as e:
+        assert "'namespace' attribute" in str(e)
+    try:
+        class T20b(Service):
+            namespace = TestInfra
+        assert False, "this should have raised with namespace = TestNamespace"
+    except Exception as e:
+        assert "'namespace' attribute" in str(e)
+    try:
+        class T20c(Service):
+            namespace = TestNamespace("wibble")
+        assert False, "this should have raised with namespace = TestInfra('wibble')"
+    except Exception as e:
+        assert "'namespace' attribute" in str(e)
+
+
+def test21():
+    """
+    test21: check we can tell when we have the wrong kind of value for the config class attr
+    """
+    try:
+        class T21a(Service):
+            config = 1
+        assert False, "this should have raised with config = 1"
+    except Exception as e:
+        assert "'config' attribute" in str(e)
+    try:
+        class T21b(Service):
+            config = TestInfra
+        assert False, "this should have raised with config = TestNamespace"
+    except Exception as e:
+        assert "'config' attribute" in str(e)
+    try:
+        class T21c(Service):
+            config = TestNamespace("wibble")
+        assert False, "this should have raised with config = TestInfra('wibble')"
+    except Exception as e:
+        assert "'config' attribute" in str(e)
+
+
+def test22():
+    """
+    test22: Nest a service inside another service, connect them using Vars and context exprs
+    """
+    class T22(Service):
+        with_variables(Var("buried2", "127.0.0.1"))
+        inner = TestSvc
+        infra = TestInfra
+        namespace = TestNamespace
+        config = TestConfig
+
+    a = T22("t22", services={"inner": (("inner",), {})})
+    a.fix_arguments()
+    assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
+
+
+def test23():
+    """
+    test23: Nest a service inside another service, create context expr for a var in the outer
+    """
+    class T23(Service):
+        with_variables(Var("buried2", ctxt.nexus.svc.parent_container.v.THE_IP),
+                       Var("THE_IP", "127.0.0.1"))
+        inner = TestSvc
+        infra = TestInfra
+        namespace = TestNamespace
+        config = TestConfig
+
+    a = T23("t23", services={"inner": (("inner",), {})})
+    a.fix_arguments()
+    assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
+
+
+def test24():
+    """
+    test24: Nest a service inside another service, fish a host ip out of another infra
+    """
+    class OuterNamespace(NamespaceModel):
+        pass
+
+    class OuterInfra(InfraModel):
+        pass
+
+    class OuterConfig(ConfigModel):
+        pass
+
+    class T24(Service):
+        with_variables(Var("buried2", ctxt.nexus.svc.parent_container.infra.server.hostname_or_ip),
+                       Var("THE_IP", "127.0.0.1"),
+                       Var("SERVER_IP", "!{THE_IP}"))
+        inner = TestSvc
+        infra = TestInfra
+        namespace = OuterNamespace
+        config = OuterConfig
+
+    a = T24("t24", services={"inner": (("inner",), {})})
+    a.inner.infra.server.fix_arguments()
+    a.infra.server.fix_arguments()
+    assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
 
 
 def do_all():
