@@ -155,6 +155,7 @@ class Service(ModelComponent, ModelBase, VariableContainer):
                                             "of a kind of a Service or sequence of args".format(k))
                 setattr(self, k, newsvc)
                 self.service_roster[k] = newsvc
+                newsvc.nexus.set_parent(self.nexus)
 
         for k, v in self.__dict__.items():
             if isinstance(v, VariableContainer):

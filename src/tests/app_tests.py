@@ -366,21 +366,20 @@ def test23():
     assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
 
 
+class OuterNamespace(NamespaceModel):
+    pass
+
+
+class OuterConfig(ConfigModel):
+    pass
+
+
 def test24():
     """
     test24: Nest a service inside another service, fish a host ip out of another infra
     """
-    class OuterNamespace(NamespaceModel):
-        pass
-
-    class OuterInfra(InfraModel):
-        pass
-
-    class OuterConfig(ConfigModel):
-        pass
-
     class T24(Service):
-        with_variables(Var("buried2", ctxt.nexus.svc.parent_container.infra.server.hostname_or_ip),
+        with_variables(Var("buried2", ctxt.nexus.parent.svc.infra.server.hostname_or_ip),
                        Var("THE_IP", "127.0.0.1"),
                        Var("SERVER_IP", "!{THE_IP}"))
         inner = TestSvc

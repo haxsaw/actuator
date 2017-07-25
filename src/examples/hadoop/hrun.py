@@ -45,7 +45,7 @@ template_list = ["Template App SSH Service", "Template ICMP Ping", "Template OS 
 
 def make_infra_for_forecast(num_slaves=1, infra_class=HadoopInfra):
     inf = infra_class("forecast")
-    ns = HadoopNamespace()
+    ns = HadoopNamespace("hadoop-namespace")
     ns.set_infra_model(inf)
     for i in range(num_slaves):
         _ = inf.slaves[i]

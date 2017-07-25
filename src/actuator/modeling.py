@@ -105,22 +105,27 @@ class ContextExpr(_Persistable):
                           "for the context expr {}".format(str(reversed(s._path))))
     def __call__(self, ctx):
         ref = ctx
-        for p in reversed(self._path):
-            if isinstance(p, KeyItem):
-                with narrate_cm(lambda k: "-since element '{}' is a key it was used to index into "
-                                          "the current reference".format(k),
-                                p):
-                    ref = ref[p.value(ctx)]
-            else:
-                with narrate_cm(lambda a: "-which resulted in trying to get attribute '{}' from "
-                                          "the context expr".format(a),
-                                p):
-                    ref = getattr(ref, p)
-                with narrate_cm(lambda a: "-and I found that the '{}' attribute yields a callable so I tried "
-                                          "invoking it".format(a),
-                                p):
-                    if callable(ref):
-                        ref = ref(ctx)
+        try:
+            for p in reversed(self._path):
+                if isinstance(p, KeyItem):
+                    with narrate_cm(lambda k: "-since element '{}' is a key it was used to index into "
+                                              "the current reference".format(k),
+                                    p):
+                        ref = ref[p.value(ctx)]
+                else:
+                    with narrate_cm(lambda a: "-which resulted in trying to get attribute '{}' from "
+                                              "the context expr".format(a),
+                                    p):
+                        ref = getattr(ref, p)
+                    with narrate_cm(lambda a: "-and I found that the '{}' attribute yields a callable so I tried "
+                                              "invoking it".format(a),
+                                    p):
+                        if callable(ref):
+                            ref = ref(ctx)
+        except Exception as e:
+            raise ActuatorException("Was evaluating the context expr 'ctxt.{}' and had reached element '{}' when"
+                                    " the following exception was raised: {}, {}".format(".".join(reversed(self._path)),
+                                                                                         p, type(e), str(e)))
         return ref
 
 
@@ -1293,13 +1298,18 @@ class _Nexus(_Persistable):
     """
     _sep = "+=+=+=+"
 
-    def __init__(self):
+    def __init__(self, parent=None):
         self.mapper = ClassMapper()
+        self.parent = parent
+
+    def set_parent(self, parent):
+        self.parent = parent
 
     def _get_attrs_dict(self):
         d = super(_Nexus, self)._get_attrs_dict()
         d["mapper"] = {"%s%s%s" % (c.__name__, self._sep, c.__module__.replace(".", self._sep)): v
                        for c, v in self.mapper.items()}
+        d["parent"] = self.parent
         return d
 
     @narrate("...which resulted in being asked to find persistables in the nexus")
@@ -1309,6 +1319,8 @@ class _Nexus(_Persistable):
         for v in self.mapper.values():
             for p in v.find_persistables():
                 yield p
+        if self.parent is not None:
+            yield self.parent
 
     @narrate("...which led to finalizing the reanimation of a nexus")
     def finalize_reanimate(self):

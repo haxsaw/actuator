@@ -1000,6 +1000,27 @@ def test079():
     for c in inf.components():
         c.fix_arguments()
     assert inf.s.mem.value() == "16GB"
+
+
+def test80():
+    """
+    test80: check that having a bad path in a context expr yields a helpful message
+    """
+    class Infra80(InfraModel):
+        s = Server("s80", mem=ctxt.nexus.ns.norole)
+
+    class NS80(NamespaceModel):
+        r = Role("r", variables=[Var("wibble", "wobble")])
+
+    inf = Infra80("80")
+    ns = NS80("ns80")
+    ns.set_infra_model(inf)
+    try:
+        for c in inf.components():
+            c.fix_arguments()
+        assert False, "this should have raised"
+    except Exception as e:
+        assert "nexus.ns.norole" in str(e)
      
 
 def do_all():
@@ -1010,4 +1031,3 @@ def do_all():
     
 if __name__ == "__main__":
     do_all()
-    
