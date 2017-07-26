@@ -560,7 +560,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     def __init__(self, name, namespace_model_instance=None, nexus=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
                  delegate=None, default_task_role=None, default_run_from=None,
-                 event_handler=None):
+                 event_handler=None, **kwargs):
         """
         Create a new ConfigModel derived class instance.
         
@@ -613,7 +613,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         """
         if event_handler and not isinstance(event_handler, TaskEventHandler):
             raise ConfigException("event_handler is not a kind of TaskEventHandler")
-        super(ConfigModel, self).__init__(name, nexus=nexus)
+        super(ConfigModel, self).__init__(name, nexus=nexus, **kwargs)
         self.event_handler = event_handler
         self.namespace_model_instance = namespace_model_instance
         self.remote_user = remote_user

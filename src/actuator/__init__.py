@@ -61,11 +61,11 @@ class ServiceMeta(ModelBaseMeta):
         newbie = super(ServiceMeta, mcs).__new__(mcs, name, bases, attr_dict,
                                                  as_component=(AbstractModelingEntity,
                                                                ModelBaseMeta))
-        if "infra" in attr_dict and not isinstance(attr_dict["infra"], InfraModelMeta):
+        if "infra" in attr_dict and not isinstance(attr_dict["infra"], (InfraModel, InfraModelMeta)):
             raise ActuatorException("The 'infra' attribute is not a kind of InfraModel class")
-        if "namespace" in attr_dict and not isinstance(attr_dict["namespace"], NamespaceModelMeta):
+        if "namespace" in attr_dict and not isinstance(attr_dict["namespace"], (NamespaceModel, NamespaceModelMeta)):
             raise ActuatorException("The 'namespace' attribute is not a kind of NamespaceModel class")
-        if "config" in attr_dict and not isinstance(attr_dict["config"], ConfigModelMeta):
+        if "config" in attr_dict and not isinstance(attr_dict["config"], (ConfigModel, ConfigModelMeta)):
             raise ActuatorException("The 'config' attribute is not a kind of ConfigModel class")
         process_modifiers(newbie)
         _Nexus._add_model_desc("svc", newbie)
@@ -80,7 +80,7 @@ class Service(ModelComponent, ModelBase, VariableContainer):
     config = ConfigModel
 
     def __init__(self, name, infra=(("_UNNAMED_",), {}), namespace=(("_UNNAMED_",), {}),
-                 config=(("_UNNAMED_",), {}), services=None):
+                 config=(("_UNNAMED_",), {}), services=None, **kwargs):
         """
         Creates a new instance of a service model
         :param name: string; name of the service model
@@ -99,40 +99,54 @@ class Service(ModelComponent, ModelBase, VariableContainer):
             that are passed to self.config, which must be some kind of ConfigModel class. NOTE:
             the first element of the list must have at least a string, used as the name of the
             config model
-        :param services:
+        :param services: optional; a dict whose keys are names of services and whose values can
+            be one of two things: they can be a Service instance, or they can be a sequence of
+            [(), {}] parameters that can be used to instantiate a service. In this latter
+            case, the Service that is "self" must have an attribute of the same name that is
+            a Service model class to which these parameters will be applied to create a service
+            instance. The new instance will be added as a new attribute of self with the name
+            of the key in the services dict.
         """
-        super(Service, self).__init__(name)
+        super(Service, self).__init__(name, **kwargs)
 
-        if services is None:
-            self.services = {}
-        else:
-            self.services = dict(services)
-
-        self.service_roster = {}
+        self.service_names = set()
+        self.services = {} if services is None else dict(services)
 
         if isinstance(infra, InfraModel):
-            # @FIXME: should we clone the infra model here?
             self.infra = infra
+        elif isinstance(self.infra.value(), InfraModel):
+            # then the model was created with an instance, not a class; clone the class and keep the clone
+            clone = self.infra.clone()
+            self.infra = clone
         elif isinstance(infra, collections.Sequence):
             self.infra = self.infra.value()(*infra[0], **infra[1])
         else:
-            raise ActuatorException("the 'infra' arg is not a kind of InfraModel nor a sequence")
+            raise ActuatorException("the 'infra' arg is not a kind of InfraModel or a sequence, and the "
+                                    "infra attribute is not an instance of an infra model")
         self._infra = infra
 
         if isinstance(namespace, NamespaceModel):
             self.namespace = namespace
+        elif isinstance(self.namespace.value(), NamespaceModel):
+            clone = self.namespace.clone()
+            self.namespace = clone
         elif isinstance(namespace, collections.Sequence):
             self.namespace = self.namespace.value()(*namespace[0], **namespace[1])
         else:
-            raise ActuatorException("the 'namespace' arg is not a kind of NamespaceModel nor a sequence")
+            raise ActuatorException("the 'namespace' arg is not a kind of NamespaceModel or a sequence, and "
+                                    "the namespace attribute is not an instance of a namespace model")
         self._namespace = namespace
 
         if isinstance(config, ConfigModel):
             self.config = config
+        elif isinstance(self.config.value(), ConfigModel):
+            clone = self.config.clone()
+            self.config = clone
         elif isinstance(config, collections.Sequence):
             self.config = self.config.value()(*config[0], **config[1])
         else:
-            raise ActuatorException("the 'config' arg is not a kind of ConfigModel nor a sequence")
+            raise ActuatorException("the 'config' arg is not a kind of ConfigModel or a sequence, and the "
+                                    "config attribute is not an instance of a config model")
         self._config = config
 
         self.infra.nexus.merge_from(self.nexus)
@@ -140,22 +154,53 @@ class Service(ModelComponent, ModelBase, VariableContainer):
         self.config.set_namespace(self.namespace.value())
         self.nexus = self.config.nexus.value()
 
+        # now, users can do three different things with services: they can spec a
+        # service class as an attribute and provide the init params to this method,
+        # they can spec the class as an attribute but provide a service instance to
+        # this method, or they can just supply the instance and have no attribute.
+        # where we want to get to is a situation where we can do the right things
+        # in both cloning and persisting/reanimating circumstances, so we need to
+        # process these cases carefully. What we'd like to eventually have is the
+        # services dict only have non-service values in it
+        #
+        # first, we'll look for class attributes that are either service classes or instances
         for k, v in self.__class__.__dict__.items():
-            if isinstance(v, ServiceMeta):
-                # then we have an inner service to instantiate; look for the args
-                if k not in self.services:
-                    raise ActuatorException("No init args for service '{}'".format(k))
-                args = self.services[k]
-                if isinstance(args, Service):
-                    newsvc = args
-                elif isinstance(args, collections.Sequence):
-                    newsvc = getattr(self, k).value()(*args[0], **args[1])
-                else:
-                    raise ActuatorException("services entry for service '{}' isn't an instance "
-                                            "of a kind of a Service or sequence of args".format(k))
+            if isinstance(v, (Service, ServiceMeta)):
+                if isinstance(v, ServiceMeta):
+                    # then we have an inner service to instantiate; look for the args or an inst
+                    if k not in self.services:
+                        raise ActuatorException("No init args for service '{}'".format(k))
+                    args = self.services[k]
+                    if isinstance(args, Service):
+                        newsvc = args
+                        del self.services[k]  # this is a service which we
+                    elif isinstance(args, collections.Sequence):
+                        newsvc = getattr(self, k).value()(*args[0], **args[1])
+                    else:
+                        raise ActuatorException("services entry for service '{}' isn't an instance "
+                                                "of a kind of a Service or sequence of args".format(k))
+                else:  # must be a Service instance; clone it
+                    newsvc = v.clone()
                 setattr(self, k, newsvc)
-                self.service_roster[k] = newsvc
+                self.service_names.add(k)
                 newsvc.nexus.set_parent(self.nexus)
+        # next, see if there are any services remaining the services param that we haven't
+        # taken care of yet
+        for k, v in self.services.items():
+            if k in self.service_names:
+                continue  # already covered
+            if isinstance(v, Service):
+                # something someone just decided to toss in here
+                setattr(self, k, v)
+                self.service_names.add(k)
+            else:
+                # ruh-roh; this shouldn't happen. if this is a sequence, it means these are
+                # args for a service class, but we should have found those in the previous
+                # for loop, so we have args but no class to apply them to. if they aren't
+                # a sequence, then we don't know what to do with them anyway
+                raise ActuatorException("services arg with key {} and value {} doesn't "
+                                        "have a corresponding service model class on this "
+                                        "service instance".format(k, str(v)))
 
         for k, v in self.__dict__.items():
             if isinstance(v, VariableContainer):
@@ -175,11 +220,15 @@ class Service(ModelComponent, ModelBase, VariableContainer):
                  "config": (self._config.value()
                             if isinstance(self._config, ModelInstanceReference)
                             else self._config),
-                 "services": None})
+                 "services": self.services})
+
+    def finalize_reanimate(self):
+        self.service_names = set(self.service_names)
 
     def _fix_arguments(self):
         self.namespace.compute_provisioning_for_environ(self.infra.value())
-        for v in self.service_roster.values():
+        for k in self.service_names:
+            v = getattr(self, k).value()
             v.namespace.compute_provisioning_for_environ(v.infra.value())
 
     def _get_attrs_dict(self):
@@ -197,8 +246,12 @@ class Service(ModelComponent, ModelBase, VariableContainer):
                   "_config": (self._config.value()
                               if isinstance(self._config, ModelInstanceReference)
                               else self._config),
-                  "services": None,
+                  "service_names": list(self.service_names),
+                  "services": self.services,
                   "nexus": self.nexus})
+        # now add the actual services themselves
+        for k in self.service_names:
+            d[k] = getattr(self, k).value()
         return d
 
     def _find_persistables(self):
@@ -210,6 +263,12 @@ class Service(ModelComponent, ModelBase, VariableContainer):
             if p and not isinstance(p, collections.Iterable):
                 for q in p.find_persistables():
                     yield q
+
+        for k in self.service_names:
+            p = getattr(self, k).value()
+            yield p
+            for q in p.find_persistables():
+                yield q
 
 
 class ActuatorOrchestration(_Persistable):

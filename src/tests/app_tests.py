@@ -277,12 +277,6 @@ def test19():
         assert False, "this should have raised with infra = TestNamespace"
     except Exception as e:
         assert "'infra' attribute" in str(e)
-    try:
-        class T19c(Service):
-            infra = TestInfra("wibble")
-        assert False, "this should have raised with infra = TestInfra('wibble')"
-    except Exception as e:
-        assert "'infra' attribute" in str(e)
 
 
 def test20():
@@ -299,12 +293,6 @@ def test20():
         class T20b(Service):
             namespace = TestInfra
         assert False, "this should have raised with namespace = TestNamespace"
-    except Exception as e:
-        assert "'namespace' attribute" in str(e)
-    try:
-        class T20c(Service):
-            namespace = TestNamespace("wibble")
-        assert False, "this should have raised with namespace = TestInfra('wibble')"
     except Exception as e:
         assert "'namespace' attribute" in str(e)
 
@@ -354,7 +342,7 @@ def test23():
     test23: Nest a service inside another service, create context expr for a var in the outer
     """
     class T23(Service):
-        with_variables(Var("buried2", ctxt.nexus.svc.parent_container.v.THE_IP),
+        with_variables(Var("buried2", ctxt.nexus.parent.svc.v.THE_IP),
                        Var("THE_IP", "127.0.0.1"))
         inner = TestSvc
         infra = TestInfra
@@ -391,6 +379,123 @@ def test24():
     a.inner.infra.server.fix_arguments()
     a.infra.server.fix_arguments()
     assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
+
+
+def test25():
+    """
+    test25: create a service with model instances instead of just classes
+    """
+    class T25(Service):
+        with_variables(Var("buried2", ctxt.nexus.svc.infra.server.hostname_or_ip),
+                       Var("SERVER_IP", "127.0.0.1"))
+        infra = TestInfra("t25-infra")
+        namespace = TestNamespace("t25-namespace")
+        config = TestConfig("t25-config")
+
+    a = T25("t25")
+    a.infra.server.fix_arguments()
+    assert a.infra.value() is not T25.infra.value()
+    assert a.infra.server.value is not T25.infra.server.value()
+    assert a.namespace.value() is not T25.namespace.value()
+    assert a.config.value() is not T25.config.value()
+
+
+class T26(Service):
+    with_variables(Var("buried2", ctxt.nexus.parent.svc.v.THE_IP),
+                   Var("SERVER_IP", "wibble"),
+                   Var("THE_IP", "127.0.0.1"))
+    inner = TestSvc
+    infra = TestInfra
+    namespace = TestNamespace
+    config = TestConfig
+
+
+def compare_t26(t1, t2):
+    assert isinstance(t1, T26)
+    assert isinstance(t2, T26)
+    assert t1.inner.name.value() == t2.inner.name.value()
+    assert t1.inner.infra.server.name.value() == t2.inner.infra.server.name.value()
+    assert t1.inner.infra.server.hostname_or_ip.value() == t2.inner.infra.server.hostname_or_ip.value()
+    assert t1.inner.namespace.var_value("buried") == t2.inner.namespace.var_value("buried")
+    assert t1.inner.namespace.role.var_value("buried2") == t2.inner.namespace.role.var_value("buried2")
+    assert t1.inner.config.task.name.value() == t2.inner.config.task.name.value()
+    assert t1.inner.config.task.task_role.name.value() == t2.inner.config.task.task_role.name.value()
+
+
+def test26():
+    """
+    test26: test persistence/reanimation service with a nested service
+    """
+    t26 = T26("t26-outer", services={"inner": (("inner",), {})})
+    t26.infra.server.fix_arguments()
+    t26.inner.infra.server.fix_arguments()
+    t26.config.task.fix_arguments()
+    t26.inner.config.task.fix_arguments()
+    d = persist_to_dict(t26)
+    d_prime = json.loads(json.dumps(d))
+    franken_t26 = reanimate_from_dict(d_prime)
+    compare_t26(t26, franken_t26)
+
+
+def test27():
+    """
+    test27: manually create an inner TestSvc, check if the same before/after persistence/reanim
+    """
+    t27 = T26("t27-outer", services={"inner": TestSvc("inner_27")})
+    t27.infra.server.fix_arguments()
+    t27.inner.infra.server.fix_arguments()
+    t27.config.task.fix_arguments()
+    t27.inner.config.task.fix_arguments()
+    d = persist_to_dict(t27)
+    d_prime = json.loads(json.dumps(d))
+    franken_t27 = reanimate_from_dict(d_prime)
+    compare_t26(t27, franken_t27)
+
+
+def test28():
+    """
+    test28: manually create the TestInfra, default the rest, check before/after persistence
+    """
+    t28 = T26("t28-outer", infra=TestInfra("t28Infra"), services={"inner": (("inner28",), {})})
+    t28.infra.server.fix_arguments()
+    t28.inner.infra.server.fix_arguments()
+    t28.config.task.fix_arguments()
+    t28.inner.config.task.fix_arguments()
+    d = persist_to_dict(t28)
+    d_prime = json.loads(json.dumps(d))
+    franken_t28 = reanimate_from_dict(d_prime)
+    compare_t26(t28, franken_t28)
+
+
+def test29():
+    """
+    test29: manually create the TestNamespace, default the rest, check before/after persistence
+    """
+    t29 = T26("t29-outer", namespace=TestNamespace("t29_namespace"),
+              services={"inner": (("inner28",), {})})
+    t29.infra.server.fix_arguments()
+    t29.inner.infra.server.fix_arguments()
+    t29.config.task.fix_arguments()
+    t29.inner.config.task.fix_arguments()
+    d = persist_to_dict(t29)
+    d_prime = json.loads(json.dumps(d))
+    franken_t29 = reanimate_from_dict(d_prime)
+    compare_t26(t29, franken_t29)
+
+
+def test30():
+    """
+    test30: manually create the TestConfig, default the rest, check before/after persistence
+    """
+    t30 = T26("t30-outer", config=TestConfig("t30-conf"), services={"inner": (("inner28",), {})})
+    t30.infra.server.fix_arguments()
+    t30.inner.infra.server.fix_arguments()
+    t30.config.task.fix_arguments()
+    t30.inner.config.task.fix_arguments()
+    d = persist_to_dict(t30)
+    d_prime = json.loads(json.dumps(d))
+    franken_t30 = reanimate_from_dict(d_prime)
+    compare_t26(t30, franken_t30)
 
 
 def do_all():

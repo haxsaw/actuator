@@ -190,7 +190,7 @@ class InfraModel(ModelBase):
     __metaclass__ = InfraModelMeta
     ref_class = ModelInstanceReference
     
-    def __init__(self, name, event_handler=None):
+    def __init__(self, name, event_handler=None, **kwargs):
         """
         Creates a new instance of an infra model.
         
@@ -201,7 +201,7 @@ class InfraModel(ModelBase):
         """
         if event_handler is not None and not isinstance(event_handler, TaskEventHandler):
             raise InfraException("event_handler is not a kind of TaskEventHandler")
-        super(InfraModel, self).__init__(name)
+        super(InfraModel, self).__init__(name, **kwargs)
         # self.name = name
         self.event_handler = event_handler
         # set option defaults
