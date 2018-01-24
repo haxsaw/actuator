@@ -30,18 +30,20 @@ from hsimple import do_it
 
 
 class VSHadoopInfra(InfraModel):
+    datastore1 = "datastore1 (6)"
+    datastore2 = "datastore1 (6)"
     with_infra_options(long_names=True)
 
-    name_node_ds = Datastore("namenode_ds", dspath="datastore1 (7)")
+    name_node_ds = Datastore("namenode_ds", dspath=datastore1)
     name_node_rp = ResourcePool("namenode_rp", pool_name="new dell")
-    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase",
+    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase2",
                                     data_store=ctxt.model.name_node_ds,
                                     resource_pool=ctxt.model.name_node_rp)
 
     slaves = MultiResourceGroup("slaves",
-                                slave_ds=Datastore("slave_ds", dspath="datastore1 (7)"),
+                                slave_ds=Datastore("slave_ds", dspath=datastore2),
                                 slave_rp=ResourcePool("slave_rp", pool_name="new dell"),
-                                slave_fip=TemplatedServer("slave", template_name="ActuatorBase",
+                                slave_fip=TemplatedServer("slave", template_name="ActuatorBase2",
                                                           data_store=ctxt.comp.container.slave_ds,
                                                           resource_pool=ctxt.comp.container.slave_rp))
 
