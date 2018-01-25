@@ -30,20 +30,21 @@ from hsimple import do_it
 
 
 class VSHadoopInfra(InfraModel):
-    datastore1 = "datastore1 (6)"
-    datastore2 = "datastore1 (6)"
+    # datastore1 = "VMDATA1"
+    # datastore2 = "DATA"
+    datastore1 = datastore2 = "datastore1 (6)"
     with_infra_options(long_names=True)
 
-    name_node_ds = Datastore("namenode_ds", dspath=datastore1)
-    name_node_rp = ResourcePool("namenode_rp", pool_name="new dell")
-    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase2",
+    name_node_ds = Datastore("namenode_ds0", dspath=datastore1)
+    name_node_rp = ResourcePool("namenode_rp0", pool_name="new dell")
+    name_node_fip = TemplatedServer("namenode0", template_name="ActuatorBase3",
                                     data_store=ctxt.model.name_node_ds,
                                     resource_pool=ctxt.model.name_node_rp)
 
     slaves = MultiResourceGroup("slaves",
                                 slave_ds=Datastore("slave_ds", dspath=datastore2),
                                 slave_rp=ResourcePool("slave_rp", pool_name="new dell"),
-                                slave_fip=TemplatedServer("slave", template_name="ActuatorBase2",
+                                slave_fip=TemplatedServer("slave", template_name="ActuatorBase3",
                                                           data_store=ctxt.comp.container.slave_ds,
                                                           resource_pool=ctxt.comp.container.slave_rp))
 
@@ -56,7 +57,7 @@ if __name__ == "__main__":
     line = open("vscreds.txt", "r").readline().strip()
     h, u, p = line.split(",")
     prov = VSphereProvisioner(host=h, username=u, pwd=p)
-    success, inf, ns, conf, orch = do_it(1, handler=TaskEventManager(), pkf=None,
+    success, inf, ns, conf, orch = do_it(2, handler=TaskEventManager(), pkf=None,
                                          rempass="tarnished99", infra_class=VSHadoopInfra,
                                          provisioner=prov,
                                          overrides=[Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
