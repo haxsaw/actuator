@@ -112,7 +112,23 @@ class ProvisionTemplatedServer(ProvisioningTask):
         relospec.datastore = ds
         relospec.pool = pool
 
-        clonespec = vim.vm.CloneSpec()
+        # this chunk is supposed to instruct vSphere to be sure to make a new
+        # MAC address for the network interface in the template
+        vsd = vim.vm.device.VirtualDeviceSpec()
+        vsd.operation = vim.vm.device.VirtualDeviceSpec.Operation.edit
+        # now find the existing network device and make that the device to update
+        for dev in template.config.hardware.device:
+            if isinstance(dev, vim.vm.device.VirtualVmxnet):
+                vsd.device = dev
+                break
+        else:
+            raise ProvisionerException("Can't find an existing network device on the template")
+        vmconf = vim.vm.ConfigSpec(numCPUs=1, memoryMB=1024)
+        vmconf.cpuHotAddEnabled = True
+        vmconf.memoryHotAddEnabled = True
+        vmconf.deviceChange = [vsd]
+
+        clonespec = vim.vm.CloneSpec(config=vmconf)
         clonespec.location = relospec
         clonespec.powerOn = True
 
@@ -121,7 +137,7 @@ class ProvisionTemplatedServer(ProvisioningTask):
                               spec=clonespec)
         res = wait_for_task(task)
         if res:
-            raise ProvisionerException("Creating the cloned VM faield with %s" % str(res))
+            raise ProvisionerException("Creating the cloned VM failed with %s" % str(res))
 
         guest_ip = None
         while not guest_ip:
