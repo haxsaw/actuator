@@ -18,21 +18,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-import sys
-from actuator import ActuatorOrchestration, ctxt
-from actuator.provisioners.vsphere.resources import *
+from actuator.provisioners.vsphere.resources import (Datastore,
+                                                     ResourcePool,
+                                                     TemplatedServer)
 from actuator.infra import (InfraModel, MultiResourceGroup, with_infra_options)
-from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
-from actuator.namespace import Var
-from hevent import TaskEventManager
-
-from hsimple import do_it
+from actuator import ctxt
 
 
 class VSHadoopInfra(InfraModel):
-    # datastore1 = "VMDATA1"
-    # datastore2 = "DATA"
-    datastore1 = datastore2 = "datastore1 (6)"
+    datastore1 = "VMDATA1"
+    datastore2 = "DATA"
+    # datastore1 = datastore2 = "datastore1 (6)"
     with_infra_options(long_names=True)
 
     name_node_ds = Datastore("namenode_ds0", dspath=datastore1)
@@ -54,6 +50,13 @@ class VSHadoopInfra(InfraModel):
 
 
 if __name__ == "__main__":
+    import sys
+    from actuator import ActuatorOrchestration
+    from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
+    from actuator.namespace import Var
+    from hevent import TaskEventManager
+    from hsimple import do_it
+
     line = open("vscreds.txt", "r").readline().strip()
     h, u, p = line.split(",")
     prov = VSphereProvisioner(host=h, username=u, pwd=p)

@@ -24,12 +24,13 @@ import os
 import sys
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.utils import persist_to_dict, reanimate_from_dict
+from actuator.namespace import Var
 from hadoop import HadoopInfra, HadoopNamespace
 from prices import create_price_table, CITYCLOUD, RACKSPACE, VSPHERE
 from hsimple import do_it
 from hevent import TaskEventManager
 from vstest import VSHadoopInfra
-
+from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
 user_env = "OS_USER"
 pass_env = "OS_PASS"
 tenant_env = "OS_TENANT"
@@ -128,7 +129,27 @@ if __name__ == "__main__":
                 print(create_price_table(inf, for_cloud=VSPHERE))
                 print
                 continue
-            success, infra, ns, conf, ao = do_it(num_slaves=num_slaves, handler=handler)
+            # if we get here, we're standing up; see which cloud
+            cloud = None
+            while cloud not in ('o', 'v'):
+                print "Enter 'o' for OpenStack, 'v' for VMWare: ",
+                cloud = sys.stdin.readline().strip()
+            # prep all args
+            kwargs = {"num_slaves": num_slaves, "handler": handler}
+            if cloud == "v":
+                # add additional args for VMWare
+                line = open("vscreds.txt", "r").readline().strip()
+                h, u, p = line.split(",")
+                prov = VSphereProvisioner(host=h, username=u, pwd=p, num_threads=num_slaves*2)
+                kwargs.update({"pkf": None,
+                               "rempass": "tarnished99",
+                               "infra_class": VSHadoopInfra,
+                               "provisioner": prov,
+                               "overrides": [Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
+                                             Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)]})
+
+            success, infra, ns, conf, ao = do_it(**kwargs)
+            # success, infra, ns, conf, ao = do_it(num_slaves=num_slaves, handler=handler)
             if success:
                 if with_mongo:
                     from hreport import capture_running
