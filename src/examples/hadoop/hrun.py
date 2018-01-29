@@ -159,11 +159,18 @@ if __name__ == "__main__":
                 if with_zabbix:
                     print("Updating Zabbix with new hosts to monitor...")
                     from zabint import Zabact
-                    za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
-                    zabbix_host_ids = za.register_servers_in_group("Linux servers", [infra.name_node_fip.value()] +
-                                                                   [s.slave_fip.value() for s in infra.slaves.values()],
-                                                                   templates=template_list)
-                    print("...done")
+                    try:
+                        za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
+                        zabbix_host_ids = za.register_servers_in_group("Linux servers", [infra.name_node_fip.value()] +
+                                                                       [s.slave_fip.value() for s in infra.slaves.values()],
+                                                                       templates=template_list)
+                        print("...done")
+                    except Exception as e:
+                        print "\nZABBIX UPDATED FAILED with %s:" % e.message
+                        print "...traceback:"
+                        import traceback
+                        traceback.print_exception(*sys.exc_info())
+                        print
                 print "\nStandup complete! You can reach the assets at the following IPs:"
                 print ">>>namenode: %s" % infra.name_node_fip.get_ip()
                 print ">>>slaves:"

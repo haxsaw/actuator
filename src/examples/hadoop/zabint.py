@@ -36,9 +36,11 @@ class Zabact(object):
         self.token = self.zapi.user.login(user=user, password=pw)
 
     def _server_params(self, fip, groups, templates):
-        assert isinstance(fip, FloatingIP)
-        fip.server.get_display_name()
-        params = {"host": fip.server.get_display_name(),
+        if isinstance(fip, FloatingIP):
+            display_name = fip.server.get_display_name()
+        else:
+            display_name = fip.get_display_name()
+        params = {"host": display_name,
                   "groups": [{'groupid': g} for g in groups],
                   "templates": [{"templateid": t} for t in templates],
                   "interfaces": [

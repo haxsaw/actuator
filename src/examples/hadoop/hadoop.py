@@ -213,4 +213,4 @@ class HadoopConfig(ConfigModel):
                               "bin/hadoop namenode -format -nonInteractive -force",
                               chdir="!{HADOOP_HOME}", repeat_count=3,
                               task_role=HadoopNamespace.name_node)
-    with_dependencies(node_setup | slave_ip | format_hdfs)
+    with_dependencies(node_setup | (slave_ip & format_hdfs))
