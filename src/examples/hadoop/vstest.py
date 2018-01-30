@@ -28,7 +28,6 @@ from actuator import ctxt
 class VSHadoopInfra(InfraModel):
     datastore1 = "VMDATA1"
     datastore2 = "DATA"
-    # datastore1 = datastore2 = "datastore1 (6)"
     with_infra_options(long_names=True)
 
     name_node_ds = Datastore("namenode_ds0", dspath=datastore1)

@@ -256,6 +256,26 @@ if __name__ == "__main__":
             print "Re-running initiate"
             success = ao.initiate_system()
             if success:
+                if with_mongo:
+                    from hreport import capture_running
+                    print("Storing model in Mongo...")
+                    inst_id = capture_running(ao, "hadoop_demo")
+                    print("...done. Instance id is '%s'" % inst_id)
+                if with_zabbix:
+                    print("Updating Zabbix with new hosts to monitor...")
+                    from zabint import Zabact
+                    try:
+                        za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
+                        zabbix_host_ids = za.register_servers_in_group("Linux servers", [infra.name_node_fip.value()] +
+                                                                       [s.slave_fip.value() for s in infra.slaves.values()],
+                                                                       templates=template_list)
+                        print("...done")
+                    except Exception as e:
+                        print "\nZABBIX UPDATED FAILED with %s:" % e.message
+                        print "...traceback:"
+                        import traceback
+                        traceback.print_exception(*sys.exc_info())
+                        print
                 print "\n...done! You can reach the assets at the following IPs:"
                 print ">>>namenode: %s" % infra.name_node_fip.get_ip()
                 print ">>>slaves:"
