@@ -143,7 +143,7 @@ vs_vcpu_price = 0.01 / hours_per_30_days
 vs_mem_price = 0.01 / hours_per_30_days
 vs_disk_price = 1.51 / hours_per_30_days
 vs_pubip_price = 15.61 / hours_per_30_days
-vsphere_hourly_pricing_table = {"ActuatorBase": (1, 1, 16, 1)}
+vsphere_hourly_pricing_table = {"ActuatorBase3": (1, 1, 16, 1)}
 
 
 def get_vsphere_houly_cost_of_servers(im):
@@ -169,7 +169,7 @@ def get_vsphere_houly_cost_of_servers(im):
 def create_vsphere_price_table(im):
     """
     Creates a formatted string showing the costs involved in running the supplied infra
-    model for a hour, day, and 30-day month on CityCloud
+    model for a hour, day, and 30-day month on VSphere
     :param im: instance of an InfraModel
     :return: formatted string containing a table of results
     """

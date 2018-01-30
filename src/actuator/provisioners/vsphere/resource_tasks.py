@@ -25,6 +25,7 @@ import threading
 from errator import narrate
 from pyVmomi import vim
 from pyVim import connect
+from actuator.infra import StaticServer
 from actuator.utils import capture_mapping
 from actuator.provisioners.vsphere.resources import (Datastore, TemplatedServer,
                                                      ResourcePool)
@@ -34,6 +35,19 @@ from actuator.provisioners.vsphere.utils import wait_for_task, get_obj
 from actuator.utils import LOG_INFO, root_logger
 
 _vs_domain = "vsphere_task_domain"
+
+
+@capture_mapping(_vs_domain, StaticServer)
+class ProvisionStaticServerTask(ProvisioningTask):
+    @narrate(lambda s, _: "...which started the placeholder task for the already provisioned "
+                          "static server {}".format(s.rsrc.name))
+    def _perform(self, engine):
+        return
+
+    @narrate(lambda s, _: "...thus starting the placeholder de-provision for static "
+                          "server {}".format(s.rsrc.name))
+    def _reverse(self, engine):
+        return
 
 
 @capture_mapping(_vs_domain, Datastore)

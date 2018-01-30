@@ -295,10 +295,9 @@ class ActuatorOrchestration(_Persistable):
     ABORT_DEPROV = 9
     DEPROV_COMPLETE = 10
 
-    def __init__(self, infra_model_inst=None, provisioner=None,
-                 namespace_model_inst=None, config_model_inst=None,
-                 log_level=LOG_INFO, no_delay=False, num_threads=5,
-                 post_prov_pause=60, tags=None):
+    def __init__(self, infra_model_inst=None, provisioner=None, namespace_model_inst=None,
+                 config_model_inst=None, service=None, log_level=LOG_INFO, no_delay=False, num_threads=5,
+                 post_prov_pause=60, client_keys=None):
         """
         Create an instance of the orchestrator to operate on the supplied models/provisioner
         
@@ -324,6 +323,12 @@ class ActuatorOrchestration(_Persistable):
             L{actuator.config.ConfigModel}. If absent, no configuration will be carried
             out, but the namespace can be interrogated after orchestration to
             determine values from any provisioned infra
+        @keyword service: Optional; an instance of a subclass of L{actuator.Service}.
+            If provided, this service will be what the orchestrator stands up. The
+            service argument and the infra_model_inst/namespace_model_inst/config_model_inst
+            arguments are mutually exclusive; if a service is specified along with any
+            of the other arguments, an exception is raised as their proper relationship
+            can't be determined.
         @keyword log_level: Optional; default is LOG_INFO. One of the symbolic log
             constants from the top level actuator package. These are LOG_CRIT,
             LOG_ERROR, LOG_WARN, LOG_INFO, and LOG_DEBUG. The default supplies
@@ -347,10 +352,10 @@ class ActuatorOrchestration(_Persistable):
             virtual/cloud systems a chance to stabilize before starting on
             configuration tasks. If no provisioning was done (a static infra model
             or simply no infra/provisioner), then the pause is skipped.
-        @keyword tags: optional list of strings. These are just text strings that
-            get associated with the orchestrator instance. These are generally
-            useful when the orchestrator has been persisted as the tags can be
-            used to identify orchestrators with particular tag values.
+        @keyword client_keys: optional dict. Client-supplied key-value dict, the
+            contents of which will be ignored by Actuator. The dict will be persisted
+            along with all other data in the orchestrator, hence both keys and values
+            must be objects that can be stored to/from JSON
 
         @raise ExecutionException: In the following circumstances this method
         will raise actuator.ExecutionException:
@@ -386,7 +391,8 @@ class ActuatorOrchestration(_Persistable):
         self.logger = root_logger.getChild("orchestrator")
         self.post_prov_pause = post_prov_pause
         self.status = self.NOT_STARTED
-        self.tags = list(tags) if tags is not None else []
+        self.client_keys = client_keys if client_keys is not None else {}
+        assert isinstance(self.client_keys, dict), "client_keys is not a dict"
         self.initiate_start_time = None
         self.initiate_end_time = None
 
@@ -408,7 +414,7 @@ class ActuatorOrchestration(_Persistable):
         d.update({"log_level": self.log_level,
                   "post_prov_pause": self.post_prov_pause,
                   "status": self.status,
-                  "tags": self.tags,
+                  "client_keys": self.client_keys,
                   "infra_model_inst": self.infra_model_inst,
                   "namespace_model_inst": self.namespace_model_inst,
                   "config_model_inst": self.config_model_inst,

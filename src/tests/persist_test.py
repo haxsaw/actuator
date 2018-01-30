@@ -33,6 +33,7 @@ from actuator.config import (Task, ConfigTask, ConfigModel, MultiTask,
 from actuator.infra import InfraModel, MultiResource, StaticServer
 from actuator.task import _Dependency
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
 
 
 def setup_module():
@@ -730,6 +731,30 @@ def test26():
     # aop.namespace_model_inst.compute_provisioning_for_environ(aop.infra_model_inst)
     print(">>>Start teardown")
     aop.set_provisioner(p)
+    aop.teardown_system()
+
+
+class Inf27(InfraModel):
+    slaves = MultiResource(StaticServer("slave", "127.0.0.1"))
+
+
+class NS27(NamespaceModel):
+    slaves = MultiRole(Role("slave", host_ref=ctxt.nexus.inf.slaves[ctxt.comp.name]))
+
+
+def test27():
+    """
+    test27: persist/reanim the VSphere provisioner
+    """
+    i = Inf27("i27:")
+    n = NS27("ns")
+    _ = n.slaves[0]
+    vs = VSphereProvisioner(host="localhost", username="wibble", pwd="wobble",
+                            num_threads=5)
+    ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n, provisioner=vs)
+    ao.initiate_system()
+    d = persist_to_dict(ao)
+    aop = reanimate_from_dict(d)
     aop.teardown_system()
 
 

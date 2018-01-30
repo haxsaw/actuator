@@ -708,7 +708,7 @@ def reanimate_from_dict(d):
     return root.get_reanimated()
     
 
-@narrate("...which caused an object to be persisted to a dict")
+@narrate("This started an object's persistence to a dict")
 def persist_to_dict(o, name=None):
     if not isinstance(o, _Persistable):
         raise TypeError("the parameter must be a kind of _Persistable")

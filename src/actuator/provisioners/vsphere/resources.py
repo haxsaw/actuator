@@ -85,9 +85,9 @@ class Datastore(_VSphereProvisionableInfraResource):
     @narrate(lambda s: "...leading to acquiring the datastore {}'s attr dict".format(s.name))
     def _get_attrs_dict(self):
         d = super(Datastore, self)._get_attrs_dict()
-        self.get_fixed_args()
-        d.update({"name": self.name,
-                  "dspath": self.dspath})
+        d.update({"dspath": self.dspath,
+                  "vs_datastore": None})
+        return d
 
 
 class ResourcePool(_VSphereProvisionableInfraResource):
@@ -123,6 +123,13 @@ class ResourcePool(_VSphereProvisionableInfraResource):
     @narrate(lambda s: "...leading to acquiring the resource pool {}'s attr dict".format(s.name))
     def get_init_args(self):
         return (self.name,), {"pool_name": self._pool_name}
+
+    def _get_attrs_dict(self):
+        d = super(ResourcePool, self)._get_attrs_dict()
+        self.get_fixed_args()
+        d.update({"pool_name": self.pool_name,
+                  "resource_pool": None})
+        return d
 
 
 class TemplatedServer(_VSphereProvisionableInfraResource, IPAddressable):

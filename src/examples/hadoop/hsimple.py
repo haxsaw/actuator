@@ -28,7 +28,7 @@ from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
           infra_class=HadoopInfra,
           provisioner=OpenstackProvisioner(num_threads=10, cloud_name="citycloud"),
-          overrides=()):
+          overrides=(), client_data={}):
     """
     Stands up a hadoop infra and configures it
     """
@@ -46,7 +46,8 @@ def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
                                  namespace_model_inst=namespace,
                                  config_model_inst=conf,
                                  post_prov_pause=10,
-                                 num_threads=20)
+                                 num_threads=20,
+                                 client_keys=client_data)
     try:
         success = orch.initiate_system()
     except KeyboardInterrupt:

@@ -639,7 +639,7 @@ class ParamikoExecutionAgent(ExecutionAgent):
 
         try:
             conn = SSHClient()
-            conn.load_system_host_keys()
+            conn.load_system_host_keys("/dev/null")
             conn.set_missing_host_key_policy(AutoAddPolicy())
             if priv_key:
                 sio = StringIO(priv_key)

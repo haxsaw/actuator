@@ -22,6 +22,7 @@
 import json
 import os
 import sys
+from errator import get_narration
 from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import Var
@@ -136,8 +137,11 @@ if __name__ == "__main__":
                 cloud = sys.stdin.readline().strip()
             # prep all args
             kwargs = {"num_slaves": num_slaves, "handler": handler}
+            on_cloud = CITYCLOUD
+
             if cloud == "v":
                 # add additional args for VMWare
+                on_cloud = VSPHERE
                 line = open("vscreds.txt", "r").readline().strip()
                 h, u, p = line.split(",")
                 prov = VSphereProvisioner(host=h, username=u, pwd=p, num_threads=num_slaves*2)
@@ -147,6 +151,10 @@ if __name__ == "__main__":
                                "provisioner": prov,
                                "overrides": [Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                                              Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)]})
+            # record which cloud we used in the keys so we can recreate the proper one
+            # on a reanimate
+            mykeys = {"on_cloud": on_cloud}
+            kwargs["client_data"] = mykeys
 
             success, infra, ns, conf, ao = do_it(**kwargs)
             # success, infra, ns, conf, ao = do_it(num_slaves=num_slaves, handler=handler)
@@ -177,13 +185,22 @@ if __name__ == "__main__":
                 for s in infra.slaves.values():
                     print "\t%s" % s.slave_fip.get_ip()
                 print("\nExecution prices for this infra:\n")
-                print(create_price_table(infra, for_cloud=CITYCLOUD))
+                print(create_price_table(infra, for_cloud=on_cloud))
             else:
                 print "Orchestration failed; see the log for error messages"
         elif cmd == teardown_op[0]:
             print "Tearing down; won't be able to re-run later"
             if not ao.provisioner:
-                ao.set_provisioner(OpenstackProvisioner(cloud_name="citycloud", num_threads=5))
+                client_keys = ao.client_keys
+                on_cloud = client_keys["on_cloud"]
+                if on_cloud == CITYCLOUD:
+                    ao.set_provisioner(OpenstackProvisioner(cloud_name="citycloud", num_threads=5))
+                elif on_cloud == VSPHERE:
+                    line = open("vscreds.txt", "r").readline().strip()
+                    h, u, p = line.split(",")
+                    ao.set_provisioner(VSphereProvisioner(host=h, username=u, pwd=p))
+                else:
+                    raise Exception("Unknown cloud %s; can't tell what provisioner to make" % on_cloud)
             success = ao.teardown_system()
             if success:
                 if inst_id is not None and with_mongo:
@@ -222,12 +239,19 @@ if __name__ == "__main__":
             print "Enter name of the file to save to: ",
             fname = sys.stdin.readline().strip()
             print "Creating persistable form..."
-            d = persist_to_dict(ao)
-            json_dict = json.dumps(d)
-            print "Writing persisted form out..."
-            f = file(fname, "w")
-            f.write(json_dict)
-            print "Orchestrator persisted!"
+            try:
+                d = persist_to_dict(ao)
+                json_dict = json.dumps(d)
+            except Exception as e:
+                print "FAILED GETTING PERSISTED FORM; t = %s, v = %s" % (type(e), e.message)
+                print "the story is:"
+                for s in get_narration():
+                    print s
+            else:
+                print "Writing persisted form out..."
+                f = file(fname, "w")
+                f.write(json_dict)
+                print "Orchestrator persisted!"
         elif cmd == rerun_op[0]:
             print "Re-running initiate"
             success = ao.initiate_system()
