@@ -21,6 +21,7 @@
 
 import getpass
 import datetime
+from pprint import pprint as pp
 
 import pymongo
 import bson
@@ -80,13 +81,20 @@ def running_servers_by_app_instance(app_name):
                                             "init_end": {
                                                 "$addToSet": "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.initiate_end_time"},
                                             "server_count": {"$sum": {"$cond":
-                                                                   [{"$and": [{"$eq": [
-                                                                       "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
-                                                                       "Server"]},
-                                                                              {"$eq": [
-                                                                                  "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.performance_status",
-                                                                                  "performed"]},
-                                                                              ]},
+                                                                   [{"$and":
+                                                                       [{"$or": [
+                                                                           {"$eq": [
+                                                                                "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
+                                                                                "Server"]},
+                                                                           {"$eq": [
+                                                                                "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
+                                                                                "TemplatedServer"]}
+                                                                         ]
+                                                                         },
+                                                                        {"$eq": [
+                                                                            "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.performance_status",
+                                                                            "performed"]},
+                                                                        ]},
                                                                     1,
                                                                     0]}
                                                       }}}]))
@@ -103,16 +111,26 @@ def servers_in_terminated_apps(app_name):
                                                "init_start": {"$addToSet": "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.initiate_start_time"},
                                                "init_end": {"$addToSet": "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.initiate_end_time"},
                                                "server_count": {"$sum": {"$cond":
-                                                   [{"$and": [{"$eq": [
-                                                       "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
-                                                       "Server"]},
-                                                       {"$eq": [
-                                                           "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.performance_status",
-                                                           "reversed"]},
-                                                    ]},
+                                                   [{"$and": [
+                                                        {"$or": [   # any kind of server class
+                                                              {"$eq": [
+                                                               "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
+                                                               "Server"]},
+                                                              {"$eq": [
+                                                                  "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
+                                                                  "TemplatedServer"
+                                                              ]}
+                                                        ]},
+                                                        {"$eq": [   # must be reversed to termination
+                                                            "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__OBJECT__.performance_status",
+                                                            "reversed"]},
+                                                        ]
+                                                     },
                                                     1,
                                                     0]}
-                                                   }}}
+                                                   }
+                                               }
+                                    }
                                    ]))
 
     return l
