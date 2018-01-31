@@ -25,7 +25,7 @@ from errator import narrate
 
 
 @narrate(lambda c, vt, n: "...which requires finding vsphere {} "
-                          "object {}".format(str(type(vt), n)))
+                          "object {}".format(str(type(vt)), n))
 def get_obj(content, vimtype, name):
     """
     Finds an object of a particular type by a particular name

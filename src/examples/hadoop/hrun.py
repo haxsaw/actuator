@@ -281,5 +281,7 @@ if __name__ == "__main__":
                 print ">>>slaves:"
                 for s in infra.slaves.values():
                     print "\t%s" % s.slave_fip.get_ip()
+                print("\nExecution prices for this infra:\n")
+                print(create_price_table(infra, for_cloud=on_cloud))
             else:
                 print "Orchestration failed; see the log for error messages"
