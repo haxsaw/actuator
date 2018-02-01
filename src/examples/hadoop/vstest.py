@@ -30,9 +30,9 @@ class VSHadoopInfra(InfraModel):
     datastore2 = "DATA"
     with_infra_options(long_names=True)
 
-    name_node_ds = Datastore("namenode_ds0", dspath=datastore1)
-    name_node_rp = ResourcePool("namenode_rp0", pool_name="new dell")
-    name_node_fip = TemplatedServer("namenode0", template_name="ActuatorBase3",
+    name_node_ds = Datastore("namenode_ds", dspath=datastore1)
+    name_node_rp = ResourcePool("namenode_rp", pool_name="new dell")
+    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase3",
                                     data_store=ctxt.model.name_node_ds,
                                     resource_pool=ctxt.model.name_node_rp)
 

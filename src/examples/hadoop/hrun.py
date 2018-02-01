@@ -98,8 +98,11 @@ if __name__ == "__main__":
             ops.append(rerun_op)
         elif not json_file:
             ops.append(standup_op)
-        print "%s" % (",".join(ops))
-        print "/".join([o[0] for o in ops]), ": ",
+        try:
+            print "%s" % (",".join(ops))
+            print "/".join([o[0] for o in ops]), ": ",
+        except:
+            continue
         cmd = sys.stdin.readline().strip().lower()
         if not cmd or cmd[0] not in [o[0] for o in ops]:
             print "Unrecognized command: %s" % cmd

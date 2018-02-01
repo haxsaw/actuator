@@ -134,3 +134,8 @@ def servers_in_terminated_apps(app_name):
                                    ]))
 
     return l
+
+
+terminated = servers_in_terminated_apps
+
+running = running_servers_by_app_instance
