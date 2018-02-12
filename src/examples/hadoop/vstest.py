@@ -18,6 +18,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import random
 from actuator.provisioners.vsphere.resources import (Datastore,
                                                      ResourcePool,
                                                      TemplatedServer)
@@ -28,6 +29,7 @@ from actuator import ctxt
 class VSHadoopInfra(InfraModel):
     datastore1 = "VMDATA1"
     datastore2 = "DATA"
+    all_datastores = [datastore1, datastore2]
     with_infra_options(long_names=True)
 
     name_node_ds = Datastore("namenode_ds", dspath=datastore1)
@@ -37,7 +39,8 @@ class VSHadoopInfra(InfraModel):
                                     resource_pool=ctxt.model.name_node_rp)
 
     slaves = MultiResourceGroup("slaves",
-                                slave_ds=Datastore("slave_ds", dspath=datastore2),
+                                slave_ds=Datastore("slave_ds",
+                                                   dspath=lambda _: random.choice(VSHadoopInfra.all_datastores)),
                                 slave_rp=ResourcePool("slave_rp", pool_name="new dell"),
                                 slave_fip=TemplatedServer("slave", template_name="ActuatorBase3",
                                                           data_store=ctxt.comp.container.slave_ds,
@@ -45,7 +48,10 @@ class VSHadoopInfra(InfraModel):
 
     def make_slaves(self, num):
         for i in range(num):
-            _ = self.slaves[0]
+            _ = self.slaves[i]
+
+    def __init__(self, name, cloud="vmw", **kwargs):
+        super(VSHadoopInfra, self).__init__(name, **kwargs)
 
 
 if __name__ == "__main__":

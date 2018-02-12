@@ -27,12 +27,15 @@ from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 
 def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
           infra_class=HadoopInfra,
-          provisioner=OpenstackProvisioner(num_threads=10, cloud_name="citycloud"),
+          provisioner=None,
+          cloud_name="citycloud",
           overrides=(), client_data={}):
     """
     Stands up a hadoop infra and configures it
     """
-    inf = infra_class("hadoop-infra", event_handler=handler)
+    if provisioner is None:
+        provisioner = OpenstackProvisioner(num_threads=10, cloud_name=cloud_name)
+    inf = infra_class("hadoop-infra", cloud=cloud_name, event_handler=handler)
     namespace = HadoopNamespace("hadoop-ns")
     namespace.add_override(*overrides)
     namespace.create_slaves(num_slaves)

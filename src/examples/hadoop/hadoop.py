@@ -88,13 +88,16 @@ def get_flavor(cc):
     :param cc: an instance of actuator.modeling.CallContext
     :return: string; the flavor to use
     """
-    if cc.comp is not None and isinstance(cc.comp.value(), Provisionable):
-        if "name" in cc.comp.get_display_name():
-            result = CORES1_MEM0_5_STO20
+    if cc.nexus.inf.cloud == "citycloud":
+        if cc.comp is not None and isinstance(cc.comp.value(), Provisionable):
+            if "name" in cc.comp.get_display_name():
+                result = CORES1_MEM0_5_STO20
+            else:
+                result = CORES2_MEM2_STO50
         else:
-            result = CORES2_MEM2_STO50
-    else:
-        result = ""
+            result = ""
+    else:  # assume Auro
+        result = "standard.2"
     return result
 
 
@@ -155,6 +158,10 @@ class HadoopInfra(InfraModel):
                                                      ctxt.comp.container.slave,
                                                      ctxt.comp.container.slave.iface0.addr0,
                                                      pool=ctxt.nexus.ns.v.EXTNET))
+
+    def __init__(self, name, cloud="citycloud", **kwargs):
+        super(HadoopInfra, self).__init__(name, **kwargs)
+        self.cloud = cloud
     
 
 def host_list(ctx_exp, sep_char=" "):

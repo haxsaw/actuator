@@ -129,8 +129,8 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
     For full details see:
     http://docs.openstack.org/developer/python-novaclient/ref/v1_1/servers.html
     """
-    def __init__(self, name, imageName, flavorName, meta=None, files=None,
-                 reservation_id=None, min_count=None, max_count=None, security_groups=None,
+    def __init__(self, name, imageName, flavorName, meta=None,
+                 min_count=1, max_count=1, security_groups=None,
                  userdata=None, key_name=None, availability_zone=None, block_device_mapping=None,
                  block_device_mapping_v2=None, nics=None, scheduler_hints=None,
                  config_drive=None, disk_config=None, **kwargs):
@@ -152,18 +152,12 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         @keyword meta: A dict of arbitrary key/value metadata to store for this
             server. A maximum of five entries is allowed, and both keys and
             values must be 255 characters or less.
-        @keyword files: A dict of files to overrwrite on the server upon boot.
-            Keys are file names (i.e. /etc/passwd) and values are the file
-            contents (either as a string or as a file-like object). A maximum
-            of five entries is allowed, and each file must be 10k or less.
         @keyword userdata: user data to pass to be exposed by the metadata
             server this can be a file type object as well or a string.
-        @keyword reservation_id: a UUID for the set of servers being requested.
         @keyword key_name: (optional extension) string or KeyPair referenence;
             identifies the public side of an ssh keypair to inject into the
             instance. If a string, must be the name of an already-existing key
-            in Openstack. You can also use the 'files' argument to send down the
-            public key that you want.
+            in Openstack.
         @keyword availability_zone: String name of the availability zone for
             instance placement.
         @keyword block_device_mapping: (optional extension) A dict of block
@@ -192,10 +186,6 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.flavorName = None
         self._meta = meta
         self.meta = None
-        self._files = files   # this one may be a list of files to suck up; we make the dict
-        self.files = None   # this one may be a list of files to suck up; we make the dict
-        self._reservation_id = reservation_id
-        self.reservation_id = None
         self._min_count = min_count
         self.min_count = None
         self._max_count = max_count
@@ -267,12 +257,6 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.meta = (self._get_arg_value(self._meta)
                      if self._meta is not None
                      else None)
-        self.files = (self._get_arg_value(self._files)
-                      if self._files is not None
-                      else None)
-        self.reservation_id = (self._get_arg_value(self._reservation_id)
-                               if self._reservation_id is not None
-                               else None)
         self.min_count = (self._get_arg_value(self._min_count)
                           if self._min_count is not None
                           else None)
@@ -300,10 +284,10 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
                                   else None)
         self.block_device_mapping = (self._get_arg_value(self._block_device_mapping)
                                      if self._block_device_mapping is not None
-                                     else None)
+                                     else [])
         self.block_device_mapping_v2 = (self._get_arg_value(self._block_device_mapping_v2)
                                         if self._block_device_mapping_v2 is not None
-                                        else None)
+                                        else [])
         
         if self._nics is None:
             self.nics = []
@@ -332,7 +316,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         
     def get_init_args(self):
         return ((self.name, self._imageName, self._flavorName),
-                {"meta": self._meta, "files": self._files, "reservation_id": self._reservation_id,
+                {"meta": self._meta,
                  "min_count": self._min_count, "max_count": self._max_count,
                  "security_groups": self._security_groups,
                  "userdata": self._userdata,
@@ -351,8 +335,6 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         """
         return ((self.name, self.imageName, self.flavorName),
                 {"meta": self.meta,
-                 "files": self.files,
-                 "reservation_id": self.reservation_id,
                  "min_count": self.min_count,
                  "max_count": self.max_count,
                  "security_groups": self.security_groups,

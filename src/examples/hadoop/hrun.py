@@ -135,13 +135,14 @@ if __name__ == "__main__":
                 continue
             # if we get here, we're standing up; see which cloud
             cloud = None
-            while cloud not in ('o', 'v'):
-                print "Enter 'o' for OpenStack, 'v' for VMWare: ",
-                cloud = sys.stdin.readline().strip()
+            while cloud not in ('c', 'v', 'a'):
+                print "Enter 'c' for CityCloud, 'a' for Auro, 'v' for VMWare: ",
+                cloud = sys.stdin.readline().strip().lower()
             # prep all args
             kwargs = {"num_slaves": num_slaves, "handler": handler}
             on_cloud = CITYCLOUD
 
+            cloud_name = None
             if cloud == "v":
                 # add additional args for VMWare
                 on_cloud = VSPHERE
@@ -154,10 +155,22 @@ if __name__ == "__main__":
                                "provisioner": prov,
                                "overrides": [Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                                              Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)]})
+            elif cloud == "a":
+                # then use the Auro cloud
+                kwargs.update({"overrides": [Var("IMAGE", "Ubuntu16.04-x86_64"),
+                                             Var("AZ", "RegionOne"),
+                                             Var("EXTNET", "provider"),
+                                             Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
+                                             Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)
+                                             ]})
+                cloud_name = 'auro'
+            else:
+                cloud_name = "citycloud"
             # record which cloud we used in the keys so we can recreate the proper one
             # on a reanimate
-            mykeys = {"on_cloud": on_cloud}
+            mykeys = {"on_cloud": on_cloud, "cloud_name": cloud_name}
             kwargs["client_data"] = mykeys
+            kwargs["cloud_name"] = cloud_name
 
             success, infra, ns, conf, ao = do_it(**kwargs)
             # success, infra, ns, conf, ao = do_it(num_slaves=num_slaves, handler=handler)
@@ -197,7 +210,8 @@ if __name__ == "__main__":
                 client_keys = ao.client_keys
                 on_cloud = client_keys["on_cloud"]
                 if on_cloud == CITYCLOUD:
-                    ao.set_provisioner(OpenstackProvisioner(cloud_name="citycloud", num_threads=5))
+                    cloud_name = client_keys["cloud_name"]
+                    ao.set_provisioner(OpenstackProvisioner(cloud_name=cloud_name, num_threads=5))
                 elif on_cloud == VSPHERE:
                     line = open("vscreds.txt", "r").readline().strip()
                     h, u, p = line.split(",")

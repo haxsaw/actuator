@@ -154,7 +154,7 @@ class PTaskProcessor(AbstractTaskProcessor):
         while channel.recv_ready() or not prompt_seen:
             chunk = channel.recv(self.read_chunk)
             results += chunk
-            prompt_seen = until in results
+            prompt_seen = results.endswith(until)
         sio = StringIO(results)
         return [l for l in sio]
 
