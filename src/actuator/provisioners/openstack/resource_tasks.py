@@ -28,14 +28,10 @@ import uuid
 import string
 
 from actuator.modeling import AbstractModelReference
-from actuator.task import TaskEngine, GraphableModelMixin, Task
-from actuator.provisioners.openstack import openstack_class_factory as ocf
-from actuator.provisioners.core import BaseProvisioner, BaseTaskSequencerAgent
+from actuator.task import Task
 from actuator.provisioners.openstack.resources import *
-from actuator.provisioners.openstack.support import (_OSMaps,
-                                                     OpenstackProvisioningRecord)
-from actuator.utils import (capture_mapping, get_mapper, root_logger, LOG_INFO)
-from errator import (narrate, narrate_cm, get_narration, reset_narration)
+from actuator.utils import capture_mapping
+from errator import narrate, narrate_cm
 
 _rt_domain = "resource_task_domain"
 
@@ -76,14 +72,14 @@ class ProvisioningTask(Task):
     def depends_on_list(self):
         return []
     
-    def _perform(self, engine):
+    def _perform(self, proxy):
         """
         override this method to perform the actual provisioning work. there is
         no return value
         """
         return
     
-    def _reverse(self, engine):
+    def _reverse(self, proxy):
         return
     
     def get_init_args(self):
@@ -93,8 +89,8 @@ class ProvisioningTask(Task):
 @capture_mapping(_rt_domain, Network)
 class ProvisionNetworkTask(ProvisioningTask):
     @narrate(lambda s, _: "...causing the start of the provisioning task for the network {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         with narrate_cm("-and tried to create the network"):
             response = run_context.cloud.create_network(self.rsrc.get_display_name(),
                                                         admin_state_up=self.rsrc.admin_state_up)
@@ -102,8 +98,8 @@ class ProvisionNetworkTask(ProvisioningTask):
         run_context.record.add_network_id(self.rsrc._id, self.rsrc.osid)
 
     @narrate(lambda s, _: "...which started the de-provisioning task for the network {}".format(s.rsrc.name))
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         netid = self.rsrc.osid
         with narrate_cm("-and tried to delete the network"):
             run_context.cloud.delete_network(netid)
@@ -117,8 +113,8 @@ class ProvisionSubnetTask(ProvisioningTask):
                 else [])
 
     @narrate(lambda s, _: "...which started the provisioning task for the subnet {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         with narrate_cm("-and tried to created the subnet"):
             response = run_context.cloud.create_subnet(self.rsrc._get_arg_msg_value(self.rsrc.network,
                                                                                     Network,
@@ -132,8 +128,8 @@ class ProvisionSubnetTask(ProvisioningTask):
         run_context.record.add_subnet_id(self.rsrc._id, self.rsrc.osid)
 
     @narrate(lambda s, _: "...resulting in starting the de-provisioning task for the subnet {}".format(s.rsrc.name))
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         # this may not be needed as the subnet may go with the network
         subnet_id = self.rsrc.osid
         run_context.cloud.delete_subnet(subnet_id)
@@ -154,8 +150,8 @@ class ProvisionSecGroupTask(ProvisioningTask):
     _sg_create_lock = threading.Lock()
 
     @narrate(lambda s, _: "...which started the provisioning task for the security group {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         with self._sg_create_lock:
             # @FIXME: this lock is because nova isn't threadsafe for this
             # call, and until it is we have to single-thread through it
@@ -167,8 +163,8 @@ class ProvisionSecGroupTask(ProvisioningTask):
 
     @narrate(lambda s, _: "...resulting in starting the de-provisioning task for the security "
                           "group {}".format(s.rsrc.name))
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         secgroup_id = self.rsrc.osid
         with narrate_cm("-and tried to delete the security group"):
             run_context.cloud.delete_security_group(secgroup_id)
@@ -182,8 +178,8 @@ class ProvisionSecGroupRuleTask(ProvisioningTask):
                 else [])
 
     @narrate(lambda s, _: "...which started the provisioning task for the security group rule {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         sg_id = self.rsrc._get_arg_msg_value(self.rsrc.secgroup,
                                              SecGroup,
                                              "osid", "secgroup")
@@ -219,8 +215,8 @@ class ProvisionServerTask(ProvisioningTask):
                 setattr(iface, "addr%d" % j, iface_addr['addr'])
 
     @narrate(lambda s, _: "...which started the provisioning task for the server {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         with narrate_cm("-requiring a refresh of the available images"):
             run_context.maps.refresh_images()
         with narrate_cm("-requiring a refresh of the available flavors"):
@@ -282,8 +278,8 @@ class ProvisionServerTask(ProvisioningTask):
             self._process_server_addresses(srvr["addresses"])
 
     @narrate(lambda s, _: "...resulting in starting the de-provisioning task for the server {}".format(s.rsrc.name))
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         run_context.cloud.delete_server(self.rsrc.osid)
 
                 
@@ -292,8 +288,8 @@ class ProvisionRouterTask(ProvisioningTask):
     # depends on nothing
 
     @narrate(lambda s, _: "...which started the provisioning task for the router {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         with narrate_cm(lambda r: "-first trying to create router {}".format(r.get_display_name()),
                         self.rsrc):
             reply = run_context.cloud.create_router(name=self.rsrc.get_display_name(),
@@ -302,8 +298,8 @@ class ProvisionRouterTask(ProvisioningTask):
         run_context.record.add_router_id(self.rsrc._id, self.rsrc.osid)
 
     @narrate(lambda s, _: "...resulting in starting the de-provisioning task for the router {}".format(s.rsrc.name))
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         router_id = self.rsrc.osid
         with narrate_cm(lambda rid: "-and then tried to delete the router with osid {}".format(rid),
                         router_id):
@@ -318,8 +314,8 @@ class ProvisionRouterGatewayTask(ProvisioningTask):
                 else [])
 
     @narrate(lambda s, _: "...which started the provisioning task for the the router gateway {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         with narrate_cm("-but first the network maps need to be refreshed"):
             run_context.maps.refresh_networks()
@@ -342,8 +338,8 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
         return deps
 
     @narrate(lambda s, _: "...resulting in commencing the provisioning task for router interface {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         with narrate_cm(lambda rid: "-first the router with osid {} was looked up".format(rid),
                         router_id):
@@ -357,8 +353,8 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
         run_context.record.add_router_iface_id(self.rsrc._id, response[u'port_id'])
 
     @narrate(lambda s, _: "...which started the de-provisioning task for the router interface {}".format(s.rsrc.name))
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         router_id = self.rsrc._get_arg_msg_value(self.rsrc.router, Router, "osid", "router")
         with narrate_cm(lambda r: "-first the router with osid {} was queried".format(r),
                         router_id):
@@ -376,8 +372,8 @@ class ProvisionFloatingIPTask(ProvisioningTask):
         return [self.rsrc.server] if isinstance(self.rsrc.server, Server) else []
 
     @narrate(lambda s, _: "...resulting in commencing the provisioning task for floating ip {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         self.rsrc._refix_arguments()
         associated_ip = self.rsrc.associated_ip
         if associated_ip is not None:
@@ -397,8 +393,8 @@ class ProvisionFloatingIPTask(ProvisioningTask):
         self.rsrc.set_osid(fip["id"])
         run_context.record.add_floating_ip_id(self.rsrc._id, self.rsrc.osid)
 
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         associated_ip = self.rsrc.associated_ip
         if associated_ip is not None:
             servername = self.rsrc._get_arg_msg_value(self.rsrc.server, Server,
@@ -412,8 +408,8 @@ class ProvisionKeyPairTask(ProvisioningTask):
     # KeyPairs depend on nothing
 
     @narrate(lambda s, e: "...which in turn started the provisioning task for keypair {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         name = self.rsrc.get_key_name()
         if self.rsrc.pub_key_file is not None:
             try:
@@ -439,106 +435,106 @@ class ProvisionKeyPairTask(ProvisioningTask):
                 run_context.cloud.create_keypair(name, public_key)
 
 
-class OpenstackCredentials(object):
-    def __init__(self, cloud_name=None, config_files=None):
-        self.cloud_name = cloud_name
-        self.config_files = config_files
-
-
-class RunContext(object):
-    def __init__(self, record, os_creds):
-        assert isinstance(os_creds, OpenstackCredentials)
-        self.os_creds = os_creds
-        self.record = record
-        self.maps = _OSMaps(self)
-
-    @property
-    @narrate(lambda s: "...which required loading the cloud definitions file '%s'" % (str(s.os_creds.cloud_name), ))
-    def cloud(self):
-        if self.os_creds.cloud_name:
-            cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
-                                        config_files=self.os_creds.config_files)
-        else:
-            cloud = None
-        return cloud
-
-
-class RunContextFactory(object):
-    def __init__(self, record, os_creds):
-        self.os_creds = os_creds
-        self.record = record
-
-    def __call__(self):
-        return RunContext(self.record, self.os_creds)
-
-
-class ResourceTaskSequencerAgent(BaseTaskSequencerAgent):
-    def __init__(self, infra_model, os_creds, num_threads=5, log_level=LOG_INFO,
-                 no_delay=True):
-        self.record = OpenstackProvisioningRecord(uuid.uuid4())
-        self.os_creds = os_creds
-        rcf = RunContextFactory(self.record, os_creds)
-        super(ResourceTaskSequencerAgent, self).__init__(infra_model, _rt_domain, rcf, num_threads=num_threads,
-                                                         log_level=log_level, no_delay=no_delay)
-
-
-class OpenstackProvisioner(BaseProvisioner):
-    """
-    This flavor of Actuator provisioner is meant operate against an Openstack-
-    equipped cloud API. It will take an Actuator infra model and provsion
-    all Openstack resources it finds in it.
-    
-    The provisioner is conventionally used within the Actuator orchestrator,
-    but can be used independently to simply provsion Openstack infrastructure.
-    
-    See the doc for L{BaseProvisioner} for the rest of the details to run
-    the provisioner independently.
-    """
-    LOG_SUFFIX = "os_provisioner"
-
-    def __init__(self, cloud_name=None, config_files=None, num_threads=5, log_level=LOG_INFO):
-        """
-        @param username: String; the Openstack user name
-        @param password: String; the Openstack password for username
-        @param tenant_name: String, the Openstack tenant's name
-        @param auth_url: String; the Openstack authentication URL. This will
-            authenticate the username/password to allow them to perform the
-            resource provisioning tasks.
-        @keyword num_threads: Optional. Integer, default 5. The number of threads
-            to spawn to handle parallel provisioning tasks
-        @keyword log_level: Optional; default LOG_INFO. One of the logging values
-            from actuator: LOG_CRIT, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG.
-        """
-        with narrate_cm(lambda cn, cf:
-                        "...so an OpenStack provisioner was created for cloud {} and config_files {},"
-                        " resulting in the creation of the credentials object"
-                        .format(cn, str(cf)), str(cloud_name), str(config_files)):
-            self.os_creds = OpenstackCredentials(cloud_name=cloud_name, config_files=config_files)
-        self.agent = None
-        self.num_threads = num_threads
-        self.log_level = log_level
-        self.logger = root_logger.getChild(self.LOG_SUFFIX)
-        self.logger.setLevel(self.log_level)
-
-    @narrate("...which initiated the OpenStack provisioning work")
-    def _provision(self, inframodel_instance):
-        self.logger.info("Starting to provision...")
-        if self.agent is None:
-            self.agent = ResourceTaskSequencerAgent(inframodel_instance,
-                                                    self.os_creds,
-                                                    num_threads=self.num_threads,
-                                                    log_level=self.log_level)
-        self.agent.perform_tasks()
-        self.logger.info("...provisioning complete.")
-        return self.agent.record
-
-    @narrate("...which initiated the Openstack deprovisioning work")
-    def _deprovision(self, inframodel_instance, record=None):
-        self.logger.info("Starting to deprovision...")
-        if self.agent is None:
-            self.agent = ResourceTaskSequencerAgent(inframodel_instance,
-                                                    self.os_creds,
-                                                    num_threads=self.num_threads)
-        self.agent.perform_reverses()
-        self.logger.info("Deprovisioning complete.")
-        return self.agent.record
+# class OpenstackCredentials(object):
+#     def __init__(self, cloud_name=None, config_files=None):
+#         self.cloud_name = cloud_name
+#         self.config_files = config_files
+#
+#
+# class RunContext(object):
+#     def __init__(self, record, os_creds):
+#         assert isinstance(os_creds, OpenstackCredentials)
+#         self.os_creds = os_creds
+#         self.record = record
+#         self.maps = _OSMaps(self)
+#
+#     @property
+#     @narrate(lambda s: "...which required loading the cloud definitions file '%s'" % (str(s.os_creds.cloud_name), ))
+#     def cloud(self):
+#         if self.os_creds.cloud_name:
+#             cloud = ocf.get_shade_cloud(self.os_creds.cloud_name,
+#                                         config_files=self.os_creds.config_files)
+#         else:
+#             cloud = None
+#         return cloud
+#
+#
+# class RunContextFactory(object):
+#     def __init__(self, record, os_creds):
+#         self.os_creds = os_creds
+#         self.record = record
+#
+#     def __call__(self):
+#         return RunContext(self.record, self.os_creds)
+#
+#
+# class ResourceTaskSequencerAgent(BaseTaskSequencerAgent):
+#     def __init__(self, infra_model, os_creds, num_threads=5, log_level=LOG_INFO,
+#                  no_delay=True):
+#         self.record = OpenstackProvisioningRecord(uuid.uuid4())
+#         self.os_creds = os_creds
+#         rcf = RunContextFactory(self.record, os_creds)
+#         super(ResourceTaskSequencerAgent, self).__init__(infra_model, _rt_domain, rcf, num_threads=num_threads,
+#                                                          log_level=log_level, no_delay=no_delay)
+#
+#
+# class OpenstackProvisioner(BaseProvisioner):
+#     """
+#     This flavor of Actuator provisioner is meant operate against an Openstack-
+#     equipped cloud API. It will take an Actuator infra model and provsion
+#     all Openstack resources it finds in it.
+#
+#     The provisioner is conventionally used within the Actuator orchestrator,
+#     but can be used independently to simply provision Openstack infrastructure.
+#
+#     See the doc for L{BaseProvisioner} for the rest of the details to run
+#     the provisioner independently.
+#     """
+#     LOG_SUFFIX = "os_provisioner"
+#
+#     def __init__(self, cloud_name=None, config_files=None, num_threads=5, log_level=LOG_INFO):
+#         """
+#         @param username: String; the Openstack user name
+#         @param password: String; the Openstack password for username
+#         @param tenant_name: String, the Openstack tenant's name
+#         @param auth_url: String; the Openstack authentication URL. This will
+#             authenticate the username/password to allow them to perform the
+#             resource provisioning tasks.
+#         @keyword num_threads: Optional. Integer, default 5. The number of threads
+#             to spawn to handle parallel provisioning tasks
+#         @keyword log_level: Optional; default LOG_INFO. One of the logging values
+#             from actuator: LOG_CRIT, LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG.
+#         """
+#         with narrate_cm(lambda cn, cf:
+#                         "...so an OpenStack provisioner was created for cloud {} and config_files {},"
+#                         " resulting in the creation of the credentials object"
+#                         .format(cn, str(cf)), str(cloud_name), str(config_files)):
+#             self.os_creds = OpenstackCredentials(cloud_name=cloud_name, config_files=config_files)
+#         self.agent = None
+#         self.num_threads = num_threads
+#         self.log_level = log_level
+#         self.logger = root_logger.getChild(self.LOG_SUFFIX)
+#         self.logger.setLevel(self.log_level)
+#
+#     @narrate("...which initiated the OpenStack provisioning work")
+#     def _provision(self, inframodel_instance):
+#         self.logger.info("Starting to provision...")
+#         if self.agent is None:
+#             self.agent = ResourceTaskSequencerAgent(inframodel_instance,
+#                                                     self.os_creds,
+#                                                     num_threads=self.num_threads,
+#                                                     log_level=self.log_level)
+#         self.agent.perform_tasks()
+#         self.logger.info("...provisioning complete.")
+#         return self.agent.record
+#
+#     @narrate("...which initiated the Openstack deprovisioning work")
+#     def _deprovision(self, inframodel_instance, record=None):
+#         self.logger.info("Starting to deprovision...")
+#         if self.agent is None:
+#             self.agent = ResourceTaskSequencerAgent(inframodel_instance,
+#                                                     self.os_creds,
+#                                                     num_threads=self.num_threads)
+#         self.agent.perform_reverses()
+#         self.logger.info("Deprovisioning complete.")
+#         return self.agent.record

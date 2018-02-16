@@ -43,7 +43,7 @@ from task import (TaskGroup)
 from config import (ConfigModel, with_searchpath, with_dependencies,
                     ConfigException, MultiTask, NullTask,
                     ConfigClassTask, with_config_options, ConfigModelMeta)
-from provisioners.core import ProvisionerException, BaseProvisioner
+from provisioners.core import ProvisionerException, ProvisioningTaskEngine, BaseProvisionerProxy
 from exec_agents.core import ExecutionAgent, ExecutionException
 from exec_agents.paramiko.agent import ParamikoExecutionAgent
 from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
@@ -295,7 +295,7 @@ class ActuatorOrchestration(_Persistable):
     ABORT_DEPROV = 9
     DEPROV_COMPLETE = 10
 
-    def __init__(self, infra_model_inst=None, provisioner=None, namespace_model_inst=None,
+    def __init__(self, infra_model_inst=None, provisioner_proxies=(), namespace_model_inst=None,
                  config_model_inst=None, service=None, log_level=LOG_INFO, no_delay=False, num_threads=5,
                  post_prov_pause=60, client_keys=None):
         """
@@ -311,11 +311,10 @@ class ActuatorOrchestration(_Persistable):
             L{actuator.infra.InfraModel}. If absent, all host information must be
             contained as values for host_refs in the NamespaceModel that resolve to
             either an IP address or a resolvable host name.
-        @keyword provisioner: Optional; an  instance of a subclass of
-            L{actuator.provisioners.core.BaseProvisioner}, such as the Openstack
-            provisioner. If absent and an infra model has been supplied, then all
-            resources in the model must be StaticServers, or else the resource will
-            not get provisioned.
+        @keyword provisioner_proxies: Optional; a sequence of L{actuator.provisioners.core.BaseProvisionerProxy}
+            derived class instances. These are the provisioners that will be used to provision
+            the resources in the infra model. This list can be provided later in order to plug
+            proxies in just before using an orchstrator that has be reanimated from an external store.
         @keyword namespace_model_inst: Optional; an instance of a subclass of
             L{actuator.namespace.NamespaceModel}. If absent, then only infra model
             processing will be possible (if one was supplied).
@@ -374,9 +373,11 @@ class ActuatorOrchestration(_Persistable):
             raise ExecutionException("infra_model_inst is no an instance of InfraModel")
         self.infra_model_inst = infra_model_inst
 
-        if not (provisioner is None or isinstance(provisioner, BaseProvisioner)):
-            raise ExecutionException("provisioner is not an instance of BaseProvisioner")
-        self.provisioner = provisioner
+        if any([not isinstance(pp, BaseProvisionerProxy) for pp in provisioner_proxies]):
+            raise ExecutionException("one or more provisioner proxies is not of a type derived from "
+                                     "BaseProvisionerProxy")
+        self.provisioner_proxies = provisioner_proxies
+        self.pte = None  # will hold the ProvisioningTaskEngine
 
         if not (namespace_model_inst is None or isinstance(namespace_model_inst, NamespaceModel)):
             raise ExecutionException("namespace_model_inst is not an instance of NamespaceModel")
@@ -403,6 +404,12 @@ class ActuatorOrchestration(_Persistable):
                                                     no_delay=no_delay,
                                                     log_level=log_level)
 
+    def set_provisioner_proxies(self, proxies):
+        if any([not isinstance(pp, BaseProvisionerProxy) for pp in proxies]):
+            raise ExecutionException("one or more of the proxies is not of a type derived from "
+                                     "BaseProvisionerProxy")
+        self.provisioner_proxies = proxies
+
     def set_event_handler(self, handler):
         if self.infra_model_inst:
             self.infra_model_inst.set_event_handler(handler)
@@ -421,7 +428,9 @@ class ActuatorOrchestration(_Persistable):
                   "logger": None,
                   "provisioner": None,
                   "initiate_start_time": self.initiate_start_time,
-                  "initiate_end_time": self.initiate_end_time})
+                  "initiate_end_time": self.initiate_end_time,
+                  "provisioner_proxies": (),
+                  "pte": None})
         return d
 
     def _find_persistables(self):
@@ -432,13 +441,8 @@ class ActuatorOrchestration(_Persistable):
 
     def finalize_reanimate(self):
         self.logger = root_logger.getChild("orchestrator")
-        if not hasattr(self, "provisioner"):
-            self.provisioner = None
-
-    def set_provisioner(self, provisioner):
-        if not isinstance(provisioner, BaseProvisioner):
-            raise ExecutionException("provisioner is not an instance of BaseProvisioner")
-        self.provisioner = provisioner
+        if not hasattr(self, "provisioner_proxies"):
+            self.provisioner_proxies = ()
 
     def is_running(self):
         """
@@ -490,7 +494,7 @@ class ActuatorOrchestration(_Persistable):
         self.initiate_start_time = str(datetime.datetime.utcnow())
         self.logger.info("Orchestration starting")
         did_provision = False
-        if self.infra_model_inst is not None and self.provisioner is not None:
+        if self.infra_model_inst is not None and self.provisioner_proxies:
             try:
                 self.status = self.PERFORMING_PROVISION
                 self.logger.info("Starting provisioning phase")
@@ -498,15 +502,17 @@ class ActuatorOrchestration(_Persistable):
                     self.namespace_model_inst.set_infra_model(self.infra_model_inst)
                     self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
                 _ = self.infra_model_inst.refs_for_components()
-                self.provisioner.provision_infra_model(self.infra_model_inst)
+                if self.pte is None:
+                    self.pte = ProvisioningTaskEngine(self.infra_model_inst, self.provisioner_proxies)
+                self.pte.perform_tasks()
                 self.logger.info("Provisioning phase complete")
                 did_provision = True
             except ProvisionerException, e:
                 self.status = self.ABORT_PROVISION
                 self.logger.critical(">>> Provisioner failed "
                                      "with '%s'; failed resources shown below" % e.message)
-                if self.provisioner.agent is not None:
-                    for t, et, ev, tb, _ in self.provisioner.agent.get_aborted_tasks():
+                if self.pte is not None:
+                    for t, et, ev, tb, _ in self.pte.get_aborted_tasks():
                         self.logger.critical("Task %s named %s id %s" %
                                              (t.__class__.__name__, t.name, str(t._id)),
                                              exc_info=(et, ev, tb))
@@ -562,7 +568,7 @@ class ActuatorOrchestration(_Persistable):
     def teardown_system(self):
         self.logger.info("Teardown orchestration starting")
         did_teardown = False
-        if self.infra_model_inst is not None and self.provisioner is not None:
+        if self.infra_model_inst is not None and self.pte is not None:
             try:
                 self.status = self.PERFORMING_DEPROV
                 self.logger.info("Starting de-provisioning phase")
@@ -570,15 +576,15 @@ class ActuatorOrchestration(_Persistable):
                     self.namespace_model_inst.set_infra_model(self.infra_model_inst)
                     self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
                 _ = self.infra_model_inst.refs_for_components()
-                self.provisioner.deprovision_infra_model(self.infra_model_inst)
+                self.pte.perform_reverses()
                 self.logger.info("De-provisioning phase complete")
                 did_teardown = True
             except ProvisionerException, e:
                 self.status = self.ABORT_PROVISION
                 self.logger.critical(">>> De-provisioning failed "
                                      "with '%s'; failed resources shown below" % e.message)
-                if self.provisioner.agent is not None:
-                    for t, et, ev, tb, _ in self.provisioner.agent.get_aborted_tasks():
+                if self.pte is not None:
+                    for t, et, ev, tb, _ in self.pte.get_aborted_tasks():
                         self.logger.critical("Task %s named %s id %s" %
                                              (t.__class__.__name__, t.name, str(t._id)),
                                              exc_info=(et, ev, tb))

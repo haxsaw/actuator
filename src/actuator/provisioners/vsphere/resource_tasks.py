@@ -21,18 +21,14 @@
 
 import random
 import time
-import threading
 from errator import narrate
 from pyVmomi import vim
-from pyVim import connect
 from actuator.infra import StaticServer
 from actuator.utils import capture_mapping
 from actuator.provisioners.vsphere.resources import (Datastore, TemplatedServer,
                                                      ResourcePool)
-from actuator.provisioners.core import (ProvisioningTask, ProvisionerException, BaseTaskSequencerAgent,
-                                        BaseProvisioner)
+from actuator.provisioners.core import (ProvisioningTask, ProvisionerException)
 from actuator.provisioners.vsphere.utils import wait_for_task, get_obj
-from actuator.utils import LOG_INFO, root_logger
 
 _vs_domain = "vsphere_task_domain"
 
@@ -41,20 +37,20 @@ _vs_domain = "vsphere_task_domain"
 class ProvisionStaticServerTask(ProvisioningTask):
     @narrate(lambda s, _: "...which started the placeholder task for the already provisioned "
                           "static server {}".format(s.rsrc.name))
-    def _perform(self, engine):
+    def _perform(self, proxy):
         return
 
     @narrate(lambda s, _: "...thus starting the placeholder de-provision for static "
                           "server {}".format(s.rsrc.name))
-    def _reverse(self, engine):
+    def _reverse(self, proxy):
         return
 
 
 @capture_mapping(_vs_domain, Datastore)
 class ProvisionDatastoreTask(ProvisioningTask):
     @narrate(lambda s, _: "...which started the provisioning of the datastore {}".format(s.rsrc.get_dspath()))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         vcenter = run_context.vcenter
         datastore = get_obj(vcenter.RetrieveContent(), [vim.Datastore], self.rsrc.get_dspath())
         if datastore is None:
@@ -62,15 +58,15 @@ class ProvisionDatastoreTask(ProvisioningTask):
         self.rsrc.set_vs_datastore(datastore)
 
     @narrate(lambda s, _: "...which started the de-provisioning of the datastore {}".format(s.rsrc.name))
-    def _reverse(self, engine):
+    def _reverse(self, proxy):
         return
 
 
 @capture_mapping(_vs_domain, ResourcePool)
 class ProvisionResourcePoolTask(ProvisioningTask):
     @narrate(lambda s, _: "...and that initiated provisioning resource pool {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         vcenter = run_context.vcenter  # this is a SmartConnect object
         content = vcenter.RetrieveContent()
         datacenter = content.rootFolder.childEntity[0]
@@ -92,7 +88,7 @@ class ProvisionResourcePoolTask(ProvisioningTask):
         self.rsrc.set_resource_pool(pool)
 
     @narrate(lambda s, _: "...when we started to de-provision resource pool {}".format(s.rsrc.name))
-    def _reverse(self, engine):
+    def _reverse(self, proxy):
         return
 
 
@@ -111,8 +107,8 @@ class ProvisionTemplatedServer(ProvisioningTask):
         return text.replace(".", "-")
 
     @narrate(lambda s, _: "...which started the process of provisioning templated server {}".format(s.rsrc.name))
-    def _perform(self, engine):
-        run_context = engine.get_context()
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
         vcenter = run_context.vcenter
         content = vcenter.RetrieveContent()
         pool = self.rsrc.get_resource_pool().get_resource_pool()
@@ -162,8 +158,8 @@ class ProvisionTemplatedServer(ProvisioningTask):
         self.rsrc.set_ip(guest_ip)
 
     @narrate(lambda s, _: "...and then the deprovision of %s started" % s.rsrc.name)
-    def _reverse(self, engine):
-        run_context = engine.get_context()
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
         vcenter = run_context.vcenter
         content = vcenter.RetrieveContent()
         vm = get_obj(content, [vim.VirtualMachine],
@@ -181,104 +177,104 @@ class ProvisionTemplatedServer(ProvisioningTask):
             raise ProvisionerException("Destroy VM task failed with %s" % str(res))
 
 
-class VSphereCredentials(object):
-    def __init__(self, host, username, pwd):
-        self.host = host
-        self.username = username
-        self.pwd = pwd
-
-
-class VSphereRunContext(object):
-    ssl_patch_lock = threading.Lock()
-
-    def __init__(self, credentials):
-        assert isinstance(credentials, VSphereCredentials)
-        self.credentials = credentials
-        self._vcenter = None
-
-    @property
-    @narrate("...which required the acquisition of a connection to vCenter")
-    def vcenter(self):
-        if not self._vcenter:
-            try:
-                si = connect.SmartConnect(host=self.credentials.host,
-                                          user=self.credentials.username,
-                                          pwd=self.credentials.pwd)
-            except Exception as e:
-                if "SSL: CERTIFICATE_VERIFY_FAILED" in str(e):
-                    try:
-                        import ssl
-                        with self.ssl_patch_lock:
-                            dc = None
-                            try:
-                                dc = ssl._create_default_https_context
-                                ssl._create_default_https_context = ssl._create_unverified_context
-                                si = connect.SmartConnect(host=self.credentials.host,
-                                                          user=self.credentials.username,
-                                                          pwd=self.credentials.pwd)
-                            finally:
-                                ssl._create_default_https_context = dc
-                    except Exception as e1:
-                        raise Exception(e1)
-                else:
-                    raise
-            self._vcenter = si
-        return self._vcenter
-
-
-class VSRunContextFactory(object):
-    def __init__(self, credentials):
-        assert isinstance(credentials, VSphereCredentials)
-        self.credentials = credentials
-
-    def __call__(self):
-        return VSphereRunContext(self.credentials)
-
-
-class VSphereTaskSequencerAgent(BaseTaskSequencerAgent):
-    def __init__(self, infra_model, run_context_factory, num_threads=5,
-                 log_level=LOG_INFO, no_delay=True):
-        super(VSphereTaskSequencerAgent, self).__init__(infra_model, _vs_domain, run_context_factory,
-                                                        num_threads=num_threads, log_level=log_level,
-                                                        no_delay=no_delay)
-
-
-class VSphereProvisioner(BaseProvisioner):
-    LOG_SUFFIX = "vs_provisioner"
-
-    def __init__(self, creds=None, host=None, username=None, pwd=None, num_threads=5,
-                 log_level=LOG_INFO):
-        if not creds and not (host and username and pwd):
-            raise ProvisionerException("you must supply either a VSphereCredentials instance or else "
-                                       "a host/username/pwd credentials set for vCenter")
-        if not creds:
-            creds = VSphereCredentials(host, username, pwd)
-        elif not isinstance(creds, VSphereCredentials):
-            raise ProvisionerException("The supplied creds object is not a kind of VSphereCredentials")
-
-        self.ctxt_factory = VSRunContextFactory(creds)
-        self.num_threads = num_threads
-        self.log_level = log_level
-        self.logger = root_logger.getChild(self.LOG_SUFFIX)
-        self.logger.setLevel(self.log_level)
-        self.agent = None
-
-    @narrate("...which initiated the vSphere provisioning work")
-    def _provision(self, inframodel_instance):
-        self.logger.info("Starting to provision...")
-        if self.agent is None:
-            self.agent = VSphereTaskSequencerAgent(inframodel_instance, self.ctxt_factory,
-                                                   num_threads=self.num_threads, log_level=self.log_level)
-        self.agent.perform_tasks()
-        self.logger.info("...provisioning complete")
-
-    @narrate("...which initiated the vSphere deprovisioning work")
-    def _deprovision(self, inframodel_instance, record=None):
-        self.logger.info("Starting to deprovision...")
-        if self.agent is None:
-            self.agent = VSphereTaskSequencerAgent(inframodel_instance, self.ctxt_factory,
-                                                   num_threads=self.num_threads, log_level=self.log_level)
-        self.agent.perform_reverses()
-        self.logger.info("...deprovisioning complete.")
-
-__all__ = ["VSphereCredentials", "VSphereProvisioner"]
+# class VSphereCredentials(object):
+#     def __init__(self, host, username, pwd):
+#         self.host = host
+#         self.username = username
+#         self.pwd = pwd
+#
+#
+# class VSphereRunContext(object):
+#     ssl_patch_lock = threading.Lock()
+#
+#     def __init__(self, credentials):
+#         assert isinstance(credentials, VSphereCredentials)
+#         self.credentials = credentials
+#         self._vcenter = None
+#
+#     @property
+#     @narrate("...which required the acquisition of a connection to vCenter")
+#     def vcenter(self):
+#         if not self._vcenter:
+#             try:
+#                 si = connect.SmartConnect(host=self.credentials.host,
+#                                           user=self.credentials.username,
+#                                           pwd=self.credentials.pwd)
+#             except Exception as e:
+#                 if "SSL: CERTIFICATE_VERIFY_FAILED" in str(e):
+#                     try:
+#                         import ssl
+#                         with self.ssl_patch_lock:
+#                             dc = None
+#                             try:
+#                                 dc = ssl._create_default_https_context
+#                                 ssl._create_default_https_context = ssl._create_unverified_context
+#                                 si = connect.SmartConnect(host=self.credentials.host,
+#                                                           user=self.credentials.username,
+#                                                           pwd=self.credentials.pwd)
+#                             finally:
+#                                 ssl._create_default_https_context = dc
+#                     except Exception as e1:
+#                         raise Exception(e1)
+#                 else:
+#                     raise
+#             self._vcenter = si
+#         return self._vcenter
+#
+#
+# class VSRunContextFactory(object):
+#     def __init__(self, credentials):
+#         assert isinstance(credentials, VSphereCredentials)
+#         self.credentials = credentials
+#
+#     def __call__(self):
+#         return VSphereRunContext(self.credentials)
+#
+#
+# class VSphereTaskSequencerAgent(BaseTaskSequencerAgent):
+#     def __init__(self, infra_model, run_context_factory, num_threads=5,
+#                  log_level=LOG_INFO, no_delay=True):
+#         super(VSphereTaskSequencerAgent, self).__init__(infra_model, _vs_domain, run_context_factory,
+#                                                         num_threads=num_threads, log_level=log_level,
+#                                                         no_delay=no_delay)
+#
+#
+# class VSphereProvisioner(BaseProvisioner):
+#     LOG_SUFFIX = "vs_provisioner"
+#
+#     def __init__(self, creds=None, host=None, username=None, pwd=None, num_threads=5,
+#                  log_level=LOG_INFO):
+#         if not creds and not (host and username and pwd):
+#             raise ProvisionerException("you must supply either a VSphereCredentials instance or else "
+#                                        "a host/username/pwd credentials set for vCenter")
+#         if not creds:
+#             creds = VSphereCredentials(host, username, pwd)
+#         elif not isinstance(creds, VSphereCredentials):
+#             raise ProvisionerException("The supplied creds object is not a kind of VSphereCredentials")
+#
+#         self.ctxt_factory = VSRunContextFactory(creds)
+#         self.num_threads = num_threads
+#         self.log_level = log_level
+#         self.logger = root_logger.getChild(self.LOG_SUFFIX)
+#         self.logger.setLevel(self.log_level)
+#         self.agent = None
+#
+#     @narrate("...which initiated the vSphere provisioning work")
+#     def _provision(self, inframodel_instance):
+#         self.logger.info("Starting to provision...")
+#         if self.agent is None:
+#             self.agent = VSphereTaskSequencerAgent(inframodel_instance, self.ctxt_factory,
+#                                                    num_threads=self.num_threads, log_level=self.log_level)
+#         self.agent.perform_tasks()
+#         self.logger.info("...provisioning complete")
+#
+#     @narrate("...which initiated the vSphere deprovisioning work")
+#     def _deprovision(self, inframodel_instance, record=None):
+#         self.logger.info("Starting to deprovision...")
+#         if self.agent is None:
+#             self.agent = VSphereTaskSequencerAgent(inframodel_instance, self.ctxt_factory,
+#                                                    num_threads=self.num_threads, log_level=self.log_level)
+#         self.agent.perform_reverses()
+#         self.logger.info("...deprovisioning complete.")
+#
+# __all__ = ["VSphereCredentials", "VSphereProvisioner"]
