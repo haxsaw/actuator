@@ -21,20 +21,20 @@
 
 import sys
 from actuator import ActuatorOrchestration
-from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 
 
 def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
           infra_class=HadoopInfra,
-          provisioner=None,
+          proxy=None,
           cloud_name="citycloud",
           overrides=(), client_data={}):
     """
     Stands up a hadoop infra and configures it
     """
-    if provisioner is None:
-        provisioner = OpenstackProvisioner(num_threads=10, cloud_name=cloud_name)
+    if proxy is None:
+        proxy = OpenStackProvisionerProxy(cloud_name=cloud_name)
     inf = infra_class("hadoop-infra", cloud=cloud_name, event_handler=handler)
     namespace = HadoopNamespace("hadoop-ns")
     namespace.add_override(*overrides)
@@ -45,11 +45,11 @@ def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
                         event_handler=handler)
 
     orch = ActuatorOrchestration(infra_model_inst=inf,
-                                 provisioner=provisioner,
+                                 provisioner_proxies=[proxy],
                                  namespace_model_inst=namespace,
                                  config_model_inst=conf,
                                  post_prov_pause=10,
-                                 num_threads=20,
+                                 num_threads=num_slaves*2+10,
                                  client_keys=client_data)
     try:
         success = orch.initiate_system()

@@ -57,17 +57,17 @@ class VSHadoopInfra(InfraModel):
 if __name__ == "__main__":
     import sys
     from actuator import ActuatorOrchestration
-    from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
+    from actuator.provisioners.vsphere import VSphereProvisionerProxy
     from actuator.namespace import Var
     from hevent import TaskEventManager
     from hsimple import do_it
 
     line = open("vscreds.txt", "r").readline().strip()
     h, u, p = line.split(",")
-    prov = VSphereProvisioner(host=h, username=u, pwd=p)
+    prov = VSphereProvisionerProxy(host=h, username=u, pwd=p)
     success, inf, ns, conf, orch = do_it(2, handler=TaskEventManager(), pkf=None,
                                          rempass="tarnished99", infra_class=VSHadoopInfra,
-                                         provisioner=prov,
+                                         proxy=prov,
                                          overrides=[Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                                                     Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)])
     assert isinstance(orch, ActuatorOrchestration)

@@ -901,7 +901,7 @@ class TaskEngine(object):
             except Queue.Empty, _:
                 pass
 
-    @narrate(lambda s, **kw: "...which started the task engine {} in performing "
+    @narrate(lambda s, **kw: "...which started the base task engine {} in performing "
                              "tasks".format(s.name))
     def perform_tasks(self, completion_record=None):
         self._reset()

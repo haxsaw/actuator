@@ -32,8 +32,8 @@ from actuator.config import (Task, ConfigTask, ConfigModel, MultiTask,
                              with_dependencies, ConfigClassTask)
 from actuator.infra import InfraModel, MultiResource, StaticServer
 from actuator.task import _Dependency
-from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
-from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
+from actuator.provisioners.openstack import OpenStackProvisionerProxy
+from actuator.provisioners.vsphere import VSphereProvisionerProxy
 
 
 def setup_module():
@@ -721,16 +721,15 @@ def test26():
     i = Inf26("i26")
     n = NS26("ns")
     _ = n.slaves[0]
-    p = OpenstackProvisioner(cloud_name="trystack")
+    p = OpenStackProvisionerProxy("trystack")
     ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n)
     ao.initiate_system()
 
     d = persist_to_dict(ao)
     aop = reanimate_from_dict(d)
     assert isinstance(aop, ActuatorOrchestration)
-    # aop.namespace_model_inst.compute_provisioning_for_environ(aop.infra_model_inst)
     print(">>>Start teardown")
-    aop.set_provisioner(p)
+    aop.set_provisioner_proxies([p])
     aop.teardown_system()
 
 
@@ -749,9 +748,8 @@ def test27():
     i = Inf27("i27:")
     n = NS27("ns")
     _ = n.slaves[0]
-    vs = VSphereProvisioner(host="localhost", username="wibble", pwd="wobble",
-                            num_threads=5)
-    ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n, provisioner=vs)
+    vs = VSphereProvisionerProxy(host="localhost", username="wibble", pwd="wobble")
+    ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n, provisioner_proxies=[vs], num_threads=5)
     ao.initiate_system()
     d = persist_to_dict(ao)
     aop = reanimate_from_dict(d)

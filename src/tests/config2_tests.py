@@ -36,12 +36,13 @@ from actuator import (InfraModel, MultiResourceGroup,
                       ctxt, Var, ResourceGroup, Role,
                       MultiRole, NullTask, LOG_DEBUG, ConfigModel,
                       MultiTask, ConfigClassTask, ExecutionException)
-from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+from actuator.provisioners.core import ProvisioningTaskEngine
+from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.openstack.resources import (Server, Network,
-                                                        Router, FloatingIP,
-                                                        Subnet, SecGroup,
-                                                        SecGroupRule, RouterGateway,
-                                                        RouterInterface)
+                                                       Router, FloatingIP,
+                                                       Subnet, SecGroup,
+                                                       SecGroupRule, RouterGateway,
+                                                       RouterInterface)
 from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 from actuator.exec_agents.core import ExecutionAgent
 
@@ -132,17 +133,17 @@ def test001():
     pwd = "doesn't"
     url = "matter"
     
-    os_prov = OpenstackProvisioner(num_threads=1, cloud_name="wibble")
+    os_prov = ProvisioningTaskEngine(infra, provisioner_proxies=[OpenStackProvisionerProxy("wibble")], num_threads=1)
     for i in range(5):
         _ = ns.slaves[i]
     ns.compute_provisioning_for_environ(infra)
     _ = infra.refs_for_components()
     import traceback
     try:
-        os_prov.provision_infra_model(infra)
+        os_prov.perform_tasks()
     except Exception, e:
         print "Provision failed with %s; details below" % e.message
-        for t, et, ev, tb, _ in os_prov.agent.get_aborted_tasks():
+        for t, et, ev, tb, _ in os_prov.get_aborted_tasks():
             print "prov task %s failed with:" % t.name
             traceback.print_exception(et, ev, tb)
             print

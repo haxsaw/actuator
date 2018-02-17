@@ -23,7 +23,8 @@ import json
 import os
 import sys
 from errator import get_narration
-from actuator.provisioners.openstack.resource_tasks import OpenstackProvisioner
+from actuator import ActuatorOrchestration
+from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import Var
 from hadoop import HadoopInfra, HadoopNamespace
@@ -31,7 +32,7 @@ from prices import create_price_table, CITYCLOUD, RACKSPACE, VSPHERE
 from hsimple import do_it
 from hevent import TaskEventManager
 from vstest import VSHadoopInfra
-from actuator.provisioners.vsphere.resource_tasks import VSphereProvisioner
+from actuator.provisioners.vsphere import VSphereProvisionerProxy
 user_env = "OS_USER"
 pass_env = "OS_PASS"
 tenant_env = "OS_TENANT"
@@ -148,11 +149,11 @@ if __name__ == "__main__":
                 on_cloud = VSPHERE
                 line = open("vscreds.txt", "r").readline().strip()
                 h, u, p = line.split(",")
-                prov = VSphereProvisioner(host=h, username=u, pwd=p, num_threads=num_slaves*2)
+                prov = VSphereProvisionerProxy(host=h, username=u, pwd=p)
                 kwargs.update({"pkf": None,
                                "rempass": "tarnished99",
                                "infra_class": VSHadoopInfra,
-                               "provisioner": prov,
+                               "proxy": prov,
                                "overrides": [Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                                              Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)]})
             elif cloud == "a":
@@ -173,7 +174,6 @@ if __name__ == "__main__":
             kwargs["cloud_name"] = cloud_name
 
             success, infra, ns, conf, ao = do_it(**kwargs)
-            # success, infra, ns, conf, ao = do_it(num_slaves=num_slaves, handler=handler)
             if success:
                 if with_mongo:
                     from hreport import capture_running
@@ -206,16 +206,17 @@ if __name__ == "__main__":
                 print "Orchestration failed; see the log for error messages"
         elif cmd == teardown_op[0]:
             print "Tearing down; won't be able to re-run later"
-            if not ao.provisioner:
+            assert isinstance(ao, ActuatorOrchestration)
+            if not ao.provisioner_proxies:
                 client_keys = ao.client_keys
                 on_cloud = client_keys["on_cloud"]
                 if on_cloud == CITYCLOUD:
                     cloud_name = client_keys["cloud_name"]
-                    ao.set_provisioner(OpenstackProvisioner(cloud_name=cloud_name, num_threads=5))
+                    ao.set_provisioner_proxies([OpenStackProvisionerProxy(cloud_name=cloud_name)])
                 elif on_cloud == VSPHERE:
                     line = open("vscreds.txt", "r").readline().strip()
                     h, u, p = line.split(",")
-                    ao.set_provisioner(VSphereProvisioner(host=h, username=u, pwd=p))
+                    ao.set_provisioner_proxies([VSphereProvisionerProxy(host=h, username=u, pwd=p)])
                 else:
                     raise Exception("Unknown cloud %s; can't tell what provisioner to make" % on_cloud)
             success = ao.teardown_system()
