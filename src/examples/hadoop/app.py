@@ -5,7 +5,7 @@ from actuator.namespace import with_variables, Var
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 
 
-class HadoopApp(Service):
+class HadoopService(Service):
     with_variables(Var("WIBBLE", "hiya"))
     infra = HadoopInfra
     namespace = HadoopNamespace
@@ -14,7 +14,7 @@ class HadoopApp(Service):
 
 
 class OuterService(Service):
-    with_services(hadoop=HadoopApp,
+    with_services(hadoop=HadoopService,
                   db=DBService,
                   db_backup=DBService)
     infra = SummatElseInfra
@@ -66,15 +66,15 @@ class MatrixApp(Application):
 
 
 if __name__ == "__main__":
-    ha = HadoopApp("hadoop", infra_args=[("h-infra",), {}],
-                   namespace_args=[("h-namespace",), {}],
-                   config_args=[("h-config",), {}])
+    ha = HadoopService("hadoop", infra_args=[("h-infra",), {}],
+                       namespace_args=[("h-namespace",), {}],
+                       config_args=[("h-config",), {}])
     # ha.infra
     # ha.namespace
     # ha.config
-    HadoopApp.infra.name_node
+    HadoopService.infra.name_node
     ha.find_variable("WIBBLE")
     ha.namespace.find_variable("WIBBLE")
     x1 = ha.namespace.name_node
-    x2 = HadoopApp.namespace.name_node
+    x2 = HadoopService.namespace.name_node
     _ = 1

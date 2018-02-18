@@ -148,6 +148,15 @@ class Provisionable(_LNMixin, ModelComponent, _Performable):
     #     self.other_deps = [d.fix_arguments() for d in self._other_deps
     #                        if isinstance(d, Provisionable)]
 
+    def __init__(self, *args, **kwargs):
+        cloud = None
+        if "cloud" in kwargs:
+            cloud = kwargs["cloud"]
+            del kwargs["cloud"]
+        self._cloud = cloud
+        self.cloud = None
+        super(Provisionable, self).__init__(*args, **kwargs)
+
     @narrate(lambda s: "...and so we asked for the base init args "
                        "from provisionable {}".format(s.name))
     def _get_attrs_dict(self):
@@ -157,7 +166,16 @@ class Provisionable(_LNMixin, ModelComponent, _Performable):
         """
         d = super(Provisionable, self)._get_attrs_dict()
         d["performance_status"] = self.performance_status
+        d["cloud"] = self.cloud
         return d
+
+    def _fix_arguments(self):
+        self.cloud = self._get_arg_value(self._cloud) if self._cloud is not None else None
+
+    def get_init_args(self):
+        args, kwargs = super(Provisionable, self).get_init_args()
+        kwargs["cloud"] = self._cloud
+        return args, kwargs
 
     def get_display_name(self):
         """

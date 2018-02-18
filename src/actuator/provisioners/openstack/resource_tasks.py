@@ -25,63 +25,12 @@ Internal to Actuator; responsible for processing Openstack resource objects
 import time
 import threading
 
-from actuator.modeling import AbstractModelReference
-from actuator.task import Task
+from actuator.provisioners.core import ProvisioningTask
 from actuator.provisioners.openstack.resources import *
 from actuator.utils import capture_mapping
 from errator import narrate, narrate_cm
 
 _rt_domain = "resource_task_domain"
-
-
-class ProvisioningTask(Task):
-    clone_attrs = False
-    _rsrc_by_id = {}
-    
-    def __init__(self, rsrc, repeat_count=1):
-        super(ProvisioningTask, self).__init__("{}_provisioning_{}_task"
-                                               .format(rsrc.name,
-                                                       rsrc.__class__.__name__),
-                                               repeat_count=repeat_count)
-        self._rsrc_by_id[rsrc._id] = rsrc
-        self.rsrc_id = rsrc._id
-
-    def get_performance_status(self):
-        rsrc = self._rsrc_by_id.get(self.rsrc_id)
-        if not rsrc:
-            raise ProvisionerException("get_performance_status can't find resource %s by id while trying to determine its performance_status"
-                                       % self.rsrc_id)
-        return rsrc.get_performance_status()
-
-    def set_performance_status(self, status):
-        rsrc = self._rsrc_by_id.get(self.rsrc_id)
-        if not rsrc:
-            raise ProvisionerException("set_performance_status can't find resource %s by id while trying to determine its performance_status" % self.rsrc_id)
-        rsrc.set_performance_status(status)
-
-    def _get_rsrc(self):
-        return self._rsrc_by_id[self.rsrc_id]
-    
-    rsrc = property(_get_rsrc)
-    
-    def get_ref(self):
-        return AbstractModelReference.find_ref_for_obj(self.rsrc)
-        
-    def depends_on_list(self):
-        return []
-    
-    def _perform(self, proxy):
-        """
-        override this method to perform the actual provisioning work. there is
-        no return value
-        """
-        return
-    
-    def _reverse(self, proxy):
-        return
-    
-    def get_init_args(self):
-        return (self.rsrc,), {"repeat_count": self.repeat_count}
 
 
 @capture_mapping(_rt_domain, Network)
