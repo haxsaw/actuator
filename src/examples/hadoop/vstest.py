@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     line = open("vscreds.txt", "r").readline().strip()
     h, u, p = line.split(",")
-    prov = VSphereProvisionerProxy(host=h, username=u, pwd=p)
+    prov = VSphereProvisionerProxy("vsphere", host=h, username=u, pwd=p)
     success, inf, ns, conf, orch = do_it(2, handler=TaskEventManager(), pkf=None,
                                          rempass="tarnished99", infra_class=VSHadoopInfra,
                                          proxy=prov,

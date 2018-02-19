@@ -149,7 +149,7 @@ if __name__ == "__main__":
                 on_cloud = VSPHERE
                 line = open("vscreds.txt", "r").readline().strip()
                 h, u, p = line.split(",")
-                prov = VSphereProvisionerProxy(host=h, username=u, pwd=p)
+                prov = VSphereProvisionerProxy("vsphere", host=h, username=u, pwd=p)
                 kwargs.update({"pkf": None,
                                "rempass": "tarnished99",
                                "infra_class": VSHadoopInfra,
@@ -216,7 +216,7 @@ if __name__ == "__main__":
                 elif on_cloud == VSPHERE:
                     line = open("vscreds.txt", "r").readline().strip()
                     h, u, p = line.split(",")
-                    ao.set_provisioner_proxies([VSphereProvisionerProxy(host=h, username=u, pwd=p)])
+                    ao.set_provisioner_proxies([VSphereProvisionerProxy("vsphere", host=h, username=u, pwd=p)])
                 else:
                     raise Exception("Unknown cloud %s; can't tell what provisioner to make" % on_cloud)
             success = ao.teardown_system()

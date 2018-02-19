@@ -119,8 +119,9 @@ class BaseProvisionerProxy(object):
     # to find the tasks associated with this provisioner's resources
     mapper_domain_name = None
 
-    def __init__(self):
+    def __init__(self, name):
         self.run_contexts = {}
+        self.name = name
         self.class_mapper = get_mapper(self.mapper_domain_name)
 
     def get_context(self):
@@ -226,18 +227,42 @@ class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
                             rsrc.__class__):
                 task_class = None
                 proxy = None
-                for pp in self.provisioner_proxies:
-                    task_class = pp.get_resource_taskclass(rsrc)
-                    if task_class is not None:
-                        proxy = pp
-                        break
-                else:
+                num_matching = 0
+                supporting_clouds = [pp for pp in self.provisioner_proxies
+                                     if pp.get_resource_taskclass(rsrc) is not None]
+                num_supporting = len(supporting_clouds)
+                if num_supporting == 1 and (rsrc.cloud is None or supporting_clouds[0].name == rsrc.cloud):
+                    proxy = supporting_clouds[0]
+                    task_class = proxy.get_resource_taskclass(rsrc)
+                elif num_supporting > 1:
+                    matching_names = [pp for pp in supporting_clouds if rsrc.cloud == pp.name]
+                    num_matching = len(matching_names)
+                    if num_matching == 1:
+                        proxy = matching_names[0]
+                        task_class = proxy.get_resource_taskclass(rsrc)
+
+                if proxy is None:  # then we couldn't find one that supported or couldn't narrow it down to just 1
                     ref = AbstractModelReference.find_ref_for_obj(rsrc)
                     path = ref.get_path() if ref is not None else "NO PATH"
-                    raise self.exception_class("Could not find a task for resource "
-                                               "%s named %s at path %s" %
-                                               (rsrc.__class__.__name__,
-                                                rsrc.name, path))
+                    if num_supporting == 0:
+                        msg = "Could not find a provisioner proxy for resource {} named {} at path {}".format(
+                            rsrc.__class__.__name__, rsrc.name, path
+                        )
+                    elif num_supporting == 1:  # this is only possible if the cloud names don't match
+                        msg = ("Found a single supporting provisioner proxy but it has the wrong name for "
+                               "resource {} named {} at path {} for cloud {}".format(
+                                    rsrc.__class__.__name__, rsrc.name, path, rsrc.cloud
+                               ))
+                    elif num_matching == 0:
+                        msg = ("Found multiple provisioner proxies for resource {} named {} at path {} "
+                               "for cloud {} but none had the right name".format(rsrc.__class__.__name__, rsrc.name,
+                                                                                 path, rsrc.cloud))
+                    else:  # still matched too many
+                        msg = ("Found too many provisioner proxies for resource {} named {} at path {} "
+                               "for cloud {}".format(rsrc.__class__.__name__, rsrc.name, path,
+                                                     rsrc.cloud))
+                    raise ProvisionerException(msg)
+
             task = task_class(rsrc, repeat_count=self.repeat_count)
             tasks.append(task)
             self.rsrc_task_map[rsrc] = task

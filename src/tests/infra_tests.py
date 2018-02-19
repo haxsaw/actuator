@@ -32,7 +32,9 @@ from actuator.namespace import NamespaceModel
 from actuator.infra import (with_resources, InfraException, ResourceGroup,
                             MultiResource, MultiResourceGroup, with_infra_options)
 from actuator.provisioners.example_resources import Server, Database
+from actuator.provisioners.core import ProvisioningTaskEngine, ProvisionerException, BaseProvisionerProxy, Task
 from actuator.config import ConfigModel
+from actuator.provisioners.openstack.resources import Network
 
 MyInfra = None
 
@@ -1338,12 +1340,179 @@ def test162():
     assert (cfg.nexus.inf.server is i1.server)
 
 
+class TestProxy(BaseProvisionerProxy):
+    def __init__(self, name, return_task=True):
+        super(TestProxy, self).__init__(name)
+        self.return_task = return_task
+
+    def get_resource_taskclass(self, rsrc):
+        if self.return_task:
+            return Task
+        else:
+            return None
+
+
+def test163():
+    """
+    test163: check that we find a provisioner proxy for a resource
+    """
+    tp = TestProxy("wibble")
+
+    class Infra163(InfraModel):
+        n = Network("net163")
+    infra = Infra163("i163")
+
+    pte = ProvisioningTaskEngine(infra, provisioner_proxies=[tp])
+
+    try:
+        _ = pte.get_tasks()
+    except ProvisionerException as e:
+        assert False, "expected no exception, got: %s" % str(e)
+
+
+def test164():
+    """
+    test164: check that we don't find a proxy and get an exception
+    """
+    tp = TestProxy("p163", return_task=False)
+
+    class Infra164(InfraModel):
+        n = Network("net164")
+    infra = Infra164("i164")
+
+    pte = ProvisioningTaskEngine(infra, provisioner_proxies=[tp])
+
+    try:
+        _ = pte.get_tasks()
+        assert False, "we should have got an exception that no proxy can be found"
+    except ProvisionerException as e:
+        assert "Could not find a provisioner proxy" in str(e), "exception message was: %s" % str(e)
+
+
+def test165():
+    """
+    test165: check that we get success if we have two proxies but one has a matching name
+    """
+    tp_match = TestProxy("match", return_task=True)
+    tp_nomatch = TestProxy("nomatch", return_task=True)
+
+    class Infra165(InfraModel):
+        n = Network("net165", cloud="match")
+    infra = Infra165("i165")
+
+    pte = ProvisioningTaskEngine(infra, provisioner_proxies=[tp_match, tp_nomatch])
+
+    try:
+        _ = pte.get_tasks()
+    except ProvisionerException as e:
+        assert False, "we should have gotten a match, but instead got error: %s" % str(e)
+
+
+def test166():
+    """
+    test166: check that we fail if we get two proxies that return a task but both match
+    """
+    tp1 = TestProxy("match")
+    tp2 = TestProxy("match")
+
+    class Infra166(InfraModel):
+        n = Network("net166", cloud="match")
+    infra = Infra166("i166")
+
+    pte = ProvisioningTaskEngine(infra, provisioner_proxies=[tp1, tp2])
+
+    try:
+        _ = pte.get_tasks()
+        assert False, "this should have failed"
+    except ProvisionerException as e:
+        assert "Found too many" in str(e), "wrong message in exception: %s" % str(e)
+
+
+def test167():
+    """
+    test167: check that we fail if we have a name matching proxy that doesn't give a task
+    """
+    tp1 = TestProxy("nomatch")
+    tp2 = TestProxy("match", return_task=False)
+
+    class Infra167(InfraModel):
+        n = Network("net167", cloud="match")
+    infra = Infra167("i167")
+
+    pte = ProvisioningTaskEngine(infra, provisioner_proxies=[tp1, tp2])
+
+    try:
+        _ = pte.get_tasks()
+        assert False, "this should have failed"
+    except ProvisionerException as e:
+        assert "wrong name" in str(e), "got wrong error: %s" % str(e)
+
+
+def test168():
+    """
+    test168: multiple supporting but none matching
+    """
+    tp1 = TestProxy("match")
+    tp2 = TestProxy("match")
+
+    class Infra168(InfraModel):
+        n = Network("net168", cloud="nomatch")
+    infra = Infra168("i168")
+
+    pte = ProvisioningTaskEngine(infra, provisioner_proxies=[tp1, tp2])
+
+    try:
+        _ = pte.get_tasks()
+        assert False, "this should have failed"
+    except ProvisionerException as e:
+        assert "but none had the right name" in str(e), "got wrong error: %s" % str(e)
+
+
+def test169():
+    """
+    test169: multiple components with different provisioner requirements, all satisfied
+    """
+    from actuator.provisioners.openstack.resources import (Server, SecGroup, SecGroupRule, Subnet, FloatingIP,
+                                                           KeyPair, RouterGateway, RouterInterface, Router)
+    from actuator.modeling import ctxt
+    tp1 = TestProxy("network")
+    tp2 = TestProxy("server")
+    tp3 = TestProxy("subnet")
+    tp4 = TestProxy("floatingip")
+    tp5 = TestProxy("keypair")
+    tp6 = TestProxy("router")
+    tp7 = TestProxy("ri")
+    tp8 = TestProxy("rg")
+    tp9 = TestProxy("secgroup")
+    tp10 = TestProxy("sgr")
+
+    class Infra169(InfraModel):
+        n = Network("network", cloud="network")
+        s = Server("server", "image", "flavor", cloud="server")
+        sn = Subnet("sn", "wibble", "192.168.1.0/24", cloud="subnet")
+        fip = FloatingIP("fip", ctxt.model.s, ctxt.model.s.iface0.addr0, cloud="floatingip")
+        kp = KeyPair("kp", "kpname", pub_key="akey", cloud="keypair")
+        r = Router("router", cloud="router")
+        ri = RouterInterface("ri", ctxt.model.r, ctxt.model.sn, cloud="ri")
+        rg = RouterGateway("rg", ctxt.model.r, "wibble", cloud="rg")
+        sg = SecGroup("sg", cloud="secgroup")
+        sgr = SecGroupRule("sgr", ctxt.model.sg, from_port=1024, to_port=1024, ip_protocol="tcp", cloud="sgr")
+    infra = Infra169("i169")
+
+    pte = ProvisioningTaskEngine(infra, [tp1, tp2, tp3, tp4, tp5,
+                                         tp6, tp7, tp8, tp9, tp10])
+
+    try:
+        _ = pte.get_tasks()
+    except ProvisionerException as e:
+        assert False, "Got an exception: %s" % str(e)
+
+
 def do_all():
     setup_module()
-    test25()
-    # for k, v in globals().items():
-    #     if k.startswith("test") and callable(v):
-    #         v()
+    for k, v in globals().items():
+        if k.startswith("test") and callable(v):
+            v()
 
 
 if __name__ == "__main__":

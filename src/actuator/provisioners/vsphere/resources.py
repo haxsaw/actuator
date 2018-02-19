@@ -74,13 +74,15 @@ class Datastore(_VSphereProvisionableInfraResource):
     @narrate(lambda s, *kw: "...where we then fixed the arguments on the datastore "
                             "{}".format(s.name))
     def _fix_arguments(self, provisioner=None):
+        super(Datastore, self)._fix_arguments()
         self.dspath = self._get_arg_value(self._dspath)
 
-    def get_fixed_args(self):
-        return (self.name, self.dspath), {}
+    # def get_fixed_args(self):
+    #     return (self.name, self.dspath), {}
 
     def get_init_args(self):
-        return (self.name, self._dspath), {}
+        _, kwargs = super(Datastore, self).get_init_args()
+        return (self.name, self._dspath), kwargs
 
     @narrate(lambda s: "...leading to acquiring the datastore {}'s attr dict".format(s.name))
     def _get_attrs_dict(self):
@@ -115,18 +117,21 @@ class ResourcePool(_VSphereProvisionableInfraResource):
     @narrate(lambda s, *kw: "...where we then fixed the arguments on the resource pool "
                             "{}".format(s.name))
     def _fix_arguments(self):
+        super(ResourcePool, self)._fix_arguments()
         self.pool_name = self._get_arg_value(self._pool_name)
 
-    def get_fixed_args(self):
-        return (self.name,), {"pool_name": self.pool_name}
+    # def get_fixed_args(self):
+    #     return (self.name,), {"pool_name": self.pool_name}
 
     @narrate(lambda s: "...leading to acquiring the resource pool {}'s attr dict".format(s.name))
     def get_init_args(self):
-        return (self.name,), {"pool_name": self._pool_name}
+        _, kwargs = super(ResourcePool, self).get_init_args()
+        kwargs["pool_name"] = self._pool_name
+        return (self.name,), kwargs
 
     def _get_attrs_dict(self):
         d = super(ResourcePool, self)._get_attrs_dict()
-        self.get_fixed_args()
+        # self.get_fixed_args()
         d.update({"pool_name": self.pool_name,
                   "resource_pool": None})
         return d
@@ -161,22 +166,24 @@ class TemplatedServer(_VSphereProvisionableInfraResource, IPAddressable):
     @narrate(lambda s, *kw: "...where we then fixed the arguments on the templated "
                             "server {}{}".format(s.name))
     def _fix_arguments(self, provisioner=None):
+        super(TemplatedServer, self)._fix_arguments()
         self.template_name = self._get_arg_value(self._template_name)
         self.data_store = self._get_arg_value(self._data_store)
         self.resource_pool = self._get_arg_value(self._resource_pool)
 
-    def get_fixed_args(self):
-        return (self.name, self.template_name,
-                self.data_store, self.resource_pool), {}
+    # def get_fixed_args(self):
+    #     return (self.name, self.template_name,
+    #             self.data_store, self.resource_pool), {}
 
     def get_init_args(self):
+        _, kwargs = super(TemplatedServer, self).get_init_args()
         return (self.name, self._template_name,
-                self._data_store, self._resource_pool), {}
+                self._data_store, self._resource_pool), kwargs
 
     @narrate(lambda s: "...leading to acquiring the templated server {}'s attr dict".format(s.name))
     def _get_attrs_dict(self):
         d = super(TemplatedServer, self)._get_attrs_dict()
-        self.get_fixed_args()
+        # self.get_fixed_args()
         d.update({"name": self.name,
                   "template_name": self.template_name,
                   "data_store": self.data_store,

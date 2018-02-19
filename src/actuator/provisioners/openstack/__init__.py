@@ -59,7 +59,7 @@ class OpenStackProvisionerProxy(BaseProvisionerProxy):
     mapper_domain_name = _rt_domain
 
     def __init__(self, cloud_name, config_files=None):
-        super(OpenStackProvisionerProxy, self).__init__()
+        super(OpenStackProvisionerProxy, self).__init__(cloud_name)
         self.os_creds = OpenstackCredentials(cloud_name=cloud_name, config_files=config_files)
 
     @narrate(lambda _: "...which required getting an OpenStack run context")

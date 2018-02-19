@@ -31,6 +31,8 @@ from actuator.task import TaskGroup
 from actuator.config import (Task, ConfigTask, ConfigModel, MultiTask,
                              with_dependencies, ConfigClassTask)
 from actuator.infra import InfraModel, MultiResource, StaticServer
+from actuator.provisioners.openstack.resources import (Network, Server, Router, RouterGateway, RouterInterface,
+                                                       SecGroup, SecGroupRule, KeyPair)
 from actuator.task import _Dependency
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
@@ -748,12 +750,56 @@ def test27():
     i = Inf27("i27:")
     n = NS27("ns")
     _ = n.slaves[0]
-    vs = VSphereProvisionerProxy(host="localhost", username="wibble", pwd="wobble")
-    ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n, provisioner_proxies=[vs], num_threads=5)
+    vs = VSphereProvisionerProxy("vsphere", host="localhost", username="wibble", pwd="wobble")
+    ao = ActuatorOrchestration(infra_model_inst=i, namespace_model_inst=n, num_threads=5)
     ao.initiate_system()
     d = persist_to_dict(ao)
     aop = reanimate_from_dict(d)
+    assert isinstance(aop, ActuatorOrchestration)
+    aop.set_provisioner_proxies([vs])
     aop.teardown_system()
+    assert aop.provisioner_proxies
+
+
+def test28():
+    """
+    checking that the new 'cloud' attribute is saved/restored on Networks
+    """
+    n = Network("test28", admin_state_up=True, cloud="wibble")
+    d = persist_to_dict(n)
+    np = reanimate_from_dict(d)
+    assert n.cloud == np.cloud
+
+
+def test29():
+    """
+    check that the cloud attribute is saved/restored on Servers
+    """
+    s = Server("test29", "someimage", "someflavor", cloud="wobble")
+    d = persist_to_dict(s)
+    sp = reanimate_from_dict(d)
+    assert s.cloud == sp.cloud
+
+
+def test30():
+    """
+    check that the cloud attribute is saved/restored on SecGroups
+    """
+    sg = SecGroup("test30", description="summat", cloud="test30-cloud")
+    d = persist_to_dict(sg)
+    sgp = reanimate_from_dict(d)
+    assert sg.cloud == sgp.cloud
+
+
+def test31():
+    """
+    check that the cloud attribute is saved/restored on SecGroupRules
+    """
+    sg = SecGroup("test31-sg", description="other", cloud="sg-cloud")
+    sgr = SecGroupRule("test31", sg, cloud="sgr-cloud")
+    d = persist_to_dict(sgr)
+    sgrp = reanimate_from_dict(d)
+    assert sgrp.cloud == sgr.cloud
 
 
 def do_all():

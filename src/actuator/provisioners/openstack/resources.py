@@ -179,7 +179,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
             partitioned when the server is created. possible values are 'AUTO'
             or 'MANUAL'.
         """
-        super(Server, self).__init__(name)
+        super(Server, self).__init__(name, **kwargs)
         self._imageName = imageName
         self.imageName = None
         self._flavorName = flavorName
@@ -252,6 +252,7 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
 
     @narrate(lambda s, p=None: "...which resulted in fixing the arguments for server %s" % s.name)
     def _fix_arguments(self, provisioner=None):
+        super(Server, self)._fix_arguments()
         self.imageName = self._get_arg_value(self._imageName)
         self.flavorName = self._get_arg_value(self._flavorName)
         self.meta = (self._get_arg_value(self._meta)
@@ -315,17 +316,18 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         self.addresses = addresses
         
     def get_init_args(self):
-        return ((self.name, self._imageName, self._flavorName),
-                {"meta": self._meta,
-                 "min_count": self._min_count, "max_count": self._max_count,
-                 "security_groups": self._security_groups,
-                 "userdata": self._userdata,
-                 "key_name": self._key_name, "availability_zone": self._availability_zone,
-                 "block_device_mapping": self._block_device_mapping,
-                 "block_device_mapping_v2": self._block_device_mapping_v2,
-                 "nics": self._nics,
-                 "scheduler_hints": self._scheduler_hints,
-                 "config_drive": self._config_drive, "disk_config": self._disk_config})
+        _, kwargs = super(Server, self).get_init_args()
+        kwargs.update({"meta": self._meta,
+                       "min_count": self._min_count, "max_count": self._max_count,
+                       "security_groups": self._security_groups,
+                       "userdata": self._userdata,
+                       "key_name": self._key_name, "availability_zone": self._availability_zone,
+                       "block_device_mapping": self._block_device_mapping,
+                       "block_device_mapping_v2": self._block_device_mapping_v2,
+                       "nics": self._nics,
+                       "scheduler_hints": self._scheduler_hints,
+                       "config_drive": self._config_drive, "disk_config": self._disk_config})
+        return (self.name, self._imageName, self._flavorName), kwargs
 
     def get_fixed_args(self):
         """
@@ -333,19 +335,21 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         'fixed' values; that is, the arguments that resulted after evaluating all
         context expressions, calling all callables, etc.
         """
-        return ((self.name, self.imageName, self.flavorName),
-                {"meta": self.meta,
-                 "min_count": self.min_count,
-                 "max_count": self.max_count,
-                 "security_groups": self.security_groups,
-                 "userdata": self.userdata,
-                 "key_name": self.key_name,
-                 "availability_zone": self.availability_zone,
-                 "block_device_mapping": self.block_device_mapping,
-                 "block_device_mapping_v2": self.block_device_mapping_v2,
-                 "nics": self.nics,
-                 "scheduler_hints": self.scheduler_hints,
-                 "config_drive": self.config_drive, "disk_config": self.disk_config})
+        kwargs = {}
+        kwargs.update({"meta": self.meta,
+                       "min_count": self.min_count,
+                       "max_count": self.max_count,
+                       "security_groups": self.security_groups,
+                       "userdata": self.userdata,
+                       "key_name": self.key_name,
+                       "availability_zone": self.availability_zone,
+                       "block_device_mapping": self.block_device_mapping,
+                       "block_device_mapping_v2": self.block_device_mapping_v2,
+                       "nics": self.nics,
+                       "scheduler_hints": self.scheduler_hints,
+                       "config_drive": self.config_drive,
+                       "disk_config": self.disk_config})
+        return (self.name, self.imageName, self.flavorName), kwargs
 
     def get_ip(self, context=None):
         """
@@ -366,14 +370,14 @@ class Network(_OpenstackProvisionableInfraResource):
     For full details, see:
     http://docs.openstack.org/user-guide/content/sdk_neutron_apis.html#sdk_neutron_create_network
     """
-    def __init__(self, name, admin_state_up=True):
+    def __init__(self, name, admin_state_up=True, **kwargs):
         """
         Create a new Openstack network.
         
         @param name: string; logical name for the network
         @keyword admin_state_up: boolean; true to indicate that network should be up.
         """
-        super(Network, self).__init__(name)
+        super(Network, self).__init__(name, **kwargs)
         self.admin_state_up = None
         self._admin_state_up = admin_state_up
         
@@ -383,11 +387,13 @@ class Network(_OpenstackProvisionableInfraResource):
         return d
     
     def _fix_arguments(self, provisioner=None):
+        super(Network, self)._fix_arguments()
         self.admin_state_up = self._get_arg_value(self._admin_state_up)
 
     def get_init_args(self):
-        return ((self.name,),
-                {"admin_state_up": self._admin_state_up})
+        args, kwargs = super(Network, self).get_init_args()
+        kwargs["admin_state_up"] = self._admin_state_up
+        return args, kwargs
         
         
 class SecGroup(_OpenstackProvisionableInfraResource):
@@ -397,14 +403,14 @@ class SecGroup(_OpenstackProvisionableInfraResource):
     For full details see:
     http://docs.openstack.org/developer/python-novaclient/ref/v1_1/security_groups.html
     """
-    def __init__(self, name, description=""):
+    def __init__(self, name, description="", **kwargs):
         """
         Create a new security group
         
         @param name: string; logical name for the security group
         @keyword description: optional string; a description for the sec group
         """
-        super(SecGroup, self).__init__(name)
+        super(SecGroup, self).__init__(name, **kwargs)
         self._description = description
         self.description = None
         
@@ -414,10 +420,12 @@ class SecGroup(_OpenstackProvisionableInfraResource):
         return d
         
     def get_init_args(self):
-        return ((self.name,),
-                {"description": self._description})
-    
+        _, kwargs = super(SecGroup, self).get_init_args()
+        kwargs["description"] = self._description
+        return (self.name,), kwargs
+
     def _fix_arguments(self, provisioner=None):
+        super(SecGroup, self)._fix_arguments()
         self.description = self._get_arg_value(self._description)
         
 
@@ -432,7 +440,7 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
     http://docs.openstack.org/developer/python-novaclient/ref/v1_1/security_group_rules.html 
     """
     def __init__(self, name, secgroup, ip_protocol=None, from_port=None,
-                 to_port=None, cidr=None):
+                 to_port=None, cidr=None, **kwargs):
         """
         Create a new SecGroupRule on a SecGroup
         
@@ -447,7 +455,7 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
         @keyword cidr: destination IP address(es) in CIDR notation; this narrows
             down the set of destination IP's without it, there is no narrowing
         """
-        super(SecGroupRule, self).__init__(name)
+        super(SecGroupRule, self).__init__(name, **kwargs)
         self._secgroup = secgroup
         self.secgroup = None
         self._ip_protocol = ip_protocol
@@ -460,11 +468,12 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
         self.cidr = None
         
     def get_init_args(self):
-        return ((self.name, self._secgroup),
-                {"ip_protocol": self._ip_protocol,
-                 "from_port": self._from_port,
-                 "to_port": self._to_port,
-                 "cidr": self._cidr})
+        _, kwargs = super(SecGroupRule, self).get_init_args()
+        kwargs.update({"ip_protocol": self._ip_protocol,
+                       "from_port": self._from_port,
+                       "to_port": self._to_port,
+                       "cidr": self._cidr})
+        return (self.name, self._secgroup), kwargs
         
     def _get_attrs_dict(self):
         d = super(SecGroupRule, self)._get_attrs_dict()
@@ -476,6 +485,7 @@ class SecGroupRule(_OpenstackProvisionableInfraResource):
         return d
     
     def _fix_arguments(self, provisioner=None):
+        super(SecGroupRule, self)._fix_arguments()
         self.secgroup = self._get_arg_value(self._secgroup)
         self.ip_protocol = self._get_arg_value(self._ip_protocol)
         self.from_port = int(self._get_arg_value(self._from_port))
@@ -494,7 +504,7 @@ class Subnet(_OpenstackProvisionableInfraResource):
     """
     _ipversion_map = {ipaddress.IPv4Network: 4, ipaddress.IPv6Network: 6}
 
-    def __init__(self, name, network, cidr, dns_nameservers=None, ip_version=4, enable_dhcp=True):
+    def __init__(self, name, network, cidr, dns_nameservers=None, ip_version=4, enable_dhcp=True, **kwargs):
         """
         @param name: string; logical name for the subnet
         @param network: Network; a string containing the Openstack id of a
@@ -509,7 +519,7 @@ class Subnet(_OpenstackProvisionableInfraResource):
             or may be a callable that takes an L{actuator.modeling.CallContext}
             and returns a list of strings
         """
-        super(Subnet, self).__init__(name)
+        super(Subnet, self).__init__(name, **kwargs)
         self._network = network
         self.network = None
         self._cidr = cidr
@@ -531,6 +541,7 @@ class Subnet(_OpenstackProvisionableInfraResource):
         return d
         
     def _fix_arguments(self, provisioner=None):
+        super(Subnet, self)._fix_arguments()
         self.network = self._get_arg_value(self._network)
         self.cidr = unicode(self._get_arg_value(self._cidr))
         self.ip_version = self._get_arg_value(self._ip_version)
@@ -546,9 +557,11 @@ class Subnet(_OpenstackProvisionableInfraResource):
                                            "list or else contains non-string objects")
         
     def get_init_args(self):
-        return ((self.name, self._network, self._cidr), {'dns_nameservers': self._dns_nameservers,
-                                                         'ip_version': self._ip_version,
-                                                         'enable_dhcp': self._enable_dhcp})
+        _, kwargs = super(Subnet, self).get_init_args()
+        kwargs.update({'dns_nameservers': self._dns_nameservers,
+                       'ip_version': self._ip_version,
+                       'enable_dhcp': self._enable_dhcp})
+        return (self.name, self._network, self._cidr), kwargs
     
     
 class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
@@ -566,7 +579,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
     For details on attaching them to a server, see:
     http://docs.openstack.org/developer/python-novaclient/ref/v1_1/servers.html
     """
-    def __init__(self, name, server, associated_ip, pool=None):
+    def __init__(self, name, server, associated_ip, pool=None, **kwargs):
         """
         Represents a floating IP and the server/ip it should be associated with
         @param name: logical name for the floating ip
@@ -586,7 +599,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
             or a callable that returns a string with this name. Only optional if
             there is a default pool.
         """
-        super(FloatingIP, self).__init__(name)
+        super(FloatingIP, self).__init__(name, **kwargs)
         self._server = server
         self.server = None
         self._associated_ip = associated_ip
@@ -610,6 +623,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         return self.ip
         
     def _fix_arguments(self, provisioner=None):
+        super(FloatingIP, self)._fix_arguments()
         self.server = self._get_arg_value(self._server)
         self.associated_ip = self._get_arg_value(self._associated_ip)
         if self._pool is not None:
@@ -624,7 +638,9 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         self.ip = ip
         
     def get_init_args(self):
-        return (self.name, self._server, self._associated_ip), {"pool": self._pool}
+        _, kwargs = super(FloatingIP, self).get_init_args()
+        kwargs["pool"] = self._pool
+        return (self.name, self._server, self._associated_ip), kwargs
     
     
 class Router(_OpenstackProvisionableInfraResource):
@@ -634,14 +650,14 @@ class Router(_OpenstackProvisionableInfraResource):
     For details see:
     http://docs.openstack.org/user-guide/content/sdk_neutron_apis.html#create-router-add-port-to-subnet
     """
-    def __init__(self, name, admin_state_up=True):
+    def __init__(self, name, admin_state_up=True, **kwargs):
         """
         @param name: string; logical name for the router
         @param admin_state_up: optional; True or False depending on whether
         or not the state of the router should be considered 'up'. Default is
         True, or the router is up.
         """
-        super(Router, self).__init__(name)
+        super(Router, self).__init__(name, **kwargs)
         self._admin_state_up = admin_state_up
         self.admin_state_up = None
         
@@ -651,10 +667,13 @@ class Router(_OpenstackProvisionableInfraResource):
         return d
         
     def _fix_arguments(self, provisioner=None):
+        super(Router, self)._fix_arguments()
         self.admin_state_up = self._get_arg_value(self._admin_state_up)
         
     def get_init_args(self):
-        return (self.name,), {"admin_state_up": self._admin_state_up}
+        _, kwargs = super(Router, self).get_init_args()
+        kwargs["admin_state_up"] = self._admin_state_up
+        return (self.name,), kwargs
     
     
 class RouterGateway(_OpenstackProvisionableInfraResource):
@@ -668,7 +687,7 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
     For more details, see:
     
     """
-    def __init__(self, name, router, external_network_name):
+    def __init__(self, name, router, external_network_name, **kwargs):
         """
         @param name: string; logical name that will be used for the gateway
         @param router: a string with Openstack id of a router, a reference to
@@ -679,7 +698,7 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         @param external_network_name: string; the name of the external network to 
                 connect the router to. Will depend on your Openstack provider.
         """
-        super(RouterGateway, self).__init__(name)
+        super(RouterGateway, self).__init__(name, **kwargs)
         self._router = router
         self.router = None
         self._external_network_name = external_network_name
@@ -692,6 +711,7 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         return d
         
     def _fix_arguments(self, provisioner=None):
+        super(RouterGateway, self)._fix_arguments()
         self.router = self._get_arg_value(self._router)
         self.external_network_name = self._get_arg_value(self._external_network_name)
         
@@ -710,7 +730,8 @@ class RouterGateway(_OpenstackProvisionableInfraResource):
         return self.external_network_name if self.external_network_name is not None else self._external_network_name
     
     def get_init_args(self):
-        return (self.name, self._router, self._external_network_name), {}
+        _, kwargs = super(RouterGateway, self).get_init_args()
+        return (self.name, self._router, self._external_network_name), kwargs
     
     
 class RouterInterface(_OpenstackProvisionableInfraResource):
@@ -721,7 +742,7 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
     Can use both Openstack ids for the required arguments as well as references
     to Actuator objects.
     """
-    def __init__(self, name, router, subnet):
+    def __init__(self, name, router, subnet, **kwargs):
         """
         @param name: string; logical name for the interface
         @param router: a string with an Openstack router id, an Actuator reference
@@ -734,7 +755,7 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
             If a reference, most likely a context expression such as
             'ctxt.model.subnet'.
         """
-        super(RouterInterface, self).__init__(name)
+        super(RouterInterface, self).__init__(name, **kwargs)
         self._router = router
         self.router = None
         self._subnet = subnet
@@ -747,6 +768,7 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         return d
         
     def _fix_arguments(self, provisioner=None):
+        super(RouterInterface, self)._fix_arguments()
         self.router = self._get_arg_value(self._router)
         self.subnet = self._get_arg_value(self._subnet)
         return self
@@ -766,7 +788,8 @@ class RouterInterface(_OpenstackProvisionableInfraResource):
         return self.subnet if self.subnet is not None else self._subnet
     
     def get_init_args(self):
-        return (self.name, self._router, self._subnet), {}
+        _, kwargs = super(RouterInterface, self).get_init_args()
+        return (self.name, self._router, self._subnet), kwargs
     
 
 class KeyPair(_OpenstackProvisionableInfraResource):
@@ -782,7 +805,7 @@ class KeyPair(_OpenstackProvisionableInfraResource):
         is de-provisioned.
     """
     def __init__(self, name, priv_key_name, os_name=None, pub_key_file=None,
-                 pub_key=None, force=False):
+                 pub_key=None, force=False, **kwargs):
         """
         Creates a KeyPair resource. It allows you to bind a private key name
         to a public key, either the actual key or the path to a file where the
@@ -825,7 +848,7 @@ class KeyPair(_OpenstackProvisionableInfraResource):
             considered complete. Default is False, do not force sending the
             key.
         """
-        super(KeyPair, self).__init__(name)
+        super(KeyPair, self).__init__(name, **kwargs)
         self.priv_key_name = None
         self._priv_key_name = priv_key_name
         self.os_name = None
@@ -856,6 +879,7 @@ class KeyPair(_OpenstackProvisionableInfraResource):
         return d
         
     def _fix_arguments(self, provisioner=None):
+        super(KeyPair, self)._fix_arguments()
         self.priv_key_name = self._get_arg_value(self._priv_key_name)
         self.os_name = self._get_arg_value(self._os_name)
         self.pub_key_file = self._get_arg_value(self._pub_key_file)
@@ -864,8 +888,9 @@ class KeyPair(_OpenstackProvisionableInfraResource):
         
     def get_init_args(self):
         __doc__ = _OpenstackProvisionableInfraResource.get_init_args.__doc__
-        return ((self.name, self._priv_key_name),
-                {"os_name": self._os_name,
-                 "pub_key_file": self._pub_key_file,
-                 "pub_key": self._pub_key,
-                 "force": self._force})
+        _, kwargs = super(KeyPair, self).get_init_args()
+        kwargs.update({"os_name": self._os_name,
+                       "pub_key_file": self._pub_key_file,
+                       "pub_key": self._pub_key,
+                       "force": self._force})
+        return (self.name, self._priv_key_name), kwargs

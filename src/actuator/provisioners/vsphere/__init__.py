@@ -75,8 +75,8 @@ class VSphereRunContext(AbstractRunContext):
 class VSphereProvisionerProxy(BaseProvisionerProxy):
     mapper_domain_name = _vs_domain
 
-    def __init__(self, creds=None, host=None, username=None, pwd=None):
-        super(VSphereProvisionerProxy, self).__init__()
+    def __init__(self, name, creds=None, host=None, username=None, pwd=None):
+        super(VSphereProvisionerProxy, self).__init__(name)
         if not creds and not (host and username and pwd):
             raise ProvisionerException("you must supply either a VSphereCredentials instance or else "
                                        "a host/username/pwd credentials set for vCenter")
