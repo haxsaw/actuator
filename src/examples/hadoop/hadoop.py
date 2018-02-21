@@ -44,7 +44,7 @@ external_connection = ResourceGroup("route_out",
                                                               ctxt.comp.container.subnet))
 
 
-def make_std_secgroup(name, desc="standard security group"):
+def make_std_secgroup(name, desc="standard security group", cloud=None):
     """
     Returns a standarized resource group with rules for ping and ssh access.
     The returned resource can be further configured with additional rules by the
@@ -54,15 +54,17 @@ def make_std_secgroup(name, desc="standard security group"):
     provides the name of the SecGroup that is created in the ResourceGroup.
     """
     return ResourceGroup("%s_std_secgroup" % name,
-                         group=SecGroup(name, desc),
+                         group=SecGroup(name, desc, cloud=cloud),
                          ping_rule=SecGroupRule("ping_rule",
                                                 ctxt.comp.container.group,
                                                 ip_protocol="icmp",
-                                                from_port=-1, to_port=-1),
+                                                from_port=-1, to_port=-1,
+                                                cloud=cloud),
                          ssh_rule=SecGroupRule("ssh_rule",
                                                ctxt.comp.container.group,
                                                ip_protocol="tcp",
-                                               from_port=22, to_port=22),
+                                               from_port=22, to_port=22,
+                                               cloud=cloud),
                          )
 
 

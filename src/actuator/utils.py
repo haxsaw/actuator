@@ -197,6 +197,10 @@ def adb(arg, brk=True):
                 #
                 # PyDev USERS: set your breakpoint on the line below:
                 _ = 0
+        #
+        # DEBUGGING NOTE: if you evaluate the expression 'context.comp._get_arg_value(arg)',
+        # you'll see what will be returned
+        #
         result = context.comp._get_arg_value(arg)
         return result
     return inner_adb

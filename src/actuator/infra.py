@@ -125,8 +125,9 @@ class MultiResourceGroup(_LNMixin, MultiComponentGroup):
     A specialization of the L{MultiComponentGroup} class
     """
     def __new__(cls, name, **kwargs):
+        namesep = kwargs.pop("namesep", "_")
         group = ResourceGroup(name, **kwargs)
-        return MultiResource(group)
+        return MultiResource(group, namesep=namesep)
 
 
 class Provisionable(_LNMixin, ModelComponent, _Performable):

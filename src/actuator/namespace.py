@@ -850,8 +850,9 @@ class MultiRoleGroup(MultiRole, VariableContainer):
     on instantiation and usage. 
     """
     def __new__(self, name, **kwargs):
+        namesep=kwargs.pop("namesep", None)
         group = RoleGroup(name, **kwargs)
-        return MultiRole(group)
+        return MultiRole(group, namesep=namesep)
     
         
 class NamespaceModelMeta(ModelBaseMeta):

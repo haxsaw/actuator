@@ -184,7 +184,8 @@ class GT(App):
                         role = None
                     msg = "Task {}, role {}".format(node.name, role.name if role else "unknown role")
                 elif isinstance(node, ProvisioningTask):
-                    msg = "Task {}, resource {}".format(node.name, node.rsrc.name)
+                    msg = "Task {}, resource {}, cloud {}".format(
+                        node.name, node.rsrc.name, node.rsrc.cloud)
                 else:   # don't know what this is
                     msg = "{} {}".format(node.__class__.__name__, node.name)
                 error_text = "\n".join(self.node_errors.get(node, ["no errors"]))

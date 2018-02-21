@@ -419,7 +419,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         Make a copy of this object
         
         Creates a pre-fixed copy of this object; the fixed values aren't copied,
-        just the values passed to __init__(). Hence, this method is useful in
+        just the values passed to __init__(). Hence, this method isn't useful in
         making a copy of the current state of this object, but instead is for
         creating a copy that is created the same way as 'self' was.
         
@@ -603,7 +603,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     of the new component. 
     """
 
-    def __init__(self, template_component):
+    def __init__(self, template_component, namesep="_"):
         """
         Create a new MultiComponent instance
         
@@ -611,6 +611,12 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
             another MultiComponent or other container. The template will be
             cloned immediately so that it is isolated from any other uses
             elsewhere.
+        @:param namesep: optional string, default '_'. Identifies the string to use
+            to separate parts of the name that is generated for new instances of the
+            component. Normally the generated component name would be the container
+            name, followed by '_', followed by the stringified key. However, you can
+            set this to an empty string and the parent to an empty string in order to
+            get the name to only be the key name.
         @raise TypeError: raised if the template_component isn't some kind of
             AbstractModelingEntity
         """
@@ -620,6 +626,8 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         super(MultiComponent, self).__init__("")
         self.template_component = template_component.clone()
         self._instances = {}
+        self.namesep = namesep
+        self.refs_for_components()
 
     @narrate(lambda s: "...at which point multicomponent {} began to finalize its "
                        "reanimation".format(s.name))
@@ -646,7 +654,10 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     def _get_attrs_dict(self):
         d = super(MultiComponent, self)._get_attrs_dict()
         d.update({"_instances": self._instances,
-                  "template_component": self.template_component})
+                  "template_component": self.template_component,
+                  "namesep": self.namesep
+                  }
+                 )
         return d
 
     def _set_model_instance(self, inst):
@@ -666,8 +677,8 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
 
     def get_init_args(self):
         __doc__ = AbstractModelingEntity.get_init_args.__doc__
-        args = (self.template_component,)
-        return args, {}
+        args = (self.template_component, )
+        return args, {"namesep": self.namesep}
 
     def _validate_args(self, referenceable):
         super(MultiComponent, self)._validate_args(referenceable)
@@ -759,16 +770,25 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         @param key: immutable key value; coerced to string
         """
         inst = self._instances.get(key)
-        if not inst:
+        if inst is None:
             prototype = self.get_prototype()
             args, kwargs = prototype.get_init_args()
-            # args[0] is the name of the prototype
-            # we form a new logical name by appending the
-            # key to args[0] separated by an '_'
-            logicalName = "%s_%s" % (args[0], str(key))
-            inst = prototype.get_class()(logicalName, *args[1:], **kwargs)
+            if isinstance(prototype, MultiComponent):
+                newargs = args
+            else:
+                # args[0] is the name of the prototype
+                # we form a new logical name by appending the
+                # key to args[0] separated by an '_'
+                # logicalName = "%s_%s" % (args[0], str(key))
+                logicalName = "{}{}{}".format(args[0], self.namesep, str(key))
+                newargs = (logicalName,) + args[1:]
+            inst = prototype.get_class()(*newargs, **kwargs)
+            # inst = prototype.get_class()(logicalName, *args[1:], **kwargs)
             self._instances[key] = inst
             inst._set_model_instance(self.get_model_instance())
+            self.refs_for_components(my_ref=AbstractModelReference.find_ref_for_obj(self))
+            if isinstance(inst, _ComputeModelComponents):
+                inst.refs_for_components(my_ref=AbstractModelReference.find_ref_for_obj(inst))
         return inst
 
     def instances(self):
@@ -803,8 +823,9 @@ class MultiComponentGroup(MultiComponent):
         @keyword **kwargs: This will become the attributes of each
         instance of the group that is created with a new key.
         """
+        namesep = kwargs.pop("namesep", "_")
         group = ComponentGroup(name, **kwargs)
-        return MultiComponent(group)
+        return MultiComponent(group, namesep=namesep)
 
 
 class _Dummy(object):
