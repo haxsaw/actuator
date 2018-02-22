@@ -190,10 +190,14 @@ if __name__ == "__main__":
     ns.make_slaves("auro", 2)
 
     # make the config model instance
+    cloud_creds = {"vsphere": {"remote_pass": "tarnished99"},
+                   "auro": {"private_key_file": "actuator-dev-key"},
+                   "citycloud": {"private_key_file": "actuator-dev-key"}}
     config = MultiCloudConfig("multi-config",
                               event_handler=handler,
                               remote_user="ubuntu",
-                              private_key_file="actuator-dev-key")
+                              cloud_creds=cloud_creds)
+                              # private_key_file="actuator-dev-key")
 
     # build the orchestrator and go
     ao = ActuatorOrchestration(infra_model_inst=infra,

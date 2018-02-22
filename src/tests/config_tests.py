@@ -1234,12 +1234,81 @@ def test52():
     ea.perform_config()
 
 
+class DelegatedInfra(InfraModel):
+    s = StaticServer("s", "127.0.0.1", cloud="wibble")
+
+
+class DeletegateNS(NamespaceModel):
+    role = Role("role", host_ref=DelegatedInfra.s)
+
+
+class DelegateTest(ConfigModel):
+    task = ConfigTask("task", task_role=DeletegateNS.role)
+
+
+def test53():
+    """
+    test53: check that we go to the ConfigModel for the default remote user
+    """
+    ns = DeletegateNS("ns")
+    cfg = DelegateTest("cfg", remote_user="wibble")
+    cfg.set_namespace(ns)
+
+    ru = cfg.task.get_remote_user()
+    assert ru == "wibble"
+
+
+def test54():
+    """
+    test54: check that we go to the ConfigModel for the default remote pass
+    """
+    ns = DeletegateNS("ns")
+    cfg = DelegateTest("cfg", remote_pass="golly!")
+    cfg.set_namespace(ns)
+
+    rp = cfg.task.get_remote_pass()
+    assert rp == "golly!"
+
+
+def test55():
+    """
+    test55: check that we go the ConfigModel for the default private_key_file
+    """
+    ns = DeletegateNS("ns")
+    cfg = DelegateTest("cfg", private_key_file="somefile.txt")
+    cfg.set_namespace(ns)
+
+    pkf = cfg.get_private_key_file()
+    assert pkf == "somefile.txt"
+
+
+def test56():
+    """
+    test56: check that we get the remote user from the model's cloud_creds
+    """
+    infra = DelegatedInfra("i")
+    ns = DeletegateNS("ns")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+    creds = {"wibble": {"remote_user": "test56"}}
+    cfg = DelegateTest("cfg", cloud_creds=creds)
+    cfg.set_namespace(ns)
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    ru = cfg.get_remote_user(cfg.task.value())
+    assert ru == "test56"
+
+
 def do_all():
     setup_module()
+    test56()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
     teardown_module()
-            
+
+
 if __name__ == "__main__":
     do_all()

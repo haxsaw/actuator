@@ -372,7 +372,7 @@ class StaticServer(IPAddressable, Provisionable):
     but it can be used wherever a reference to a server & L{IPAddressable} are
     required in other models.
     """
-    def __init__(self, name, hostname_or_ip):
+    def __init__(self, name, hostname_or_ip, **kwargs):
         """
         Create a new StaticServer instance.
         
@@ -381,7 +381,7 @@ class StaticServer(IPAddressable, Provisionable):
             IP address or a host name (FQDN where required). Actuator assumes
             that the name will be resolveable if a hostname is provided.
         """
-        super(StaticServer, self).__init__(name)
+        super(StaticServer, self).__init__(name, **kwargs)
         self.hostname_or_ip = None
         self._hostname_or_ip = hostname_or_ip
         

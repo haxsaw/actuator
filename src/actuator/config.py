@@ -958,21 +958,45 @@ class ConfigModel(ModelBase, GraphableModelMixin):
 
     @narrate(lambda s: "...resulting in config model %s providing the default run host for a task" %
                        s.__class__.__name__)
+    # def get_run_host(self):
+    #     """
+    #     Compute the IP address of the host where the task is to run from.
+    #
+    #     This method computes the IP address of the IP address of the host for
+    #     the Role returned by L{get_run_from}, if there is one. If none, it
+    #     returns None.
+    #     """
+    #     comp = self.get_run_from()
+    #     host = (comp.host_ref
+    #             if isinstance(comp.host_ref, basestring)
+    #             else comp.host_ref.value())
+    #     if isinstance(host, IPAddressable):
+    #         host.fix_arguments()
+    #         host = host.get_ip()
+    #     return host
+
     def get_run_host(self):
         """
-        Compute the IP address of the host where the task is to run from.
-        
-        This method computes the IP address of the IP address of the host for
-        the Role returned by L{get_run_from}, if there is one. If none, it
-        returns None.
+        Return the host IP associated with the run_from Role for this task.
         """
-        comp = self.get_run_from()
-        host = (comp.host_ref
-                if isinstance(comp.host_ref, basestring)
-                else comp.host_ref.value())
+        host = self.get_raw_run_host()
         if isinstance(host, IPAddressable):
             host.fix_arguments()
             host = host.get_ip()
+        return host
+
+    def get_raw_run_host(self):
+        """
+        This returns whatever kind of object is set up as the return of get_run_from(); this means that
+        you might get just a string with an IP in it, or your might get an IPAddressable of some kind
+        :return: string or IPAddressable
+        """
+        comp = self.get_run_from()
+        host = None
+        if comp is not None:
+            host = (comp.host_ref
+                    if isinstance(comp.host_ref, basestring)
+                    else comp.host_ref.value())
         return host
 
     def set_namespace(self, namespace):
