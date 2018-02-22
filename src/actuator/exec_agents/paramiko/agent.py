@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import platform
 import threading
 import socket
 import uuid
@@ -639,7 +640,11 @@ class ParamikoExecutionAgent(ExecutionAgent):
 
         try:
             conn = SSHClient()
-            conn.load_system_host_keys("/dev/null")
+            if platform.system().lower() == "windows":
+                devnull = "NUL"
+            else:
+                devnull = "/dev/null"
+            conn.load_system_host_keys(devnull)
             conn.set_missing_host_key_policy(AutoAddPolicy())
             if priv_key:
                 sio = StringIO(priv_key)
