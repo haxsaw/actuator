@@ -2,13 +2,15 @@ import sys
 from actuator.modeling import ctxt
 from actuator.infra import InfraModel, ResourceGroup, MultiResourceGroup
 from actuator.namespace import NamespaceModel, with_variables, Var, Role, MultiRole, MultiRoleGroup
+from actuator.config import ConfigModel, with_dependencies
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.vsphere.resources import *
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
 from actuator.utils import find_file
 from hadoop import (make_std_secgroup, CORES2_MEM2_STO50, CORES1_MEM0_5_STO20)
-from hadoop_node import common_vars, pkn
+from hadoop_node import (common_vars, pkn, HadoopNodeConfig, CommandTask, ShellTask,
+                         MultiTask, ConfigClassTask)
 from actuator import ActuatorOrchestration
 
 double_cont_name = ctxt.comp.container.container.name
@@ -148,6 +150,24 @@ class MultiCloudNS(NamespaceModel):
             _ = self.slave_clouds[cloudname].slaves[i]
 
 
+class MultiCloudConfig(ConfigModel):
+    select_all = MultiCloudNS.q.union(MultiCloudNS.q.name_node,
+                                      MultiCloudNS.q.slave_clouds.all().slaves.all())
+
+    node_setup = MultiTask("node_setup",
+                           ConfigClassTask("setup_suite", HadoopNodeConfig, init_args=("node-setup",)),
+                           select_all)
+    slave_ip = ShellTask("slave_ips",
+                         "for i in localhost !{SLAVE_IPS}; do echo $i; done"
+                         " > !{HADOOP_CONF_DIR}/slaves",
+                         task_role=MultiCloudNS.name_node)
+    format_hdfs = CommandTask("format_hdfs",
+                              "bin/hadoop namenode -format -nonInteractive -force",
+                              chdir="!{HADOOP_HOME}", repeat_count=3,
+                              task_role=MultiCloudNS.name_node)
+    with_dependencies(node_setup | (slave_ip & format_hdfs))
+
+
 if __name__ == "__main__":
     from hevent import TaskEventManager
 
@@ -169,11 +189,20 @@ if __name__ == "__main__":
     ns.make_slaves("citycloud", 4)
     ns.make_slaves("auro", 2)
 
+    # make the config model instance
+    config = MultiCloudConfig("multi-config",
+                              event_handler=handler,
+                              remote_user="ubuntu",
+                              private_key_file="actuator-dev-key")
+
     # build the orchestrator and go
     ao = ActuatorOrchestration(infra_model_inst=infra,
                                namespace_model_inst=ns,
+                               # config_model_inst=config,
                                provisioner_proxies=[auro, city, vs],
-                               num_threads=15)
+                               num_threads=15,
+                               post_prov_pause=10,
+                               no_delay=True)
     try:
         success = ao.initiate_system()
     except KeyboardInterrupt:

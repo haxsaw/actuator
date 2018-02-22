@@ -396,11 +396,12 @@ class ActuatorOrchestration(_Persistable):
         assert isinstance(self.client_keys, dict), "client_keys is not a dict"
         self.initiate_start_time = None
         self.initiate_end_time = None
+        self.num_threads = num_threads
 
         if self.config_model_inst is not None:
             self.config_ea = ParamikoExecutionAgent(config_model_instance=self.config_model_inst,
                                                     namespace_model_instance=self.namespace_model_inst,
-                                                    num_threads=num_threads,
+                                                    num_threads=self.num_threads,
                                                     no_delay=no_delay,
                                                     log_level=log_level)
 
@@ -430,6 +431,7 @@ class ActuatorOrchestration(_Persistable):
                   "initiate_start_time": self.initiate_start_time,
                   "initiate_end_time": self.initiate_end_time,
                   "provisioner_proxies": (),
+                  "num_threads": self.num_threads,
                   "pte": None})
         return d
 
@@ -503,7 +505,8 @@ class ActuatorOrchestration(_Persistable):
                     self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
                 _ = self.infra_model_inst.refs_for_components()
                 if self.pte is None:
-                    self.pte = ProvisioningTaskEngine(self.infra_model_inst, self.provisioner_proxies)
+                    self.pte = ProvisioningTaskEngine(self.infra_model_inst, self.provisioner_proxies,
+                                                      num_threads=self.num_threads)
                 self.pte.perform_tasks()
                 self.logger.info("Provisioning phase complete")
                 did_provision = True

@@ -45,8 +45,9 @@ here, this_file = os.path.split(__file__)
 def find_ip():
     hostname = socket.gethostname()
     get_ip = socket.gethostbyname(hostname)
+    # if get_ip.startswith("127.0"):
     if get_ip == "127.0.0.1":
-        #try to find a better one; try a Linux convention
+        # try to find a better one; try a Linux convention
         hostname = "{}.local".format(hostname)
         try:
             get_ip = socket.gethostbyname(hostname)

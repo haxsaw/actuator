@@ -334,41 +334,41 @@ class ConfigTask(Task):
         # internal
         self.delegate = delegate
 
-    @narrate(lambda s: "...which requires task %s (%s) to determine what remote user name to use" %
-                       (s.name, s.__class__.__name__))
-    def get_remote_user(self):
+    @narrate(lambda s, _=None: "...which requires task %s (%s) to determine what remote user name to use" %
+                               (s.name, s.__class__.__name__))
+    def get_remote_user(self, _=None):
         """
         Return the effective remote user to use for this task.
         """
         remote_user = (self.remote_user
                        if self.remote_user is not None
-                       else (self.delegate.get_remote_user()
+                       else (self.delegate.get_remote_user(self)
                              if self.delegate is not None
                              else None))
         return remote_user
 
-    @narrate(lambda s: "...which requires task %s (%s) to determine what password to use" %
-                       (s.name, s.__class__.__name__))
-    def get_remote_pass(self):
+    @narrate(lambda s, _=None: "...which requires task %s (%s) to determine what password to use" %
+                               (s.name, s.__class__.__name__))
+    def get_remote_pass(self, _=None):
         """
         Return the effective remote password to use for this user.
         """
         remote_pass = (self.remote_pass
                        if self.remote_pass is not None
-                       else (self.delegate.get_remote_pass()
+                       else (self.delegate.get_remote_pass(self)
                              if self.delegate is not None
                              else None))
         return remote_pass
 
-    @narrate(lambda s: "...which requires task %s (%s) to determine what private key file to use" %
-                       (s.name, s.__class__.__name__))
-    def get_private_key_file(self):
+    @narrate(lambda s, _=None: "...which requires task %s (%s) to determine what private key file to use" %
+                               (s.name, s.__class__.__name__))
+    def get_private_key_file(self, _=None):
         """
         Return the effective private key file to use for this task.
         """
         private_key_file = (self.private_key_file
                             if self.private_key_file is not None
-                            else (self.delegate.get_private_key_file()
+                            else (self.delegate.get_private_key_file(self)
                                   if self.delegate is not None
                                   else None))
         return private_key_file
@@ -426,15 +426,26 @@ class ConfigTask(Task):
                        (s.name, s.__class__.__name__))
     def get_run_host(self):
         """
-        Return the host associated with the run_from Role for this task.
+        Return the host IP associated with the run_from Role for this task.
         """
-        comp = self.get_run_from()
-        host = (comp.host_ref
-                if isinstance(comp.host_ref, basestring)
-                else comp.host_ref.value())
+        host = self.get_raw_run_host()
         if isinstance(host, IPAddressable):
             host.fix_arguments()
             host = host.get_ip()
+        return host
+
+    def get_raw_run_host(self):
+        """
+        This returns whatever kind of object is set up as the return of get_run_from(); this means that
+        you might get just a string with an IP in it, or your might get an IPAddressable of some kind
+        :return: string or IPAddressable
+        """
+        comp = self.get_run_from()
+        host = None
+        if comp is not None:
+            host = (comp.host_ref
+                    if isinstance(comp.host_ref, basestring)
+                    else comp.host_ref.value())
         return host
 
     def get_init_args(self):
@@ -560,7 +571,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     def __init__(self, name, namespace_model_instance=None, nexus=None,
                  remote_user=None, remote_pass=None, private_key_file=None,
                  delegate=None, default_task_role=None, default_run_from=None,
-                 event_handler=None, **kwargs):
+                 event_handler=None, cloud_creds=None, **kwargs):
         """
         Create a new ConfigModel derived class instance.
         
@@ -609,6 +620,18 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             or a callable that takes a L{CallContext} and returns a reference
             to a Role.
         @keyword event_handler: if supplied, a derived class of task.TaskEventHandler
+        @keyword cloud_creds: dict, default None. If supplied, this is a dict of cloud
+            credentials. The keys are names of clouds such as were supplied to the
+            'cloud' argument on InfraModel resources. The value is a nested dict
+            whose keys are the previously described credentials arguments (remote_user,
+            remote_pass, private_key_file) for that specific cloud. Keys may be missing
+            in the inner dict and they will be treated as if they were missing from the
+            call to the ConfigModel class. If a needed key is missing for a cloud, then
+            the corresponding keyword argument is checked for the ConfigModel instance.
+            For example, if the 'remote_user' key is missing for the 'citycloud' cloud
+            entry, then the remote_user keyword arg is checked. If that is empty, then
+            delegates are checked as appropriate. If there is no cloud associated with
+            the task's resource, then only the keyword args for the ConfigModel are checked.
 
         """
         if event_handler and not isinstance(event_handler, TaskEventHandler):
@@ -622,6 +645,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         self.default_task_role = default_task_role
         self.default_run_from = default_run_from
         self.delegate = delegate
+        self.cloud_creds = cloud_creds if cloud_creds is not None else {}
         clone_dict = {}
         # NOTE! _node_dict is an inverted dictionary (the string keys are
         # stored as values; it is added in the metaclass
@@ -650,6 +674,9 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             elif k == _default_run_from and self.default_run_from is None:
                 self.default_run_from = v
 
+    def set_cloud_creds(self, cloud_creds):
+        self.cloud_creds = cloud_creds
+
     def get_event_handler(self):
         return self.event_handler
 
@@ -666,7 +693,8 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                  default_run_from=self.default_run_from,
                  delegate=self.delegate,
                  dependencies=self.dependencies,
-                 event_handler=None)
+                 event_handler=None,
+                 cloud_creds=None)  # persisting cloud_creds could be a security leak, so leave them behind
         d.update({k: v for k, v in self._comp_source().items()})
         return d
 
@@ -736,9 +764,9 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         graph.add_edges_from([d.edge() for d in deps])
         return graph
 
-    @narrate(lambda s: "...which requires the config model %s to acquire the default remote user for a task" %
-                       s.__class__.__name__)
-    def get_remote_user(self):
+    @narrate(lambda s, _=None: "...which requires the config model %s to acquire the default remote user for a task" %
+                               s.__class__.__name__)
+    def get_remote_user(self, for_task=None):
         """
         Compute the remote user to use for a task.
         
@@ -747,16 +775,40 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         is a delegate. If a remote_user can't be determined, the current user
         is used for the remote user.
         """
+        if for_task is None:
+            return self._base_remote_user_lookup(for_task)
+
+        host_ref = for_task.get_raw_run_host()
+        if host_ref is None or isinstance(host_ref, basestring):
+            return self._base_remote_user_lookup(for_task)
+
+        cloud = host_ref.cloud
+        if cloud is None:
+            return self._base_remote_user_lookup(for_task)
+
+        creds = self.cloud_creds.get(cloud)
+        if creds is None:
+            # we can't tell here if they forgot the credentials for the cloud or just put them in the
+            # model level. We'll look to the model for the remote_user and go with that.
+            remote_user = self._base_remote_user_lookup(for_task)
+        else:
+            remote_user = creds.get("remote_user")
+            if remote_user is None:
+                remote_user = self._base_remote_user_lookup(for_task)
+
+        return remote_user
+
+    def _base_remote_user_lookup(self, for_task):
         remote_user = (self.remote_user
                        if self.remote_user is not None
-                       else (self.delegate.get_remote_user()
+                       else (self.delegate.get_remote_user(for_task)
                              if self.delegate is not None
                              else None))
         return remote_user
 
-    @narrate(lambda s: "...which requires the config model %s to acquire the remote user's default "
-                       "password for a task" % s.__class__.__name__)
-    def get_remote_pass(self):
+    @narrate(lambda s, _=None: "...which requires the config model %s to acquire the remote user's default "
+                               "password for a task" % s.__class__.__name__)
+    def get_remote_pass(self, for_task=None):
         """
         Compute the remote_pass to use for the remote_user.
         
@@ -766,27 +818,83 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         Ansible fails with a BROKEN PIPE error on the sshpass command. For the
         time being use the private_key_file option for login credentials instead.
         """
-        remote_pass = (self.remote_pass
-                       if self.remote_pass is not None
-                       else (self.delegate.get_remote_pass()
-                             if self.delegate is not None
-                             else None))
+        if for_task is None:
+            return self._base_remote_pass_lookup(for_task)
+
+        host_ref = for_task.get_raw_run_host()
+        if host_ref is None or isinstance(host_ref, basestring):
+            return self._base_remote_pass_lookup(for_task)
+
+        cloud = host_ref.cloud
+        if cloud is None:
+            return self._base_remote_pass_lookup(for_task)
+
+        creds = self.cloud_creds.get(cloud)
+        if creds is None:
+            # we can't tell here if they forgot the credentials for the cloud or just put them in the
+            # model level. We'll look to the model for the remote_user and go with that.
+            remote_pass = self._base_remote_pass_lookup(for_task)
+        else:
+            remote_pass = creds.get("remote_pass")
+            if remote_pass is None:
+                remote_pass = self._base_remote_pass_lookup(for_task)
+
         return remote_pass
 
-    @narrate(lambda s: "...which requires the config model %s to acquire the name of the default key file to "
-                       "use for a task" % s.__class__.__name__)
-    def get_private_key_file(self):
+    def _base_remote_pass_lookup(self, for_task):
+        remote_pass = (self.remote_pass
+                       if self.remote_pass is not None
+                       else (self.delegate.get_remote_pass(for_task)
+                             if self.delegate is not None
+                             else None))
+
+        return remote_pass
+
+    @narrate(lambda s, _=None: "...which requires the config model %s to acquire the name of the default key file to "
+                               "use for a task" % s.__class__.__name__)
+    def get_private_key_file(self, for_task=None):
         """
         Compute the private_key_file to use for the remote_user.
         
         Return the private_key_file on this object, or if there isn't one and
         there is a delegate, return the delegate's private_key_file.
         """
+        if for_task is None:
+            return self._base_private_key_file_lookup(for_task)
+
+        host_ref = for_task.get_raw_run_host()
+        if host_ref is None or isinstance(host_ref, basestring):
+            return self._base_private_key_file_lookup(for_task)
+
+        cloud = host_ref.cloud
+        if cloud is None:
+            return self._base_private_key_file_lookup(for_task)
+
+        creds = self.cloud_creds.get(cloud)
+        if creds is None:
+            # we can't tell here if they forgot the credentials for the cloud or just put them in the
+            # model level. We'll look to the model for the remote_user and go with that.
+            private_key_file = self._base_private_key_file_lookup(for_task)
+        else:
+            private_key_file = creds.get("private_key_file")
+            if private_key_file is None:
+                private_key_file = self._base_private_key_file_lookup(for_task)
+
+        return private_key_file
+        # private_key_file = (self.private_key_file
+        #                     if self.private_key_file is not None
+        #                     else (self.delegate.get_private_key_file(for_task)
+        #                           if self.delegate is not None
+        #                           else None))
+        # return private_key_file
+
+    def _base_private_key_file_lookup(self, for_task):
         private_key_file = (self.private_key_file
                             if self.private_key_file is not None
-                            else (self.delegate.get_private_key_file()
+                            else (self.delegate.get_private_key_file(for_task)
                                   if self.delegate is not None
                                   else None))
+
         return private_key_file
 
     @narrate(lambda s: "...which results in asking the config model %s for the default host for the task" %
