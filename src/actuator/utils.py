@@ -142,7 +142,7 @@ def find_file(filename, start_path=None):
     @param filename: The name of the file to find.
     @keyword start_path: A path prefix to use as the place to start looking
         for the file; if unspecified, will use the current value of
-        os.getcwd() to determine the starting poing.
+        os.getcwd() to determine the starting point.
     @return: the full path to the file, or None if it can't be found.
     """
     test_file_path = None

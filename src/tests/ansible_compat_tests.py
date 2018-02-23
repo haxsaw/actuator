@@ -76,6 +76,7 @@ def perform_and_complain(pea):
     try:
         pea.perform_config()
     except Exception as e:
+        print("Perform failed with %s" % str(e))
         if not len(pea.get_aborted_tasks()):
             print("Missing aborted task messages; need to find where they are!!")
         else:
@@ -100,7 +101,7 @@ def test001():
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
-    cfg = SimpleConfig("cm")
+    cfg = SimpleConfig("cm001")
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -116,7 +117,7 @@ def test002():
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target)
-    cfg = SimpleConfig("cm")
+    cfg = SimpleConfig("cm002")
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -133,7 +134,7 @@ def test003():
         with_config_options(**config_options)
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         repeat_count=1)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm003", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -154,7 +155,7 @@ def test004():
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls !{HOME}", task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm004", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -171,7 +172,7 @@ def test005():
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir=user_home,
                            task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm005", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -191,7 +192,7 @@ def test006():
         ping = CommandTask("cmd", "/bin/wibble", chdir=user_home,
                            task_role=SimpleNamespace.cmd_target,
                            repeat_count=1)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm006", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -213,7 +214,7 @@ def test007():
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm007", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -234,7 +235,7 @@ def test008():
         with_config_options(**config_options)
         ping = ScriptTask("script", os.path.join(os.getcwd(), "tests", "test008.sh"),
                           task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm008", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
@@ -262,7 +263,7 @@ def test009():
                             repeat_count=1)
         with_dependencies(cleanup | copy)
         
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm009", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                namespace_model_instance=ns,
                                no_delay=True)
@@ -285,7 +286,7 @@ def test010():
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls", chdir="!{WHERE}",
                            task_role=SimpleNamespace.cmd_target)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm010", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -325,7 +326,7 @@ def test011():
                                       task_role=SimpleNamespace.target,
                                       repeat_count=1)
         with_dependencies(reset | process)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm011", )
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
@@ -365,7 +366,7 @@ def test012():
                                       task_role=SimpleNamespace.target,
                                       repeat_count=1)
         with_dependencies(reset | process)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm012", )
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
@@ -413,7 +414,7 @@ def test013():
                                       task_role=SimpleNamespace.target,
                                       repeat_count=1)
         with_dependencies(reset | process)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm013", )
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
@@ -478,7 +479,7 @@ def test015():
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         remote_user="!{RUSER}",
                         private_key_file=find_file("lxle1-dev-key"))
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm015", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -502,7 +503,7 @@ def test016():
                             private_key_file=find_file("lxle1-dev-key"),
                             content="This shouldn't get written!\n",
                             )
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm016", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -522,7 +523,7 @@ def test017():
         ping = PingTask("ping", task_role=SimpleNamespace.ping_target,
                         remote_user="!{RUSER}",
                         remote_pass="!{RPASS}")
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm017", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -544,7 +545,7 @@ def test018():
                          remote_user="!{RUSER1}",
                          private_key_file=find_file("lxle1-dev-key"))
         ping2 = PingTask("ping", task_role=SimpleNamespace.ping2_target)
-    cfg = SimpleConfig("cm", )
+    cfg = SimpleConfig("cm018", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 no_delay=True)
@@ -613,7 +614,7 @@ def test020():
                             content="This content created at: {}\n".format(now_str),
                             )
     # we're testing if setting the user stuff at this level works right
-    cfg = SimpleConfig("cm", remote_user="lxle1",
+    cfg = SimpleConfig("cm020", remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
@@ -650,7 +651,7 @@ def test021():
                            SimpleNamespace.q.targets.all())
         with_dependencies(clear | make | copies)
     # we're testing if setting the user stuff at this level works right
-    cfg = SimpleConfig("cm", remote_user="lxle1",
+    cfg = SimpleConfig("cm021", remote_user="lxle1",
                        private_key_file=find_file("lxle1-dev-key"))
     
     ea = ParamikoExecutionAgent(config_model_instance=cfg,

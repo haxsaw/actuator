@@ -379,13 +379,17 @@ class ConfigTask(Task):
         """
         Return the host associated with the task_role for this task.
         """
+        host = self.get_raw_task_host()
+        if isinstance(host, IPAddressable):
+            host.fix_arguments()
+            host = host.get_ip()
+        return host
+
+    def get_raw_task_host(self):
         comp = self.get_task_role()
         host = (comp.host_ref
                 if isinstance(comp.host_ref, basestring)
                 else comp.host_ref.value())
-        if isinstance(host, IPAddressable):
-            host.fix_arguments()
-            host = host.get_ip()
         return host
 
     @narrate(lambda s: "...which requires task %s (%s) to determine what role the task is associated with" %
@@ -421,6 +425,45 @@ class ConfigTask(Task):
             mi = self.get_model_instance()
             comp = mi.get_run_from() if mi is not None else None
         return comp
+
+    @narrate(lambda s: "...which required determining where {} task {} "
+                          "should run from".format(s.__class__.__name__, s.name))
+    def raw_run_task_where(self):
+        # NOTE about task_role and run_from:
+        # the task role provides the focal point for tasks to be performed
+        # in a system, but it is NOT necessarily the place where the task
+        # runs. by default the task_role identifies where to run the task,
+        # but the task supports an optional arg, run_from, that determines
+        # where to actually execute the task. In this latter case, the
+        # task_role anchors the task to a role in the namespace, hence
+        # defining where to get its Var values, but looks elsewhere for
+        # a place to run the task. Any Vars attached to the run_from role
+        # aren't used.
+        run_role = self.get_run_from()
+        if run_role is not None:
+            run_role.fix_arguments()
+            run_host = self.get_raw_run_host()
+        else:
+            try:
+                run_role = self.get_task_role()
+            except ConfigException as _:
+                run_role =None
+            if run_role is not None:
+                run_role.fix_arguments()
+                run_host = self.get_raw_task_host()
+                if hasattr(run_host, "fix_arguments"):
+                    run_host.fix_arguments()
+            else:
+                run_host = None
+        return run_host
+
+    def run_task_where(self):
+        run_host = self.raw_run_task_where()
+
+        if isinstance(run_host, IPAddressable):
+            run_host.fix_arguments()
+            run_host = run_host.get_ip()
+        return run_host
 
     @narrate(lambda s: "...which requires task %s (%s) to determine what host the task should be run from" %
                        (s.name, s.__class__.__name__))
@@ -778,7 +821,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         if for_task is None:
             return self._base_remote_user_lookup(for_task)
 
-        host_ref = for_task.get_raw_run_host()
+        host_ref = for_task.raw_run_task_where()
         if host_ref is None or isinstance(host_ref, basestring):
             return self._base_remote_user_lookup(for_task)
 
@@ -881,12 +924,6 @@ class ConfigModel(ModelBase, GraphableModelMixin):
                 private_key_file = self._base_private_key_file_lookup(for_task)
 
         return private_key_file
-        # private_key_file = (self.private_key_file
-        #                     if self.private_key_file is not None
-        #                     else (self.delegate.get_private_key_file(for_task)
-        #                           if self.delegate is not None
-        #                           else None))
-        # return private_key_file
 
     def _base_private_key_file_lookup(self, for_task):
         private_key_file = (self.private_key_file

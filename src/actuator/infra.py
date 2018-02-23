@@ -393,6 +393,7 @@ class StaticServer(IPAddressable, Provisionable):
         
     @narrate(lambda s: "...so we asked static server {} to fix its args".format(s.name))
     def _fix_arguments(self):
+        super(StaticServer, self)._fix_arguments()
         self.hostname_or_ip = self._get_arg_value(self._hostname_or_ip)
 
     @narrate(lambda s: "...so we asked static server {} finish reanimation".format(s.name))
@@ -402,7 +403,8 @@ class StaticServer(IPAddressable, Provisionable):
     @narrate(lambda s: "...so we asked static server {} for its init args".format(s.name))
     def get_init_args(self):
         __doc__ = Provisionable.get_init_args.__doc__
-        return (self.name, self._hostname_or_ip), {}
+        _, d = super(StaticServer, self).get_init_args()
+        return (self.name, self._hostname_or_ip), d
     
     def get_ip(self, context=None):
         """

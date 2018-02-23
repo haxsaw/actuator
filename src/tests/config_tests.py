@@ -1287,13 +1287,17 @@ def test56():
     test56: check that we get the remote user from the model's cloud_creds
     """
     infra = DelegatedInfra("i")
+
     ns = DeletegateNS("ns")
     ns.set_infra_model(infra)
     _ = ns.refs_for_components()
     _ = infra.refs_for_components()
+
     creds = {"wibble": {"remote_user": "test56"}}
     cfg = DelegateTest("cfg", cloud_creds=creds)
     cfg.set_namespace(ns)
+
+    infra.fix_arguments()
     ns.fix_arguments()
     cfg.fix_arguments()
 
