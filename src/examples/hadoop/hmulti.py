@@ -1,6 +1,6 @@
 import sys
 from actuator.modeling import ctxt
-from actuator.infra import InfraModel, ResourceGroup, MultiResourceGroup
+from actuator.infra import InfraModel, ResourceGroup, MultiResourceGroup, with_infra_options
 from actuator.namespace import NamespaceModel, with_variables, Var, Role, MultiRole, MultiRoleGroup
 from actuator.config import ConfigModel, with_dependencies
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
@@ -63,6 +63,7 @@ class MultiCloudInfra(InfraModel):
     datastore1 = "VMDATA1"
     datastore2 = "DATA"
     all_datastores = [datastore1, datastore2]
+    with_infra_options(long_names=True)
 
     slave_cloud = MultiResourceGroup("",
                          slave_secgroup=make_std_secgroup("slave_sg",
@@ -128,6 +129,38 @@ def host_list(ctxexp, sep_char=" "):
         return sep_char.join(ips)
     return host_list_inner
 
+# we need to replace some of the common vars we imported
+common_vars = [cv for cv in common_vars if cv.name not in {"JAVA_HOME", "JAVA_VER"}]
+
+
+def pick_java_home(c):
+    if c.comp.name.value() == "name_node":
+        cloud = "vsphere"
+    else:
+        try:
+            cloud = double_cont_name(c).value()
+        except:
+            cloud = "not citycloud"
+            print(">>>>>>>>>>>>>>>pick home was wrong!")
+    jh = "/usr/lib/jvm/java-7-openjdk-amd64" if cloud == "citycloud" else "/usr/lib/jvm/java-8-openjdk-amd64"
+    return jh
+
+
+def pick_java_ver(c):
+    if c.comp.name.value() == "name_node":
+        cloud = "vsphere"
+    else:
+        try:
+            cloud = double_cont_name(c).value()
+        except:
+            cloud = "not citycloud"
+            print(">>>>>>>>>>>>>>>>pick ver was wrong!")
+    jv = "openjdk-7-jre-headless" if cloud == "citycloud" else "openjdk-8-jre-headless"
+    return jv
+
+common_vars.append(Var("JAVA_HOME", pick_java_home))
+common_vars.append(Var("JAVA_VER", pick_java_ver))
+
 
 class MultiCloudNS(NamespaceModel):
     with_variables(*common_vars)
@@ -155,7 +188,8 @@ class MultiCloudConfig(ConfigModel):
                                       MultiCloudNS.q.slave_clouds.all().slaves.all())
 
     node_setup = MultiTask("node_setup",
-                           ConfigClassTask("setup_suite", HadoopNodeConfig, init_args=("node-setup",)),
+                           ConfigClassTask("setup_suite", HadoopNodeConfig,
+                                           init_args=("node-setup",)),
                            select_all)
     slave_ip = ShellTask("slave_ips",
                          "for i in localhost !{SLAVE_IPS}; do echo $i; done"
@@ -186,25 +220,24 @@ if __name__ == "__main__":
 
     # make the namespace model instance, create some slaves in different clouds
     ns = MultiCloudNS("multi-ns")
-    ns.make_slaves("citycloud", 4)
-    ns.make_slaves("auro", 2)
+    ns.make_slaves("citycloud", 10)
+    ns.make_slaves("auro", 10)
 
     # make the config model instance
     cloud_creds = {"vsphere": {"remote_pass": "tarnished99"},
-                   "auro": {"private_key_file": "actuator-dev-key"},
-                   "citycloud": {"private_key_file": "actuator-dev-key"}}
+                   "auro": {"private_key_file": find_file("actuator-dev-key")},
+                   "citycloud": {"private_key_file": find_file("actuator-dev-key")}}
     config = MultiCloudConfig("multi-config",
                               event_handler=handler,
                               remote_user="ubuntu",
                               cloud_creds=cloud_creds)
-                              # private_key_file="actuator-dev-key")
 
     # build the orchestrator and go
     ao = ActuatorOrchestration(infra_model_inst=infra,
                                namespace_model_inst=ns,
-                               # config_model_inst=config,
+                               config_model_inst=config,
                                provisioner_proxies=[auro, city, vs],
-                               num_threads=15,
+                               num_threads=30,
                                post_prov_pause=10,
                                no_delay=True)
     try:

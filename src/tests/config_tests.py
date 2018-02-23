@@ -1238,19 +1238,19 @@ class DelegatedInfra(InfraModel):
     s = StaticServer("s", "127.0.0.1", cloud="wibble")
 
 
-class DeletegateNS(NamespaceModel):
+class DelegatedNS(NamespaceModel):
     role = Role("role", host_ref=DelegatedInfra.s)
 
 
 class DelegateTest(ConfigModel):
-    task = ConfigTask("task", task_role=DeletegateNS.role)
+    task = ConfigTask("task", task_role=DelegatedNS.role)
 
 
 def test53():
     """
     test53: check that we go to the ConfigModel for the default remote user
     """
-    ns = DeletegateNS("ns")
+    ns = DelegatedNS("ns")
     cfg = DelegateTest("cfg", remote_user="wibble")
     cfg.set_namespace(ns)
 
@@ -1262,7 +1262,7 @@ def test54():
     """
     test54: check that we go to the ConfigModel for the default remote pass
     """
-    ns = DeletegateNS("ns")
+    ns = DelegatedNS("ns")
     cfg = DelegateTest("cfg", remote_pass="golly!")
     cfg.set_namespace(ns)
 
@@ -1274,7 +1274,7 @@ def test55():
     """
     test55: check that we go the ConfigModel for the default private_key_file
     """
-    ns = DeletegateNS("ns")
+    ns = DelegatedNS("ns")
     cfg = DelegateTest("cfg", private_key_file="somefile.txt")
     cfg.set_namespace(ns)
 
@@ -1288,13 +1288,13 @@ def test56():
     """
     infra = DelegatedInfra("i")
 
-    ns = DeletegateNS("ns")
+    ns = DelegatedNS("ns")
     ns.set_infra_model(infra)
     _ = ns.refs_for_components()
     _ = infra.refs_for_components()
 
     creds = {"wibble": {"remote_user": "test56"}}
-    cfg = DelegateTest("cfg", cloud_creds=creds)
+    cfg = DelegateTest("cfg", cloud_creds=creds, remote_user="nope")
     cfg.set_namespace(ns)
 
     infra.fix_arguments()
@@ -1305,9 +1305,390 @@ def test56():
     assert ru == "test56"
 
 
+def test57():
+    """
+    test57: check that we get the remote pass from the model's cloud_creds
+    """
+    infra = DelegatedInfra("i57")
+
+    ns = DelegatedNS("ns57")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"remote_pass": "test57"}}
+    cfg = DelegateTest("cfg57", cloud_creds=creds, remote_pass="nope")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_pass(cfg.task.value())
+    assert rp == "test57"
+
+
+def test58():
+    """
+    test58: check that we get the private_key_file from the model's cloud_creds
+    """
+    infra = DelegatedInfra("i58")
+
+    ns = DelegatedNS("ns58")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"private_key_file": "test58"}}
+    cfg = DelegateTest("cfg58", cloud_creds=creds, private_key_file="nope")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_private_key_file(cfg.task.value())
+    assert rp == "test58"
+
+
+def test59():
+    """
+    test59: check we get the default remote user when there are other creds for the cloud
+    """
+    infra = DelegatedInfra("i59")
+
+    ns = DelegatedNS("ns59")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"private_key_file": "test59"}}
+    cfg = DelegateTest("cfg59", cloud_creds=creds, remote_user="user59")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_user(cfg.task.value())
+    assert rp == "user59"
+
+
+def test60():
+    """
+    test60: check we get the default remote pass when there are other creds for the cloud
+    """
+    infra = DelegatedInfra("i60")
+
+    ns = DelegatedNS("ns60")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"private_key_file": "test60",
+                        "remote_user": "user60"}}
+    cfg = DelegateTest("cfg60", cloud_creds=creds, remote_pass="pass60")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_pass(cfg.task.value())
+    assert rp == "pass60"
+
+
+def test61():
+    """
+    test61: check we get the default private key file when there are other creds for the cloud
+    """
+    infra = DelegatedInfra("i61")
+
+    ns = DelegatedNS("ns61")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"remote_pass": "pass61",
+                        "remote_user": "user61"}}
+    cfg = DelegateTest("cfg61", cloud_creds=creds, private_key_file="pkf61")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_private_key_file(cfg.task.value())
+    assert rp == "pkf61"
+
+
+def test62():
+    """
+    test62: check we get the default remote user when there's a remote user for the wrong cloud
+    """
+    infra = DelegatedInfra("i62")
+
+    ns = DelegatedNS("ns62")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble-nope": {"remote_user": "nope"}}
+    cfg = DelegateTest("cfg62", cloud_creds=creds, remote_user="user62")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_user(cfg.task.value())
+    assert rp == "user62"
+
+
+def test63():
+    """
+    test63: check we get the default remote pass when there's a remote pass for the wrong cloud
+    """
+    infra = DelegatedInfra("i63")
+
+    ns = DelegatedNS("ns63")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble-nope": {"remote_pass": "nope"}}
+    cfg = DelegateTest("cfg63", cloud_creds=creds, remote_pass="pass63")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_pass(cfg.task.value())
+    assert rp == "pass63"
+
+
+def test64():
+    """
+    test64: check that we get teh default priv key file when the wrong cloud has a pkf
+    """
+    infra = DelegatedInfra("i64")
+
+    ns = DelegatedNS("ns64")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble-nope": {"private_key_file": "nope"}}
+    cfg = DelegateTest("cfg64", cloud_creds=creds, private_key_file="pkf64")
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_private_key_file(cfg.task.value())
+    assert rp == "pkf64"
+
+
+def test65():
+    """
+    test65: check that we get the default remote user when cloud is None
+    """
+    infra = DelegatedInfra("i65")
+
+    ns = DelegatedNS("ns65")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"remote_user": "nope"}}
+    cfg = DelegateTest("cfg65", cloud_creds=creds, remote_user="user65")
+    cfg.set_namespace(ns)
+
+    infra.s.value()._cloud = None
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_user(cfg.task.value())
+    assert rp == "user65"
+    
+    
+def test66():
+    """
+    test66: check that we get the default remote pass when the cloud is None
+    """
+    infra = DelegatedInfra("i66")
+
+    ns = DelegatedNS("ns66")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"remote_pass": "nope"}}
+    cfg = DelegateTest("cfg66", cloud_creds=creds, remote_pass="pass66")
+    cfg.set_namespace(ns)
+
+    infra.s.value()._cloud = None
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_pass(cfg.task.value())
+    assert rp == "pass66"
+    
+    
+def test67():
+    """
+    test67: check that we get the default priv key file when the cloud is None
+    """
+    infra = DelegatedInfra("i67")
+
+    ns = DelegatedNS("ns67")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"private_key_file": "nope"}}
+    cfg = DelegateTest("cfg67", cloud_creds=creds, private_key_file="pkf67")
+    cfg.set_namespace(ns)
+
+    infra.s.value()._cloud = None
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_private_key_file(cfg.task.value())
+    assert rp == "pkf67"
+
+
+def test68():
+    """
+    test68: check we get the default remote user when the host_ref of the role is a string
+    """
+    ns = DelegatedNS("ns68")
+    ns.role.value()._host_ref = "127.0.0.1"
+    _ = ns.refs_for_components()
+
+    creds = {"wibble": {"remote_user": "nope"}}
+    cfg = DelegateTest("cfg68", cloud_creds=creds, remote_user="user68")
+    cfg.set_namespace(ns)
+
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_user(cfg.task.value())
+    assert rp == "user68"
+    
+    
+def test69():
+    """
+    test69: check we get the default remote pass when the host_ref of the role is a string
+    """
+    ns = DelegatedNS("ns69")
+    ns.role.value()._host_ref = "127.0.0.1"
+    _ = ns.refs_for_components()
+
+    creds = {"wibble": {"remote_pass": "nope"}}
+    cfg = DelegateTest("cfg69", cloud_creds=creds, remote_pass="pass69")
+    cfg.set_namespace(ns)
+
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_remote_pass(cfg.task.value())
+    assert rp == "pass69"
+    
+    
+def test70():
+    """
+    test70: check we get the default priv key file when the role's host_ref is a string
+    """
+    ns = DelegatedNS("ns70")
+    ns.role.value()._host_ref = "127.0.0.1"
+    _ = ns.refs_for_components()
+
+    creds = {"wibble": {"private_key_file": "nope"}}
+    cfg = DelegateTest("cfg70", cloud_creds=creds, private_key_file="pkf70")
+    cfg.set_namespace(ns)
+
+    ns.fix_arguments()
+    cfg.fix_arguments()
+
+    rp = cfg.get_private_key_file(cfg.task.value())
+    assert rp == "pkf70"
+
+
+def test71():
+    """
+    test71: re-create the problem of cloud_creds not being found in a MultiTask template
+    """
+
+    class MultiDelegate(ConfigModel):
+        t = MultiTask("mt71", ConfigTask("t71"), DelegatedNS.q.role)
+
+    infra = DelegatedInfra("i71")
+
+    ns = DelegatedNS("ns71")
+    ns.set_infra_model(infra)
+    _ = ns.refs_for_components()
+    _ = infra.refs_for_components()
+
+    creds = {"wibble": {"remote_pass": "pass71"}}
+    cfg = MultiDelegate("cfg71", cloud_creds=creds)
+    _ = cfg.refs_for_components()
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+    cfg.t.fix_arguments()
+    cfg.get_dependencies()
+
+    insts = cfg.t.instances.value()
+    rp = insts[0].get_remote_pass()
+    assert rp == "pass71"
+
+
+def test72():
+    """
+    test72: re-create the problem of cloud_creds not be found in a ConfigClassTask
+    """
+
+    class Inner(ConfigModel):
+        itask = ConfigTask("it72")
+
+    class MultiDelegate(ConfigModel):
+        task = MultiTask("mt72", ConfigClassTask("cc", Inner, init_args=("inner", )),
+                         DelegatedNS.q.role)
+
+    infra = DelegatedInfra("i72")
+
+    ns = DelegatedNS("ns72")
+    ns.set_infra_model(infra)
+    _ = infra.refs_for_components()
+    _ = ns.refs_for_components()
+
+    creds = {"wibble": {"remote_pass": "pass72"}}
+    cfg = MultiDelegate("cfg71", cloud_creds=creds)
+    _ = cfg.refs_for_components()
+    cfg.set_namespace(ns)
+
+    infra.fix_arguments()
+    ns.fix_arguments()
+    cfg.fix_arguments()
+    cfg.task.fix_arguments()
+    cfg.get_dependencies()
+
+    insts = cfg.task.instances.value()
+    rp = insts[0].instance.get_remote_pass()
+    assert rp == "pass72"
+
+
 def do_all():
     setup_module()
-    test56()
+    test72()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

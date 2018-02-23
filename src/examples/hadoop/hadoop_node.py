@@ -49,8 +49,8 @@ common_vars = [Var("USER", "ubuntu"),
                Var("HADOOP_CONF_DIR", "!{HADOOP_HOME}/conf"),
                Var("HADOOP_HEAPSIZE", "1000"),
                # these two work only for CityCloud/Openstack
-               Var("JAVA_HOME", "/usr/lib/jvm/java-7-openjdk-amd64"),
-               Var("JAVA_VER", "openjdk-7-jre-headless", in_env=False),
+               Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
+               Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False),
                # Ubuntu 10.04 on vSphere needs openjdk-8
                # this next var is a default value only for testing
                # this namespace model in isolation; the wrapper task
@@ -88,7 +88,7 @@ class HadoopNodeConfig(ConfigModel):
     jdk_install = CommandTask("jdk_install",
                               "/usr/bin/sudo -h localhost "
                               "/usr/bin/apt-get -y install !{JAVA_VER}",
-                              repeat_count=3)
+                              repeat_count=5)
     reset = CommandTask("reset", "/bin/rm -rf !{HADOOP_PREP}",
                         repeat_count=3)
     make_home = CommandTask("make_home", "/bin/mkdir -p !{HADOOP_PREP}",
@@ -158,14 +158,14 @@ class HadoopNodeConfig(ConfigModel):
     # now express the dependencies between config tasks. each call to
     # with_dependencies() is additive; the set of dependencies are captured in
     # the metadata for the class, and evaluated in total at the proper time
-    with_dependencies(ping | update | (reset & add_hostname))
+    with_dependencies(ping | update | jdk_install | (reset & add_hostname))
 
     with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop &
                                            (copy_public_key | append_public_key)) |
                       unpack | (send_env & send_core_site & send_hdfs_site &
                                 send_mapred_site))
     
-    with_dependencies(add_hostname | jdk_install | zabbix_setup)
+    with_dependencies(add_hostname | zabbix_setup)
     
     with_dependencies(make_home | make_data_home | (make_transactions &
                                                     make_block_home))

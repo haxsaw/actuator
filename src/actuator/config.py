@@ -336,39 +336,39 @@ class ConfigTask(Task):
 
     @narrate(lambda s, _=None: "...which requires task %s (%s) to determine what remote user name to use" %
                                (s.name, s.__class__.__name__))
-    def get_remote_user(self, _=None):
+    def get_remote_user(self, for_task=None):
         """
         Return the effective remote user to use for this task.
         """
         remote_user = (self.remote_user
                        if self.remote_user is not None
-                       else (self.delegate.get_remote_user(self)
+                       else (self.delegate.get_remote_user(self if for_task is None else for_task)
                              if self.delegate is not None
                              else None))
         return remote_user
 
     @narrate(lambda s, _=None: "...which requires task %s (%s) to determine what password to use" %
                                (s.name, s.__class__.__name__))
-    def get_remote_pass(self, _=None):
+    def get_remote_pass(self, for_task=None):
         """
         Return the effective remote password to use for this user.
         """
         remote_pass = (self.remote_pass
                        if self.remote_pass is not None
-                       else (self.delegate.get_remote_pass(self)
+                       else (self.delegate.get_remote_pass(self if for_task is None else for_task)
                              if self.delegate is not None
                              else None))
         return remote_pass
 
     @narrate(lambda s, _=None: "...which requires task %s (%s) to determine what private key file to use" %
                                (s.name, s.__class__.__name__))
-    def get_private_key_file(self, _=None):
+    def get_private_key_file(self, for_task=None):
         """
         Return the effective private key file to use for this task.
         """
         private_key_file = (self.private_key_file
                             if self.private_key_file is not None
-                            else (self.delegate.get_private_key_file(self)
+                            else (self.delegate.get_private_key_file(self if for_task is None else for_task)
                                   if self.delegate is not None
                                   else None))
         return private_key_file
@@ -636,12 +636,12 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             way, the current user name is used for remote access
         @keyword remote_pass: String; default is None. This arg provides the
             password to use with the remote user as determined by above.
-            Tasks remote_pass takes precendence over this value, but this value
+            Task's remote_pass takes precendence over this value, but this value
             takes precedence over the remote_pass supplied in
             with_config_options(). NOTE: this has yet to be observed to actually
             work; Ansible always reports a BROKEN PIPE when trying to use
             sshpass to make use of this argument. Use key pairs instead.
-        @keyword private_key_file: Striing; path to the private part of an ssh
+        @keyword private_key_file: String; path to the private part of an ssh
             keypair. The full path to the key file is needed.
         @keyword delegate: internal. Next object to check for a task_role or a
             run_from role.
@@ -864,7 +864,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         if for_task is None:
             return self._base_remote_pass_lookup(for_task)
 
-        host_ref = for_task.get_raw_run_host()
+        host_ref = for_task.raw_run_task_where()
         if host_ref is None or isinstance(host_ref, basestring):
             return self._base_remote_pass_lookup(for_task)
 
@@ -905,7 +905,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         if for_task is None:
             return self._base_private_key_file_lookup(for_task)
 
-        host_ref = for_task.get_raw_run_host()
+        host_ref = for_task.raw_run_task_where()
         if host_ref is None or isinstance(host_ref, basestring):
             return self._base_private_key_file_lookup(for_task)
 
@@ -1187,7 +1187,9 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
                 init_args = self._get_arg_value(self._init_args)
                 if not init_args:
                     init_args = ()
-                instance = self.cfg_class(*init_args)
+                model = self.get_model_instance()
+                instance = self.cfg_class(*init_args, delegate=model)
+                instance._set_delegate(self)
                 graph = instance.get_graph()
         else:
             graph = self.instance.get_graph()
@@ -1222,11 +1224,12 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         # internal
         super(ConfigClassTask, self)._fix_arguments()
         self.init_args = self._get_arg_value(self._init_args)
-        init_args = self.init_args if self.init_args else ()
+        self.init_args = init_args = self.init_args if self.init_args else ()
         model = self.get_model_instance()
         self.instance = self.cfg_class(*init_args,
                                        namespace_model_instance=model.get_namespace(),
-                                       nexus=model.nexus)
+                                       nexus=model.nexus,
+                                       delegate=model)
         self.instance.set_task_role(self.get_task_role())
         self.instance._set_delegate(self)
         graph = self.get_graph(with_fix=True)
