@@ -356,7 +356,7 @@ class IPAddressable(object):
         """
         raise TypeError("Not implemented")
 
-    def get_cidr4(self):
+    def get_cidr4(self, *_):
         """
         Return a string in CIDR format for the IPv4 address
         """

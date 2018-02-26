@@ -46,7 +46,7 @@ def getnet(cex):
 
 # names of the images to use at various providers
 images = {"citycloud": "Ubuntu 14.04 - LTS - Trusty Tahr",
-          "auro": "Ubuntu16.04-x86_64"}
+          "auro": "Ubuntu16.04-x86_64-20180223"}
 
 
 def getimage(c):
@@ -109,7 +109,7 @@ class MultiCloudInfra(InfraModel):
 
     name_node_ds = Datastore("namenode_ds", dspath=datastore1, cloud="vsphere")
     name_node_rp = ResourcePool("namenode_rp", pool_name="new dell", cloud="vsphere")
-    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase3",
+    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase5",
                                     data_store=ctxt.model.name_node_ds,
                                     resource_pool=ctxt.model.name_node_rp, cloud="vsphere")
 
@@ -126,7 +126,7 @@ def host_list(ctxexp, sep_char=" "):
             for role in ctxexp(ctx)[k].slaves.values():
                 if role:
                     ips.append(role.host_ref.get_ip())
-        return sep_char.join(ips)
+        return sep_char.join([ip for ip in ips if ip])
     return host_list_inner
 
 # we need to replace some of the common vars we imported
@@ -137,11 +137,7 @@ def pick_java_home(c):
     if c.comp.name.value() == "name_node":
         cloud = "vsphere"
     else:
-        try:
-            cloud = double_cont_name(c).value()
-        except:
-            cloud = "not citycloud"
-            print(">>>>>>>>>>>>>>>pick home was wrong!")
+        cloud = double_cont_name(c).value()
     jh = "/usr/lib/jvm/java-7-openjdk-amd64" if cloud == "citycloud" else "/usr/lib/jvm/java-8-openjdk-amd64"
     return jh
 
@@ -150,11 +146,7 @@ def pick_java_ver(c):
     if c.comp.name.value() == "name_node":
         cloud = "vsphere"
     else:
-        try:
-            cloud = double_cont_name(c).value()
-        except:
-            cloud = "not citycloud"
-            print(">>>>>>>>>>>>>>>>pick ver was wrong!")
+        cloud = double_cont_name(c).value()
     jv = "openjdk-7-jre-headless" if cloud == "citycloud" else "openjdk-8-jre-headless"
     return jv
 

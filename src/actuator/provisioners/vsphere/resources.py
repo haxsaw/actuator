@@ -157,6 +157,9 @@ class TemplatedServer(_VSphereProvisionableInfraResource, IPAddressable):
     def get_ip(self, context=None):
         return self.server_ip
 
+    def get_cidr4(self, *_):
+        return "{}/32".format(self.server_ip)
+
     def set_ip(self, ip):
         self.server_ip = ip
 

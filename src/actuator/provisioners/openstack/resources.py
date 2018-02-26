@@ -621,6 +621,9 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         Return the IP for this floating ip resource.
         """
         return self.ip
+
+    def get_cidr4(self, *_):
+        return "{}/32".format(self.ip)
         
     def _fix_arguments(self, provisioner=None):
         super(FloatingIP, self)._fix_arguments()

@@ -101,8 +101,8 @@ class ContextExpr(_Persistable):
         d["_path"] = self._path[:]
         return d
 
-    @narrate(lambda s, _: "...which occasioned getting the reference "
-                          "for the context expr {}".format(str(reversed(s._path))))
+    @narrate(lambda s, _: "...which occasioned evaluating the "
+                          "context expr {}".format(str(reversed(s._path))))
     def __call__(self, ctx):
         ref = ctx
         try:
@@ -141,7 +141,7 @@ class CallContext(object):
     is passed into any callable that has been supplied as an argument in creating
     any AbstractModelingEntity object (components, roles, etc). The attributes of
     the class have the following meaning:
-    
+
     @ivar comp: the component that the callable is an argument for. This may be
         None if this is an argument attached to the model itself
     @ivar model: the instance of the model that the component is a part of
@@ -181,7 +181,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
     def __init__(self, name, *args, **kwargs):
         """
         Create a new modeling entity
-        
+
         Set up the basic data for all modeling entities. The attribute
         @param name: Internal name for the entity. This is not guaranteed to
             unique or unmolested; container components may modify this name to
@@ -956,7 +956,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     @narrate(lambda s: "...which required locating {}'s containing component".format(s._name))
     def get_containing_component(self):
         """
-        For a refernce's value, return the L{ModelComponent} that contains the
+        For a reference's value, return the L{ModelComponent} that contains the
         reference.
         
         This allows discovery of the L{ModelComponent} that contains a reference
