@@ -128,6 +128,67 @@ class ContextExpr(_Persistable):
                                                                                          p, type(e), str(e)))
         return ref
 
+    # @narrate(lambda s, _: "...which occasioned evaluating the "
+    #                       "context expr {}".format(str(reversed(s._path))))
+    # def __call__(self, ctx):
+    #     ref = ctx
+    #     for p in reversed(self._path):
+    #         try:
+    #             ref = self._resolve(ref, p, ctx)
+    #         except Exception as e:
+    #             raise ActuatorException("Was evaluating the context expr 'ctxt.{}' and had reached element '{}' when"
+    #                                     " the following exception was raised: {}, {}".format(
+    #                                                                                 ".".join(reversed(self._path)),
+    #                                                                                 p, type(e), str(e)))
+    #     return ref
+
+    def _resolve(self, ref, p, ctx):
+        if isinstance(p, KeyItem):
+            with narrate_cm(lambda k: "-since element '{}' is a key it was used to index into "
+                                      "the current reference".format(k),
+                            p):
+                val = ref[p.value(ctx)]
+        else:
+            with narrate_cm(lambda a: "-which resulted in trying to get attribute '{}' from "
+                                      "the context expr".format(a),
+                            p):
+                val = getattr(ref, p)
+            with narrate_cm(lambda a: "-and I found that the '{}' attribute yields a callable so I tried "
+                                      "invoking it".format(a),
+                            p):
+                if callable(ref):
+                    val = val(ctx)
+        return val
+
+    def get_containing_component(self, ctx):
+        """
+        returns the component that a context expresison refers to. Similar to
+        AbstractModelComponent.get_containing_component(), except that this
+        requires a CallContext instance to actually find the component
+        :param ctx: instance of CallContext to use to resolve the ContextExpr's
+        path.
+        :return: A ModelInstanceReference for the component that contains the
+            expr's final element refers to
+        """
+        refs = [ctx]
+        ref = ctx
+        for p in reversed(self._path):
+            try:
+                ref = self._resolve(ref, p, ctx)
+            except Exception as e:
+                raise ActuatorException("Was evaluating the context expr 'ctxt.{}' and had reached element '{}' when"
+                                        " the following exception was raised: {}, {}".format(
+                                                                                        ".".join(reversed(self._path)),
+                                                                                        p, type(e), str(e)))
+            else:
+                refs.append(ref)
+        result = None
+        for r in reversed(refs):
+            if isinstance(r, (ModelComponent, ModelBase)):
+                result = r
+                break
+        return result
+
 
 ctxt = ContextExpr()
 
