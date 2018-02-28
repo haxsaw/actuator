@@ -340,6 +340,48 @@ def test020():
     
     v, o = ns.s[0].find_variable("EXPR")
     assert len(v.get_value(ns.s[0]).split(" ")) == 5
+
+
+def test21():
+    """
+    test21: check that we can find the containing component for a simple context expr
+    """
+    class Infra21(InfraModel):
+        s = StaticServer("s21", "127.0.0.1")
+    infra = Infra21("i21")
+
+    cexpr = ctxt.model.s.get_ip
+    cc = CallContext(infra, infra.s)
+    comp = cexpr.get_containing_component(cc)
+    assert comp is infra.s.value(), "comp is {}".format(comp)
+
+
+def test22():
+    """
+    test22: check that we can find the right containing component for a context expr
+    """
+    class Infra22(InfraModel):
+        s = StaticServer("s22", "127.0.0.1")
+    infra = Infra22("i22")
+
+    cexpr = ctxt.model.s
+    cc = CallContext(infra, infra.s)
+    comp = cexpr.get_containing_component(cc)
+    assert comp is infra.s.value()
+
+
+def test23():
+    """
+    test23: check that we get the right container for a context the is evald from another comp
+    """
+    class Infra23(InfraModel):
+        s1 = StaticServer("s1", "127.0.0.1")
+        s2 = StaticServer("s2", "127.0.1.1")
+    infra = Infra23("i23")
+    cexpr = ctxt.model.s2
+    cc = CallContext(infra, infra.s1)
+    comp = cexpr.get_containing_component(cc)
+    assert comp is infra.s2.value()
     
 
 def do_all():
@@ -347,6 +389,7 @@ def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
-    
+
+
 if __name__ == "__main__":
     do_all()
