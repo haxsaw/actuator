@@ -95,12 +95,12 @@ class ProvisionResourcePoolTask(ProvisioningTask):
 @capture_mapping(_vs_domain, TemplatedServer)
 class ProvisionTemplatedServer(ProvisioningTask):
     def depends_on_list(self):
-        deps = []
+        the_things = set(super(ProvisionTemplatedServer, self).depends_on_list())
         if isinstance(self.rsrc.get_data_store(), Datastore):
-            deps.append(self.rsrc.get_data_store())
+            the_things.add(self.rsrc.get_data_store())
         if isinstance(self.rsrc.get_resource_pool(), ResourcePool):
-            deps.append(self.rsrc.get_resource_pool())
-        return deps
+            the_things.add(self.rsrc.get_resource_pool())
+        return list(the_things)
 
     @staticmethod
     def dot2dash(text):

@@ -55,9 +55,10 @@ class ProvisionNetworkTask(ProvisioningTask):
 @capture_mapping(_rt_domain, Subnet)
 class ProvisionSubnetTask(ProvisioningTask):
     def depends_on_list(self):
-        return ([self.rsrc.network]
-                if isinstance(self.rsrc.network, Network)
-                else [])
+        the_things = set(super(ProvisionSubnetTask, self).depends_on_list())
+        if isinstance(self.rsrc.network, Network):
+            the_things.add(self.rsrc.network)
+        return list(the_things)
 
     @narrate(lambda s, _: "...which started the provisioning task for the subnet {}".format(s.rsrc.name))
     def _perform(self, proxy):
@@ -120,13 +121,15 @@ class ProvisionSecGroupTask(ProvisioningTask):
 @capture_mapping(_rt_domain, SecGroupRule)
 class ProvisionSecGroupRuleTask(ProvisioningTask):
     def depends_on_list(self):
-        return ([self.rsrc.secgroup]
-                if isinstance(self.rsrc.secgroup, SecGroup)
-                else [])
+        the_things = set(super(ProvisionSecGroupRuleTask, self).depends_on_list())
+        if isinstance(self.rsrc.secgroup, SecGroup):
+            the_things.add(self.rsrc.secgroup)
+        return list(the_things)
 
     @narrate(lambda s, _: "...which started the provisioning task for the security group rule {}".format(s.rsrc.name))
     def _perform(self, proxy):
         run_context = proxy.get_context()
+        self.rsrc._refix_arguments()
         sg_id = self.rsrc._get_arg_msg_value(self.rsrc.secgroup,
                                              SecGroup,
                                              "osid", "secgroup")
@@ -145,13 +148,15 @@ class ProvisionSecGroupRuleTask(ProvisioningTask):
 @capture_mapping(_rt_domain, Server)
 class ProvisionServerTask(ProvisioningTask):
     def depends_on_list(self):
-        return ([i for i in self.rsrc.security_groups
-                if isinstance(i, SecGroup)] +
-                [j for j in self.rsrc.nics
-                 if isinstance(j, Network)] +
-                ([self.rsrc.key_name]
-                 if isinstance(self.rsrc.key_name, KeyPair)
-                 else []))
+        the_things = super(ProvisionServerTask, self).depends_on_list()
+        the_things.extend([i for i in self.rsrc.security_groups
+                           if isinstance(i, SecGroup)] +
+                          [j for j in self.rsrc.nics
+                           if isinstance(j, Network)] +
+                          ([self.rsrc.key_name]
+                           if isinstance(self.rsrc.key_name, KeyPair)
+                           else []))
+        return list(set(the_things))
 
     def _process_server_addresses(self, addr_dict):
         self.rsrc.set_addresses(addr_dict)
@@ -256,9 +261,10 @@ class ProvisionRouterTask(ProvisioningTask):
 @capture_mapping(_rt_domain, RouterGateway)
 class ProvisionRouterGatewayTask(ProvisioningTask):
     def depends_on_list(self):
-        return ([self.rsrc.router]
-                if isinstance(self.rsrc.router, Router)
-                else [])
+        the_things = set(super(ProvisionRouterGatewayTask, self).depends_on_list())
+        if isinstance(self.rsrc.router, Router):
+            the_things.add(self.rsrc.router)
+        return list(the_things)
 
     @narrate(lambda s, _: "...which started the provisioning task for the the router gateway {}".format(s.rsrc.name))
     def _perform(self, proxy):
@@ -277,12 +283,12 @@ class ProvisionRouterGatewayTask(ProvisioningTask):
 @capture_mapping(_rt_domain, RouterInterface)
 class ProvisionRouterInterfaceTask(ProvisioningTask):
     def depends_on_list(self):
-        deps = []
+        the_things = set(super(ProvisionRouterInterfaceTask, self).depends_on_list())
         if isinstance(self.rsrc.router, Router):
-            deps.append(self.rsrc.router)
+            the_things.add(self.rsrc.router)
         if isinstance(self.rsrc.subnet, Subnet):
-            deps.append(self.rsrc.subnet)
-        return deps
+            the_things.add(self.rsrc.subnet)
+        return list(the_things)
 
     @narrate(lambda s, _: "...resulting in commencing the provisioning task for router interface {}".format(s.rsrc.name))
     def _perform(self, proxy):
@@ -316,7 +322,10 @@ class ProvisionRouterInterfaceTask(ProvisioningTask):
 @capture_mapping(_rt_domain, FloatingIP)
 class ProvisionFloatingIPTask(ProvisioningTask):
     def depends_on_list(self):
-        return [self.rsrc.server] if isinstance(self.rsrc.server, Server) else []
+        the_things = set(super(ProvisionFloatingIPTask, self).depends_on_list())
+        if isinstance(self.rsrc.server, Server):
+            the_things.add(self.rsrc.server)
+        return list(the_things)
 
     @narrate(lambda s, _: "...resulting in commencing the provisioning task for floating ip {}".format(s.rsrc.name))
     def _perform(self, proxy):

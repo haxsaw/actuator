@@ -1490,6 +1490,7 @@ def do_all():
     setup_module()
     globs = globals()
     tests = []
+    test012()
     for k, v in globs.items():
         if k.startswith("test") and callable(v):
             tests.append(k)

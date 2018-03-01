@@ -382,7 +382,42 @@ def test23():
     cc = CallContext(infra, infra.s1)
     comp = cexpr.get_containing_component(cc)
     assert comp is infra.s2.value()
-    
+
+
+def test24():
+    """
+    test24: check the container when using multi resources
+    """
+    class Infra24(InfraModel):
+        cluster = MultiResource(StaticServer("s24", "127.0.0.1"))
+    infra = Infra24("i24")
+    cexpr = ctxt.model.cluster[5].get_ip
+    cc = CallContext(infra, ctxt.model.cluster)
+    comp = cexpr.get_containing_component(cc)
+    assert comp is infra.cluster[5].value() and comp is not infra.cluster[4].value()
+
+
+def test25():
+    """
+    test25: check for a cross-model component context expr
+    """
+    class Infra25(InfraModel):
+        s = StaticServer("s25", "127.0.0.1")
+
+    class NS25(NamespaceModel):
+        with_variables(Var("wibble", ctxt.nexus.inf.s.get_ip))
+        r = Role("r25", host_ref=ctxt.nexus.inf.s)
+
+    infra = Infra25("i25")
+    infra.s.fix_arguments()
+    ns = NS25("ns25")
+    ns.set_infra_model(infra)
+    assert ns.v.wibble() == "127.0.0.1", "wibble is: {}".format(ns.v.wibble())
+    cexp = ctxt.nexus.ns.r
+    cc = CallContext(ns, ns.r)
+    comp = cexp.get_containing_component(cc)
+    assert comp is ns.r.value()
+
 
 def do_all():
     setup_module()

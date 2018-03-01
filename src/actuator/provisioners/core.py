@@ -22,12 +22,13 @@
 """
 Base classes for all Actuator provisioners.
 """
+import collections
 import string
 import threading
 from errator import narrate, narrate_cm
-from actuator.modeling import AbstractModelReference
+from actuator.modeling import AbstractModelReference, ContextExpr, CallContext
 from actuator.task import Task
-from actuator.infra import InfraModel
+from actuator.infra import InfraModel, Provisionable
 from actuator.task import TaskEngine, GraphableModelMixin
 from actuator.utils import (root_logger, LOG_INFO, get_mapper)
 
@@ -89,7 +90,44 @@ class ProvisioningTask(Task):
         return AbstractModelReference.find_ref_for_obj(self.rsrc)
 
     def depends_on_list(self):
-        return []
+        if self.rsrc is None:
+            return []
+        the_things = set()
+        args, kwargs = self.rsrc.get_init_args()
+        cc = CallContext(self.rsrc.get_model_instance(),
+                         AbstractModelReference.find_ref_for_obj(self.rsrc))
+        for a in args:
+            if isinstance(a, ContextExpr):
+                x = a.get_containing_component(cc)
+                if isinstance(x, Provisionable):
+                    the_things.add(x)
+            elif isinstance(a, collections.Iterable):
+                if isinstance(a, dict):
+                    iable = a.values()
+                else:
+                    iable = a
+                for i in iable:
+                    if isinstance(i, ContextExpr):
+                        x = i.get_containing_component(cc)
+                        if isinstance(x, Provisionable):
+                            the_things.add(x)
+
+        for v in kwargs.values():
+            if isinstance(v, ContextExpr):
+                x = v.get_containing_component(cc)
+                if isinstance(x, Provisionable):
+                    the_things.add(x)
+            elif isinstance(v, collections.Iterable):
+                if isinstance(v, dict):
+                    iable = v.values()
+                else:
+                    iable = v
+                for i in iable:
+                    if isinstance(i, ContextExpr):
+                        x = i.get_containing_component(cc)
+                        if isinstance(x, Provisionable):
+                            the_things.add(x)
+        return list(the_things)
 
     def _perform(self, engine):
         """
@@ -305,6 +343,8 @@ class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
                                                            rsrc.name, path,
                                                            d.name))
                 dtask = rsrc_task_map[d]
+                if dtask is task:
+                    continue
                 dependencies.append(dtask | task)
         self.logger.info("%d resource dependencies" % len(dependencies))
         return dependencies

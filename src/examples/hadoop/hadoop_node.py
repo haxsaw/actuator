@@ -49,8 +49,8 @@ common_vars = [Var("USER", "ubuntu"),
                Var("HADOOP_CONF_DIR", "!{HADOOP_HOME}/conf"),
                Var("HADOOP_HEAPSIZE", "1000"),
                # these two work only for CityCloud/Openstack
-               Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
-               Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False),
+               Var("JAVA_HOME", "/usr/lib/jvm/java-7-openjdk-amd64"),
+               Var("JAVA_VER", "openjdk-7-jre-headless", in_env=False),
                # Ubuntu 10.04 on vSphere needs openjdk-8
                # this next var is a default value only for testing
                # this namespace model in isolation; the wrapper task
