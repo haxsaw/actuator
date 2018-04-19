@@ -25,6 +25,7 @@ from errator import narrate
 
 _mpl = threading.Lock()
 
+
 #
 # real connection factory
 def _real_get_vsphere_connection(host, user, pwd):
