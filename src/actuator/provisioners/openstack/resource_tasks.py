@@ -370,7 +370,7 @@ class ProvisionKeyPairTask(ProvisioningTask):
         if self.rsrc.pub_key_file is not None:
             try:
                 public_key = open(self.rsrc.pub_key_file, "r").read()
-            except Exception, e:
+            except Exception as e:
                 raise ProvisionerException("Couldn't open/read the public key file %s "
                                            "for KeyPair %s; %s" % (self.rsrc.pub_key_file,
                                                                    self.rsrc.name,

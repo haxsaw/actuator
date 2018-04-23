@@ -21,6 +21,7 @@
 
 import sys
 import os
+import six
 from actuator import *
 from actuator.utils import find_file
 from zabbix_agent import ZabbixConfig
@@ -78,7 +79,7 @@ class HadoopNodeConfig(ConfigModel):
     ping = PingTask("ping_to_check_alive", repeat_count=5)
     send_priv_key = CopyFileTask("send_priv_key", "!{HADOOP_PREP}/!{PRIV_KEY_NAME}",
                                  src=find_file(pkn, "."),
-                                 mode=0600
+                                 mode=384  # dec for octal 0600
                                  )
     zabbix_setup = ConfigClassTask("zabbix-install", ZabbixConfig, init_args=("zabbix-config",))
     update = CommandTask("update_all",
@@ -179,10 +180,10 @@ if __name__ == "__main__":
     # specifed by the user; normally this would be imported into the main
     # hadoop model
     if len(sys.argv) < 2:
-        print "Usage: %s <FQDN or IP addr to run config on>"
+        six.print_("Usage: %s <FQDN or IP addr to run config on>")
         sys.exit(1)
     routable_host_or_ip = sys.argv[1]
-    print "Using %s as the host to run the config on" % routable_host_or_ip
+    six.print_("Using %s as the host to run the config on" % routable_host_or_ip)
     
     ns = DevNamespace()
     ns.add_variable(Var("IP_ADDR", routable_host_or_ip))
@@ -193,15 +194,14 @@ if __name__ == "__main__":
                                 namespace_model_instance=ns)
     try:
         ea.perform_config()
-        print "\n...all done!"
-    except ExecutionException, e:
-        print
-        print "it blowed up with: ", e.message
+        six.print_( "\n...all done!")
+    except ExecutionException as e:
+        six.print_()
+        six.print_("it blowed up with: ", e.message)
         import traceback
         for t, et, ev, tb, story in ea.get_aborted_tasks():
-            print ("Task %s (id %s) failed with the following:" %
-                   (t.name, str(t._id)))
+            six.print_("Task %s (id %s) failed with the following:" % (t.name, str(t._id)))
             traceback.print_exception(et, ev, tb)
-            print
-            print ("And told the follow exception story: {}".format("\n".join(story)))
-            print("-----------\n")
+            six.print_()
+            six.print_("And told the follow exception story: {}".format("\n".join(story)))
+            six.print_("-----------\n")

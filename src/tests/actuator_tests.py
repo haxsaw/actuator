@@ -20,7 +20,8 @@
 # SOFTWARE.
 
 import json
-
+import functools
+import six
 from errator import set_default_options, reset_all_narrations
 
 from actuator import (ActuatorOrchestration, ctxt, MultiResource, ResourceGroup,
@@ -220,7 +221,7 @@ def test11():
     ns11 = NS11("ns11")
     op = persistence_helper(ns11, None)
     nsm = op.namespace_model_inst
-    assert (nsm.r and
+    assert (nsm.r.value() and
             nsm.r.name.value() == "ro1e1" and
             nsm.r.host_ref.value() is None and
             not nsm.r.variables.value() and
@@ -278,7 +279,7 @@ def test14():
     ns = NS14("ns14")
     op = persistence_helper(ns, infra)
     nsm = op.namespace_model_inst
-    im = op.infra_model_inst
+    _ = op.infra_model_inst
     assert nsm.r.var_value("server_name") == "wibble"
 
 
@@ -446,10 +447,10 @@ def test21():
     act_slave_comp_names = set([s.name.value() for s in nsm.cluster.slaves.values()])
     assert (len(im.cluster.slaves) == num and
             len(nsm.cluster.slaves) == num and
-            reduce(lambda x, y: x and (im.cluster.slaves[y].value() is
-                                       nsm.cluster.slaves[y].host_ref.value()),
-                   im.cluster.slaves.keys(),
-                   True) and
+            functools.reduce(lambda x, y: x and (im.cluster.slaves[y].value() is
+                                                 nsm.cluster.slaves[y].host_ref.value()),
+                             im.cluster.slaves.keys(),
+                             True) and
             ex_slave_comp_names == act_slave_comp_names)
 
 
@@ -483,7 +484,10 @@ def test22():
     op = persistence_helper(ns, infra)
     im = op.infra_model_inst
     nsm = op.namespace_model_inst
-    summer = lambda m: sum([len(c.slaves) for c in m.clusters.values()])
+
+    def summer(m):
+        return sum([len(c.slaves) for c in m.clusters.values()])
+
     right_sum = sum([i + 1 for i in range(num)])
     assert (len(im.clusters) == len(nsm.clusters) and
             len(im.clusters) == num and
@@ -627,7 +631,7 @@ def do_all():
     for k in keys:
         v = g[k]
         if k.startswith("test") and callable(v):
-            print "Running ", k
+            six.print_("Running ", k)
             v()
 
 

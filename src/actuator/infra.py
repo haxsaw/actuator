@@ -23,6 +23,7 @@
 Support for creating Actuator infrastructure models
 """
 
+import six
 from errator import narrate, narrate_cm
 from actuator.utils import (ClassModifier, process_modifiers, _Persistable, KeyAsAttr,
                             _Performable)
@@ -97,7 +98,7 @@ class _LongnameProp(object):
         mi = inst.get_model_instance()
         ref = AbstractModelReference.find_ref_for_obj(inst)
         ln = ".".join(([mi.name] if mi else ["NONE"]) +
-                      (ref.get_path() if ref else []) +
+                      (ref.get_path() if ref is not None else []) +
                       [inst.name])
         return ln
     
@@ -201,12 +202,13 @@ class InfraModelMeta(ModelBaseMeta):
         return new_class
             
 
+@six.add_metaclass(InfraModelMeta)
 class InfraModel(ModelBase):
     """
     This is the base class to use for any infrastructure model. Derive a class
     from this class to make your own infra models.
     """
-    __metaclass__ = InfraModelMeta
+    # __metaclass__ = InfraModelMeta
     ref_class = ModelInstanceReference
     
     def __init__(self, name, event_handler=None, **kwargs):

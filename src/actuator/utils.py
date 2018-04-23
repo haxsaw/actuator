@@ -30,6 +30,7 @@ import datetime
 import collections
 import threading
 import types
+import six
 from errator import narrate
 
 base_logger_name = "actuator"
@@ -68,12 +69,12 @@ class ClassMapper(dict):
         val = None
         try:
             val = dict.__getitem__(self, item)
-        except KeyError, _:
+        except KeyError as _:
             for cls in item.__mro__:
                 try:
                     val = dict.__getitem__(self, cls)
                     break
-                except KeyError, _:
+                except KeyError as _:
                     pass
         if not val:
             raise KeyError("Can not find a value for %s" % item)
@@ -227,10 +228,11 @@ class _SigDictMeta(type):
     def is_sigdict(cls, o):  # @NoSelf
         return isinstance(o, dict) and cls._SIG_ in o
     
-    
+
+@six.add_metaclass(_SigDictMeta)
 class _SignatureDict(dict):
     _KIND_ = "SignatureDict"
-    __metaclass__ = _SigDictMeta
+    # __metaclass__ = _SigDictMeta
 
     def __init__(self):
         super(_SignatureDict, self).__init__()
@@ -387,7 +389,7 @@ class _Persistable(object):
                 if isinstance(retval, _PersistableRef):
                     try:
                         retval = catalog.find_entry(retval.id).get_reanimated()
-                    except UtilsException, e:
+                    except UtilsException as e:
                         raise UtilsException("Error recovering attribute %s; error: %s"
                                              % (k, e.message))
                 elif isinstance(retval, _ClassRef):
@@ -454,7 +456,7 @@ class _Persistable(object):
         retval = v
         if isinstance(v, _Persistable):
             retval = _PersistableRef(v)
-        elif isinstance(v, collections.Iterable) and not isinstance(v, basestring):
+        elif isinstance(v, collections.Iterable) and not isinstance(v, six.string_types):
             if isinstance(v, dict):
                 retval = {(_PersistedKeyAsAttr(vk) if isinstance(vk, _PersistedKeyAsAttr) else vk):
                           (_PersistableRef(vv) if isinstance(vv, _Persistable) else vv)
@@ -558,13 +560,18 @@ class _Persistable(object):
         for k, v in d.items():
             try:
                 v = self.recover_attr_value(k, v, catalog)
-            except UtilsException, e:
+            except UtilsException as e:
                 raise UtilsException("Got an exception trying to recover attribute '%s': %s"
                                      % (k, e.message))
             if isinstance(v, _InvokableAttrRef):
                 v.recover(self)
             else:
                 setattr(self, k, v)
+                # this next bit sets the pre-fixed versions of attributes to the same
+                # final fixed version; this keeps the objects complete and ensures that
+                # the final value won't be changed accidentally by an errant "fix"
+                if not k.startswith("_"):
+                    setattr(self, "_{}".format(k), v)
         return
 
 
@@ -663,7 +670,7 @@ class _Catalog(_SignatureDict):
     def find_entry(self, eid):
         try:
             return self[eid]
-        except KeyError, _:
+        except KeyError as _:
             raise UtilsException("Can't find catalog entry for reference %s; have you "
                                  "ensured that every ref to a _Persistable has been "
                                  "reported via _find_persistables()?" % str(eid))
@@ -671,10 +678,10 @@ class _Catalog(_SignatureDict):
     @classmethod
     def print_it(cls, adict):
         for k, v in adict.items():
-            print k
+            six.print_(k)
             if _SigDictMeta.is_sigdict(v):
-                print "\tType info:", v[_CatalogEntry.ORIG_TYPE]
-                print "\tAttrs:", v[_CatalogEntry.ATTRS_DICT]
+                six.print_("\tType info:", v[_CatalogEntry.ORIG_TYPE])
+                six.print_("\tAttrs:", v[_CatalogEntry.ATTRS_DICT])
     
     def to_dict(self):
         return self

@@ -24,7 +24,7 @@ Created on 13 Jul 2014
 """
 
 from errator import set_default_options, reset_all_narrations
-
+import six
 from actuator import *
 from actuator.config import _Dependency, ConfigTask, StructuralTask,\
     with_config_options
@@ -53,8 +53,8 @@ def teardown_module():
     reset_all_narrations()
     
     
-def make_dep_tuple_set(config):
-    return set([(d.from_task.path, d.to_task.path) for d in config.get_class_dependencies()])
+def make_dep_tuple_set(cfg):
+    return set([(d.from_task.path, d.to_task.path) for d in cfg.get_class_dependencies()])
 
 
 def pretty_deps(deps):
@@ -82,7 +82,7 @@ def test04():
             t1 = NullTask("nt")
             with_dependencies(t1 | "other")
         raise Exception("Failed to catch dependency creation with non-task")
-    except:
+    except Exception as _:
         assert True
 
 
@@ -90,7 +90,7 @@ def test05():
     try:
         _ = _Dependency(NullTask("nt"), "other")
         raise Exception("Failed to catch _Dependency creation with 'to' as non-task")
-    except:
+    except Exception as _:
         assert True
 
 
@@ -98,7 +98,7 @@ def test06():
     try:
         _ = _Dependency("other", NullTask("nt"))
         raise Exception("Failed to catch _Dependency creation with 'from' as non-task")
-    except:
+    except Exception as _:
         assert True
 
 
@@ -116,7 +116,7 @@ def test08():
                               t2 | t3,
                               t3 | t1)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException, _:
+    except ConfigException as _:
         assert True
 
 
@@ -137,7 +137,7 @@ def test10():
             t3 = NullTask("t3", path="t3")
             with_dependencies(t1 | t2 | t3 | t1)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException, _:
+    except ConfigException as _:
         assert True
 
 
@@ -149,7 +149,7 @@ def test10a():
             t3 = NullTask("t3", path="t3")
             with_dependencies(t1 | t2 | t1)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException, _:
+    except ConfigException as _:
         assert True
 
 
@@ -165,7 +165,7 @@ def test11():
             with_dependencies(t3 | t4 | t5)
             with_dependencies(t4 | t2)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException, _:
+    except ConfigException as _:
         assert True
 
 
@@ -399,7 +399,7 @@ class ReportingTask(ConfigTask, StructuralTask):
         args, kwargs = super(ReportingTask, self).get_init_args()
         try:
             kwargs.pop("task_role")
-        except Exception, _:
+        except Exception as _:
             pass
         kwargs["target"] = self.target
         kwargs["report"] = self.report
@@ -407,8 +407,8 @@ class ReportingTask(ConfigTask, StructuralTask):
         
     def _perform(self, engine):
         comp = self.get_task_role()
-        if not isinstance(comp, basestring):
-            if isinstance(comp.name, basestring):
+        if not isinstance(comp, six.string_types):
+            if isinstance(comp.name, six.string_types):
                 comp = comp.name
             else:
                 comp = comp.name.value()
@@ -457,17 +457,17 @@ def test28():
                         no_delay=True)
     try:
         ea.perform_config()
-    except Exception, e:
-        print "Unexpected performance failure with: %s" % e.message
-        print "problems:"
+    except Exception as e:
+        six.print_("Unexpected performance failure with: %s" % str(e))
+        six.print_("problems:")
         import traceback
         for t, et, ev, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task %s" % t.name
+            six.print_(">>>Task %s" % t.name)
             traceback.print_exception(et, ev, tb)
         assert False
     assert (cap.pos("ping_target", PingConfig.t1.name) <
             cap.pos("ping_target", PingConfig.t2.name) <
-            cap.pos("ping_target", PingConfig.t3.name) )
+            cap.pos("ping_target", PingConfig.t3.name))
 
 
 def test29():
@@ -566,7 +566,7 @@ def test32():
             
         def _perform(self, engine):
             vv = self.get_model_instance().namespace_model_instance.get_visible_vars()
-            self.vars.update({v.name:v.get_value(self.get_task_role())
+            self.vars.update({v.name: v.get_value(self.get_task_role())
                               for v in vv.values()})
         
     class SimpleNS(NamespaceModel):
@@ -627,7 +627,7 @@ def test35():
     # this is a re-statement of test26 using '&' instead of
     # TasgGroup (TG). It's a pretty literal translation,
     # although algebraically one set of parends isn't needed.
-    TG = TaskGroup
+    _ = TaskGroup
 
     class First(ConfigModel):
         t1 = NullTask("t1", path="t1")
@@ -746,12 +746,12 @@ def test40():
                         no_delay=True)
     try:
         ea.perform_config()
-    except Exception, e:
-        print "Unexpected exception: %s" % e.message
-        print "Aborted tasks:"
+    except Exception as e:
+        six.print_("Unexpected exception: %s" % str(e))
+        six.print_("Aborted tasks:")
         import traceback
         for t, et, ev, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task %s" % t.name
+            six.print_(">>>Task %s" % t.name)
             traceback.print_exception(et, ev, tb)
         assert False
     assert (len(cfg.grid_prep.instances) == 3 and
@@ -913,13 +913,13 @@ def test45():
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
-    except ExecutionException, e:
+    except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
+            six.print_(">>>Task {} failed with the following:".format(task.name))
             traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+            six.print_()
+        assert False, str(e)
 
     assert len(cap.performed) == 1
 
@@ -956,13 +956,13 @@ def test46():
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
-    except ExecutionException, e:
+    except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
+            six.print_(">>>Task {} failed with the following:".format(task.name))
             traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+            six.print_()
+        assert False, str(e)
 
     assert (len(cap.performed) == 3 and
             cap.pos("tp", "inner_task1") < cap.pos("tp", "inner_task2") and
@@ -1016,15 +1016,18 @@ def test47():
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
-    except ExecutionException, e:
+    except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
+            six.print_(">>>Task {} failed with the following:".format(task.name))
             traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+            six.print_()
+        assert False, str(e)
 
-    cap.performed.sort(lambda x,y: cmp(x[0], y[0]))
+    try:
+        cap.performed.sort(lambda x,y: cmp(x[0], y[0]))
+    except TypeError:
+        cap.performed.sort(key=lambda x: [0])
     assert len(cap.performed) == 9
 
 
@@ -1063,13 +1066,13 @@ def test48():
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
-    except ExecutionException, e:
+    except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
+            six.print_(">>>Task {} failed with the following:".format(task.name))
             traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+            six.print_()
+        assert False, str(e)
 
     assert (len(cap.performed) == 4 and
             cap.pos("tp", "inner_task1") < cap.pos("tp", "inner_task2") and
@@ -1117,13 +1120,13 @@ def test49():
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
-    except ExecutionException, e:
+    except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
+            six.print_(">>>Task {} failed with the following:".format(task.name))
             traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+            six.print_()
+        assert False, str(e)
 
     assert (len(cap.performed) == 5 and
             cap.pos("tp", "inner_task1") < cap.pos("tp", "inner_task2") and
@@ -1184,16 +1187,16 @@ def test50():
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
-    except ExecutionException, e:
+    except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
-            print ">>>Task {} failed with the following:".format(task.name)
+            six.print_(">>>Task {} failed with the following:".format(task.name))
             traceback.print_exception(etype, value, tb)
-            print
-        assert False, e.message
+            six.print_()
+        assert False, str(e)
 
     assert (len(cap.performed) == 11 and
-            cap.pos("default", "final") == len(cap.performed) -1 and
+            cap.pos("default", "final") == len(cap.performed) - 1 and
             cap.pos("default", "initial") == 0)
 
 

@@ -19,11 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Test the basic Task stuff
-'''
+"""
 import json
-
+import six
 from errator import reset_all_narrations, set_default_options
 
 from actuator.task import Task, TaskEngine, GraphableModelMixin, TaskException
@@ -61,13 +61,13 @@ class TestTask(Task):
     def _get_attrs_dict(self):
         d = super(TestTask, self)._get_attrs_dict()
         callback_cache[id(self)] = (self.perf_cb, self.rev_cb)
-        d.update( {"perf_count":self.perf_count,
-                   "rev_count":self.rev_count,
-                   "pass_perf":self.pass_perf,
-                   "pass_rev":self.pass_rev,
-                   "perf_cb":None,
-                   "rev_cb":None,
-                   "_orig_id_":id(self)} )
+        d.update({"perf_count": self.perf_count,
+                  "rev_count": self.rev_count,
+                  "pass_perf": self.pass_perf,
+                  "pass_rev": self.pass_rev,
+                  "perf_cb": None,
+                  "rev_cb": None,
+                  "_orig_id_": id(self)})
         return d
     
     def finalize_reanimate(self):
@@ -133,6 +133,7 @@ def test001():
     te.perform_tasks()
     assert tt.perf_count == 1
 
+
 def test002():
     """
     test002: basic test of reversing after perform
@@ -145,6 +146,7 @@ def test002():
     te.perform_reverses()
     assert tt.perf_count == 1 and tt.rev_count == 1, ("perf_count=%d, rev_count=%d" %
                                                       (tt.perf_count, tt.rev_count))
+
 
 def test003():
     """
@@ -161,32 +163,37 @@ def test003():
     te = TaskEngine("te3", fm, no_delay=True)
     try:
         te.perform_tasks()
-        raise False, "A mock task should have raised an exception"
-    except Exception, _:
+    except Exception as _:
         pass
+    else:
+        assert False, "A mock task should have raised an exception"
+
 #     te.perform_reverses()
 #     only need the following to debug the above if it fails
     try:
         te.perform_reverses()
-    except Exception, e:
-        print e.message
+    except Exception as e:
+        six.print_(str(e))
         import traceback
         for t, et, ev, tb, _ in te.get_aborted_tasks():
-            print ">>>Task ", t.name
+            six.print_(">>>Task ", t.name)
             traceback.print_exception(et, ev, tb, limit=10)
         assert False, "aborting-- reversing task raised"
-    assert (tt1.perf_count == 1 and tt1.rev_count == 1  \
-            and tt2.perf_count == 0 and tt2.rev_count == 0),   \
-            "t1-pc=%d t1-rc=%d t2-pc=%d p2-rc=%d" %   \
-            (tt1.perf_count, tt1.rev_count, tt2.perf_count, tt2.rev_count)
-            
+    assert (tt1.perf_count == 1 and tt1.rev_count == 1
+            and tt2.perf_count == 0 and tt2.rev_count == 0), \
+        "t1-pc=%d t1-rc=%d t2-pc=%d p2-rc=%d" %  \
+        (tt1.perf_count, tt1.rev_count, tt2.perf_count, tt2.rev_count)
+
+
 def test004():
     """
     test004: check dependencies between tasks
     """
     rev_order = []
+
     def order_check(task):
         rev_order.append(task.name)
+
     fm = FauxModel()
     tt1 = TestTask("test004a")
     tt1.rev_cb = order_check
@@ -199,12 +206,15 @@ def test004():
     te.perform_tasks()
     te.perform_reverses()
     assert rev_order == [tt2.name, tt1.name], str(rev_order)
-    
+
+
 def test005():
-    "test005: check long dep chain in reversing"
+    """test005: check long dep chain in reversing"""
     rev_order = []
+
     def order_check(task):
         rev_order.append(task.name)
+
     fm = FauxModel()
     tasks = []
     pt = None
@@ -223,12 +233,15 @@ def test005():
     tasks.reverse()
     names = [t.name for t in tasks]
     assert rev_order == names
-    
+
+
 def test006():
-    "test006: check more complex reverse graph"
+    """test006: check more complex reverse graph"""
     rev_order = []
+
     def order_check(task):
         rev_order.append(task.name)
+
     fm = FauxModel()
     tasks = []
     for i in range(6):
@@ -254,14 +267,15 @@ def test006():
             rev_order.index("t006-2") > rev_order.index("t006-4") and
             rev_order.index("t006-3") > rev_order.index("t006-4") and
             rev_order.index("t006-4") < 5), str(rev_order)
-            
-            
+
 
 def test007():
-    "test007: check more complex reverse graph after reanimation"
+    """test007: check more complex reverse graph after reanimation"""
     rev_order = []
-    def order_check(task):
-        rev_order.append(task.name)
+
+    def order_check(tsk):
+        rev_order.append(tsk.name)
+
     fm = FauxModel()
     tasks = []
     for i in range(6):
@@ -286,11 +300,11 @@ def test007():
     tep = TaskEngine("te7p", fmp, no_delay=True)
     try:
         tep.perform_reverses()
-    except TaskException, e:
-        print ">>>FAILED! tracebacks as follows:"
+    except TaskException as _:
+        six.print_(">>>FAILED! tracebacks as follows:")
         import traceback
         for task, etype, value, tb, _ in tep.get_aborted_tasks():
-            print "----TB for task %s" % task.name
+            six.print_("----TB for task %s" % task.name)
             traceback.print_exception(etype, value, tb)
     tasks.reverse()
     assert (rev_order[0] == "t007-5" and rev_order[5] == "t007-0" and
@@ -299,6 +313,7 @@ def test007():
             rev_order.index("t007-2") > rev_order.index("t007-4") and
             rev_order.index("t007-3") > rev_order.index("t007-4") and
             rev_order.index("t007-4") < 5), str(rev_order)
+
 
 def do_all():
     setup_module()
@@ -309,10 +324,10 @@ def do_all():
             tests.append(k)
     tests.sort()
     for k in tests:
-        print "Doing ", k
+        six.print_("Doing ", k)
         globs[k]()
     teardown_module()
-            
+
+
 if __name__ == "__main__":
     do_all()
-

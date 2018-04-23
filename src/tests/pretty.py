@@ -4,6 +4,7 @@ import sys
 import pprint as pp
 import json
 
+
 def formatit(fname):
     d = json.loads(open(fname, "r").read())
     print "d has %d items" % len(d["CATALOG"])

@@ -31,7 +31,7 @@ end of the list of tests, and never inserted in between existing tests.
 import json
 
 from errator import set_default_options, reset_all_narrations
-
+import six
 import ost_support
 from actuator.provisioners.openstack import openstack_class_factory as ocf
 from actuator.namespace import NamespaceModel, with_variables
@@ -52,6 +52,7 @@ from actuator.provisioners.openstack.resources import (Server, Network,
 from actuator.utils import (find_file, persist_to_dict,
                             reanimate_from_dict)
 from actuator.infra import StaticServer
+from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
 
 
 def setup_module():
@@ -89,13 +90,13 @@ def test002():
     assert model.fip.get_ip() is None and model.fip.osid.value() is None
     try:
         provisioner.perform_tasks()
-    except ProvisionerException, _:
-        print "provision failed; here are the exceptions"
+    except ProvisionerException as _:
+        six.print_("provision failed; here are the exceptions")
         import traceback
         for t, et, ev, tb, _ in provisioner.get_aborted_tasks():
-            print "Task %s" % t.name
+            six.print_("Task %s" % t.name)
             traceback.print_exception(et, ev, tb)
-            print
+            six.print_()
         assert False, "Test provisioning failed"
     assert model.fip.get_ip() and model.fip.osid.value()
 
@@ -153,7 +154,7 @@ def test007():
             subnet = Subnet("wibbleSub", "net", u'300.168.23.0/24')
             # CIDR string checking has been disabled
 #         assert False, "There should have been an exception regarding the cidr string"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert True
 
 
@@ -185,8 +186,8 @@ def test009():
     try:
         provisioner.perform_tasks()
         assert False, "failed to raise an exception on a bogus image name"
-    except ProvisionerException, _:
-        evalues = " ".join([t[2].message.lower() for t in provisioner.aborted_tasks])
+    except ProvisionerException as _:
+        evalues = " ".join([str(t[2]).lower() for t in provisioner.aborted_tasks])
         assert "image" in evalues
 
 
@@ -198,8 +199,8 @@ def test010():
     try:
         provisioner.perform_tasks()
         assert False, "failed to raise an exception on a bogus flavor name"
-    except ProvisionerException, _:
-        evalues = " ".join([t[2].message.lower() for t in provisioner.aborted_tasks])
+    except ProvisionerException as _:
+        evalues = " ".join([str(t[2]).lower() for t in provisioner.aborted_tasks])
         assert "flavor" in evalues
 
 
@@ -298,8 +299,8 @@ def test016():
     try:
         provisioner.perform_tasks()
         assert False, "We should have gotten an error about the network arg"
-    except ProvisionerException, _:
-        evalues = " ".join([t[2].message.lower() for t in provisioner.aborted_tasks])
+    except ProvisionerException as _:
+        evalues = " ".join([str(t[2]).lower() for t in provisioner.aborted_tasks])
         assert "network" in evalues
 
 
@@ -333,8 +334,8 @@ def test017():
 #             subnet = Subnet("WibbleSub", ctxt.model.nett, u'192.168.23.0/24',
 #                             dns_nameservers=[u'8,8,8,8'])
 #         assert False, "Class Test18 should have raised an InfraException"
-#     except InfraException, e:
-#         assert "nett" in e.message
+#     except InfraException as e:
+#         assert "nett" in str(e)
 #         
 # def test019():
 #     try:
@@ -347,8 +348,8 @@ def test017():
 # #                                                                      #the nics arg is the one that should fail
 # #                                                                      nics=[ctxt.model.nett]))
 #         assert False, "The creation of Test19 should have failed"
-#     except InfraException, e:
-#         assert "nics" in e.message
+#     except InfraException as e:
+#         assert "nics" in str(e)
 # 
 # def test020():
 #     try:
@@ -360,8 +361,8 @@ def test017():
 #                                                                      #the nics arg is the one that should fail
 #                                                                      nics=[ctxt.model.nett]))
 #         assert False, "The creation of Test20 should have failed"
-#     except InfraException, e:
-#         assert "nics" in e.message
+#     except InfraException as e:
+#         assert "nics" in str(e)
 # 
 # def test021():
 #     try:
@@ -373,8 +374,8 @@ def test017():
 #                                                                       dns_nameservers=['8.8.8.8']),
 #                                         cluster_net = Network("cnet"))
 #         assert False, "The creation of Test21 should have failed"
-#     except InfraException, e:
-#         assert "nett" in e.message
+#     except InfraException as e:
+#         assert "nett" in str(e)
 
 
 def test022():
@@ -428,15 +429,16 @@ def test027():
 
 def test028():
     seccomp = ResourceGroup("security_resource_group",
-                             secgroup=SecGroup("wibbleGroup", description="stuff"),
-                             ping=SecGroupRule("pingRule",
-                                               ctxt.comp.container.secgroup,
-                                               ip_protocol="icmp",
-                                               from_port=-1, to_port=-1),
-                             ssh_rule=SecGroupRule("ssh_rule",
-                                                   ctxt.comp.container.secgroup,
-                                                   ip_protocol="tcp", from_port=22,
-                                                   to_port=22))
+                            secgroup=SecGroup("wibbleGroup", description="stuff"),
+                            ping=SecGroupRule("pingRule",
+                                              ctxt.comp.container.secgroup,
+                                              ip_protocol="icmp",
+                                              from_port=-1, to_port=-1),
+                            ssh_rule=SecGroupRule("ssh_rule",
+                                                  ctxt.comp.container.secgroup,
+                                                  ip_protocol="tcp", from_port=22,
+                                                  to_port=22))
+
     class SGRTest(InfraModel):
         external_access = seccomp
     inst = SGRTest("seccomp")
@@ -446,15 +448,15 @@ def test028():
 
 def test029():
     seccomp = ResourceGroup("security_resource_group",
-                             secgroup=SecGroup("wibbleGroup", description="stuff"),
-                             ping=SecGroupRule("pingRule",
-                                               ctxt.comp.container.secgroup,
-                                               ip_protocol="icmp",
-                                               from_port=-1, to_port=-1),
-                             ssh_rule=SecGroupRule("ssh_rule",
-                                                   ctxt.comp.container.secgroup,
-                                                   ip_protocol="tcp", from_port=22,
-                                                   to_port=22))
+                            secgroup=SecGroup("wibbleGroup", description="stuff"),
+                            ping=SecGroupRule("pingRule",
+                                              ctxt.comp.container.secgroup,
+                                              ip_protocol="icmp",
+                                              from_port=-1, to_port=-1),
+                            ssh_rule=SecGroupRule("ssh_rule",
+                                                  ctxt.comp.container.secgroup,
+                                                  ip_protocol="tcp", from_port=22,
+                                                  to_port=22))
 
     class SGRTest(InfraModel):
         external_access = seccomp
@@ -502,7 +504,7 @@ def test032():
         class KPTest(InfraModel):
             kp = KeyPair("kp_test", "pkn", os_name="kp_test", force=False)
         assert False, "The class creation should have failed"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert True
 
 
@@ -516,7 +518,7 @@ def test033():
     prov = get_engine(inst)
     try:
         prov.perform_tasks()
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert False, "provisioning the public key failed"
 
 
@@ -530,7 +532,7 @@ def test034():
     try:
         prov.perform_tasks()
         assert ost_support.MockOSCloud._keypairs_dict["test-key"]["public_key"] == "startingkey"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert False, "provisioning the public key failed"
 
 
@@ -545,7 +547,7 @@ def test035():
     try:
         prov.perform_tasks()
         assert ost_support.MockOSCloud._keypairs_dict["test-key"]["public_key"] == "wibble"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert False, "provisioning the public key failed"
 
 
@@ -560,7 +562,7 @@ def test036():
     try:
         prov.perform_tasks()
         assert ost_support.MockOSCloud._keypairs_dict["alt-key-name"]["public_key"] == "wibble"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert False, "provisioning the public key failed"
 
 
@@ -575,7 +577,7 @@ def test037():
     try:
         prov.perform_tasks()
         assert ost_support.MockOSCloud._keypairs_dict["alt-key-name"]["public_key"] == "wibble2"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert False, "provisioning the public key failed"
 
 
@@ -592,7 +594,7 @@ def test038():
         prov.perform_tasks()
         assert (ost_support.MockOSCloud._keypairs_dict["alt-key-name"]["public_key"] ==
                 open(find_file("actuator-dev-key.pub"), "r").read())
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert False, "provisioning the public key failed"
 
 
@@ -606,7 +608,7 @@ def test039():
     try:
         prov.perform_tasks()
         assert False, "should have complained about finding the key file"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert True
 
 
@@ -616,7 +618,7 @@ def test040():
         class KPTest(InfraModel):
             kp = KeyPair("test-key", "pkn")
         assert False, "should have complained missing key arg"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert True
 
 
@@ -627,7 +629,7 @@ def test041():
             kp = KeyPair("test-key", "pkn", pub_key="not me",
                          pub_key_file=find_file("actuator-dev-key.pub"))
         assert False, "should have complained missing key arg"
-    except ProvisionerException, _:
+    except ProvisionerException as _:
         assert True
 
 
@@ -793,9 +795,6 @@ def test049():
     assert result is None
 
 
-from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
-
-
 class BreakableNetworkTask(ProvisionNetworkTask):
     """
     Used in a bunch of tests below
@@ -854,7 +853,7 @@ def test051():
     pnt.do_prov_fail = True
     try:
         pnt.perform(proxy)
-    except:
+    except Exception as _:
         pass
     pnt.do_prov_fail = False
     pnt.perform(proxy)
@@ -900,7 +899,7 @@ def test055():
     pnt.do_deprov_fail = True
     try:
         pnt.reverse(proxy)
-    except:
+    except Exception as _:
         pass
     pnt.do_deprov_fail = False
     pnt.reverse(proxy)
@@ -966,22 +965,23 @@ def test057():
     BreakableNetworkTask.prov_cb = ct.cb
     try:
         prov.perform_tasks()
-        raise False, "the first provision didn't raise an exception; ERROR IN TEST"
-    except Exception, _:
+    except Exception as _:
         pass
-    
+    else:
+        assert False, "the first provision didn't raise an exception; ERROR IN TEST"
+
     inst.net.set_raise(False)
     
     try:
         prov.perform_tasks()
-    except Exception, _:
+    except Exception as _:
         import traceback
         import sys
         et, ev, tb = sys.exc_info()
-        print "UNEXEPECTED abort:"
+        six.print_("UNEXEPECTED abort:")
         traceback.print_exception(et, ev, tb)
         for t, et, ev, tb, _ in prov.get_aborted_tasks():
-            print "Aborted task %s" % t.name
+            six.print_("Aborted task %s" % t.name)
             traceback.print_exception(et, ev, tb)
         raise
     assert ct.prov_count == 1
@@ -1005,9 +1005,11 @@ def test058():
     BreakableNetworkTask.prov_cb = ct.cb
     try:
         prov.perform_tasks()
-        raise False, "the first provision didn't raise an exception"
-    except Exception, _:
+    except Exception as _:
         pass
+    else:
+        assert False, "the first provision didn't raise an exception"
+
     inst.net.set_raise(False)
     prov.perform_tasks()
     prov.perform_tasks()
@@ -1166,7 +1168,7 @@ def test065():
 
 
 class Infra66(InfraModel):
-    s = Server("s", u"Ubuntu 13.10", "m1.small", userdata={"k1":1, "k2":2})
+    s = Server("s", u"Ubuntu 13.10", "m1.small", userdata={"k1": 1, "k2": 2})
 
 
 def test066():
@@ -1179,7 +1181,7 @@ def test066():
 
 
 def udfunc(context):
-    return {"compname":ctxt.name(context)}
+    return {"compname": ctxt.name(context)}
 
 
 class Infra67(InfraModel):
@@ -1229,8 +1231,8 @@ def test069():
 class Infra70(InfraModel):
     g = ResourceGroup("g",
                       net=Network("net"),
-                      srvr = Server("node", u"Ubuntu 13.10", "m1.small",
-                                    nics=[ctxt.comp.container.net]))
+                      srvr=Server("node", u"Ubuntu 13.10", "m1.small",
+                                  nics=[ctxt.comp.container.net]))
 
 
 def test070():
@@ -1428,7 +1430,7 @@ def test080():
             i80p.kp.os_name.value() == "kpalias" and
             i80p.kp.priv_key_name.value() == "kpalias" and
             "actuator-dev-key.pub" in i80p.kp.pub_key_file.value() and
-            i80p.kp.force.value() == True)
+            i80p.kp.force.value() is True)
 
 
 class Infra81(InfraModel):
@@ -1449,7 +1451,7 @@ def test081():
             i81p.kp.os_name.value() == "kpalias" and
             i81p.kp.priv_key_name.value() == "kpalias" and
             i81p.kp.pub_key.value() == "gobbledegook" and
-            i81p.kp.force.value() == True)
+            i81p.kp.force.value() is True)
 
 
 class Infra82(InfraModel):
@@ -1496,7 +1498,7 @@ def do_all():
             tests.append(k)
     tests.sort()
     for k in tests:
-        print "Doing ", k
+        six.print_("Doing ", k)
         globs[k]()
     teardown_module()
 

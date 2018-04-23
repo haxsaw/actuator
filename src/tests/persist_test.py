@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 import json
-
+import six
 from errator import reset_all_narrations, set_default_options
 
 from itertools import chain
@@ -52,10 +52,10 @@ def pdeps(deps):
     Debug helper; prints out dependencies in a sane format
     """
     for d in deps:
-        print "%s:%s (%s) -> %s:%s (%s)" % (d.from_task.name, d.from_task.__class__.__name__,
-                                            str(d.from_task._id)[:4],
-                                            d.to_task.name, d.to_task.__class__.__name__,
-                                            str(d.to_task._id)[:4])
+        six.print_("%s:%s (%s) -> %s:%s (%s)" % (d.from_task.name, d.from_task.__class__.__name__,
+                                                 str(d.from_task._id)[:4],
+                                                 d.to_task.name, d.to_task.__class__.__name__,
+                                                 str(d.to_task._id)[:4]))
 
 
 def test01():
@@ -258,8 +258,17 @@ def test11():
     """
     test11: Complex task group with loads o' tasks
     """
-    for i in range(1, 11):
-        exec "t%d = Task('t%d')" % (i, i)
+    t1 = Task("t1")
+    t2 = Task("t2")
+    t3 = Task("t3")
+    t4 = Task("t4")
+    t5 = Task("t5")
+    t6 = Task("t6")
+    t7 = Task("t7")
+    t8 = Task("t8")
+    t9 = Task("t9")
+    t10 = Task("t10")
+
     tg = TaskGroup(t1 | (t2 & (t3 | t4)),  # @UndefinedVariable
                    t3 | ((t5 | t6) & t7),  # @UndefinedVariable
                    (t6 & t8) | (t9 & t10))  # @UndefinedVariable
@@ -545,7 +554,7 @@ def test21():
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
     deps = cp.get_dependencies()
-    deps.sort(lambda x, y: cmp((x.from_task.name, x.to_task.name), (y.from_task.name, y.to_task.name)))
+    deps.sort(key=lambda x: (x.from_task.name, x.to_task.name))
     assert (len(deps) == 5 and
             deps[0].from_task is cp.t0.value() and
             deps[0].to_task is cp.t0.instance.t1.value() and
@@ -595,7 +604,7 @@ def test22():
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
     deps = cp.get_dependencies()
-    deps.sort(lambda x, y: cmp((x.from_task.name, x.to_task.name), (y.from_task.name, y.to_task.name)))
+    deps.sort(key=lambda x: (x.from_task.name, x.to_task.name))
     assert len(deps) == 16
 
 
@@ -672,7 +681,7 @@ class NS25(NamespaceModel):
     slaves = MultiRole(Role("slave"))
 
 
-def refgen25(ctxt):
+def refgen25(_):
     return NS25.slaves['r2']
 
 
@@ -699,7 +708,6 @@ def test25():
     assert obj()
     assert conf.t1.task_role.name.value() == "slave_r2"
     assert isinstance(cp, ConfigModel)
-    obj = cp
     obj = conf
     for a in ["t1", "task_role", "value"]:
         obj = getattr(obj, a)
@@ -809,7 +817,7 @@ def do_all():
     for k in keys:
         v = g[k]
         if k.startswith("test") and callable(v):
-            print "Running ", k
+            six.print_("Running ", k)
             v()
 
 

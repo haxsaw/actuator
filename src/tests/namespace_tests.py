@@ -24,11 +24,11 @@ Created on 7 Jun 2014
 """
 
 from errator import reset_all_narrations, set_default_options
-
+import six
 from actuator import (Var, NamespaceModel, with_variables, NamespaceException,
-                          Role, with_roles, MultiResource, 
-                          MultiResourceGroup, ctxt, ActuatorException,
-                          StaticServer)
+                      Role, with_roles, MultiResource,
+                      MultiResourceGroup, ctxt, ActuatorException,
+                      StaticServer)
 from actuator.namespace import RoleGroup, MultiRole, MultiRoleGroup
 from actuator.infra import InfraModel
 from actuator.modeling import AbstractModelReference
@@ -103,7 +103,7 @@ def test004():
     try:
         _ = v.get_value(p)
         assert False, "Replacement cycle was not detected"
-    except NamespaceException, _:
+    except NamespaceException as _:
         pass
 
 
@@ -118,7 +118,7 @@ def test006():
     v, p = inst.find_variable("REPEATED")
     try:
         assert v.get_value(p) == "wibble is wibble"
-    except NamespaceException, _:
+    except NamespaceException as _:
         assert False, "This doesn't contain a cycle, just a repeated variable"
         
 def test007():
@@ -139,7 +139,7 @@ def test009():
     try:
         inst.add_variable(("YEP", "NOPE"))
         assert False, "Was allowed to add something that isn't a Var"
-    except NamespaceException, _:
+    except NamespaceException as _:
         pass
 
 
@@ -149,7 +149,7 @@ def test010():
             with_variables(("YEP", "NOPE"))
         _ = MyNamespaceLocal("nslocal")
         assert False, "Was allowed to use with_variables with something not a Var"
-    except NamespaceException, _:
+    except NamespaceException as _:
         pass
 
 
@@ -159,7 +159,7 @@ def test011():
     try:
         v, p = inst.find_variable("ONE")
         _ = v.get_value(p)
-    except NamespaceException, _:
+    except NamespaceException as _:
         assert False, "Override should have broken the cycle"
 
 
@@ -169,7 +169,7 @@ def test012():
     try:
         v, p = inst.find_variable("ONE")
         _ = v.get_value(p)
-    except NamespaceException, _:
+    except NamespaceException as _:
         assert False, "New Var should have replaced the old one"
 
 
@@ -284,8 +284,8 @@ def test024():
         app = Server("app")
         query = MultiResource(Server("query", mem="8GB"))
         grid = MultiResourceGroup("grid",
-                                   handler=Server("handler", mem="8GB"),
-                                   compute=Server("compute", mem="16GB"))
+                                  handler=Server("handler", mem="8GB"),
+                                  compute=Server("compute", mem="16GB"))
 
     class NS24(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
@@ -380,7 +380,8 @@ def test028():
     class Infra28(InfraModel):
         regional_server = MultiResource(Server("regional_server", mem="16GB"))
     
-    nf = lambda x: "reg_srvr_%d" % x
+    def nf(x):
+        return "reg_srvr_%d" % x
 
     class NS28(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
@@ -404,7 +405,8 @@ def test029():
     class Infra29(InfraModel):
         regional_server = MultiResource(Server("regional_server", mem="16GB"))
     
-    nf = lambda x: "reg_srvr_%d" % x
+    def nf(x):
+        return "reg_srvr_%d" % x
 
     class NS29(NamespaceModel):
         with_variables(Var("APP_PORT", "8080"),
@@ -428,7 +430,8 @@ def test030():
     class Infra30(InfraModel):
         regional_server = Server("regional_server", mem="16GB")
     
-    nf = lambda x: "reg_srvr_%d" % x
+    def nf(x):
+        return "reg_srvr_%d" % x
 
     class NS30(NamespaceModel):
         with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
@@ -445,7 +448,9 @@ def test030():
 
 
 def test031():
-    nf = lambda x: "reg_srvr_%d" % x
+
+    def nf(x):
+        return "reg_srvr_%d" % x
 
     class NS31(NamespaceModel):
         with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
@@ -474,7 +479,8 @@ def test032():
     class Infra32(InfraModel):
         regional_server = Server("regional_server", mem="16GB")
     
-    nf = lambda x: "reg_srvr_%d" % x
+    def nf(x):
+        return "reg_srvr_%d" % x
 
     class NS32(NamespaceModel):
         with_variables(Var("TRICKY", "!{NAME} with id !{SERVER_ID}"),
@@ -572,7 +578,7 @@ def test041():
         daddy = Role("daddy").add_variable(Var("MYSTERY", "RIGHT!"))
         kid = Role("kid")
     ns = NS41("ns41")
-    assert not isinstance(ns.daddy.name, basestring)
+    assert not isinstance(ns.daddy.name, six.string_types)
 
 
 def test042():
@@ -582,12 +588,13 @@ def test042():
         kid = Role("kid")
     ns = NS42("ns42")
     assert ns.daddy.name.value() == "daddy"
- 
+
+
 def test043():
     class NS43(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
         family = RoleGroup("family", daddy=Role("daddy").add_variable(Var("MYSTERY", "RIGHT!")),
-                                kid=Role("kid"))
+                           kid=Role("kid"))
     ns = NS43("ns43")
     assert ns.family.daddy.name.value() == "daddy"
 
@@ -596,8 +603,8 @@ def test044():
     class NS44(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
         family = RoleGroup("family",
-                                  daddy=Role("daddy"),
-                                  kid=Role("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
+                           daddy=Role("daddy"),
+                           kid=Role("kid")).add_variable(Var("MYSTERY", "RIGHT!"))
     ns = NS44("ns44")
     var, _ = ns.family.kid.find_variable("MYSTERY")
     assert var.get_value(ns.family.kid.value()) == "RIGHT!"
@@ -651,14 +658,14 @@ def test052():
     class Infra1(InfraModel):
         controller = Server("controller", mem="16GB")
         grid = MultiResourceGroup("pod", foreman=Server("foreman", mem="8GB"),
-                                   worker=Server("grid-node", mem="8GB"))
+                                  worker=Server("grid-node", mem="8GB"))
           
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
         grid = MultiRoleGroup("pod", foreman=Role("foreman",
                                                   host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
-                                     worker=Role("grid-node",
-                                                 host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
+                              worker=Role("grid-node",
+                                          host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra1("mcg")
     ns = NS("ns52")
     for i in range(5):
@@ -670,8 +677,8 @@ def test052():
 def test053():
     class Infra1(InfraModel):
         grid = MultiResourceGroup("grid",
-                                   foreman=Server("foreman", mem="8GB"),
-                                   workers=MultiResource(Server("grid-node", mem="8GB")))
+                                  foreman=Server("foreman", mem="8GB"),
+                                  workers=MultiResource(Server("grid-node", mem="8GB")))
           
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
@@ -682,12 +689,13 @@ def test053():
                                                      host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra1("mcg")
     ns = NS("ns53")
-    for i in [2,4]:
+    for i in [2, 4]:
         grid = ns.grid[i]
         for j in range(i):
             _ = grid.workers[j]
     ns.compute_provisioning_for_environ(infra)
-    assert len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and len(infra.grid[4].workers) == 4 and len(infra.components()) == 8
+    assert (len(infra.grid) == 2 and len(infra.grid[2].workers) == 2 and
+            len(infra.grid[4].workers) == 4 and len(infra.components()) == 8)
 
 
 def test054():
@@ -700,7 +708,7 @@ def test054():
                               host_ref=ctxt.nexus.inf.grid[0])).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra1("mcg")
     ns = NS("ns54")
-    for i in [2,4]:
+    for i in [2, 4]:
         _ = ns.grid[i]
     ns.compute_provisioning_for_environ(infra)
     assert len(infra.grid) == 1 and len(infra.components()) == 1
@@ -720,13 +728,13 @@ def test056():
 
     infra = Infra1("mcg")
     ns = NS("ns56")
-    for i in [2,4]:
+    for i in [2, 4]:
         _ = ns.grid[i]
     try:
         ns.compute_provisioning_for_environ(infra)
         assert False, "Should have complained about the back host_ref callable"
-    except ActuatorException, e:
-        assert "Callable arg failed" in e.message
+    except ActuatorException as e:
+        assert "Callable arg failed" in str(e)
 
 
 def test057():
@@ -734,8 +742,8 @@ def test057():
     try:
         _ = _ComputableValue(object())
         assert False, "_ComputableValue should have complained about the value supplied"
-    except NamespaceException, e:
-        assert "unrecognized" in e.message.lower()
+    except NamespaceException as e:
+        assert "unrecognized" in str(e).lower()
 
 
 def test058():
@@ -753,10 +761,10 @@ def test059():
 def test060():
     from actuator.namespace import VariableContainer
     try:
-        _ = VariableContainer(overrides=[{"ONE":"1"}])
+        _ = VariableContainer(overrides=[{"ONE": "1"}])
         assert False, "Should have got an exception on a bad Var"
-    except TypeError, e:
-        assert "is not a var" in e.message.lower()
+    except TypeError as e:
+        assert "is not a var" in str(e).lower()
 
 
 def test063():
@@ -907,7 +915,7 @@ def test074():
     try:
         _ = ns.v.TWO()
         assert False, "The previous line should have raised an exception"
-    except Exception, _:
+    except Exception as _:
         assert ns.v.ONE() == "uno"
 
 
@@ -946,8 +954,8 @@ def test076():
 def test077():
     class Infra1(InfraModel):
         grid = MultiResourceGroup("grid",
-                                   foreman=Server("foreman", mem="8GB"),
-                                   workers=MultiResource(Server("grid-node", mem="8GB")))
+                                  foreman=Server("foreman", mem="8GB"),
+                                  workers=MultiResource(Server("grid-node", mem="8GB")))
           
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"),
@@ -1028,6 +1036,7 @@ def do_all():
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()
-    
+
+
 if __name__ == "__main__":
     do_all()

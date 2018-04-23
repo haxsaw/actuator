@@ -22,7 +22,10 @@
 '''
 Base classes for bindings to execution agents.
 '''
-import Queue
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 import threading
 import time
 import json
@@ -273,7 +276,7 @@ class ExecutionAgent(TaskEngine):
             try:
                 processor.result_check(task, result, logfile=logfile)
                 task.status = task.PERFORMED
-            except ExecutionException, _:
+            except ExecutionException as _:
                 raise
         return
 
@@ -295,7 +298,7 @@ class ExecutionAgent(TaskEngine):
                 graph, task = self.task_queue.get(block=True, timeout=0.2)
                 if not self.stop:
                     self.reverse_task(graph, task)
-            except Queue.Empty, _:
+            except Queue.Empty as _:
                 pass
 
     @narrate("...which started the performance of all configuration tasks")

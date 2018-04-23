@@ -21,7 +21,10 @@
 
 import itertools
 import networkx as nx
-import Queue
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 import random
 import sys
 import threading
@@ -621,7 +624,7 @@ class TaskEngine(object):
         while not self.task_queue.empty():
             try:
                 self.task_queue.get(False)
-            except Queue.Empty, _:
+            except Queue.Empty as _:
                 break
         self.aborted_tasks = []
         self.num_tasks_to_perform = None
@@ -814,7 +817,10 @@ class TaskEngine(object):
                         logger.error("event_handler.task_failed raised %s; continuing task processing" % str(e))
                 self.abort_process_tasks()
             del tb
-            sys.exc_clear()
+            try:
+                sys.exc_clear()
+            except:
+                pass
 
         if logfile:
             logfile.flush()
@@ -861,7 +867,7 @@ class TaskEngine(object):
                                         logger.debug("queueing up %s for performance"
                                                             % successor.name)
                                         self.task_queue.put((graph, TaskExecControl(successor)))
-            except Queue.Empty, _:
+            except Queue.Empty as _:
                 pass
 
     @narrate(lambda s: "...and then the task engine {} began to process the "
@@ -898,7 +904,7 @@ class TaskEngine(object):
                                         logger.debug("queuing up %s for performance" %
                                                      predecessor.name)
                                         self.task_queue.put((graph, TaskExecControl(predecessor)))
-            except Queue.Empty, _:
+            except Queue.Empty as _:
                 pass
 
     @narrate(lambda s, **kw: "...which started the base task engine {} in performing "

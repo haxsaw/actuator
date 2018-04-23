@@ -93,7 +93,7 @@ def test06():
     try:
         _ = MyInfra.server.wibble
         assert False, "failed to raise AttributeError when accessing a bad attr"
-    except AttributeError, _:
+    except AttributeError as _:
         pass
 
 
@@ -125,7 +125,7 @@ def test12():
     try:
         _ = MyInfra.server['wow']
         assert False, "Should not have been allowed to perform keyed access on the server"
-    except TypeError, _:
+    except TypeError as _:
         pass
 
 
@@ -728,10 +728,10 @@ def test118():
     try:
         comp.fix_arguments()
         assert False, "fix_arguments should have thrown an exception"
-    except TypeError, _:
+    except TypeError as _:
         assert True
-    except Exception, e:
-        assert False, "got an unexpected exception: '%s'" % e.message
+    except Exception as e:
+        assert False, "got an unexpected exception: '%s'" % str(e)
 
 
 def test119():
@@ -741,7 +741,7 @@ def test119():
                               db=Database("db"))
 
     inst = CGTest1("cgtest1")
-    assert inst.group.reqhandler
+    assert inst.group.reqhandler is not None
 
 
 def test120():
@@ -813,8 +813,8 @@ def test124():
     inst.refs_for_components()
     try:
         inst.group.fix_arguments()
-    except Exception, e:
-        assert False, "Fixing the arguments failed; %s" % e.message
+    except Exception as e:
+        assert False, "Fixing the arguments failed; %s" % str(e)
 
 
 def test125():
@@ -900,8 +900,8 @@ def test130():
     try:
         _ = inst.grid[1]
         assert False, "Should have raised a TypeError about _get_item_ref_obj()"
-    except TypeError, e:
-        assert "get_item_ref_obj" in e.message
+    except TypeError as e:
+        assert "get_item_ref_obj" in str(e)
 
 
 def test131():
@@ -923,8 +923,8 @@ def test132():
     try:
         inst.server.no_key[2]
         assert False, "We were allowed to use a key on a non-collection attribute"
-    except TypeError, e:
-        assert "keyed" in e.message
+    except TypeError as e:
+        assert "keyed" in str(e)
 
 
 def test133():
@@ -971,8 +971,14 @@ def test135():
     _ = inst.group.slaves[2]
     inst.components()
     inst.refs_for_components()
-    inst.group.fix_arguments()
-    assert inst.group.slaves[2].mem.value() == "8GB"
+    # we're going to force the fixing order here, since when we do actual provisioning we'll do so in
+    # dependency order, and will re-fix arguments prior to task execution. If we just take the arbitrary
+    # fixing order from only the infra-level fixing, we will someetimes get an order that won't result in
+    # context expressions evaluating properly. By forcing the order, we'll simulate what will be done in
+    # the overall system
+    inst.group.reqhandler.fix_arguments()
+    inst.group.slaves.fix_arguments()
+    assert inst.group.slaves[2].mem.value() == "8GB", "mem value is {}".format(inst.group.slaves[2].mem.value())
 
 
 def test136():
@@ -1111,8 +1117,8 @@ def test147():
             with_resources(grid="not a resource")
 
         assert False, "The class def should have raised an exception"
-    except InfraException, e:
-        assert "grid is not derived" in e.message
+    except InfraException as e:
+        assert "grid is not derived" in str(e)
 
 
 def test148():
@@ -1132,7 +1138,7 @@ def test149():
     try:
         inst.compute_provisioning_from_refs([Test.app_server])
         assert True
-    except InfraException, _:
+    except InfraException as _:
         assert False, "This should be ok to do twice"
 
 
@@ -1146,8 +1152,8 @@ def test150():
     try:
         _ = s.get_ip()
         assert False, "Should not have been able to call get_ip()"
-    except TypeError, e:
-        assert "Not implemented" in e.message
+    except TypeError as e:
+        assert "Not implemented" in str(e)
 
 
 def test151():

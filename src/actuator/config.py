@@ -27,6 +27,7 @@ import itertools
 from collections import Iterable
 import networkx as nx
 from errator import narrate, narrate_cm
+import six
 from actuator.modeling import (ModelComponent, ModelReference,
                                AbstractModelReference, ModelInstanceReference,
                                ModelBase, ModelBaseMeta, _Nexus)
@@ -245,7 +246,7 @@ class ConfigTask(Task):
     def info(self):
         try:
             task_role = self.get_task_role()
-            if task_role:
+            if task_role is not None:
                 if isinstance(task_role.name, AbstractModelReference):
                     role = task_role.name.value()
                 else:
@@ -388,7 +389,7 @@ class ConfigTask(Task):
     def get_raw_task_host(self):
         comp = self.get_task_role()
         host = (comp.host_ref
-                if isinstance(comp.host_ref, basestring)
+                if isinstance(comp.host_ref, six.string_types)
                 else comp.host_ref.value())
         return host
 
@@ -487,7 +488,7 @@ class ConfigTask(Task):
         host = None
         if comp is not None:
             host = (comp.host_ref
-                    if isinstance(comp.host_ref, basestring)
+                    if isinstance(comp.host_ref, six.string_types)
                     else comp.host_ref.value())
         return host
 
@@ -504,12 +505,12 @@ class ConfigTask(Task):
 
     def _get_arg_value(self, arg):
         val = super(ConfigTask, self)._get_arg_value(arg)
-        if isinstance(val, basestring):
+        if isinstance(val, six.string_types):
             # check if we have a variable to resolve
             cv = _ComputableValue(val)
             try:
                 var_context = self.get_task_role()
-            except ConfigException, _:
+            except ConfigException as _:
                 mi = self.get_model_instance()
                 if mi is None:
                     raise ConfigException("Can't find a model to get a default var context")
@@ -593,12 +594,13 @@ class ConfigModelMeta(ModelBaseMeta):
             graph.add_edges_from([d.edge() for d in deps])
             try:
                 _ = nx.topological_sort(graph)
-            except nx.NetworkXUnfeasible, _:
+            except nx.NetworkXUnfeasible as _:
                 raise ConfigException("Task dependency graph contains a cycle")
         _Nexus._add_model_desc("cfg", newbie)
         return newbie
 
 
+@six.add_metaclass(ConfigModelMeta)
 class ConfigModel(ModelBase, GraphableModelMixin):
     """
     Base class for all config models.
@@ -608,7 +610,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     associated with each task. Once an instance is made and associated with
     a namespace the tasks in the model can be performed.
     """
-    __metaclass__ = ConfigModelMeta
+    # __metaclass__ = ConfigModelMeta
     ref_class = ModelInstanceReference
 
     def __init__(self, name, namespace_model_instance=None, nexus=None,
@@ -822,7 +824,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             return self._base_remote_user_lookup(for_task)
 
         host_ref = for_task.raw_run_task_where()
-        if host_ref is None or isinstance(host_ref, basestring):
+        if host_ref is None or isinstance(host_ref, six.string_types):
             return self._base_remote_user_lookup(for_task)
 
         cloud = host_ref.cloud
@@ -865,7 +867,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             return self._base_remote_pass_lookup(for_task)
 
         host_ref = for_task.raw_run_task_where()
-        if host_ref is None or isinstance(host_ref, basestring):
+        if host_ref is None or isinstance(host_ref, six.string_types):
             return self._base_remote_pass_lookup(for_task)
 
         cloud = host_ref.cloud
@@ -906,7 +908,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
             return self._base_private_key_file_lookup(for_task)
 
         host_ref = for_task.raw_run_task_where()
-        if host_ref is None or isinstance(host_ref, basestring):
+        if host_ref is None or isinstance(host_ref, six.string_types):
             return self._base_private_key_file_lookup(for_task)
 
         cloud = host_ref.cloud
@@ -946,7 +948,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         """
         comp = self.get_task_role()
         host = (comp.host_ref
-                if isinstance(comp.host_ref, basestring)
+                if isinstance(comp.host_ref, six.string_types)
                 else comp.host_ref.value())
         if isinstance(host, IPAddressable):
             host.fix_arguments()
@@ -1005,7 +1007,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     #     """
     #     comp = self.get_run_from()
     #     host = (comp.host_ref
-    #             if isinstance(comp.host_ref, basestring)
+    #             if isinstance(comp.host_ref, six.string_types)
     #             else comp.host_ref.value())
     #     if isinstance(host, IPAddressable):
     #         host.fix_arguments()
@@ -1032,7 +1034,7 @@ class ConfigModel(ModelBase, GraphableModelMixin):
         host = None
         if comp is not None:
             host = (comp.host_ref
-                    if isinstance(comp.host_ref, basestring)
+                    if isinstance(comp.host_ref, six.string_types)
                     else comp.host_ref.value())
         return host
 
@@ -1369,7 +1371,7 @@ class MultiTask(ConfigTask, _Unpackable, StructuralTask):
             try:
                 keys = self.task_role_list.keys()
                 comp_refs = [self.task_role_list[k] for k in keys]
-            except TypeError, _:
+            except TypeError as _:
                 raise ConfigException("The value for task_role_list provided to the MultiTask "
                                       "role named {} does not support 'keys()', "
                                       "and so can't be used to acquire a list of roles "

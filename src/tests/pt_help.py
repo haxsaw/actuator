@@ -23,6 +23,7 @@ import json
 from actuator import ActuatorOrchestration
 from actuator.utils import persist_to_dict, reanimate_from_dict
 
+
 def persistence_helper(ns_model=None, infra_model=None):
     orch = ActuatorOrchestration(infra_model_inst=infra_model,
                                  namespace_model_inst=ns_model)

@@ -18,16 +18,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-'''
+"""
 Created on Mar 16, 2016
 
 @author: Tom Carroll
-'''
+"""
 import socket
 import traceback
 import sys
-import os, os.path
-
+import os
+import os.path
+import six
 from nose import SkipTest
 from errator import set_default_options, reset_all_narrations
 
@@ -51,7 +52,7 @@ def find_ip():
         hostname = "{}.local".format(hostname)
         try:
             get_ip = socket.gethostbyname(hostname)
-        except Exception, _:
+        except Exception as _:
             pass
     return get_ip
 
@@ -179,14 +180,14 @@ def perform_and_complain(pea):
         pea.perform_config()
     except Exception as e:
         if not len(pea.get_aborted_tasks()):
-            print("Missing aborted task messages; need to find where they are!!")
+            six.print_("Missing aborted task messages; need to find where they are!!")
         else:
-            print("Here are the traces:")
+            six.print_("Here are the traces:")
             for task, et, ev, tb, _ in pea.get_aborted_tasks():
-                print(">>>>>>Task %s:" % task.name)
+                six.print_(">>>>>>Task %s:" % task.name)
                 traceback.print_exception(et, ev, tb, file=sys.stdout)
-                print()
-        assert False, e.message
+                six.print_()
+        assert False, str(e)
     
     
 def test06():
@@ -266,7 +267,7 @@ def test09():
     
     try:
         perform_and_complain(pea)
-    except:
+    except Exception as _:
         raise
     else:
         assert os.path.exists("/tmp/asdf")
@@ -289,7 +290,7 @@ def test10():
     
     try:
         pea.perform_config()
-    except:
+    except Exception as _:
         assert True
     else:
         assert False, "This should should have failed the cddir"
@@ -315,19 +316,19 @@ def test11():
     # now create the /tmp/xyz file
     try:
         os.remove(to_remove)
-    except:
+    except Exception as _:
         pass
     f = open(to_remove, "w")
     f.close()
     
     try:
         os.remove("/tmp/abc")
-    except:
+    except Exception as _:
         pass
     
     try:
         perform_and_complain(pea)
-    except:
+    except Exception as _:
         raise
     else:
         assert os.path.exists(to_remove)
@@ -350,12 +351,12 @@ def test11a():
 
     try:
         os.remove("/tp/def")
-    except:
+    except Exception as _:
         pass
     
     try:
         perform_and_complain(pea)
-    except:
+    except Exception as _:
         raise
     else:
         assert os.path.exists("/tmp/def")
@@ -368,8 +369,8 @@ def test12():
     class C12(ConfigModel):
         with_config_options(**config_options)
         touch = CommandTask("touch", "touch /tmp/mno",
-                         task_role=SingleRoleNS.target,
-                         removes="/tmp/jkl")
+                            task_role=SingleRoleNS.target,
+                            removes="/tmp/jkl")
         
     ns = SingleRoleNS("ns")
     cfg = C12("remove skip")
@@ -379,12 +380,12 @@ def test12():
 
     try:
         os.remove("/tmp/jkl")
-    except:
+    except Exception as _:
         pass
     
     try:
         perform_and_complain(pea)
-    except:
+    except Exception as _:
         raise
     else:
         assert not os.path.exists("/tmp/mno")
@@ -406,7 +407,7 @@ def test13():
                                  no_delay=True)
     try:
         perform_and_complain(pea)
-    except:
+    except Exception as _:
         raise
     else:
         assert os.path.exists("/tmp/test013Out.txt")                                  
@@ -430,7 +431,7 @@ def test13a():
                                  no_delay=True)
     try:
         perform_and_complain(pea)
-    except:
+    except Exception as _:
         raise
     else:
         assert os.path.exists("/tmp/test013aOut.txt")
@@ -490,7 +491,7 @@ def test16():
                                  no_delay=True)
     try:
         perform_and_complain(pea)
-    except:
+    except Exception as _:
         raise
     else:
         assert not os.path.exists("/tmp/test16")
@@ -505,7 +506,7 @@ def test17():
     class C17(ConfigModel):
         with_config_options(**config_options)
         task = ShellTask("echo-2", "/bin/echo $PATH > !{SINK_FILE}",
-                           task_role=SingleRoleNS.target)
+                         task_role=SingleRoleNS.target)
         check = CommandTask("check", "test -e !{SINK_FILE}",
                             task_role=SingleRoleNS.target)
         rm = CommandTask("rm", "rm !{SINK_FILE}",
@@ -527,14 +528,16 @@ def test17():
 # rem_user variable for localhost. Since this can't be guaranteed this test
 # is usually skipped, but it can be activated simply by commenting out the
 # raise SkipTest after replacing the value of rem_user with a credentialed user name.
-        
+
+
 def test18():
     """
     test18: check logging in when using system keys only
     """
     rem_user = "tom"
     raise SkipTest("See comment; only run this test if the credentials for 'rem_user' to localhost "
-                     "are in the current user's known_hosts")
+                   "are in the current user's known_hosts")
+
     class C18(ConfigModel):
         with_config_options(remote_user=rem_user)
         ping = PingTask("system-keys-ping", task_role=SingleRoleNS.target)
@@ -552,6 +555,7 @@ def test19():
     test19: simple copy file test
     """
     there = os.path.join("/tmp", this_file)
+
     class C19(ConfigModel):
         with_config_options(**config_options)
         cp = CopyFileTask("sendit", there, src=__file__,
@@ -665,7 +669,7 @@ def test23():
     """
     test23: ensure nested directory hierarchies copy
     """
-    srcdir, _ = os.path.split(here) # assumes src/tests dir structure
+    srcdir, _ = os.path.split(here)   # assumes src/tests dir structure
     dest = "/tmp"
 
     class C23(ConfigModel):
@@ -695,7 +699,7 @@ def test24():
     test24: copy a file with a specific mode
     """
     dest = os.path.join("/tmp", this_file)
-    fmode = 0700
+    fmode = 448  # this is octal 0700
 
     class C24(ConfigModel):
         with_config_options(**config_options)
@@ -727,7 +731,7 @@ def test25():
     tests = os.path.split(here)[-1]
     dest = "/tmp"
     to_check = os.path.join(dest, tests)
-    fmode = 0700
+    fmode = 448  # this is octal 0700
 
     class C25(ConfigModel):
         with_config_options(**config_options)
@@ -759,6 +763,7 @@ def do_all():
         if k.startswith("test") and callable(v):
             v()
     teardown_module()
-            
+
+
 if __name__ == "__main__":
     do_all()

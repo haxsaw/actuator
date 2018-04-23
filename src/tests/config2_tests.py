@@ -24,7 +24,7 @@ Created on Jan 15, 2015
 """
 import time
 import threading
-
+import six
 from errator import set_default_options, reset_all_narrations
 
 import ost_support
@@ -101,15 +101,15 @@ def test001():
         
         # HADOOP slaves
         slaves = MultiResourceGroup("slaves",
-                                     slave=Server("slave", ubuntu_img,
-                                                  "m1.small",
-                                                  nics=[ctxt.model.gateway.net],
-                                                  security_groups=[ctxt.model.slave_secgroup.group],
-                                                  **common_kwargs),
-                                     slave_fip=FloatingIP("sn_fip",
-                                                          ctxt.comp.container.slave,
-                                                          ctxt.comp.container.slave.iface0.addr0,
-                                                          pool=fip_pool))
+                                    slave=Server("slave", ubuntu_img,
+                                                 "m1.small",
+                                                 nics=[ctxt.model.gateway.net],
+                                                 security_groups=[ctxt.model.slave_secgroup.group],
+                                                 **common_kwargs),
+                                    slave_fip=FloatingIP("sn_fip",
+                                                         ctxt.comp.container.slave,
+                                                         ctxt.comp.container.slave.iface0.addr0,
+                                                         pool=fip_pool))
     infra = Infra1("infra")
     
     class Namespace(NamespaceModel):
@@ -129,10 +129,6 @@ def test001():
                           Namespace.q.slaves.all())
     cfg = Config("cm")
     
-    uid = "it"
-    pwd = "doesn't"
-    url = "matter"
-    
     os_prov = ProvisioningTaskEngine(infra, provisioner_proxies=[OpenStackProvisionerProxy("wibble")], num_threads=1)
     for i in range(5):
         _ = ns.slaves[i]
@@ -141,32 +137,32 @@ def test001():
     import traceback
     try:
         os_prov.perform_tasks()
-    except Exception, e:
-        print "Provision failed with %s; details below" % e.message
+    except Exception as e:
+        six.print_("Provision failed with %s; details below" % str(e))
         for t, et, ev, tb, _ in os_prov.get_aborted_tasks():
-            print "prov task %s failed with:" % t.name
+            six.print_("prov task %s failed with:" % t.name)
             traceback.print_exception(et, ev, tb)
-            print
+            six.print_()
         assert False, "can't proceed due to provisioning errors"
         
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               num_threads = 1,
-                               no_delay=True, log_level=LOG_DEBUG)
+                                namespace_model_instance=ns,
+                                num_threads=1,
+                                no_delay=True, log_level=LOG_DEBUG)
     try:
         ea.perform_config()
-    except Exception, e:
-        print "Config failed with %s; details below" % e.message
+    except Exception as e:
+        six.print_("Config failed with %s; details below" % str(e))
         for t, et, ev, tb, _ in ea.get_aborted_tasks():
-            print "task %s failed with:" % t.name
+            six.print_("task %s failed with:" % t.name)
             traceback.print_exception(et, ev, tb)
-            print
+            six.print_()
         assert False, "The config had errors; see output"
         
     assert (cfg.do_it.value().instances[0].instance.task.get_task_role().host_ref is not None and
             cfg.do_it.value().instances[0].instance.task.get_task_host() is not None and
             isinstance(cfg.do_it.value().instances[0].instance.task.get_task_host(),
-                       basestring))
+                       six.string_types))
 
 
 def test002():
@@ -179,10 +175,10 @@ def test002():
     try:
         _ = ParamikoExecutionAgent(config_model_instance=Infra2("i2"))
         assert False, "should have complained about wrong type for config_model_instance"
-    except ExecutionException, _:
+    except ExecutionException as _:
         assert True
-    except Exception, e:
-        assert False, "Wrong exception raised: %s" % e.message
+    except Exception as e:
+        assert False, "Wrong exception raised: %s" % str(e)
 
 
 def test003():
@@ -195,10 +191,10 @@ def test003():
     try:
         _ = ParamikoExecutionAgent(namespace_model_instance=Infra3("i3"))
         assert False, "should have complained about wrong type for namespace_model_instance"
-    except ExecutionException, _:
+    except ExecutionException as _:
         assert True
-    except Exception, e:
-        assert False, "Wrong exception raised: %s" % e.message
+    except Exception as e:
+        assert False, "Wrong exception raised: %s" % str(e)
 
 
 def test004():
@@ -209,12 +205,12 @@ def test004():
         pass
     
     try:
-        aea = ParamikoExecutionAgent(infra_model_instance=NS4("ns"))
+        _ = ParamikoExecutionAgent(infra_model_instance=NS4("ns"))
         assert False, "should have complained about wrong type for infra_model_instance"
-    except ExecutionException, _:
+    except ExecutionException as _:
         assert True
-    except Exception, e:
-        assert False, "Wrong exception raised: %s" % e.message
+    except Exception as e:
+        assert False, "Wrong exception raised: %s" % str(e)
 
 
 def test005():
@@ -232,8 +228,8 @@ def test005():
     try:
         ea.reverse_task({}, {})
         assert True
-    except Exception, e:
-        assert False, "Failed with: %s" % e.message
+    except Exception as e:
+        assert False, "Failed with: %s" % str(e)
 
 
 def test006():
@@ -264,9 +260,9 @@ def test007():
     ea = ExecutionAgent(config_model_instance=Config7("cm"),
                         namespace_model_instance=NS7("ns"))
 
-    def wait_and_abort(ea):
+    def wait_and_abort(lea):
         time.sleep(0.5)
-        ea.abort_process_tasks()
+        lea.abort_process_tasks()
     
     ea.task_queue.put(({}, {}))
     
@@ -280,9 +276,10 @@ def do_all():
     setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
-            print ">>>>>>>>Running test %s" % k
+            six.print_(">>>>>>>>Running test %s" % k)
             v()
     teardown_module()
-            
+
+
 if __name__ == "__main__":
     do_all()

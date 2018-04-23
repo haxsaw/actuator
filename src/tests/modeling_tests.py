@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Created on 7 Jun 2014
-'''
+"""
 from errator import reset_all_narrations, set_default_options
 
 from actuator import (MultiComponent,
@@ -44,32 +44,37 @@ def teardown_module():
 
 def test001():
     from actuator.modeling import _ComputeModelComponents
+
     class NoCompSource(_ComputeModelComponents):
         pass
     cs = NoCompSource()
     try:
         _ = cs._comp_source()
         assert False, "Non-overridden _comp_source() should have raised"
-    except TypeError, e:
-        assert "Derived class must implement" in e.message
-        
+    except TypeError as e:
+        assert "Derived class must implement" in str(e)
+
+
 def test002():
     try:
         _ = ComponentGroup("oopsGroup", server=Server("server", mem="8GB"), oops="not me")
         assert False, "Bad arg to ComponentGroup not caught"
-    except TypeError, e:
-        assert "isn't a kind of AbstractModelingEntity".lower() in e.message.lower()
+    except TypeError as e:
+        assert "isn't a kind of AbstractModelingEntity".lower() in str(e).lower()
+
 
 def test003():
     ce = ctxt.one.two.three
     assert list(ce._path) == ["three", "two", "one"]
-    
+
+
 def test004():
     ce = ctxt.nexus.inf.grid[0]
     path = list(ce._path[1:])
     ki = ce._path[0]
     assert [ki.key] + path == ["0", "grid", "inf", "nexus"]
-    
+
+
 def test005():
     class Infra1(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
@@ -77,6 +82,7 @@ def test005():
     for i in range(3):
         _ = inst.grid[i]
     assert set(inst.grid) == set(["0", "1", "2"])
+
 
 def test006():
     class Infra1(InfraModel):
@@ -86,7 +92,8 @@ def test006():
         _ = inst.grid[i]
     nada = "nada"
     assert inst.grid.get("10", default=nada) == nada
-    
+
+
 def test007():
     class Infra1(InfraModel):
         grid = MultiComponent(Server("grid", mem="8GB"))
@@ -118,7 +125,8 @@ def test008():
     ctxt = CallContext(infra, FakeReference("wibble"))
     result = qexp(ctxt)
     assert len(result) == 20
-    
+
+
 def test009():
     class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
@@ -133,6 +141,7 @@ def test009():
     ctxt = CallContext(infra, FakeReference("wibble"))
     result = qexp(ctxt)
     assert len(result) == 10
+
 
 def test010():
     class Infra1(InfraModel):
@@ -149,6 +158,7 @@ def test010():
     result = qexp(ctxt)
     assert len(result) == 20
 
+
 def test011():
     class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
@@ -163,6 +173,7 @@ def test011():
     ctxt = CallContext(infra, FakeReference("wibble"))
     result = qexp(ctxt)
     assert len(result) == 30
+
 
 def test012():
     class Infra1(InfraModel):
@@ -183,6 +194,7 @@ def test012():
     result = qexp(ctxt)
     assert len(result) == 25
 
+
 def test013():
     class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
@@ -201,6 +213,7 @@ def test013():
     ctxt = CallContext(infra, FakeReference("wibble"))
     result = qexp(ctxt)
     assert len(result) == 10
+
 
 def test014():
     class Infra1(InfraModel):
@@ -225,6 +238,7 @@ def test014():
     result = qexp(ctxt)
     assert len(result) == 10
 
+
 def test015():
     class Infra1(InfraModel):
         clusters = MultiComponentGroup("cluster",
@@ -232,7 +246,7 @@ def test015():
                                        workers=MultiComponent(Server("worker", mem="8GB")))
     infra = Infra1("infra")
     qexp = Infra1.q.union(Infra1.q.clusters.match("(NY|LN)").workers,
-                         Infra1.q.clusters.key("SG").leader)
+                          Infra1.q.clusters.key("SG").leader)
     for i in ["NY", "LN", "SG", "TK", "ZU"]:
         cluster = infra.clusters[i]
         for j in range(10):
@@ -274,8 +288,8 @@ def test017():
     try:
         _ = Infra1.q.cluster.workers
         assert False, "This should have complained about 'cluster' not being an attribute"
-    except AttributeError, e:
-        assert "cluster" in e.message.lower()
+    except AttributeError as e:
+        assert "cluster" in str(e).lower()
 
 
 def test018():

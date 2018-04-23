@@ -27,6 +27,7 @@ import sys
 import re
 import itertools
 import weakref
+import six
 
 from errator import narrate, narrate_cm
 
@@ -223,7 +224,7 @@ class CallContext(object):
         self.model = model_inst
         self.nexus = model_inst.nexus if model_inst is not None else None
         self.comp = component
-        self.name = component._name if component else None
+        self.name = component._name if component is not None else None
 
 
 class _ArgumentProcessor(object):
@@ -335,7 +336,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
             if isinstance(arg, ContextExpr):
                 try:
                     _ = arg(context)
-                except Exception, e:
+                except Exception as e:
                     raise ActuatorException("Argument validation failed; argument %d of %s failed to eval with: %s" %
                                             (i, self.name, e.message))
         for kwname, kwvalue in kwargs.items():
@@ -343,7 +344,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
                 context = CallContext(referenceable, kwvalue)
                 try:
                     _ = arg(context)
-                except Exception, e:
+                except Exception as e:
                     raise ActuatorException("Argument validation failed; argument '%s' of %s failed to eval with: %s" %
                                             (kwname, self.name, e.message))
             elif isinstance(kwvalue, AbstractModelingEntity):
@@ -416,7 +417,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         """
         my_ref = AbstractModelReference.find_ref_for_obj(self)
         container = None
-        while my_ref and my_ref._parent:
+        while my_ref is not None and my_ref._parent is not None:
             value = my_ref._parent.value()
             if isinstance(value, (MultiComponent, ModelBase, ComponentGroup)):
                 container = my_ref._parent
@@ -448,10 +449,10 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
                                                 "path '{}' so I tried to get its value".format(val.get_path()),
                                     value):
                         value = value.value()
-            except Exception, e:
+            except Exception as e:
                 t, v = sys.exc_info()[:2]
-                raise ActuatorException("Callable arg failed with: %s, %s, %s" %
-                                        (t, v, e.message)), None, sys.exc_info()[2]
+                msg = "Callable arg failed with: %s, %s, %s" % (t, v, str(e))
+                six.reraise(ActuatorException, ActuatorException(msg), sys.exc_info()[2])
         else:
             value = arg
         return value
@@ -577,6 +578,8 @@ class _ComputeModelComponents(object):
                                              "asked for its components' references".format(comp.__class__.__name__),
                                 v):
                     ref = getattr(self, k)
+                    if not isinstance(ref, AbstractModelReference):
+                        continue
                     all_refs |= v.refs_for_components(my_ref=ref)
         return all_refs
 
@@ -766,7 +769,10 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         """
         Returns an iterator for the keys for all instances
         """
-        return self._instances.iterkeys()
+        if hasattr(self._instances, "iterkeys"):
+            return self._instances.iterkeys()
+        else:
+            return self._instances.keys()
 
     def itervalues(self):
         """
@@ -804,7 +810,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         
         @param key: an immutable key value
         """
-        return self._instances.has_key(KeyAsAttr(key))
+        return KeyAsAttr(key) in self._instances
 
     @narrate(lambda s, k, **kw: "...which required multicomponent {} to try to get an instance with "
                                 "key {}".format(s.name, k))
@@ -953,7 +959,11 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
 
         inst = AbstractModelReference._inst_cache.get(key)
         if inst is None:
-            inst = super(AbstractModelReference, cls).__new__(cls, name, obj, parent)
+            # py 2/3 compatibility
+            try:
+                inst = super(AbstractModelReference, cls).__new__(cls, name, obj, parent)
+            except TypeError:
+                inst = super(AbstractModelReference, cls).__new__(cls)
             AbstractModelReference._inst_cache[key] = inst
 
         if obj is not None:
@@ -963,7 +973,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                 target = object.__getattribute__(obj, name)
                 try:
                     _ = hash(target)
-                except TypeError, _:
+                except TypeError as _:
                     target = obj
             if target is not None:
                 # We can *never* store a single ref to None; too many things
@@ -1171,6 +1181,14 @@ class ModelInstanceReference(AbstractModelReference):
             raise TypeError("object of type %s has no len()" % str(value))
         return len(value)
 
+    def __bool__(self):
+        value = self.value()
+        if value is None:
+            truth = False
+        else:
+            truth = True if value else False
+        return truth
+
     def __nonzero__(self):
         value = self.value()
         result = value is not None
@@ -1245,7 +1263,7 @@ class SelectElement(object):
     def __getattr__(self, attrname):
         try:
             next_ref = getattr(self.ref, attrname)
-        except AttributeError, _:
+        except AttributeError as _:
             if isinstance(self.ref.value(), MultiComponent):
                 next_ref = getattr(self.ref.template_component, attrname)
             else:
@@ -1491,11 +1509,12 @@ class _NexusMember(_Persistable):
         self.set_nexus(new_nexus)
 
 
+@six.add_metaclass(ModelBaseMeta)
 class ModelBase(AbstractModelingEntity, _NexusMember, _ComputeModelComponents, _ArgumentProcessor):
     """
     This is the common base class for all models
     """
-    __metaclass__ = ModelBaseMeta
+    # __metaclass__ = ModelBaseMeta
 
     def get_inst_ref(self, model_ref):
         """

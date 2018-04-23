@@ -32,6 +32,7 @@ import os.path
 import stat
 import traceback
 
+import six
 from errator import set_default_options, reset_all_narrations
 
 from actuator import (NamespaceModel, Var, Role, ConfigModel, PingTask,
@@ -49,7 +50,7 @@ def setup_module():
     pkeyfile = find_file("lxle1-dev-key")
     os.chmod(pkeyfile, stat.S_IRUSR | stat.S_IWUSR)
     reset_all_narrations()
-    set_default_options(check=True)
+    set_default_options(check=True, verbose=True)
 
 
 def teardown_module():
@@ -85,7 +86,7 @@ def perform_and_complain(pea):
                 print(">>>>>>Task %s:" % task.name)
                 traceback.print_exception(et, ev, tb, file=sys.stdout)
                 print()
-        assert False, e.message
+        assert False, str(e)
         
         
 config_options = dict(remote_user="lxle1",
@@ -141,7 +142,7 @@ def test003():
     try:
         perform_and_complain(ea)
         assert False, "this should have failed due to the bad ip address"
-    except:
+    except Exception as _:
         assert True
 
         
@@ -151,7 +152,7 @@ def test004():
                        Var("HOME", user_home))
         cmd_target = Role("cmd-target", host_ref="!{CMD_TARGET}")
     ns = SimpleNamespace("ns")
-          
+
     class SimpleConfig(ConfigModel):
         with_config_options(**config_options)
         ping = CommandTask("cmd", "/bin/ls !{HOME}", task_role=SimpleNamespace.cmd_target)
@@ -199,7 +200,7 @@ def test006():
     try:
         perform_and_complain(ea)
         assert False, "this should have failed"
-    except:
+    except Exception as _:
         assert len(ea.get_aborted_tasks()) == 1
 
 
@@ -237,8 +238,8 @@ def test008():
                           task_role=SimpleNamespace.cmd_target)
     cfg = SimpleConfig("cm008", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
         
@@ -265,8 +266,8 @@ def test009():
         
     cfg = SimpleConfig("cm009", )
     ea = ParamikoExecutionAgent(config_model_instance=cfg,
-                               namespace_model_instance=ns,
-                               no_delay=True)
+                                namespace_model_instance=ns,
+                                no_delay=True)
     perform_and_complain(ea)
 
     
@@ -332,7 +333,7 @@ def test011():
                                 namespace_model_instance=ns,
                                 no_delay=True)
     perform_and_complain(ea)
-    file_content = file("/tmp/test011.txt", "r").read()
+    file_content = open("/tmp/test011.txt", "r").read()
     assert "summat or the other" == file_content
 
 
@@ -377,7 +378,7 @@ def test012():
     except (ExecutionException, AssertionError) as _:
         found_it = False
         for _, _, value, _, _ in ea.get_aborted_tasks():
-            if 'var3' in value.message:
+            if 'var3' in str(value):
                 found_it = True
                 break
         assert found_it, "an exception was raised, but not about missing var3"
@@ -421,7 +422,7 @@ def test013():
                                 no_delay=True)
     perform_and_complain(ea)
     file_content = [l.strip()
-                    for l in file("/tmp/test013.txt", "r").readlines()]
+                    for l in open("/tmp/test013.txt", "r").readlines()]
     assert "summat or" == file_content[0] and "the other" == file_content[1]
 
 
@@ -467,7 +468,7 @@ def test014():
 
 
 def test015():
-    "test015: try pinging as another user"
+    """test015: try pinging as another user"""
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"))
@@ -511,11 +512,11 @@ def test016():
 
       
 def test017():
-    "test017: ping as another user, use password instead of key"
+    """test017: ping as another user, use password instead of key"""
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER", "lxle1"),
-                       Var("RPASS", file("/home/lxle1/Documents/pass", "r").read().strip()))
+                       Var("RPASS", open("/home/lxle1/Documents/pass", "r").read().strip()))
         ping_target = Role("ping-target", host_ref=find_ip())
     ns = SimpleNamespace("ns")
        
@@ -531,7 +532,7 @@ def test017():
 
       
 def test018():
-    "test018: ping as two different users"
+    """test018: ping as two different users"""
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("PING_TARGET", find_ip()),
                        Var("RUSER1", "lxle1"))
@@ -553,7 +554,7 @@ def test018():
 
       
 def test019():
-    "test019: clear and copy files"
+    """test019: clear and copy files"""
     the_ip = find_ip()
 
     class SimpleNamespace(NamespaceModel):
@@ -597,7 +598,7 @@ def test019():
 
       
 def test020():
-    "test020: write some data to a user's tmp dir based on config-level user"
+    """test020: write some data to a user's tmp dir based on config-level user"""
     from datetime import datetime
     target = "/home/lxle1/tmp/020test.txt"
 
@@ -624,7 +625,7 @@ def test020():
 
       
 def test021():
-    "test021: Have a multi-task get the proper user from the config class"
+    """test021: Have a multi-task get the proper user from the config class"""
     from datetime import datetime
     target_dir = "/home/lxle1/tmp/test021"
     num_files = 5
@@ -696,9 +697,10 @@ def do_all():
     setup_module()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
-            print(">>>>>>running %s" % k)
+            six.print_(">>>>>>running %s" % k)
             v()
     teardown_module()
-            
+
+
 if __name__ == "__main__":
     do_all()

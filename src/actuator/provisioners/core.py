@@ -195,7 +195,10 @@ class BaseProvisionerProxy(object):
 
 
 class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
-    no_punc = string.maketrans(string.punctuation, "_" * len(string.punctuation))
+    try:
+        no_punc = string.maketrans(string.punctuation, "_" * len(string.punctuation))
+    except AttributeError:
+        no_punc = str.maketrans(string.punctuation, "_" * len(string.punctuation))
     exception_class = ProvisionerException
     exec_agent = "rsrc_provisioning_engine"
     repeat_count = 3

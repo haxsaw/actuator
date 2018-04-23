@@ -29,27 +29,28 @@ import datetime
 import collections
 
 import time
+import six
 from errator import narrate
-from modeling import (MultiComponent, MultiComponentGroup, ComponentGroup, ModelReference,
-                      ctxt, ActuatorException, _Nexus, CallContext, ModelBaseMeta, ModelBase,
-                      ModelComponent, ModelInstanceReference, AbstractModelingEntity)
-from infra import (InfraModel, InfraException, with_resources, StaticServer,
-                   ResourceGroup, MultiResource, MultiResourceGroup,
-                   with_infra_options, InfraModelMeta)
-from namespace import (Var, NamespaceModel, with_variables, NamespaceException, VariableContainer,
-                       Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup, _common_vars,
-                       NamespaceModelMeta)
-from task import (TaskGroup)
-from config import (ConfigModel, with_searchpath, with_dependencies,
-                    ConfigException, MultiTask, NullTask,
-                    ConfigClassTask, with_config_options, ConfigModelMeta)
-from provisioners.core import ProvisionerException, ProvisioningTaskEngine, BaseProvisionerProxy
-from exec_agents.core import ExecutionAgent, ExecutionException
-from exec_agents.paramiko.agent import ParamikoExecutionAgent
-from config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
-                          CopyFileTask, ProcessCopyFileTask)
-from utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
-                   root_logger, adb, _Persistable, process_modifiers)
+from .modeling import (MultiComponent, MultiComponentGroup, ComponentGroup, ModelReference,
+                       ctxt, ActuatorException, _Nexus, CallContext, ModelBaseMeta, ModelBase,
+                       ModelComponent, ModelInstanceReference, AbstractModelingEntity)
+from .infra import (InfraModel, InfraException, with_resources, StaticServer,
+                    ResourceGroup, MultiResource, MultiResourceGroup,
+                    with_infra_options, InfraModelMeta)
+from .namespace import (Var, NamespaceModel, with_variables, NamespaceException, VariableContainer,
+                        Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup, _common_vars,
+                        NamespaceModelMeta)
+from .task import (TaskGroup)
+from .config import (ConfigModel, with_searchpath, with_dependencies,
+                     ConfigException, MultiTask, NullTask,
+                     ConfigClassTask, with_config_options, ConfigModelMeta)
+from .provisioners.core import ProvisionerException, ProvisioningTaskEngine, BaseProvisionerProxy
+from .exec_agents.core import ExecutionAgent, ExecutionException
+from .exec_agents.paramiko.agent import ParamikoExecutionAgent
+from .config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
+                           CopyFileTask, ProcessCopyFileTask)
+from .utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
+                    root_logger, adb, _Persistable, process_modifiers)
 
 __version__ = "0.2.a2"
 
@@ -72,8 +73,9 @@ class ServiceMeta(ModelBaseMeta):
         return newbie
 
 
+@six.add_metaclass(ServiceMeta)
 class Service(ModelComponent, ModelBase, VariableContainer):
-    __metaclass__ = ServiceMeta
+    # __metaclass__ = ServiceMeta
     ref_class = ModelInstanceReference
     infra = InfraModel
     namespace = NamespaceModel
@@ -260,7 +262,7 @@ class Service(ModelComponent, ModelBase, VariableContainer):
 
         for p in [self.infra, self._infra, self.namespace, self._namespace,
                   self.config, self._config, self.nexus]:
-            if p and not isinstance(p, collections.Iterable):
+            if p is not None and not isinstance(p, collections.Iterable):
                 for q in p.find_persistables():
                     yield q
 
@@ -510,10 +512,10 @@ class ActuatorOrchestration(_Persistable):
                 self.pte.perform_tasks()
                 self.logger.info("Provisioning phase complete")
                 did_provision = True
-            except ProvisionerException, e:
+            except ProvisionerException as e:
                 self.status = self.ABORT_PROVISION
                 self.logger.critical(">>> Provisioner failed "
-                                     "with '%s'; failed resources shown below" % e.message)
+                                     "with '%s'; failed resources shown below" % str(e))
                 if self.pte is not None:
                     for t, et, ev, tb, _ in self.pte.get_aborted_tasks():
                         self.logger.critical("Task %s named %s id %s" %
@@ -546,10 +548,10 @@ class ActuatorOrchestration(_Persistable):
                 self.logger.info("Starting config phase")
                 self.config_ea.perform_config()
                 self.logger.info("Config phase complete")
-            except ExecutionException, e:
+            except ExecutionException as e:
                 self.status = self.ABORT_CONFIG
                 self.logger.critical(">>> Config exec agent failed with '%s'; "
-                                     "failed tasks shown below" % e.message)
+                                     "failed tasks shown below" % str(e))
                 for t, et, ev, tb, story in self.config_ea.get_aborted_tasks():
                     self.logger.critical("Task %s named %s id %s" %
                                          (t.__class__.__name__, t.name, str(t._id)),
@@ -571,7 +573,11 @@ class ActuatorOrchestration(_Persistable):
     def teardown_system(self):
         self.logger.info("Teardown orchestration starting")
         did_teardown = False
-        if self.infra_model_inst is not None and self.pte is not None:
+        # if self.infra_model_inst is not None and self.pte is not None:
+        if self.infra_model_inst is not None:
+            if self.pte is None:
+                self.pte = ProvisioningTaskEngine(self.infra_model_inst, self.provisioner_proxies,
+                                                  num_threads=self.num_threads)
             try:
                 self.status = self.PERFORMING_DEPROV
                 self.logger.info("Starting de-provisioning phase")
@@ -582,10 +588,10 @@ class ActuatorOrchestration(_Persistable):
                 self.pte.perform_reverses()
                 self.logger.info("De-provisioning phase complete")
                 did_teardown = True
-            except ProvisionerException, e:
+            except ProvisionerException as e:
                 self.status = self.ABORT_PROVISION
                 self.logger.critical(">>> De-provisioning failed "
-                                     "with '%s'; failed resources shown below" % e.message)
+                                     "with '%s'; failed resources shown below" % str(e))
                 if self.pte is not None:
                     for t, et, ev, tb, _ in self.pte.get_aborted_tasks():
                         self.logger.critical("Task %s named %s id %s" %
@@ -597,4 +603,5 @@ class ActuatorOrchestration(_Persistable):
                 return False
         else:
             self.logger.info("No infra model or provisioner; skipping de-provisioning step")
+            did_teardown = True
         return did_teardown

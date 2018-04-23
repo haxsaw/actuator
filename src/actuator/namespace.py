@@ -23,25 +23,28 @@
 Support for creating Actuator namespace models
 """
 import re
+import sys
+import six
 from errator import narrate, narrate_cm
 from actuator.utils import (ClassModifier, process_modifiers, capture_mapping,
                             get_mapper,  _Persistable)
 from actuator.modeling import (AbstractModelReference, ModelComponent, ModelBase,
                                ModelReference, ModelInstanceReference, ModelBaseMeta,
                                ComponentGroup, MultiComponent, MultiComponentGroup,
-                               CallContext, _Nexus, _ValueAccessMixin,
+                               _Nexus, _ValueAccessMixin,
                                ContextExpr)
 from actuator.infra import InfraModel
 
 
-class NamespaceException(Exception): pass
+class NamespaceException(Exception):
+    pass
 
 
 _namespace_mapper_domain = object()
 
 
 class _ModelRefSetAcquireable(object):
-    #internal
+    # internal
     def _get_model_refs(self):
         return set()
 
@@ -63,15 +66,17 @@ class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
         @param value: Can be a plain string, a string with one or more replace-
             ment patterns in it, a AbstractModelReference, or a callable
         """
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             self.value = str(value)
         elif isinstance(value, AbstractModelReference) or value is None or callable(value):
             self.value = value
+        elif isinstance(value, bytes):
+            self.value = value.decode(sys.getdefaultencoding())
         else:
             raise NamespaceException("Unrecognized value type: %s" % str(type(value)))
         
     def _is_value_persistable(self):
-        return (isinstance(self.value, basestring) or
+        return (isinstance(self.value, six.string_types) or
                 isinstance(self.value, (AbstractModelReference, ContextExpr)) or
                 self.value is None)
 
@@ -110,14 +115,14 @@ class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
         
         @param context: A kind of L{VariableContainer} to anchor searches for
             other variables when replacement strings are discovered.
-        @keyword allow_unexpanded: Optional, defaults to False. Indicates whether
+        @param allow_unexpanded: Optional, defaults to False. Indicates whether
             to return strings with un-expanded replacement patterns in them.
             With the default, the return value is None, which indicates that a
             value either hasn't been set or can't be fully determined. If True,
             then the string value will be processed as far as possible and will
             be returned in that state, possibly still with replacement patterns
             in the value.
-        @keyword raise_on_unexpanded: Optional, defaults to False: Indicates what
+        @param raise_on_unexpanded: Optional, defaults to False: Indicates what
             the method should do if a replacement pattern replaced (expanded)
             when it is encountered in the string whose value is being computed.
             The default, False, will just stop processing and return a value as
@@ -235,7 +240,7 @@ class Var(_ModelRefSetAcquireable, _Persistable):
             searches for other Vars when replacement patterns are found;
             replacements are always from the perspective of the context and the
             variable values it "sees".
-        @keyword allow_unexpanded: Optional, default False. Determines what gets
+        @param allow_unexpanded: Optional, default False. Determines what gets
             returned if an replacement pattern is discovered in a value and no
             replacement can be found. The default, False, means to return None,
             which indicates that a value can't be determined. If allow_unexpanded
@@ -403,7 +408,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     def finalize_reanimate(self):
         for d in [self.variables, self.overrides]:
             for k, v in d.items():
-                if isinstance(v, basestring):
+                if isinstance(v, six.string_types):
                     d[k] = Var(k, v)
                     
     def _set_parent(self, parent):
@@ -424,7 +429,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         Adds one or more Vars to the container. Returns self so other calls
         can be chained from this one.
         
-        @param *args: One or more Var objects. This method can take an 
+        @param args: One or more Var objects. This method can take an
             arbitrary number of Var objects in the invocation and put them
             into its variable storage. If something not Var is passed in an
             exception is raised.
@@ -491,7 +496,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         the perspective of the current VariableContainer
         
         @param name: string; the name of the Var to locate
-        @keyword allow_unexpanded: Optional; default False. Determines what
+        @param allow_unexpanded: Optional; default False. Determines what
             happens if a Var's value can't have all replacement patterns
             expanded. The default, False, causes None to be returned if all
             patterns can't be expanded. If True, then as much expansion as
@@ -680,7 +685,7 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
     def _get_arg_value(self, arg):
         # internal
         val = super(Role, self)._get_arg_value(arg)
-        if isinstance(val, basestring):
+        if isinstance(val, six.string_types):
             # check if we have a variable to resolve
             cv = _ComputableValue(val)
             val = cv.expand(self)
@@ -850,7 +855,7 @@ class MultiRoleGroup(MultiRole, VariableContainer):
     on instantiation and usage. 
     """
     def __new__(self, name, **kwargs):
-        namesep=kwargs.pop("namesep", None)
+        namesep = kwargs.pop("namesep", None)
         group = RoleGroup(name, **kwargs)
         return MultiRole(group, namesep=namesep)
     
@@ -870,6 +875,7 @@ class NamespaceModelMeta(ModelBaseMeta):
         return newbie
     
 
+@six.add_metaclass(NamespaceModelMeta)
 class NamespaceModel(ModelBase, VariableContainer):
     """
     Base class for Namespace model classes.
@@ -882,7 +888,7 @@ class NamespaceModel(ModelBase, VariableContainer):
     
     @ivar ivar: infra. DEPRECATED-- use self.nexus.inf instead
     """
-    __metaclass__ = NamespaceModelMeta
+    # __metaclass__ = NamespaceModelMeta
     ref_class = ModelInstanceReference
 
     def __init__(self, name, **kwargs):
@@ -915,7 +921,10 @@ class NamespaceModel(ModelBase, VariableContainer):
         self.infra = None
         
     def __new__(cls, *args, **kwargs):
-        inst = super(NamespaceModel, cls).__new__(cls, *args, **kwargs)
+        try:
+            inst = super(NamespaceModel, cls).__new__(cls, *args, **kwargs)
+        except TypeError:
+            inst = super(NamespaceModel, cls).__new__(cls)
         return inst
 
     def _find_persistables(self):
@@ -931,8 +940,8 @@ class NamespaceModel(ModelBase, VariableContainer):
     def _get_attrs_dict(self):
         d = super(NamespaceModel, self)._get_attrs_dict()
         ga = super(NamespaceModel, self).__getattribute__
-        d.update( {"infra":ga("infra"),
-                   "_roles":ga("_roles")} )
+        d.update({"infra": ga("infra"),
+                  "_roles": ga("_roles")})
         d.update(self._roles)
         return d
     

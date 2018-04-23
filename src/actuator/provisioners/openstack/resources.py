@@ -24,14 +24,13 @@ This module contains resource classes for provisioning Openstack resources.
 """
 import collections
 import ipaddress
-
+import six
 from errator import narrate
 
 from actuator.modeling import ContextExpr
 from actuator.infra import Provisionable, IPAddressable
 from actuator.provisioners.core import ProvisionerException
 from actuator.utils import _Persistable
-from __builtin__ import int
 
 
 class _OpenstackProvisionableInfraResource(Provisionable):
@@ -78,7 +77,7 @@ class _OpenstackProvisionableInfraResource(Provisionable):
             if isinstance(value, klass):
                 if hasattr(value, attrname):
                     value = getattr(value, attrname)
-            elif not isinstance(value, basestring):
+            elif not isinstance(value, six.string_types):
                 raise ProvisionerException("Arg %s didn't result in a string or a %s ref" %
                                            (argname, klass.__name__))
         return value
@@ -318,15 +317,18 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
     def get_init_args(self):
         _, kwargs = super(Server, self).get_init_args()
         kwargs.update({"meta": self._meta,
-                       "min_count": self._min_count, "max_count": self._max_count,
+                       "min_count": self._min_count,
+                       "max_count": self._max_count,
                        "security_groups": self._security_groups,
                        "userdata": self._userdata,
-                       "key_name": self._key_name, "availability_zone": self._availability_zone,
+                       "key_name": self._key_name,
+                       "availability_zone": self._availability_zone,
                        "block_device_mapping": self._block_device_mapping,
                        "block_device_mapping_v2": self._block_device_mapping_v2,
                        "nics": self._nics,
                        "scheduler_hints": self._scheduler_hints,
-                       "config_drive": self._config_drive, "disk_config": self._disk_config})
+                       "config_drive": self._config_drive,
+                       "disk_config": self._disk_config})
         return (self.name, self._imageName, self._flavorName), kwargs
 
     def get_fixed_args(self):
@@ -543,7 +545,10 @@ class Subnet(_OpenstackProvisionableInfraResource):
     def _fix_arguments(self, provisioner=None):
         super(Subnet, self)._fix_arguments()
         self.network = self._get_arg_value(self._network)
-        self.cidr = unicode(self._get_arg_value(self._cidr))
+        try:
+            self.cidr = unicode(self._get_arg_value(self._cidr))
+        except NameError:
+            self.cidr = self._get_arg_value(self._cidr)
         self.ip_version = self._get_arg_value(self._ip_version)
         self.enable_dhcp = self._get_arg_value(self._enable_dhcp)
         if self._dns_nameservers is None:
@@ -551,8 +556,7 @@ class Subnet(_OpenstackProvisionableInfraResource):
         else:
             self.dns_nameservers = self._get_arg_value(self._dns_nameservers)
             if not (isinstance(self.dns_nameservers, collections.Iterable) and
-                    reduce(lambda acc, item: acc and isinstance(item, basestring),
-                           self.dns_nameservers, True)):
+                    all(isinstance(item, six.string_types) for item in self.dns_nameservers)):
                 raise ProvisionerException("The dns_nameservers arg is either not a "
                                            "list or else contains non-string objects")
         

@@ -22,6 +22,7 @@
 import json
 import os
 import sys
+import six
 from errator import get_narration
 from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
@@ -30,7 +31,7 @@ from actuator.namespace import Var
 from hadoop import HadoopInfra, HadoopNamespace
 from prices import create_price_table, CITYCLOUD, RACKSPACE, VSPHERE
 from hsimple import do_it
-from hevent import TaskEventManager
+# from hevent import TaskEventManager
 from vstest import VSHadoopInfra
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
 user_env = "OS_USER"
@@ -68,14 +69,15 @@ if __name__ == "__main__":
 
     if with_zabbix:
         if not os.environ.get("ZABBIX_SERVER") or not os.environ.get("ZABBIX_PRIVATE"):
-            print("Ensure that you've set the ZABBIX_SERVER environment var to the public IP of the server,")
-            print("and that ZABBIX_PRIVATE is set to the internal IP of the server")
+            six.print_("Ensure that you've set the ZABBIX_SERVER environment var to the public IP of the server,")
+            six.print_("and that ZABBIX_PRIVATE is set to the internal IP of the server")
 
     if with_mongo:
-        print("Ensure that mongod is running")
+        six.print_("Ensure that mongod is running")
 
     if with_viz:
-        print("Visualisation activated")
+        from hevent import TaskEventManager
+        six.print_("Visualisation activated")
         handler = TaskEventManager()
     else:
         handler = None
@@ -100,44 +102,44 @@ if __name__ == "__main__":
         elif not json_file:
             ops.append(standup_op)
         try:
-            print "%s" % (",".join(ops))
-            print "/".join([o[0] for o in ops]), ": ",
+            six.print_("%s" % (",".join(ops)))
+            six.print_("/".join([o[0] for o in ops]), ": ",)
         except:
             continue
         cmd = sys.stdin.readline().strip().lower()
         if not cmd or cmd[0] not in [o[0] for o in ops]:
-            print "Unrecognized command: %s" % cmd
+            six.print_("Unrecognized command: %s" % cmd)
         if cmd == quit_op[0]:
-            print "goodbye"
+            six.print_("goodbye")
             sys.exit(0)
         elif cmd in (standup_op[0], forecast_op[0]):
             num_slaves = None
             while num_slaves is None:
-                print "Enter a number of slaves to start: ",
+                six.print_("Enter a number of slaves to start: ",)
                 num_slaves = sys.stdin.readline().strip()
                 try:
                     num_slaves = int(num_slaves)
-                except Exception, _:
-                    print "%s isn't a number" % num_slaves
+                except Exception as _:
+                    six.print_("%s isn't a number" % num_slaves)
                     num_slaves = None
             if cmd == forecast_op[0]:
                 inf = make_infra_for_forecast(num_slaves=num_slaves)
-                print("\nPrices for cluster with %d slaves:" % num_slaves)
+                six.print_("\nPrices for cluster with %d slaves:" % num_slaves)
                 for cloud in [CITYCLOUD, RACKSPACE]:
-                    print(">>>>>For %s:" % cloud)
-                    print(create_price_table(inf, for_cloud=cloud))
-                    print
+                    six.print_(">>>>>For %s:" % cloud)
+                    six.print_(create_price_table(inf, for_cloud=cloud))
+                    six.print_()
                 # add in another for vsphere
                 inf = make_infra_for_forecast(num_slaves=num_slaves,
                                               infra_class=VSHadoopInfra)
-                print(">>>>>For %s:" % VSPHERE)
-                print(create_price_table(inf, for_cloud=VSPHERE))
-                print
+                six.print_(">>>>>For %s:" % VSPHERE)
+                six.print_(create_price_table(inf, for_cloud=VSPHERE))
+                six.print_()
                 continue
             # if we get here, we're standing up; see which cloud
             cloud = None
             while cloud not in ('c', 'v', 'a'):
-                print "Enter 'c' for CityCloud, 'a' for Auro, 'v' for VMWare: ",
+                six.print_("Enter 'c' for CityCloud, 'a' for Auro, 'v' for VMWare: ",)
                 cloud = sys.stdin.readline().strip().lower()
             # prep all args
             kwargs = {"num_slaves": num_slaves, "handler": handler}
@@ -177,35 +179,35 @@ if __name__ == "__main__":
             if success:
                 if with_mongo:
                     from hreport import capture_running
-                    print("Storing model in Mongo...")
+                    six.print_("Storing model in Mongo...")
                     inst_id = capture_running(ao, "hadoop_demo")
-                    print("...done. Instance id is '%s'" % inst_id)
+                    six.print_("...done. Instance id is '%s'" % inst_id)
                 if with_zabbix:
-                    print("Updating Zabbix with new hosts to monitor...")
+                    six.print_("Updating Zabbix with new hosts to monitor...")
                     from zabint import Zabact
                     try:
                         za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
                         zabbix_host_ids = za.register_servers_in_group("Linux servers", [infra.name_node_fip.value()] +
                                                                        [s.slave_fip.value() for s in infra.slaves.values()],
                                                                        templates=template_list)
-                        print("...done")
+                        six.print_("...done")
                     except Exception as e:
-                        print "\nZABBIX UPDATED FAILED with %s:" % e.message
-                        print "...traceback:"
+                        six.print_("\nZABBIX UPDATED FAILED with %s:" % str(e))
+                        six.print_("...traceback:")
                         import traceback
                         traceback.print_exception(*sys.exc_info())
-                        print
-                print "\nStandup complete! You can reach the assets at the following IPs:"
-                print ">>>namenode: %s" % infra.name_node_fip.get_ip()
-                print ">>>slaves:"
+                        six.print_()
+                six.print_("\nStandup complete! You can reach the assets at the following IPs:")
+                six.print_(">>>namenode: %s" % infra.name_node_fip.get_ip())
+                six.print_(">>>slaves:")
                 for s in infra.slaves.values():
-                    print "\t%s" % s.slave_fip.get_ip()
-                print("\nExecution prices for this infra:\n")
-                print(create_price_table(infra, for_cloud=on_cloud))
+                    six.print_("\t%s" % s.slave_fip.get_ip())
+                six.print_("\nExecution prices for this infra:\n")
+                six.print_(create_price_table(infra, for_cloud=on_cloud))
             else:
-                print "Orchestration failed; see the log for error messages"
+                six.print_("Orchestration failed; see the log for error messages")
         elif cmd == teardown_op[0]:
-            print "Tearing down; won't be able to re-run later"
+            six.print_("Tearing down; won't be able to re-run later")
             assert isinstance(ao, ActuatorOrchestration)
             if not ao.provisioner_proxies:
                 client_keys = ao.client_keys
@@ -223,83 +225,84 @@ if __name__ == "__main__":
             if success:
                 if inst_id is not None and with_mongo:
                     from hreport import capture_terminated
-                    print("Recording instance terminated in Mongo")
+                    six.print_("Recording instance terminated in Mongo")
                     capture_terminated(ao, inst_id)
-                    print("...done")
+                    six.print_("...done")
                 if zabbix_host_ids and with_zabbix:
-                    print("Removing hosts from zabbix")
+                    six.print_("Removing hosts from zabbix")
                     from zabint import Zabact
                     za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
                     za.deregister_servers(zabbix_host_ids)
-                    print("...done")
-                print "\n...done! Your system has been de-commissioned"
-                print "quitting now"
+                    six.print_("...done")
+                six.print_("\n...done! Your system has been de-commissioned")
+                six.print_("quitting now")
                 break
             else:
-                print "Orchestration failed; see the log for error messages"
+                six.print_("Orchestration failed; see the log for error messages")
         elif cmd == load_op[0]:
-            print "Enter name of file to load: ",
+            six.print_("Enter name of file to load: ",)
             fname = sys.stdin.readline().strip()
             if not os.path.exists(fname):
-                print "File can't be found! (%s)" % fname
+                six.print_("File can't be found! (%s)" % fname)
             else:
                 try:
-                    json_dict = file(fname, "r").read()
-                except Exception, e:
-                    print "Got an exception reading %s: %s" % (fname, e.message)
+                    json_dict = open(fname, "r").read()
+                except Exception as e:
+                    six.print_("Got an exception reading %s: %s" % (fname, str(e)))
                 else:
                     d = json.loads(json_dict)
                     ao = reanimate_from_dict(d)
                     if with_viz:
                         ao.set_event_handler(handler)
-                    print "Orchestrator reanimated!"
+                    six.print_("Orchestrator reanimated!")
         elif cmd == persist_op[0]:
-            print "Enter name of the file to save to: ",
+            six.print_("Enter name of the file to save to: ",)
             fname = sys.stdin.readline().strip()
-            print "Creating persistable form..."
+            six.print_("Creating persistable form...")
             try:
                 d = persist_to_dict(ao)
                 json_dict = json.dumps(d)
             except Exception as e:
-                print "FAILED GETTING PERSISTED FORM; t = %s, v = %s" % (type(e), e.message)
-                print "the story is:"
+                six.print_("FAILED GETTING PERSISTED FORM; t = %s, v = %s" % (type(e), str(e)))
+                six.print_("the story is:")
                 for s in get_narration():
-                    print s
+                    six.print_(s)
             else:
-                print "Writing persisted form out..."
-                f = file(fname, "w")
+                six.print_("Writing persisted form out...")
+                f = open(fname, "w")
                 f.write(json_dict)
-                print "Orchestrator persisted!"
+                six.print_("Orchestrator persisted!")
         elif cmd == rerun_op[0]:
-            print "Re-running initiate"
+            six.print_("Re-running initiate")
             success = ao.initiate_system()
             if success:
                 if with_mongo:
                     from hreport import capture_running
-                    print("Storing model in Mongo...")
+
+                    six.print_("Storing model in Mongo...")
                     inst_id = capture_running(ao, "hadoop_demo")
-                    print("...done. Instance id is '%s'" % inst_id)
+                    six.print_("...done. Instance id is '%s'" % inst_id)
                 if with_zabbix:
-                    print("Updating Zabbix with new hosts to monitor...")
+                    six.print_("Updating Zabbix with new hosts to monitor...")
                     from zabint import Zabact
                     try:
                         za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
                         zabbix_host_ids = za.register_servers_in_group("Linux servers", [infra.name_node_fip.value()] +
                                                                        [s.slave_fip.value() for s in infra.slaves.values()],
                                                                        templates=template_list)
-                        print("...done")
+                        six.print_("...done")
                     except Exception as e:
-                        print "\nZABBIX UPDATED FAILED with %s:" % e.message
-                        print "...traceback:"
+                        six.print_("\nZABBIX UPDATED FAILED with %s:" % str(e))
+                        six.print_("...traceback:")
                         import traceback
                         traceback.print_exception(*sys.exc_info())
-                        print
-                print "\n...done! You can reach the assets at the following IPs:"
-                print ">>>namenode: %s" % infra.name_node_fip.get_ip()
-                print ">>>slaves:"
+                        six.print_()
+                six.print_("\n...done! You can reach the assets at the following IPs:")
+                six.print_(">>>namenode: %s" % infra.name_node_fip.get_ip())
+                six.print_(">>>slaves:")
                 for s in infra.slaves.values():
-                    print "\t%s" % s.slave_fip.get_ip()
-                print("\nExecution prices for this infra:\n")
-                print(create_price_table(infra, for_cloud=on_cloud))
+                    six.print_("\t%s" % s.slave_fip.get_ip())
+                    six.print_("\nExecution prices for this infra:\n")
+                    six.print_(create_price_table(infra, for_cloud=on_cloud))
             else:
-                print "Orchestration failed; see the log for error messages"
+                six.print_("Orchestration failed; see the log for error messages")

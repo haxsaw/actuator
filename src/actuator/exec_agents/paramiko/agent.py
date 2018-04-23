@@ -25,11 +25,15 @@ import socket
 import uuid
 import base64
 from collections import deque
-from cStringIO import StringIO
+from six.moves import cStringIO as StringIO
+# from cStringIO import StringIO
 import time
 import shlex
 import os.path
-import subprocess32
+try:
+    import subprocess32
+except ImportError:
+    import subprocess as subprocess32
 import tempfile
 import logging
 
@@ -63,8 +67,9 @@ class PTaskProcessor(AbstractTaskProcessor):
     
     def __init__(self, *args, **kwargs):
         super(PTaskProcessor, self).__init__(*args, **kwargs)
-        prompt = base64.b64encode(str(uuid.uuid4()))[-7:-1]
-        self.prompt = "actuator-%s-ready$ " % prompt
+        full_prompt = str(uuid.uuid4())
+        prompt = base64.b64encode(full_prompt.encode() if hasattr(full_prompt, "encode") else full_prompt)[-7:-1]
+        self.prompt = "actuator-%s-ready$ " % (prompt.decode() if hasattr(prompt, "decode") else prompt)
         self.output = []
 
     @narrate(lambda s, t, h: "...which started the generic arguments creation process "
@@ -154,7 +159,7 @@ class PTaskProcessor(AbstractTaskProcessor):
         results = ""
         while channel.recv_ready() or not prompt_seen:
             chunk = channel.recv(self.read_chunk)
-            results += chunk
+            results += chunk.decode() if hasattr(chunk, "decode") else chunk
             prompt_seen = results.endswith(until)
         sio = StringIO(results)
         return [l for l in sio]
@@ -588,8 +593,9 @@ class ProcessCopyFileProcessor(CopyFileProcessor):
                 mode = fstat.st_mode
             tf = tempfile.TemporaryFile()
             for l in open(abs_local_file, "rb"):
-                cv = _ComputableValue(l)
-                tf.write(cv.expand(task.get_task_role(), raise_on_unexpanded=True))
+                cv = _ComputableValue(l.decode() if hasattr(l, "decode") else l)
+                output = cv.expand(task.get_task_role(), raise_on_unexpanded=True)
+                tf.write(output.encode() if hasattr(output, "encode") else output)
             tf.seek(0)
             super(ProcessCopyFileProcessor, self)._put_file(task, sftp, rem_path,
                                                             abs_local_file=None,
