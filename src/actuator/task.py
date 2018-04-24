@@ -819,7 +819,7 @@ class TaskEngine(object):
             del tb
             try:
                 sys.exc_clear()
-            except:
+            except Exception as _:
                 pass
 
         if logfile:
@@ -856,16 +856,16 @@ class TaskEngine(object):
                     elif task.get_performance_status() == task.PERFORMED:
                         with self.node_lock:
                             self.num_tasks_to_perform -= 1
-                            logger.info("Remaining tasks to perform: %s" %
-                                         self.num_tasks_to_perform)
+                            logger.info("Remaining tasks to perform: %s" % self.num_tasks_to_perform)
                             if self.num_tasks_to_perform == 0:
                                 self.stop = True
                             else:
-                                for successor in graph.successors_iter(task):
+                                for successor in (graph.successors_iter(task)  # for networkx 1/2 compatibility
+                                                  if hasattr(graph, "successors_iter")
+                                                  else graph.successors(task)):
                                     graph.node[successor]["ins_traversed"] += 1
                                     if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
-                                        logger.debug("queueing up %s for performance"
-                                                            % successor.name)
+                                        logger.debug("queueing up %s for performance" % successor.name)
                                         self.task_queue.put((graph, TaskExecControl(successor)))
             except Queue.Empty as _:
                 pass
@@ -898,7 +898,9 @@ class TaskEngine(object):
                             if self.num_tasks_to_perform == 0:
                                 self.stop = True
                             else:
-                                for predecessor in graph.predecessors_iter(task):
+                                for predecessor in (graph.predecessors_iter(task)  # networkx 1/2 compatibility
+                                                    if hasattr(graph, "predecessors_iter")
+                                                    else graph.predecessors(task)):
                                     graph.node[predecessor]["outs_traversed"] += 1
                                     if graph.out_degree(predecessor) == graph.node[predecessor]["outs_traversed"]:
                                         logger.debug("queuing up %s for performance" %
@@ -911,7 +913,10 @@ class TaskEngine(object):
                              "tasks".format(s.name))
     def perform_tasks(self, completion_record=None):
         self._reset()
-        fmtmsg = lambda msg: "Task engine %s: %s" % (self.name, msg)
+
+        def fmtmsg(msg):
+            return "Task engine %s: %s" % (self.name, msg)
+
         logger = root_logger.getChild(self.exec_agent)
         logger.info(fmtmsg("starting task processing"))
         if self.graph is None:
@@ -949,7 +954,7 @@ class TaskEngine(object):
         if self.event_handler:
             try:
                 self.event_handler.engine_finished(self.model)
-            except:
+            except Exception as _:
                 pass
         if self.aborted_tasks:
             raise self.exception_class("Task(s) aborted causing engine to abort; "

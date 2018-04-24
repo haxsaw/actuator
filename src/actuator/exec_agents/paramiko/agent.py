@@ -1,4 +1,5 @@
-# 
+# -*- coding: utf-8 -*-
+#
 # Copyright (c) 2016 Tom Carroll
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,14 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
 import platform
 import threading
 import socket
 import uuid
 import base64
-from collections import deque
-from six.moves import cStringIO as StringIO
-# from cStringIO import StringIO
 import time
 import shlex
 import os.path
@@ -35,19 +34,22 @@ try:
 except ImportError:
     import subprocess as subprocess32
 import tempfile
-import logging
 
 from paramiko import (SSHClient, SSHException, BadHostKeyException, AuthenticationException,
                       AutoAddPolicy, RSAKey, SFTPClient, SFTPAttributes)
 
 from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
-from actuator.utils import capture_mapping, root_logger
+from actuator.utils import capture_mapping
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
                                    LocalCommandTask)
 from actuator.namespace import _ComputableValue
 from errator import narrate, narrate_cm
+if sys.version.startswith("2"):
+    from six.moves import StringIO
+else:
+    from six.moves import cStringIO as StringIO
 
 
 _paramiko_domain = "PARAMIKO_AGENT"
@@ -155,11 +157,12 @@ class PTaskProcessor(AbstractTaskProcessor):
     def _drain(self, channel, until=None):
         if until is None:
             until = self.prompt
+        until = until.decode("utf-8") if hasattr(until, "decode") else until
         prompt_seen = False
-        results = ""
+        results = b"".decode("utf-8")
         while channel.recv_ready() or not prompt_seen:
             chunk = channel.recv(self.read_chunk)
-            results += chunk.decode() if hasattr(chunk, "decode") else chunk
+            results += chunk.decode("utf-8") if hasattr(chunk, "decode") else chunk
             prompt_seen = results.endswith(until)
         sio = StringIO(results)
         return [l for l in sio]

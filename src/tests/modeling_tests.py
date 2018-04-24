@@ -29,8 +29,7 @@ from actuator import (MultiComponent,
 from actuator.infra import InfraModel, StaticServer, MultiResource
 from actuator.provisioners.example_resources import Server
 from actuator.modeling import CallContext
-from actuator.namespace import Var, NamespaceModel, with_variables, Role,\
-    MultiRole
+from actuator.namespace import Var, NamespaceModel, with_variables, Role, MultiRole
 
 
 def setup_module():

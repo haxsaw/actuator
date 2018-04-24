@@ -593,7 +593,7 @@ class ConfigModelMeta(ModelBaseMeta):
             deps = newbie.get_class_dependencies()
             graph.add_edges_from([d.edge() for d in deps])
             try:
-                _ = nx.topological_sort(graph)
+                _ = all(nx.topological_sort(graph))
             except nx.NetworkXUnfeasible as _:
                 raise ConfigException("Task dependency graph contains a cycle")
         _Nexus._add_model_desc("cfg", newbie)

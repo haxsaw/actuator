@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Base classes for bindings to execution agents.
-'''
+"""
 try:
     import Queue
 except ImportError:
@@ -36,6 +36,7 @@ from actuator.utils import LOG_INFO, root_logger
 from actuator.task import TaskEngine
 from actuator.utils import get_mapper
 from actuator.config import NullTask, StructuralTask
+
 
 class ExecutionException(ActuatorException):
     def __init__(self, message=None, response="None available"):
@@ -141,7 +142,7 @@ class ExecutionAgent(TaskEngine):
         @keyword log_level: Any of the symbolic log levels in the actuator root
             package, LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, or LOG_WARN
         """
-        #@TODO: need to add a test for the type of the exec_model_instance 
+        # @TODO: need to add a test for the type of the exec_model_instance
         self.exec_mi = exec_model_instance
         if config_model_instance is not None and not isinstance(config_model_instance, ConfigModel):
             raise ExecutionException("config_model_instance argument isn't an instance of ConfigModel")

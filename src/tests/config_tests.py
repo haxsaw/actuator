@@ -1048,6 +1048,7 @@ def test48():
     ns.set_infra_model(infra)
     
     cap = Capture()
+
     class InnerCfg(ConfigModel):
         t1 = ReportingTask("inner_task1", report=cap)
         t2 = ReportingTask("inner_task2", report=cap)
@@ -1691,7 +1692,7 @@ def test72():
 
 def do_all():
     setup_module()
-    test72()
+    test08()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

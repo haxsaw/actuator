@@ -20,14 +20,12 @@
 # SOFTWARE.
 
 import getpass
-import datetime
-from pprint import pprint as pp
 
 import pymongo
 import bson
 
 
-from actuator.utils import persist_to_dict, reanimate_from_dict
+from actuator.utils import persist_to_dict
 
 client = pymongo.MongoClient()
 actuator_db = client.actuator

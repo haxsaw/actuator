@@ -1,0 +1,12 @@
+# do a:
+#   pip install -r base_reqs3.txt
+# to install the core requirements for Actuator on Python 3
+six>=1.11.0
+networkx>=2.1
+errator>=0.3.3
+paramiko>=2.4.1
+shade==1.21.0
+os-client-config>=1.29.0
+ipaddress>=1.0.22
+pyvim>=0.0.21
+pyvmomi>=6.7.0

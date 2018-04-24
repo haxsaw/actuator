@@ -21,9 +21,6 @@
 
 from errator import narrate
 
-# from pyVim import connect
-# from pyVmomi import vim
-
 from actuator.infra import Provisionable, IPAddressable
 
 

@@ -1,5 +1,4 @@
 import sys
-import six
 from actuator import StaticServer, adb, InfraModel
 from errator import get_narration, set_narration_options
 

@@ -151,8 +151,8 @@ class ProvisionServerTask(ProvisioningTask):
         the_things = super(ProvisionServerTask, self).depends_on_list()
         the_things.extend([i for i in self.rsrc.security_groups
                            if isinstance(i, SecGroup)] +
-                          [j for j in self.rsrc.nics
-                           if isinstance(j, Network)] +
+                           [j for j in self.rsrc.nics
+                            if isinstance(j, Network)] +
                           ([self.rsrc.key_name]
                            if isinstance(self.rsrc.key_name, KeyPair)
                            else []))
@@ -216,7 +216,10 @@ class ProvisionServerTask(ProvisioningTask):
         if isinstance(kwargs["key_name"], KeyPair):
             kwargs["key_name"] = kwargs["key_name"].get_key_name()
 
-        with narrate_cm("-once all arguments have been collected, an attempt to create the server is started"):
+        with narrate_cm(lambda n, i, f, a:
+                        "-and the attempt to create the server '{}', image '{}' flavor '{}'"
+                        " was started with args {} ".format(n, i, f, a),
+                        name, str(image), str(flavor), str(kwargs)):
             srvr = run_context.cloud.create_server(name, image, flavor, **kwargs)
         self.rsrc.set_osid(srvr["id"])
         run_context.record.add_server_id(self.rsrc._id, self.rsrc.osid)

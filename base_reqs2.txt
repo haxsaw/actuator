@@ -1,0 +1,12 @@
+# do a:
+#   pip install -r base_reqs2.txt
+# to install the core requirements for Actuator on Python 2
+six>=1.11.0
+networkx>=2.1
+errator>=0.3.3
+paramiko>=2.2.1
+shade==1.21.0
+os-client-config>=1.29.0
+ipaddress>=1.0.19
+pyvmomi>=6.5.0.2017.5.post1
+subprocess32>=3.2.7
