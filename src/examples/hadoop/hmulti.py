@@ -114,7 +114,7 @@ class MultiCloudInfra(InfraModel):
 
     name_node_ds = Datastore("namenode_ds", dspath=datastore1, cloud="vsphere")
     name_node_rp = ResourcePool("namenode_rp", pool_name="new dell", cloud="vsphere")
-    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase5",
+    name_node_fip = TemplatedServer("namenode", template_name="ActuatorBase6",
                                     data_store=ctxt.model.name_node_ds,
                                     resource_pool=ctxt.model.name_node_rp, cloud="vsphere")
 
@@ -217,8 +217,8 @@ if __name__ == "__main__":
 
     # make the namespace model instance, create some slaves in different clouds
     ns = MultiCloudNS("multi-ns")
-    ns.make_slaves("citycloud", 10)
-    ns.make_slaves("auro", 10)
+    ns.make_slaves("citycloud", 2)
+    ns.make_slaves("auro", 2)
 
     # make the config model instance
     cloud_creds = {"vsphere": {"remote_pass": "tarnished99"},
@@ -243,11 +243,11 @@ if __name__ == "__main__":
         ao.teardown_system()
     except Exception as e:
         import traceback, sys
-        print "Faield with %s" % str(e)
-        print ">>>>Traceback:"
+        print("Faild with %s" % str(e))
+        print(">>>>Traceback:")
         traceback.print_exception(*sys.exc_info())
     else:
-        print "slaves at:", ns.var_value("SLAVE_IPS")
+        print("slaves at:", ns.var_value("SLAVE_IPS"))
         print("type ctrl-d to tear down: ",)
         sys.stdin.read()
         ao.teardown_system()

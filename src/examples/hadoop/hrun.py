@@ -160,7 +160,7 @@ if __name__ == "__main__":
                                              Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)]})
             elif cloud == "a":
                 # then use the Auro cloud
-                kwargs.update({"overrides": [Var("IMAGE", "Ubuntu16.04-x86_64"),
+                kwargs.update({"overrides": [Var("IMAGE", "Ubuntu16.04-x86_64-20180223"),
                                              Var("AZ", "RegionOne"),
                                              Var("EXTNET", "provider"),
                                              Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
