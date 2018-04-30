@@ -1,4 +1,4 @@
-# Cython==0.25.2
+# Cython==0.25.2 must be installed before this requirements process is run!
 Kivy>=1.10.0
 Kivy-Garden>=0.1.4
 matplotlib>=2.2.2

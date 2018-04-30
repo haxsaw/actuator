@@ -86,10 +86,6 @@ class HadoopNodeConfig(ConfigModel):
                          "/usr/bin/sudo -h localhost "
                          "/usr/bin/apt-get -y update",
                          repeat_count=3)
-    upgrade = CommandTask("upgrade_all",
-                          "/usr/bin/sudo -h localhost "
-                          "/usr/bin/apt-get -y upgrade",
-                          repeat_count=3)
     jdk_install = CommandTask("jdk_install",
                               "/usr/bin/sudo -h localhost "
                               "/usr/bin/apt-get -y install !{JAVA_VER}",
@@ -163,7 +159,7 @@ class HadoopNodeConfig(ConfigModel):
     # now express the dependencies between config tasks. each call to
     # with_dependencies() is additive; the set of dependencies are captured in
     # the metadata for the class, and evaluated in total at the proper time
-    with_dependencies(ping | update | upgrade | jdk_install | (reset & add_hostname))
+    with_dependencies(ping | update | jdk_install | (reset & add_hostname))
 
     with_dependencies(reset | make_home | (send_priv_key & fetch_hadoop &
                                            (copy_public_key | append_public_key)) |
