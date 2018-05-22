@@ -10,3 +10,5 @@ os-client-config>=1.29.0
 ipaddress>=1.0.22
 pyvim>=0.0.21
 pyvmomi>=6.7.0
+azure
+haikunator
