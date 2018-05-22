@@ -141,10 +141,12 @@ class HadoopInfra(InfraModel):
                                  to_port=ctxt.nexus.ns.v.NAMENODE_PORT)
     
     # HADOOP name node
-    name_node = Server("name_node", ctxt.nexus.ns.v.IMAGE, get_flavor,
+    name_node = Server("name_node", ctxt.nexus.ns.v.IMAGE,
+                       get_flavor,
                        security_groups=[ctxt.model.namenode_secgroup.group,
-                       ctxt.model.zabbix_sg.zabbix_group],
-                       nics=[ctxt.model.gateway.net], **common_kwargs)
+                                        ctxt.model.zabbix_sg.zabbix_group],
+                       nics=[ctxt.model.gateway.net],
+                       **common_kwargs)
     name_node_fip = FloatingIP("name_node_fip", ctxt.model.name_node,
                                ctxt.model.name_node.iface0.addr0,
                                pool=ctxt.nexus.ns.v.EXTNET)
@@ -222,4 +224,5 @@ class HadoopConfig(ConfigModel):
                               "bin/hadoop namenode -format -nonInteractive -force",
                               chdir="!{HADOOP_HOME}", repeat_count=3,
                               task_role=HadoopNamespace.name_node)
+
     with_dependencies(node_setup | (slave_ip & format_hdfs))
