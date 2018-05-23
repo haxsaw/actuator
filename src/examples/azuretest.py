@@ -1,13 +1,20 @@
 import sys
 import traceback
-from actuator.provisioners.azure.resources import AzResourceGroup
+from actuator.provisioners.azure.resources import (AzResourceGroup, AzNetwork, AzSubnet,
+                                                   AzNIC)
 from actuator.infra import InfraModel
 from actuator.provisioners.azure import AzureProvisionerProxy
-from actuator import ActuatorOrchestration
+from actuator import ActuatorOrchestration, ctxt
 
 
 class AzureExample(InfraModel):
     arg = AzResourceGroup("azure_example", "westus")
+    network = AzNetwork("ex_net", ctxt.model.arg, ["10.0.0.0/16"])
+    subnet = AzSubnet("sn",
+                      ctxt.model.arg,
+                      ctxt.model.network,
+                      "10.0.0.0/24")
+    nic = AzNIC("ex_nic", ctxt.model.arg, ctxt.model.network, [ctxt.model.subnet])
 
 
 if __name__ == "__main__":

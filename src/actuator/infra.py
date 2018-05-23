@@ -298,8 +298,8 @@ class InfraModel(ModelBase):
     
     resources = components
 
-    @narrate(lambda s, mr, *kw: "...so we started computing provising for all "
-                                "model refs in {}".format(s.name))
+    @narrate(lambda s, mr, **kw: "...so we started computing provising for all "
+                                 "model refs in {}".format(s.name))
     def compute_provisioning_from_refs(self, modelrefs, exclude_refs=None):
         """
         Take a collection of model reference objects and compute the Provisionables needed

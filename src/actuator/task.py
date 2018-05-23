@@ -787,11 +787,14 @@ class TaskEngine(object):
             tec.fail_time = time.time()
             logger.warning(fmtmsg("task %s failed" % direction))
             msg = ">>>Task {} Exception for {}!".format(direction, task.name)
-            story = get_narration(from_here=True)
-            reset_narration(from_here=True)
             if logfile:
                 logfile.write("{}\n".format(msg))
             tb = sys.exc_info()[2]
+            try:
+                story = get_narration(from_here=True)
+            except Exception as x:
+                story = ["FETCHING STORY FAILED WITH: %s" % str(x)]
+            reset_narration(from_here=True)
             if tec.try_count < task.repeat_count:
                 tec.status = TaskExecControl.FAIL_RETRY
                 retry_wait = tec.try_count * task.repeat_interval

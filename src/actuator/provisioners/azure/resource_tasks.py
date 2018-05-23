@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from haikunator import haikunator
 from actuator.provisioners.core import ProvisioningTask
 from actuator.provisioners.azure.resources import *
 from actuator.utils import capture_mapping
@@ -37,4 +38,79 @@ class AzResourceGroupTask(ProvisioningTask):
     def _reverse(self, proxy):
         run_context = proxy.get_context()
         rsrc_client = run_context.resource
-        rsrc_client.resource_groups.delete(self.rsrc.name)
+        delete_async = rsrc_client.resource_groups.delete(self.rsrc.name)
+        delete_async.wait()
+
+
+@capture_mapping(_azure_domain, AzNetwork)
+class AzNetworkTask(ProvisioningTask):
+    def depends_on_list(self):
+        the_things = super(AzNetworkTask, self).depends_on_list()
+        if isinstance(self.rsrc.rsrc_grp, AzResourceGroup):
+            the_things.append(self.rsrc.rsrc_grp)
+        return the_things
+
+    def _perform(self, proxy):
+        self.rsrc._refix_arguments()
+        run_context = proxy.get_context()
+        network = run_context.network
+        ad = {
+              "location": self.rsrc.location,
+              "address_space": {"address_prefixes": self.rsrc.address_prefixes},
+             }
+        async_creation = network.virtual_networks.create_or_update(
+            self.rsrc.rsrc_grp.name,
+            self.rsrc.name,
+            ad
+        )
+        async_creation.wait()
+
+
+@capture_mapping(_azure_domain, AzSubnet)
+class AzSubnetTask(ProvisioningTask):
+    def depends_on_list(self):
+        the_things = super(AzSubnetTask, self).depends_on_list()
+        if isinstance(self.rsrc.rsrc_grp, AzResourceGroup):
+            the_things.append(self.rsrc.rsrc_grp)
+        if isinstance(self.rsrc.network, AzNetwork):
+            the_things.append(self.rsrc.network)
+        return the_things
+
+    def _perform(self, proxy):
+        self.rsrc._refix_arguments()
+        run_context = proxy.get_context()
+        network = run_context.network
+        async_creation = network.subnets.create_or_update(self.rsrc.rsrc_grp.name,
+                                                          self.rsrc.network.name,
+                                                          self.rsrc.name,
+                                                          {"address_prefix": self.rsrc.address_prefix})
+        subnet_info = async_creation.result()
+        self.rsrc.set_subnet_id(subnet_info.id)
+
+
+@capture_mapping(_azure_domain, AzNIC)
+class AzNICTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(AzNICTask, self).depends_on_list()
+        if isinstance(self.rsrc.rsrc_grp, AzResourceGroup):
+            depson.append(self.rsrc.rsrc_grp)
+        if isinstance(self.rsrc.network, AzNetwork):
+            depson.append(self.rsrc.network)
+        for sn in self.rsrc.subnets:
+            if isinstance(sn, AzSubnet):
+                depson.append(sn)
+        return depson
+
+    def _perform(self, proxy):
+        self.rsrc._refix_arguments()
+        run_context = proxy.get_context()
+        network = run_context.network
+        ipconfigs = [{"name": "{}-{}".format(self.rsrc.name, i),
+                      "subnet": {"id": sn.get_subnet_id()}}
+                     for i, sn in enumerate(self.rsrc.subnets)]
+        async_creation = network.network_interfaces.create_or_update(self.rsrc.rsrc_grp.name,
+                                                                     self.rsrc.name,
+                                                                     {"location": self.rsrc.location,
+                                                                      "ip_configurations": ipconfigs})
+        nic_info = async_creation.result()
+        self.rsrc.set_nic_id(nic_info.id)
