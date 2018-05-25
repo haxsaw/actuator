@@ -182,7 +182,8 @@ class AzNIC(AzureProvisionableInfraResource):
 
 class AzServer(AzureProvisionableInfraResource, IPAddressable):
     def __init__(self, name, rsrc_grp, nics, publisher=None, offer=None, sku=None, version=None,
-                 vm_size=None, admin_user=None, admin_password=None, location=None, **kwargs):
+                 vm_size=None, admin_user=None, admin_password=None, location=None,
+                 pub_key_data=None, **kwargs):
         super(AzServer, self).__init__(name, **kwargs)
         self._rsrc_grp = rsrc_grp
         self.rsrc_grp = None
@@ -204,6 +205,8 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
         self.admin_password = None
         self._location = location
         self.location = None
+        self._pub_key_data = pub_key_data
+        self.pub_key_data = None
         # pulled back from Azure
         self.ip = None
 
@@ -228,6 +231,7 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
                   "admin_user": self.admin_user,
                   "admin_password": self.admin_password,
                   "location": self.location,
+                  "pub_key_data": self.pub_key_data,
                   "ip": self.ip})
         return d
 
@@ -249,6 +253,7 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
         self.location = self._get_arg_value(self._location)
         if self.location is None:
             self.location = self.rsrc_grp.location
+        self.pub_key_data = self._get_arg_value(self._pub_key_data)
 
     def get_init_args(self):
         args, kwargs = super(AzServer, self).get_init_args()
@@ -260,40 +265,9 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
                        "vm_size": self._vm_size,
                        "admin_user": self._admin_user,
                        "admin_password": self._admin_password,
-                       "location": self._location})
+                       "location": self._location,
+                       "pub_key_data": self._pub_key_data})
         return args, kwargs
-
-
-# class AzPublicIP(AzureProvisionableInfraResource, IPAddressable):
-#     def __init__(self, name, rsrc_grp, server, location=None, **kwargs):
-#         super(AzPublicIP, self).__init__(name, **kwargs)
-#         self._rsrc_grp = rsrc_grp
-#         self.rsrc_grp = None
-#         self._server = server
-#         self.server = None
-#         self._location = location
-#         self.location = None
-#
-#     def _get_attrs_dict(self):
-#         d = super(AzPublicIP, self)._get_attrs_dict()
-#         d.update({"rsrc_grp": self.rsrc_grp,
-#                   "server": self.server,
-#                   "location": self.location})
-#         return d
-#
-#     def _fix_arguments(self, _=None):
-#         super(AzPublicIP, self)._fix_arguments()
-#         self.rsrc_grp = self._get_arg_value(self._rsrc_grp)
-#         self.server = self._get_arg_value(self._server)
-#         self.location = self._get_arg_value(self._location)
-#         if self.location is None:
-#             self.location = self.rsrc_grp.location
-#
-#     def get_init_args(self):
-#         args, kwargs = super(AzPublicIP, self).get_init_args()
-#         args += (self._rsrc_grp, self._server)
-#         kwargs["location"] = self._location
-#         return args, kwargs
 
 
 class AzPublicIP(AzureProvisionableInfraResource, IPAddressable):
@@ -307,6 +281,7 @@ class AzPublicIP(AzureProvisionableInfraResource, IPAddressable):
         self.id = None
 
     def set_id(self, az_id):
+        # @FIXME; this isn't an id, it's an actual PublicIP object. method should be changed
         self.id = az_id
 
     def get_id(self):
@@ -332,4 +307,93 @@ class AzPublicIP(AzureProvisionableInfraResource, IPAddressable):
         return args, kwargs
 
 
-__all__ = ["AzResourceGroup", "AzNetwork", "AzSubnet", "AzNIC", "AzServer", "AzPublicIP"]
+class AzSecurityRule(AzureProvisionableInfraResource):
+    def __init__(self, name, protocol, direction, destination_port_range, access, priority,
+                 source_port_range="*", source_address_prefix="*", description="", **kwargs):
+        super(AzSecurityRule, self).__init__(name, **kwargs)
+        self._description = description
+        self.description = None
+        self._source_port_range = source_port_range
+        self.source_port_range = None
+        self._destination_port_range = destination_port_range
+        self.destination_port_range = None
+        self._protocol = protocol
+        self.protocol = None
+        self._source_address_prefix = source_address_prefix
+        self.source_address_prefix = None
+        self._access = access
+        self.access = None
+        self._priority = priority
+        self.priority = None
+        self._direction = direction
+        self.direction = None
+        # local data
+        self.azure_obj = None
+
+    def set_azure_obj(self, obj):
+        self.azure_obj = obj
+
+    def get_azure_obj(self):
+        return self.azure_obj
+
+    def _get_attrs_dict(self):
+        d = super(AzSecurityRule, self)._get_attrs_dict()
+        d.update({"description": self.description,
+                  "source_port_range": self.source_port_range,
+                  "destination_port_range": self.destination_port_range,
+                  "protocol": self.protocol,
+                  "source_address_prefix": self.source_address_prefix,
+                  "access": self.access,
+                  "priority": self.priority,
+                  "direction": self.direction,
+                  "azure_obj": self.azure_obj})
+        return d
+
+    def _fix_arguments(self, _=None):
+        super(AzSecurityRule, self)._fix_arguments()
+        self.protocol = self._get_arg_value(self._protocol)
+        self.direction = self._get_arg_value(self._direction)
+        self.destination_port_range = self._get_arg_value(self._destination_port_range)
+        self.access = self._get_arg_value(self._access)
+        self.priority = int(self._get_arg_value(self._priority))
+        self.source_port_range = self._get_arg_value(self._source_port_range)
+        self.source_address_prefix = self._get_arg_value(self._source_address_prefix)
+        self.description = self._get_arg_value(self._description)
+
+    def get_init_args(self):
+        args, kwargs = super(AzSecurityRule, self).get_init_args()
+        args += (self._protocol, self._direction, self._destination_port_range, self._access, self._priority)
+        kwargs.update({"source_port_range": self._source_port_range,
+                       "source_address_prefix": self._source_address_prefix,
+                       "description": self._description})
+        return args, kwargs
+
+
+class AzSecurityGroup(AzureProvisionableInfraResource):
+    def __init__(self, name, rsrc_grp, rules, **kwargs):
+        super(AzSecurityGroup, self).__init__(name, **kwargs)
+        self._rsrc_grp = rsrc_grp
+        self.rsrc_grp = None
+        self._rules = list(rules)
+        self.rules = None
+
+    def _get_attrs_dict(self):
+        d = super(AzSecurityGroup, self)._get_attrs_dict()
+        d.update({"rsrc_grp": self.rsrc_grp,
+                  "rules": self.rules})
+        return d
+
+    def _fix_arguments(self, _=None):
+        super(AzSecurityGroup, self)._fix_arguments()
+        self.rsrc_grp = self._get_arg_value(self._rsrc_grp)
+        rules = self._get_arg_value(self._rules)
+        self.rules = [self._get_arg_value(rule) for rule in rules]
+
+    def get_init_args(self):
+        args, kwargs = super(AzSecurityGroup, self).get_init_args()
+        args += (self._rsrc_grp, self._rules)
+        return args, kwargs
+
+
+__all__ = ["AzResourceGroup", "AzNetwork", "AzSubnet", "AzNIC", "AzServer", "AzPublicIP",
+           "AzSecurityRule", "AzSecurityGroup"]

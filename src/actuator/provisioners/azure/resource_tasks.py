@@ -23,7 +23,10 @@ from haikunator import haikunator
 from actuator.provisioners.core import ProvisioningTask
 from actuator.provisioners.azure.resources import *
 from actuator.utils import capture_mapping
-from azure.mgmt.network.v2017_11_01.models import PublicIPAddressSku, IPVersion, IPAllocationMethod
+from azure.mgmt.network.models import (PublicIPAddressSku, IPVersion, IPAllocationMethod,
+                                       SecurityRule, SecurityRuleAccess, SecurityRuleDirection,
+                                       SecurityRuleProtocol, NetworkSecurityGroup)
+# from azure.mgmt.compute.models import LinuxConfiguration, SshConfiguration, SshPublicKey
 
 _azure_domain = "AZURE_DOMAIN"
 
@@ -33,13 +36,13 @@ class AzResourceGroupTask(ProvisioningTask):
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc_client = run_context.resource
-        rsrc_client.resource_groups.create_or_update(self.rsrc.name,
+        rsrc_client.resource_groups.create_or_update(self.rsrc.get_display_name(),
                                                      {'location': self.rsrc.location})
 
     def _reverse(self, proxy):
         run_context = proxy.get_context()
         rsrc_client = run_context.resource
-        delete_async = rsrc_client.resource_groups.delete(self.rsrc.name)
+        delete_async = rsrc_client.resource_groups.delete(self.rsrc.get_display_name())
         delete_async.wait()
 
 
@@ -60,8 +63,8 @@ class AzNetworkTask(ProvisioningTask):
               "address_space": {"address_prefixes": self.rsrc.address_prefixes},
              }
         async_creation = network.virtual_networks.create_or_update(
-            self.rsrc.rsrc_grp.name,
-            self.rsrc.name,
+            self.rsrc.rsrc_grp.get_display_name(),
+            self.rsrc.get_display_name(),
             ad
         )
         async_creation.wait()
@@ -81,9 +84,9 @@ class AzSubnetTask(ProvisioningTask):
         self.rsrc._refix_arguments()
         run_context = proxy.get_context()
         network = run_context.network
-        async_creation = network.subnets.create_or_update(self.rsrc.rsrc_grp.name,
-                                                          self.rsrc.network.name,
-                                                          self.rsrc.name,
+        async_creation = network.subnets.create_or_update(self.rsrc.rsrc_grp.get_display_name(),
+                                                          self.rsrc.network.get_display_name(),
+                                                          self.rsrc.get_display_name(),
                                                           {"address_prefix": self.rsrc.address_prefix})
         subnet_info = async_creation.result()
         self.rsrc.set_subnet_id(subnet_info.id)
@@ -112,8 +115,8 @@ class AzNICTask(ProvisioningTask):
                       "subnet": {"id": sn.get_subnet_id()},
                       "public_ip_address": self.rsrc.public_ip.get_id()}
                      for i, sn in enumerate(self.rsrc.subnets)]
-        async_creation = network.network_interfaces.create_or_update(self.rsrc.rsrc_grp.name,
-                                                                     self.rsrc.name,
+        async_creation = network.network_interfaces.create_or_update(self.rsrc.rsrc_grp.get_display_name(),
+                                                                     self.rsrc.get_display_name(),
                                                                      {"location": self.rsrc.location,
                                                                       "ip_configurations": ipconfigs})
         nic_info = async_creation.result()
@@ -136,10 +139,11 @@ class AzServerTask(ProvisioningTask):
         run_context = proxy.get_context()
         compute = run_context.compute
         # create the big swinging dict
+        name = self.rsrc.get_display_name().replace(".", "-")
         bsd = {
             "location": self.rsrc.location,
             "os_profile": {
-                "computer_name": self.rsrc.name.replace(".", ""),
+                "computer_name": name,
                 "admin_username": self.rsrc.admin_user,
                 "admin_password": self.rsrc.admin_password,
             },
@@ -160,13 +164,13 @@ class AzServerTask(ProvisioningTask):
             }
         }
 
-        async_creation = compute.virtual_machines.create_or_update(self.rsrc.rsrc_grp.name,
-                                                                   self.rsrc.name,
+        async_creation = compute.virtual_machines.create_or_update(self.rsrc.rsrc_grp.get_display_name(),
+                                                                   name,
                                                                    bsd)
         async_creation.wait()
         network = run_context.network
-        interface = network.network_interfaces.get(self.rsrc.rsrc_grp.name,
-                                                   self.rsrc.nics[0].name)
+        interface = network.network_interfaces.get(self.rsrc.rsrc_grp.get_display_name(),
+                                                   self.rsrc.nics[0].get_display_name())
         private_ip = interface.ip_configurations[0].private_ip_address
         self.rsrc.set_ip(private_ip)
 
@@ -187,8 +191,57 @@ class AzPublicIPTask(ProvisioningTask):
                   "sku": PublicIPAddressSku(name="Basic"),
                   "public_ip_allocation_method": IPAllocationMethod.static,
                   "public_ip_address_version": IPVersion.ipv4}
-        async_creation = network.public_ip_addresses.create_or_update(self.rsrc.rsrc_grp.name,
-                                                                      self.rsrc.name,
+        async_creation = network.public_ip_addresses.create_or_update(self.rsrc.rsrc_grp.get_display_name(),
+                                                                      self.rsrc.get_display_name(),
                                                                       params)
         publicip_info = async_creation.result()
         self.rsrc.set_id(publicip_info)
+
+
+@capture_mapping(_azure_domain, AzSecurityRule)
+class AzSecurityRuleTask(ProvisioningTask):
+    def _perform(self, proxy):
+        self.rsrc._refix_arguments()
+        sr = SecurityRule(name=self.rsrc.get_display_name(),
+                          access=(SecurityRuleAccess.allow
+                                  if self.rsrc.access.lower() == "allow"
+                                  else SecurityRuleAccess.deny),
+                          description=self.rsrc.description,
+                          destination_address_prefix="*",
+                          destination_port_range=self.rsrc.destination_port_range,
+                          direction=(SecurityRuleDirection.inbound
+                                     if self.rsrc.direction.lower() == "inbound"
+                                     else SecurityRuleDirection.outbound),
+                          protocol=(SecurityRuleProtocol.tcp
+                                    if self.rsrc.protocol.lower() == "tcp"
+                                    else SecurityRuleProtocol.udp),
+                          source_address_prefix=self.rsrc.source_address_prefix,
+                          source_port_range=self.rsrc.source_port_range,
+                          priority=self.rsrc.priority)
+        self.rsrc.set_azure_obj(sr)
+
+
+@capture_mapping(_azure_domain, AzSecurityGroup)
+class AzSecurityGroupTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(AzSecurityGroupTask, self).depends_on_list()
+        if isinstance(self.rsrc.rsrc_grp, AzSecurityGroup):
+            depson.append(self.rsrc.rsrc_grp)
+        for rule in self.rsrc.rules:
+            if isinstance(rule, AzSecurityRule):
+                depson.append(rule)
+        return depson
+
+    def _perform(self, proxy):
+        self.rsrc._refix_arguments()
+        run_context = proxy.get_context()
+        net_secops = run_context.network.network_security_groups
+        rules = [rule.get_azure_obj() for rule in self.rsrc.rules]
+        nsg = NetworkSecurityGroup(location=self.rsrc.rsrc_grp.location,
+                                   security_rules=rules)
+        async_create = net_secops.create_or_update(self.rsrc.rsrc_grp.get_display_name(),
+                                                   self.rsrc.get_display_name(),
+                                                   nsg)
+        sg_info = async_create.result()
+        _ = 1
+
