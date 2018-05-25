@@ -593,7 +593,7 @@ class ConfigModelMeta(ModelBaseMeta):
             deps = newbie.get_class_dependencies()
             graph.add_edges_from([d.edge() for d in deps])
             try:
-                _ = all(nx.topological_sort(graph))
+                _ = list(nx.topological_sort(graph))
             except nx.NetworkXUnfeasible as _:
                 raise ConfigException("Task dependency graph contains a cycle")
         _Nexus._add_model_desc("cfg", newbie)
@@ -610,7 +610,6 @@ class ConfigModel(ModelBase, GraphableModelMixin):
     associated with each task. Once an instance is made and associated with
     a namespace the tasks in the model can be performed.
     """
-    # __metaclass__ = ConfigModelMeta
     ref_class = ModelInstanceReference
 
     def __init__(self, name, namespace_model_instance=None, nexus=None,

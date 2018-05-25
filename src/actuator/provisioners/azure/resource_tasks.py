@@ -23,6 +23,7 @@ from haikunator import haikunator
 from actuator.provisioners.core import ProvisioningTask
 from actuator.provisioners.azure.resources import *
 from actuator.utils import capture_mapping
+from azure.mgmt.network.v2017_11_01.models import PublicIPAddressSku, IPVersion, IPAllocationMethod
 
 _azure_domain = "AZURE_DOMAIN"
 
@@ -99,6 +100,8 @@ class AzNICTask(ProvisioningTask):
         for sn in self.rsrc.subnets:
             if isinstance(sn, AzSubnet):
                 depson.append(sn)
+        if isinstance(self.rsrc.public_ip, AzPublicIP):
+            depson.append(self.rsrc.public_ip)
         return depson
 
     def _perform(self, proxy):
@@ -106,7 +109,8 @@ class AzNICTask(ProvisioningTask):
         run_context = proxy.get_context()
         network = run_context.network
         ipconfigs = [{"name": "{}-{}".format(self.rsrc.name, i),
-                      "subnet": {"id": sn.get_subnet_id()}}
+                      "subnet": {"id": sn.get_subnet_id()},
+                      "public_ip_address": self.rsrc.public_ip.get_id()}
                      for i, sn in enumerate(self.rsrc.subnets)]
         async_creation = network.network_interfaces.create_or_update(self.rsrc.rsrc_grp.name,
                                                                      self.rsrc.name,
@@ -114,3 +118,77 @@ class AzNICTask(ProvisioningTask):
                                                                       "ip_configurations": ipconfigs})
         nic_info = async_creation.result()
         self.rsrc.set_nic_id(nic_info.id)
+
+
+@capture_mapping(_azure_domain, AzServer)
+class AzServerTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(AzServerTask, self).depends_on_list()
+        if isinstance(self.rsrc.rsrc_grp, AzResourceGroup):
+            depson.append(self.rsrc.rsrc_grp)
+        for nic in self.rsrc.nics:
+            if isinstance(nic, AzNIC):
+                depson.append(nic)
+        return depson
+
+    def _perform(self, proxy):
+        self.rsrc._refix_arguments()
+        run_context = proxy.get_context()
+        compute = run_context.compute
+        # create the big swinging dict
+        bsd = {
+            "location": self.rsrc.location,
+            "os_profile": {
+                "computer_name": self.rsrc.name.replace(".", ""),
+                "admin_username": self.rsrc.admin_user,
+                "admin_password": self.rsrc.admin_password,
+            },
+            "hardware_profile": {
+                "vm_size": self.rsrc.vm_size
+            },
+            "storage_profile": {
+                "image_reference": {
+                    "publisher": self.rsrc.publisher,
+                    "offer": self.rsrc.offer,
+                    "sku": self.rsrc.sku,
+                    "version": self.rsrc.version
+                }
+            },
+            "network_profile": {
+                "network_interfaces": [{"id": nic.get_nic_id()}
+                                       for nic in self.rsrc.nics]
+            }
+        }
+
+        async_creation = compute.virtual_machines.create_or_update(self.rsrc.rsrc_grp.name,
+                                                                   self.rsrc.name,
+                                                                   bsd)
+        async_creation.wait()
+        network = run_context.network
+        interface = network.network_interfaces.get(self.rsrc.rsrc_grp.name,
+                                                   self.rsrc.nics[0].name)
+        private_ip = interface.ip_configurations[0].private_ip_address
+        self.rsrc.set_ip(private_ip)
+
+
+@capture_mapping(_azure_domain, AzPublicIP)
+class AzPublicIPTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(AzPublicIPTask, self).depends_on_list()
+        if isinstance(self.rsrc.rsrc_grp, AzResourceGroup):
+            depson.append(self.rsrc.rsrc_grp)
+        return depson
+
+    def _perform(self, proxy):
+        self.rsrc._refix_arguments()
+        run_context = proxy.get_context()
+        network = run_context.network
+        params = {"location": self.rsrc.location,
+                  "sku": PublicIPAddressSku(name="Basic"),
+                  "public_ip_allocation_method": IPAllocationMethod.static,
+                  "public_ip_address_version": IPVersion.ipv4}
+        async_creation = network.public_ip_addresses.create_or_update(self.rsrc.rsrc_grp.name,
+                                                                      self.rsrc.name,
+                                                                      params)
+        publicip_info = async_creation.result()
+        self.rsrc.set_id(publicip_info)
