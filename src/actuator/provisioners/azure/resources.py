@@ -279,13 +279,21 @@ class AzPublicIP(AzureProvisionableInfraResource, IPAddressable):
         self.location = None
         # from Azure
         self.id = None
+        self.ip = None
 
     def set_id(self, az_id):
         # @FIXME; this isn't an id, it's an actual PublicIP object. method should be changed
         self.id = az_id
+        self.set_ip(az_id.ip_address)
 
     def get_id(self):
         return self.id
+
+    def set_ip(self, ip):
+        self.ip = ip
+
+    def get_ip(self, context=None):
+        return self.ip
 
     def _get_attrs_dict(self):
         d = super(AzPublicIP, self)._get_attrs_dict()

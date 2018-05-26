@@ -139,7 +139,7 @@ class AzServerTask(ProvisioningTask):
         run_context = proxy.get_context()
         compute = run_context.compute
         # create the big swinging dict
-        name = self.rsrc.get_display_name().replace(".", "-")
+        name = self.rsrc.get_display_name().replace(".", "-").replace("_", "-")
         bsd = {
             "location": self.rsrc.location,
             "os_profile": {
