@@ -8,11 +8,18 @@ from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator import ActuatorOrchestration, ctxt, Var
 from hadoop import HadoopNamespace, HadoopConfig
 
-# keydata = open("azuretestkey.pub", "r").read()
 
 parent = ctxt.comp.container
 
 rempass = "C0rnD0ggi3"
+
+common_server_args = dict(publisher="Canonical",
+                          offer="UbuntuServer",
+                          sku="16.04.0-LTS",
+                          version="latest",
+                          vm_size='Standard_DS1_v2',
+                          admin_user="ubuntu",
+                          admin_password=rempass)
 
 
 class AzureExample(InfraModel):
@@ -20,39 +27,24 @@ class AzureExample(InfraModel):
 
     arg = AzResourceGroup("azure_example", "westus")
     network = AzNetwork("ex_net", ctxt.model.arg, ["10.0.0.0/16"])
-    subnet = AzSubnet("sn",
-                      ctxt.model.arg,
-                      ctxt.model.network,
-                      "10.0.0.0/24")
+    subnet = AzSubnet("sn", ctxt.model.arg, ctxt.model.network, "10.0.0.0/24")
     sshrule = AzSecurityRule("sshrule", "tcp", "inbound", "22", "allow", 101, description="fingie")
-    sg = AzSecurityGroup("ex-seggroup", ctxt.model.arg, [ctxt.model.sshrule])
+    zabbix = AzSecurityRule("zabbix-host", "tcp", "inbound", "10050", "allow", 102, description="Zabbix access")
+    sg = AzSecurityGroup("ex-seggroup", ctxt.model.arg, [ctxt.model.sshrule,
+                                                         ctxt.model.zabbix])
 
     slaves = MultiResourceGroup(
         "slave",
         slave_fip=AzPublicIP("pub-server", ctxt.model.arg),
         nic=AzNIC("ex_nic", ctxt.model.arg, ctxt.model.network, [ctxt.model.subnet],
                   public_ip=parent.slave_fip),
-        slave=AzServer("ex-server", ctxt.model.arg, [parent.nic],
-                       publisher="Canonical",
-                       offer="UbuntuServer",
-                       sku="16.04.0-LTS",
-                       version="latest",
-                       vm_size='Standard_DS1_v2',
-                       admin_user="ubuntu",
-                       admin_password=rempass)
+        slave=AzServer("ex-server", ctxt.model.arg, [parent.nic], **common_server_args)
     )
 
     nn_nic = AzNIC("nn_nic", ctxt.model.arg, ctxt.model.network, [ctxt.model.subnet],
                    public_ip=ctxt.model.name_node_fip)
     name_node_fip = AzPublicIP("name-node-fip", ctxt.model.arg)
-    name_node = AzServer("name-node", ctxt.model.arg, [ctxt.model.nn_nic],
-                         publisher="Canonical",
-                         offer="UbuntuServer",
-                         sku="16.04.0-LTS",
-                         version="latest",
-                         vm_size='Standard_DS1_v2',
-                         admin_user="ubuntu",
-                         admin_password=rempass)
+    name_node = AzServer("name-node", ctxt.model.arg, [ctxt.model.nn_nic], **common_server_args)
 
 
 if __name__ == "__main__":

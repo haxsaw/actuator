@@ -404,4 +404,4 @@ class AzSecurityGroup(AzureProvisionableInfraResource):
 
 
 __all__ = ["AzResourceGroup", "AzNetwork", "AzSubnet", "AzNIC", "AzServer", "AzPublicIP",
-           "AzSecurityRule", "AzSecurityGroup"]
+           "AzSecurityRule", "AzSecurityGroup", "AzureProvisionableInfraResource"]

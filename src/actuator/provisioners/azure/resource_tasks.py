@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from haikunator import haikunator
+# from haikunator import haikunator
 from actuator.provisioners.core import ProvisioningTask
 from actuator.provisioners.azure.resources import *
 from actuator.utils import capture_mapping
@@ -54,6 +54,14 @@ class AzNetworkTask(ProvisioningTask):
             the_things.append(self.rsrc.rsrc_grp)
         return the_things
 
+    # SLOWER
+    # def _reverse(self, proxy):
+    #     run_context = proxy.get_context()
+    #     vnops = run_context.network.virtual_networks
+    #     async_op = vnops.delete(self.rsrc.rsrc_grp.get_display_name(),
+    #                             self.rsrc.get_display_name())
+    #     async_op.wait()
+
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
         run_context = proxy.get_context()
@@ -79,6 +87,15 @@ class AzSubnetTask(ProvisioningTask):
         if isinstance(self.rsrc.network, AzNetwork):
             the_things.append(self.rsrc.network)
         return the_things
+
+    # SLOWER
+    # def _reverse(self, proxy):
+    #     run_context = proxy.get_context()
+    #     snops = run_context.network.subnets
+    #     async_op = snops.delete(self.rsrc.rsrc_grp.get_display_name(),
+    #                             self.rsrc.network.get_display_name(),
+    #                             self.rsrc.get_display_name())
+    #     async_op.wait()
 
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
@@ -107,6 +124,13 @@ class AzNICTask(ProvisioningTask):
             depson.append(self.rsrc.public_ip)
         return depson
 
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
+        ifops = run_context.network.network_interfaces
+        async_op = ifops.delete(self.rsrc.rsrc_grp.get_display_name(),
+                                self.rsrc.get_display_name())
+        async_op.wait()
+
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
         run_context = proxy.get_context()
@@ -125,6 +149,9 @@ class AzNICTask(ProvisioningTask):
 
 @capture_mapping(_azure_domain, AzServer)
 class AzServerTask(ProvisioningTask):
+    def vm_name(self):
+        return self.rsrc.get_display_name().replace(".", "-").replace("_", "-")
+
     def depends_on_list(self):
         depson = super(AzServerTask, self).depends_on_list()
         if isinstance(self.rsrc.rsrc_grp, AzResourceGroup):
@@ -134,12 +161,18 @@ class AzServerTask(ProvisioningTask):
                 depson.append(nic)
         return depson
 
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
+        vmops = run_context.compute.virtual_machines
+        async_op = vmops.delete(self.rsrc.rsrc_grp.get_display_name(), self.vm_name())
+        async_op.wait()
+
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
         run_context = proxy.get_context()
         compute = run_context.compute
         # create the big swinging dict
-        name = self.rsrc.get_display_name().replace(".", "-").replace("_", "-")
+        name = self.vm_name()
         bsd = {
             "location": self.rsrc.location,
             "os_profile": {
@@ -182,6 +215,12 @@ class AzPublicIPTask(ProvisioningTask):
         if isinstance(self.rsrc.rsrc_grp, AzResourceGroup):
             depson.append(self.rsrc.rsrc_grp)
         return depson
+
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
+        ipops = run_context.network.public_ip_addresses
+        async_op = ipops.delete(self.rsrc.rsrc_grp.get_display_name(), self.rsrc.get_display_name())
+        async_op.wait()
 
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
@@ -232,6 +271,14 @@ class AzSecurityGroupTask(ProvisioningTask):
                 depson.append(rule)
         return depson
 
+    # SLOWER
+    # def _reverse(self, proxy):
+    #     run_context = proxy.get_context()
+    #     sgops = run_context.network.network_security_groups
+    #     async_op = sgops.delete(self.rsrc.rsrc_grp.get_display_name(),
+    #                             self.rsrc.get_display_name())
+    #     async_op.wait()
+
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
         run_context = proxy.get_context()
@@ -243,5 +290,3 @@ class AzSecurityGroupTask(ProvisioningTask):
                                                    self.rsrc.get_display_name(),
                                                    nsg)
         sg_info = async_create.result()
-        _ = 1
-
