@@ -217,7 +217,7 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
         return self.ip
 
     def get_cidr4(self, *_):
-        return "{}/32".format(self.ip)
+        return "{}/32".format(self.ip) if self.ip is not None else None
 
     def _get_attrs_dict(self):
         d = super(AzServer, self)._get_attrs_dict()
@@ -294,6 +294,9 @@ class AzPublicIP(AzureProvisionableInfraResource, IPAddressable):
 
     def get_ip(self, context=None):
         return self.ip
+
+    def get_cidr4(self, *_):
+        return "{}/32".format(self.ip) if self.ip is not None else None
 
     def _get_attrs_dict(self):
         d = super(AzPublicIP, self)._get_attrs_dict()

@@ -2,6 +2,7 @@ from pprint import pprint as pp
 from actuator.provisioners.azure.resources import *
 from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.openstack.resources import _OpenstackProvisionableInfraResource
+from actuator.modeling import ContextExpr, AbstractModelReference
 
 
 def make_os_secgroup_entry(ossg):
@@ -14,6 +15,17 @@ def make_az_resource_group(rsrc_grp):
     return {"Azure Resource Group Name": rsrc_grp.get_display_name(),
             "Security Groups": {},
             "Group Servers": []}
+
+
+def attr_val(obj, attrname):
+    val = getattr(obj, attrname)
+    if val is None:
+        val = obj.get_init_value_for_attr(attrname)
+        if isinstance(val, ContextExpr):
+            val = ".".join(reversed(val._path))
+        elif isinstance(val, AbstractModelReference):
+            val = val.get_path()
+    return val
 
 
 def check(inf_inst):
@@ -86,7 +98,7 @@ def check(inf_inst):
                     rg = az_resource_groups.get(rsrc_grp.get_display_name())
                     if rg is None:
                         rg = make_az_resource_group(rsrc_grp)
-                        az_resource_groups[rsrc_grp.c.get_display_name()] = rg
+                        az_resource_groups[rsrc_grp.get_display_name()] = rg
                         report.append(rg)
                     all_sgs = rg["Security Groups"]
                     rules = []
@@ -98,7 +110,7 @@ def check(inf_inst):
                                                                        rule.protocol,
                                                                        rule.source_port_range,
                                                                        rule.destination_port_range,
-                                                                       rule.source_address_prefix))
+                                                                       attr_val(rule, "source_address_prefix")))
     return report
 
 

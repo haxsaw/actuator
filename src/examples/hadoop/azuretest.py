@@ -25,26 +25,45 @@ common_server_args = dict(publisher="Canonical",
 class AzureExample(InfraModel):
     with_infra_options(long_names=True)
 
-    arg = AzResourceGroup("azure_example", "westus")
-    network = AzNetwork("ex_net", ctxt.model.arg, ["10.0.0.0/16"])
-    subnet = AzSubnet("sn", ctxt.model.arg, ctxt.model.network, "10.0.0.0/24")
-    sshrule = AzSecurityRule("sshrule", "tcp", "inbound", "22", "allow", 101, description="fingie")
+    # resource groups
+    net_rsrc = AzResourceGroup("hadoop_network", "westus")
+    slave_rsrc = AzResourceGroup("hadoop_slaves", "westus")
+    nn_rsrc = AzResourceGroup("hadoop_namenode", "westus")
+    # network
+    network = AzNetwork("ex_net", ctxt.model.net_rsrc, ["10.0.0.0/16"])
+    subnet = AzSubnet("sn", ctxt.model.net_rsrc, ctxt.model.network, "10.0.0.0/24")
+    # security
+    sshrule = AzSecurityRule("sshrule", "tcp", "inbound", "22", "allow", 101, description="thingie")
     zabbix = AzSecurityRule("zabbix-host", "tcp", "inbound", "10050", "allow", 102, description="Zabbix access")
-    sg = AzSecurityGroup("ex-seggroup", ctxt.model.arg, [ctxt.model.sshrule,
-                                                         ctxt.model.zabbix])
-
+    nn_webui_rule = AzSecurityRule("nn_webui", "tcp", "inbound", "50070", "allow", 103, description="nn webui")
+    nn_rule = AzSecurityRule("nn", "tcp", "inbound", "50071", "allow", 104, description="namenode")
+    jt_webui_rule = AzSecurityRule("jobtracker_webui", "tcp", "inbound", "50030", "allow", 105, description="jt webui")
+    jt_rule = AzSecurityRule("jobtracker", "tcp", "inbound", "50031", "allow", 106, description="job tracker")
+    nn_to_slave_rule = AzSecurityRule("nnToSlave", "tcp", "inbound", "50031", "allow", 107,
+                                      description="nn command rule",
+                                      source_address_prefix=ctxt.model.name_node.get_cidr4)
+    sl_sg = AzSecurityGroup("slave-seggroup", ctxt.model.slave_rsrc, [ctxt.model.sshrule,
+                                                                      ctxt.model.zabbix,
+                                                                      ctxt.model.nn_to_slave_rule])
+    nn_sg = AzSecurityGroup("namenode-seggroup", ctxt.model.nn_rsrc, [ctxt.model.sshrule,
+                                                                      ctxt.model.zabbix,
+                                                                      ctxt.model.nn_webui_rule,
+                                                                      ctxt.model.nn_rule,
+                                                                      ctxt.model.jt_webui_rule,
+                                                                      ctxt.model.jt_rule])
+    # slaves
     slaves = MultiResourceGroup(
         "slave",
-        slave_fip=AzPublicIP("pub-server", ctxt.model.arg),
-        nic=AzNIC("ex_nic", ctxt.model.arg, ctxt.model.network, [ctxt.model.subnet],
+        slave_fip=AzPublicIP("pub-server", ctxt.model.slave_rsrc),
+        nic=AzNIC("ex_nic", ctxt.model.slave_rsrc, ctxt.model.network, [ctxt.model.subnet],
                   public_ip=parent.slave_fip),
-        slave=AzServer("ex-server", ctxt.model.arg, [parent.nic], **common_server_args)
+        slave=AzServer("ex-server", ctxt.model.slave_rsrc, [parent.nic], **common_server_args)
     )
-
-    nn_nic = AzNIC("nn_nic", ctxt.model.arg, ctxt.model.network, [ctxt.model.subnet],
+    # name node
+    nn_nic = AzNIC("nn_nic", ctxt.model.nn_rsrc, ctxt.model.network, [ctxt.model.subnet],
                    public_ip=ctxt.model.name_node_fip)
-    name_node_fip = AzPublicIP("name-node-fip", ctxt.model.arg)
-    name_node = AzServer("name-node", ctxt.model.arg, [ctxt.model.nn_nic], **common_server_args)
+    name_node_fip = AzPublicIP("name-node-fip", ctxt.model.nn_rsrc)
+    name_node = AzServer("name-node", ctxt.model.nn_rsrc, [ctxt.model.nn_nic], **common_server_args)
 
 
 if __name__ == "__main__":
@@ -64,7 +83,8 @@ if __name__ == "__main__":
     ns = HadoopNamespace("azure-ns")
     ns.add_override(Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                     Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False))
-    ns.create_slaves(2)
+    num_slaves = 5
+    ns.create_slaves(num_slaves)
 
     cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu", event_handler=ehandler)
 
@@ -73,7 +93,7 @@ if __name__ == "__main__":
                                  config_model_inst=cfg,
                                  provisioner_proxies=[app],
                                  post_prov_pause=10,
-                                 num_threads=10)
+                                 num_threads=num_slaves*3+3)
     try:
         orch.initiate_system()
     except Exception as e:

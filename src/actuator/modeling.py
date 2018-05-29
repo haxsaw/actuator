@@ -102,33 +102,6 @@ class ContextExpr(_Persistable):
         d["_path"] = self._path[:]
         return d
 
-    # @narrate(lambda s, _: "...which occasioned evaluating the "
-    #                       "context expr {}".format(str(reversed(s._path))))
-    # def __call__(self, ctx):
-    #     ref = ctx
-    #     try:
-    #         for p in reversed(self._path):
-    #             if isinstance(p, KeyItem):
-    #                 with narrate_cm(lambda k: "-since element '{}' is a key it was used to index into "
-    #                                           "the current reference".format(k),
-    #                                 p):
-    #                     ref = ref[p.value(ctx)]
-    #             else:
-    #                 with narrate_cm(lambda a: "-which resulted in trying to get attribute '{}' from "
-    #                                           "the context expr".format(a),
-    #                                 p):
-    #                     ref = getattr(ref, p)
-    #                 with narrate_cm(lambda a: "-and I found that the '{}' attribute yields a callable so I tried "
-    #                                           "invoking it".format(a),
-    #                                 p):
-    #                     if callable(ref):
-    #                         ref = ref(ctx)
-    #     except Exception as e:
-    #         raise ActuatorException("Was evaluating the context expr 'ctxt.{}' and had reached element '{}' when"
-    #                                 " the following exception was raised: {}, {}".format(".".join(reversed(self._path)),
-    #                                                                                      p, type(e), str(e)))
-    #     return ref
-
     @narrate(lambda s, _: "...which occasioned evaluating the "
                           "context expr {}".format(str(reversed(s._path))))
     def __call__(self, ctx):
@@ -467,6 +440,9 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         this object is to be made
         """
         return (self.name,), {"model": self._model_instance}
+
+    def get_init_value_for_attr(self, attrname):
+        return getattr(self, "_{}".format(attrname))
 
     def get_class(self):
         """
