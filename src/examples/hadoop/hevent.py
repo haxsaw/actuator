@@ -19,6 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import time
 import threading
 from actuator.task import TaskEventHandler
 from kivy.event import EventDispatcher
@@ -45,7 +46,8 @@ class TaskEventManager(TaskEventHandler):
 
     def _fireup_display(self, model, graph):
         from hdisplay import GT
-        self.app = GT(graph, label=model.__class__.__name__)
+        app = GT(graph, label=model.__class__.__name__)
+        self.app = app
         self.app.run()
 
     def engine_starting(self, model, graph):
@@ -70,6 +72,11 @@ class TaskEventManager(TaskEventHandler):
         self.ted.task_event_received(tec, errtext)
 
     def update_task(self, tec, errtext=None):
+        while self.app is None:
+            # it's possible that events come in so fast that the display isn't ready yet; this is
+            # only a startup issue, so a short delay will allow that startup to complete and then
+            # we can smoothly delivery redraw events
+            time.sleep(0.1)
         self.app.draw_node(tec, errtext)
 
     def update_graph(self):
