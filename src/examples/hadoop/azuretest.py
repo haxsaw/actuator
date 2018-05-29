@@ -83,7 +83,7 @@ if __name__ == "__main__":
     ns = HadoopNamespace("azure-ns")
     ns.add_override(Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                     Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False))
-    num_slaves = 5
+    num_slaves = 6
     ns.create_slaves(num_slaves)
 
     cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu", event_handler=ehandler)

@@ -50,7 +50,7 @@ class ZabbixConfig(ConfigModel):
                                   repeat_count=3)
     install_zabbix = CommandTask("install_zabbix",
                                  "/usr/bin/sudo apt-get -y install zabbix-agent",
-                                 repeat_count=3)
+                                 repeat_count=4)
     # the template here relies on:
     # ZABBIX_SERVER as the ip of the Zabbix server
     # HOST for the name of the host the agent should report as

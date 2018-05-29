@@ -116,7 +116,7 @@ class HadoopNodeConfig(ConfigModel):
                                      repeat_count=3)
     fetch_hadoop = CommandTask("fetch_hadoop", "/usr/bin/wget !{HADOOP_URL}",
                                chdir="!{HADOOP_PREP}",
-                               repeat_count=3)
+                               repeat_count=4)
     unpack = CommandTask("unpack_hadoop", "/bin/tar -xf !{HADOOP_TARBALL}",
                          chdir="!{HADOOP_PREP}",
                          repeat_count=3)
@@ -129,7 +129,7 @@ class HadoopNodeConfig(ConfigModel):
                                    src=find_file("%s.pub" % pkn, "."),
                                    repeat_count=3)
     append_public_key = ShellTask("append_public_key",
-                                  "cat !{TEMP_PUB_KEY} >> ~/.ssh/authorized_keys; rm !{TEMP_PUB_KEY}",
+                                  "cat !{TEMP_PUB_KEY} >> ~/.ssh/authorized_keys; rm -f !{TEMP_PUB_KEY}",
                                   repeat_count=3)
                                    
     # template processing tasks
