@@ -83,7 +83,7 @@ if __name__ == "__main__":
     ns = HadoopNamespace("azure-ns")
     ns.add_override(Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                     Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False))
-    num_slaves = 6
+    num_slaves = 5
     ns.create_slaves(num_slaves)
 
     cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu", event_handler=ehandler)
@@ -93,7 +93,8 @@ if __name__ == "__main__":
                                  config_model_inst=cfg,
                                  provisioner_proxies=[app],
                                  post_prov_pause=10,
-                                 num_threads=num_slaves*3+3)
+                                 num_threads=num_slaves*3+3,
+                                 no_delay=True)
     try:
         orch.initiate_system()
     except Exception as e:

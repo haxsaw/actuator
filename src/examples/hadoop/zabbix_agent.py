@@ -41,13 +41,13 @@ zabbix_conf_template = os.path.join(here, "zabbix-templates", "zabbix_agentd.con
 class ZabbixConfig(ConfigModel):
     fetch_metadata = CommandTask("fetch_zabbix_pkg_metadata",
                                  "wget http://repo.zabbix.com/zabbix/3.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_3.0-1+trusty_all.deb",
-                                 repeat_count=3, chdir="/tmp")
+                                 repeat_count=4, chdir="/tmp")
     add_repo_task = CommandTask("add_zabbix_repo",
                                 "/usr/bin/sudo dpkg -i zabbix-release_3.0-1+trusty_all.deb",
                                 repeat_count=3, chdir="/tmp")
     update_apt_task = CommandTask("update_repos",
                                   "/usr/bin/sudo apt-get -y update",
-                                  repeat_count=3)
+                                  repeat_count=4)
     install_zabbix = CommandTask("install_zabbix",
                                  "/usr/bin/sudo apt-get -y install zabbix-agent",
                                  repeat_count=4)
@@ -62,7 +62,7 @@ class ZabbixConfig(ConfigModel):
                             "/usr/bin/sudo /bin/rm -f /etc/zabbix/zabbix_agentd.conf.old;"
                             "/usr/bin/sudo /bin/mv /etc/zabbix/zabbix_agentd.conf /etc/zabbix/zabbix_agentd.conf.old;"
                             "/usr/bin/sudo /bin/cp /tmp/zabbix_agentd.conf /etc/zabbix/zabbix_agentd.conf",
-                            repeat_count=3)
+                            repeat_count=4)
     restart_zabbix = CommandTask("restart-zabbix",
                                  "/usr/bin/sudo service zabbix-agent restart",
                                  repeat_count=3)

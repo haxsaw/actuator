@@ -100,7 +100,7 @@ class HadoopNodeConfig(ConfigModel):
                                  repeat_count=3)
     make_transactions = CommandTask("make_transactions", "/bin/mkdir -p !{HADOOP_DATA_XACTION}",
                                     creates="!{HADOOP_DATA_XACTION}",
-                                    repeat_count=3)
+                                    repeat_count=5)
     make_block_home = ShellTask("make_block_home",
                                 "/bin/mkdir -p !{HADOOP_DATA_BLOCKS}; /bin/chmod 755 !{HADOOP_DATA_BLOCKS}",
                                 creates="!{HADOOP_DATA_BLOCKS}",

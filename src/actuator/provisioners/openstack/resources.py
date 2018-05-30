@@ -359,6 +359,9 @@ class Server(_OpenstackProvisionableInfraResource, IPAddressable):
         are required, access the appropriate address on self.iface[0-3]
         """
         return self.iface0.addr0
+
+    def get_cidr4(self, _=None):
+        return "{}/32".format(self.iface0.addr0) if self.iface0.addr0 is not None else None
         
         
 class Network(_OpenstackProvisionableInfraResource):
@@ -627,7 +630,7 @@ class FloatingIP(_OpenstackProvisionableInfraResource, IPAddressable):
         return self.ip
 
     def get_cidr4(self, *_):
-        return "{}/32".format(self.ip)
+        return "{}/32".format(self.ip) if self.ip is not None else None
         
     def _fix_arguments(self, provisioner=None):
         super(FloatingIP, self)._fix_arguments()

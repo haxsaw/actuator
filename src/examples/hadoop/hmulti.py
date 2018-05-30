@@ -217,8 +217,8 @@ if __name__ == "__main__":
 
     # make the namespace model instance, create some slaves in different clouds
     ns = MultiCloudNS("multi-ns")
-    ns.make_slaves("citycloud", 2)
-    ns.make_slaves("auro", 2)
+    ns.make_slaves("citycloud", 10)
+    # ns.make_slaves("auro", 2)
 
     # make the config model instance
     cloud_creds = {"vsphere": {"remote_pass": "tarnished99"},
