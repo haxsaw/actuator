@@ -43,9 +43,9 @@ class TestSvc(Service):
 
 
 def get_simple_instance():
-    return TestSvc("testsvc", infra=[["infra"], {}],
-                   namespace=[["namespace"], {}],
-                   config=[["config"], {}])
+    return TestSvc("testsvc", infra_args=[["infra"], {}],
+                   namespace_args=[["namespace"], {}],
+                   config_args=[["config"], {}])
 
 
 def test001():
@@ -79,7 +79,7 @@ def test003():
 
 def test004():
     """
-    test004: check being able to express a path to a component as a context expr on the app
+    test004: check being able to express a path to a component as a context expr on the service
     """
     a = get_simple_instance()
     a.infra.server.fix_arguments()
@@ -226,41 +226,34 @@ def test016():
     assert a._config == a_clone._config
 
 
-def test17():
+def test017():
     """
     test017: basic persistence check
     """
     # @FIXME
-    raise SkipTest("Turned off temporarily until we get back to the app/service/component work")
     a = get_simple_instance()
     a.infra.server.fix_arguments()
     d = persist_to_dict(a)
     a_clone = reanimate_from_dict(d)
     assert a.name == a_clone.name
-    assert a._infra == a_clone._infra
-    assert a._namespace == a_clone._namespace
-    assert a._config == a_clone._config
+    assert a._infra_args == a_clone._infra_args
     assert a.namespace.role.name.value() == a_clone.namespace.role.name.value()
     assert a.infra.server.name.value() == a_clone.infra.server.name.value()
     assert a.config.task.name.value() == a_clone.config.task.name.value()
     assert a.infra.server.hostname_or_ip.value() == a_clone.infra.server.hostname_or_ip.value()
 
 
-def test18():
+def test018():
     """
     test018: checking persisted form goes to json and back
     """
     # @FIXME
-    raise SkipTest("Turned off temporarily until we get back to the app/service/component work")
     a = get_simple_instance()
     a.infra.server.fix_arguments()
     d = persist_to_dict(a)
     d_prime = json.loads(json.dumps(d))
     a_clone = reanimate_from_dict(d_prime)
     assert a.name == a_clone.name
-    assert a._infra == a_clone._infra
-    assert a._namespace == a_clone._namespace
-    assert a._config == a_clone._config
     assert a.namespace.role.name.value() == a_clone.namespace.role.name.value()
     assert a.infra.server.name.value() == a_clone.infra.server.name.value()
     assert a.config.task.name.value() == a_clone.config.task.name.value()
@@ -327,9 +320,9 @@ def test21():
         assert "'config' attribute" in str(e)
 
 
-def test22():
+def test022():
     """
-    test22: Nest a service inside another service, connect them using Vars and context exprs
+    test022: Nest a service inside another service, connect them using Vars and context exprs
     """
     class T22(Service):
         with_variables(Var("buried2", "127.0.0.1"))
@@ -338,14 +331,15 @@ def test22():
         namespace = TestNamespace
         config = TestConfig
 
-    a = T22("t22", services={"inner": (("inner",), {})})
+    a = T22("t22", infra_args=(("outersvc",), {}),
+            services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     a.fix_arguments()
     assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
 
 
-def test23():
+def test023():
     """
-    test23: Nest a service inside another service, create context expr for a var in the outer
+    test023: Nest a service inside another service, create context expr for a var in the outer
     """
     class T23(Service):
         with_variables(Var("buried2", ctxt.nexus.parent.svc.v.THE_IP),
@@ -355,7 +349,8 @@ def test23():
         namespace = TestNamespace
         config = TestConfig
 
-    a = T23("t23", services={"inner": (("inner",), {})})
+    a = T23("t23", infra_args=(("outer",), {}),
+            services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     a.fix_arguments()
     assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
 
@@ -368,9 +363,9 @@ class OuterConfig(ConfigModel):
     pass
 
 
-def test24():
+def test024():
     """
-    test24: Nest a service inside another service, fish a host ip out of another infra
+    test024: Nest a service inside another service, fish a host ip out of another infra
     """
     class T24(Service):
         with_variables(Var("buried2", ctxt.nexus.parent.svc.infra.server.hostname_or_ip),
@@ -381,7 +376,9 @@ def test24():
         namespace = OuterNamespace
         config = OuterConfig
 
-    a = T24("t24", services={"inner": (("inner",), {})})
+    a = T24("t24",
+            infra_args=(("outer",), {}),
+            services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     a.inner.infra.server.fix_arguments()
     a.infra.server.fix_arguments()
     assert a.inner.namespace.role.var_value("buried2") == "127.0.0.1"
@@ -428,11 +425,12 @@ def compare_t26(t1, t2):
     assert t1.inner.config.task.task_role.name.value() == t2.inner.config.task.task_role.name.value()
 
 
-def test26():
+def test026():
     """
-    test26: test persistence/reanimation service with a nested service
+    test026: test persistence/reanimation service with a nested service
     """
-    t26 = T26("t26-outer", services={"inner": (("inner",), {})})
+    t26 = T26("t26-outer", infra_args=(("outer",), {}),
+              services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     t26.infra.server.fix_arguments()
     t26.inner.infra.server.fix_arguments()
     t26.config.task.fix_arguments()
@@ -443,11 +441,12 @@ def test26():
     compare_t26(t26, franken_t26)
 
 
-def test27():
+def test027():
     """
-    test27: manually create an inner TestSvc, check if the same before/after persistence/reanim
+    test027: manually create an inner TestSvc, check if the same before/after persistence/reanim
     """
-    t27 = T26("t27-outer", services={"inner": TestSvc("inner_27")})
+    t27 = T26("t27-outer", infra_args=(("outer",), {}),
+              services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     t27.infra.server.fix_arguments()
     t27.inner.infra.server.fix_arguments()
     t27.config.task.fix_arguments()
@@ -458,11 +457,12 @@ def test27():
     compare_t26(t27, franken_t27)
 
 
-def test28():
+def test028():
     """
-    test28: manually create the TestInfra, default the rest, check before/after persistence
+    test028: manually create the TestInfra, default the rest, check before/after persistence
     """
-    t28 = T26("t28-outer", infra=TestInfra("t28Infra"), services={"inner": (("inner28",), {})})
+    t28 = T26("t28-outer", infra=TestInfra("t28Infra"),
+              services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     t28.infra.server.fix_arguments()
     t28.inner.infra.server.fix_arguments()
     t28.config.task.fix_arguments()
@@ -473,12 +473,13 @@ def test28():
     compare_t26(t28, franken_t28)
 
 
-def test29():
+def test029():
     """
-    test29: manually create the TestNamespace, default the rest, check before/after persistence
+    test029: manually create the TestNamespace, default the rest, check before/after persistence
     """
     t29 = T26("t29-outer", namespace=TestNamespace("t29_namespace"),
-              services={"inner": (("inner28",), {})})
+              infra_args=(("outer",), {}),
+              services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     t29.infra.server.fix_arguments()
     t29.inner.infra.server.fix_arguments()
     t29.config.task.fix_arguments()
@@ -489,11 +490,13 @@ def test29():
     compare_t26(t29, franken_t29)
 
 
-def test30():
+def test030():
     """
-    test30: manually create the TestConfig, default the rest, check before/after persistence
+    test030: manually create the TestConfig, default the rest, check before/after persistence
     """
-    t30 = T26("t30-outer", config=TestConfig("t30-conf"), services={"inner": (("inner28",), {})})
+    t30 = T26("t30-outer", config=TestConfig("t30-conf"),
+              infra_args=(("outer",), {}),
+              services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
     t30.infra.server.fix_arguments()
     t30.inner.infra.server.fix_arguments()
     t30.config.task.fix_arguments()
@@ -505,6 +508,8 @@ def test30():
 
 
 def do_all():
+    setup_module()
+    test018()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

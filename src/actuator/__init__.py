@@ -27,6 +27,7 @@ Contains most of the imported symbols from sub-packages and the orchestrator.
 
 import datetime
 import collections
+import inspect
 
 import time
 import six
@@ -73,34 +74,39 @@ class ServiceMeta(ModelBaseMeta):
         return newbie
 
 
+_default_model_args = (("_UNNAMED_",), {})
+
+
 @six.add_metaclass(ServiceMeta)
 class Service(ModelComponent, ModelBase, VariableContainer):
-    # __metaclass__ = ServiceMeta
     ref_class = ModelInstanceReference
     infra = InfraModel
     namespace = NamespaceModel
     config = ConfigModel
 
-    def __init__(self, name, infra=(("_UNNAMED_",), {}), namespace=(("_UNNAMED_",), {}),
-                 config=(("_UNNAMED_",), {}), services=None, **kwargs):
+    def __init__(self, name, infra=None, infra_args=_default_model_args,
+                 namespace=None, namespace_args=_default_model_args,
+                 config=None, config_args=_default_model_args, services=None, **kwargs):
         """
         Creates a new instance of a service model
         :param name: string; name of the service model
-        :param infra: optional; if specified, can be either an instance of an InfraModel, or a
-            list [[], {}], which contains positional and keyword arguments, used as the
-            arguments that are passed to self.infra, which must be some kind of InfraModel class.
-            NOTE: the first element in the list must have at least a string, used as the name for
-            the infra model
-        :param namespace: optional; if specified, can be either an instance of a NamespaceModel,
-            or a can be a list [[], {}], which contains positional and keyword arguments, used as
-            the arguments that are passed to self.namespace, which must be some kind of NamespaceModel
-            class. NOTE: the first element of the list must have at least a string, used as the name
-            for the namespace model
-        :param config: optional; if specified, can be either an instance of a ConfigModel, or can be a
-            list [[], {}], which contains  positional and keyword arguments, used as the arguments
-            that are passed to self.config, which must be some kind of ConfigModel class. NOTE:
-            the first element of the list must have at least a string, used as the name of the
-            config model
+        :param infra: optional; if specified, an instance of some kind of InfraModel. Takes precedence
+            over infra_args.
+        :param infra_args: optional; if specified, a sequence of a sequence and a dict, to be
+            used to create a new instance of the infra model like ModelClass(*infra_args[0], **infra_args[1]).
+            Ignored in the 'infra' parameter has been supplied. If used, self.infra must be a subclass
+            of InfraModel.
+        :param namespace: optional; if specified, and instance of some kind of NamespaceModel. Takes
+            precedence over namespace_args
+        :param namespace_args: optional; if specified, a sequence of a sequence and a dict, to be used
+            to create a new instance of the namespace model like ModelClass(*namespace_args[0], **namespace_args[1]).
+            Ignored if the namespace parameter is specified. If used, self.namespace must be a subclass
+            of NamespaceModel.
+        :param config: optional; if specified, an instance of a ConfigModel. Takes precedence over config_args.
+        :param config_args: optional; if specified, a sequence of a sequence and a dict, to be used
+            to create a new instance of the config model like ModelClass(*config_args[0], **config_args[1]).
+            Ignored if the config parameter is specified. If used, self.config must be a subvlass
+            of ConfigModel.
         :param services: optional; a dict whose keys are names of services and whose values can
             be one of two things: they can be a Service instance, or they can be a sequence of
             [(), {}] parameters that can be used to instantiate a service. In this latter
@@ -114,42 +120,55 @@ class Service(ModelComponent, ModelBase, VariableContainer):
         self.service_names = set()
         self.services = {} if services is None else dict(services)
 
-        if isinstance(infra, InfraModel):
-            self.infra = infra
-        elif isinstance(self.infra.value(), InfraModel):
-            # then the model was created with an instance, not a class; clone the class and keep the clone
-            clone = self.infra.clone()
-            self.infra = clone
-        elif isinstance(infra, collections.Sequence):
-            self.infra = self.infra.value()(*infra[0], **infra[1])
-        else:
-            raise ActuatorException("the 'infra' arg is not a kind of InfraModel or a sequence, and the "
-                                    "infra attribute is not an instance of an infra model")
         self._infra = infra
+        self._infra_args = infra_args
+        if infra is None:
+            if inspect.isclass(self.infra.value()) and issubclass(self.infra.value(), InfraModel):
+                try:
+                    infra = self.infra.value()(*infra_args[0], **infra_args[1])
+                except Exception as e:
+                    raise ActuatorException("Unable to create an instance of infra {} with pargs {} and kwargs {}: {}".
+                                            format(self.infra.value().__name__,
+                                                   infra_args[0], infra_args[1], str(e)))
+            elif isinstance(self.infra.value(), InfraModel):
+                infra = self.infra.clone()
+            else:
+                raise ActuatorException("No way to create any infra model, not even a stub")
+        self.infra = infra
 
-        if isinstance(namespace, NamespaceModel):
-            self.namespace = namespace
-        elif isinstance(self.namespace.value(), NamespaceModel):
-            clone = self.namespace.clone()
-            self.namespace = clone
-        elif isinstance(namespace, collections.Sequence):
-            self.namespace = self.namespace.value()(*namespace[0], **namespace[1])
-        else:
-            raise ActuatorException("the 'namespace' arg is not a kind of NamespaceModel or a sequence, and "
-                                    "the namespace attribute is not an instance of a namespace model")
         self._namespace = namespace
+        self._namespace_args = namespace_args
+        if namespace is None:
+            if inspect.isclass(self.namespace.value()) and issubclass(self.namespace.value(), NamespaceModel):
+                try:
+                    namespace = self.namespace.value()(*namespace_args[0], **namespace_args[1])
+                except Exception as e:
+                    raise ActuatorException("Unable to create an instance of namespace {} with pargs {} and "
+                                            "kwargs {}: {}".format(self.namespace.value().__name__,
+                                                                   namespace_args[0], namespace_args[1],
+                                                                   str(e)))
+            elif isinstance(self.namespace.value(), NamespaceModel):
+                namespace = self.namespace.clone()
+            else:
+                raise ActuatorException("No way to create any namespace model, not even a stub")
+        self.namespace = namespace
 
-        if isinstance(config, ConfigModel):
-            self.config = config
-        elif isinstance(self.config.value(), ConfigModel):
-            clone = self.config.clone()
-            self.config = clone
-        elif isinstance(config, collections.Sequence):
-            self.config = self.config.value()(*config[0], **config[1])
-        else:
-            raise ActuatorException("the 'config' arg is not a kind of ConfigModel or a sequence, and the "
-                                    "config attribute is not an instance of a config model")
         self._config = config
+        self._config_args = config_args
+        if config is None:
+            if inspect.isclass(self.config.value()) and issubclass(self.config.value(), ConfigModel):
+                try:
+                    config = self.config.value()(*config_args[0], **config_args[1])
+                except Exception as e:
+                    raise ActuatorException("Unable to create an instance of config {} with pargs {} and "
+                                            "kwargs {}: {}".format(self.config.value().__name__,
+                                                                   config_args[0], config_args[1],
+                                                                   str(e)))
+            elif isinstance(self.config.value(), ConfigModel):
+                config = self.config.clone()
+            else:
+                raise ActuatorException("No way to create any config model, not even a stub")
+        self.config = config
 
         self.infra.nexus.merge_from(self.nexus)
         self.namespace.set_infra_model(self.infra.value())
@@ -177,7 +196,8 @@ class Service(ModelComponent, ModelBase, VariableContainer):
                         newsvc = args
                         del self.services[k]  # this is a service which we
                     elif isinstance(args, collections.Sequence):
-                        newsvc = getattr(self, k).value()(*args[0], **args[1])
+                        # newsvc = getattr(self, k).value()(*args[0], **args[1])
+                        newsvc = v(*args[0], **args[1])
                     else:
                         raise ActuatorException("services entry for service '{}' isn't an instance "
                                                 "of a kind of a Service or sequence of args".format(k))
@@ -216,9 +236,11 @@ class Service(ModelComponent, ModelBase, VariableContainer):
                 {"infra": (self._infra.value()
                            if isinstance(self._infra, ModelInstanceReference)
                            else self._infra),
+                 "infra_args": self._infra_args,
                  "namespace": (self._namespace.value()
                                if isinstance(self._namespace, ModelInstanceReference)
                                else self._namespace),
+                 "namespace_args": self._namespace_args,
                  "config": (self._config.value()
                             if isinstance(self._config, ModelInstanceReference)
                             else self._config),
@@ -237,17 +259,10 @@ class Service(ModelComponent, ModelBase, VariableContainer):
         d = super(Service, self)._get_attrs_dict()
         d.update({"name": self.name,
                   "infra": self.infra.value(),
-                  "_infra": (self._infra.value()
-                             if isinstance(self._infra, ModelInstanceReference)
-                             else self._infra),
+                  "_infra_args": self._infra_args,
                   "namespace": self.namespace.value(),
-                  "_namespace": (self._namespace.value()
-                                 if isinstance(self._namespace, ModelInstanceReference)
-                                 else self._namespace),
+                  "_namespace_args": self._namespace_args,
                   "config": self.config.value(),
-                  "_config": (self._config.value()
-                              if isinstance(self._config, ModelInstanceReference)
-                              else self._config),
                   "service_names": list(self.service_names),
                   "services": self.services,
                   "nexus": self.nexus})

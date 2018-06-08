@@ -167,6 +167,11 @@ class ContextExpr(_Persistable):
 
 
 ctxt = ContextExpr()
+# standard shortcuts
+ccomp = ctxt.comp
+cparent = ctxt.comp.parent
+cmodel = ctxt.model
+cnexus = ctxt.nexus
 
 
 class CallContext(object):
@@ -1490,7 +1495,6 @@ class ModelBase(AbstractModelingEntity, _NexusMember, _ComputeModelComponents, _
     """
     This is the common base class for all models
     """
-    # __metaclass__ = ModelBaseMeta
 
     def get_inst_ref(self, model_ref):
         """
