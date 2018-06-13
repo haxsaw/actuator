@@ -401,6 +401,7 @@ def test25():
     assert a.infra.server.value is not T25.infra.server.value()
     assert a.namespace.value() is not T25.namespace.value()
     assert a.config.value() is not T25.config.value()
+    assert a.namespace.var_value("buried2") is not None
 
 
 class T26(Service):
@@ -496,7 +497,7 @@ def test030():
     """
     t30 = T26("t30-outer", config=TestConfig("t30-conf"),
               infra_args=(("outer",), {}),
-              services={"inner": (("inner",), {"infra_args": (("isvc",), {})})})
+              services={"inner": (("inner",), {})})
     t30.infra.server.fix_arguments()
     t30.inner.infra.server.fix_arguments()
     t30.config.task.fix_arguments()
@@ -509,7 +510,6 @@ def test030():
 
 def do_all():
     setup_module()
-    test018()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:
