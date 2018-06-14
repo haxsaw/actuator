@@ -518,6 +518,7 @@ class BaseService(Service):
 
 class FinalService(BaseService):
     theip = expose(ctxt.nexus.svc.infra.server.hostname_or_ip)
+    ip_no_nexus = expose(ctxt.model.infra.server.hostname_or_ip)
     namespace = NamespaceModel
 
 
@@ -527,7 +528,25 @@ def test031():
     """
     fs = FinalService("fs", infra_args=(('baseinfra',), {}))
     fs.fix_arguments()
-    # assert isinstance(fs.server, ModelInstanceReference), "fs.server isn't a ref: {}".format(fs.server)
+    assert fs.theip == "127.0.0.1", "theip is {}".format(fs.theip)
+    assert fs.ip_no_nexus == "127.0.0.1", "ip_no_nexus is {}".format(fs.ip_no_nexus)
+
+
+class BaseService32(Service):
+    infra = BaseInfra
+    theip = expose(ctxt.model.infra.server.hostname_or_ip)
+
+
+class FinalService32(BaseService32):
+    pass
+
+
+def test032():
+    """
+    test032: test if an exposed item is inherited properly
+    """
+    fs = FinalService32("fs32", infra_args=(("ba32",), {}))
+    fs.fix_arguments()
     assert fs.theip == "127.0.0.1", "theip is {}".format(fs.theip)
 
 
