@@ -53,32 +53,48 @@ from .config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
 from .utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
                     root_logger, adb, _Persistable, process_modifiers)
 
-__version__ = "0.2.a2"
+__version__ = "0.3"
+
+
+class expose(object):
+    def __init__(self, cexpr):
+        self.cexpr = cexpr
+
+    def __get__(self, obj, type=None):
+        cc = CallContext(obj, None)
+        val = self.cexpr(cc)
+        if isinstance(val, ModelInstanceReference):
+            val = val.value()
+        return val
+
+    def __set__(self, obj, new_cexpr):
+        raise AttributeError("Can't set an expose")
 
 
 class ServiceMeta(ModelBaseMeta):
     model_ref_class = ModelReference
 
     def __new__(mcs, name, bases, attr_dict):
-        newbie = super(ServiceMeta, mcs).__new__(mcs, name, bases, attr_dict,
-                                                 as_component=(AbstractModelingEntity,
-                                                               ModelBaseMeta))
         if "infra" in attr_dict and not isinstance(attr_dict["infra"], (InfraModel, InfraModelMeta)):
             raise ActuatorException("The 'infra' attribute is not a kind of InfraModel class")
         if "namespace" in attr_dict and not isinstance(attr_dict["namespace"], (NamespaceModel, NamespaceModelMeta)):
             raise ActuatorException("The 'namespace' attribute is not a kind of NamespaceModel class")
         if "config" in attr_dict and not isinstance(attr_dict["config"], (ConfigModel, ConfigModelMeta)):
             raise ActuatorException("The 'config' attribute is not a kind of ConfigModel class")
+
+        newbie = super(ServiceMeta, mcs).__new__(mcs, name, bases, attr_dict,
+                                                 as_component=(AbstractModelingEntity,
+                                                               ModelBaseMeta))
         process_modifiers(newbie)
         _Nexus._add_model_desc("svc", newbie)
+        _ = 1
         return newbie
 
 
 _default_model_args = (("_UNNAMED_",), {})
 
 
-@six.add_metaclass(ServiceMeta)
-class Service(ModelComponent, ModelBase, VariableContainer):
+class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, VariableContainer)):
     ref_class = ModelInstanceReference
     infra = InfraModel
     namespace = NamespaceModel
@@ -155,6 +171,7 @@ class Service(ModelComponent, ModelBase, VariableContainer):
 
         self._config = config
         self._config_args = config_args
+        _ = self.config
         if config is None:
             if inspect.isclass(self.config.value()) and issubclass(self.config.value(), ConfigModel):
                 try:
@@ -196,7 +213,6 @@ class Service(ModelComponent, ModelBase, VariableContainer):
                         newsvc = args
                         del self.services[k]  # this is a service which we
                     elif isinstance(args, collections.Sequence):
-                        # newsvc = getattr(self, k).value()(*args[0], **args[1])
                         newsvc = v(*args[0], **args[1])
                     else:
                         raise ActuatorException("services entry for service '{}' isn't an instance "
@@ -250,10 +266,16 @@ class Service(ModelComponent, ModelBase, VariableContainer):
         self.service_names = set(self.service_names)
 
     def _fix_arguments(self):
-        self.namespace.compute_provisioning_for_environ(self.infra.value())
+        super(Service, self)._fix_arguments()
+        comps = self.namespace.compute_provisioning_for_environ(self.infra.value())
+        for comp in comps:
+            comp.fix_arguments()
         for k in self.service_names:
             v = getattr(self, k).value()
             v.namespace.compute_provisioning_for_environ(v.infra.value())
+        # self.infra.fix_arguments()
+        # self.namespace.fix_arguments()
+        self.config.fix_arguments()
 
     def _get_attrs_dict(self):
         d = super(Service, self)._get_attrs_dict()

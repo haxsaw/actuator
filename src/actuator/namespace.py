@@ -504,7 +504,10 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
             with replacement patterns in the returned value.
         """
         v, _ = self.find_variable(name)
-        val = v.get_value(self.get_context(), allow_unexpanded=allow_unexpanded)
+        if v is not None:
+            val = v.get_value(self.get_context(), allow_unexpanded=allow_unexpanded)
+        else:
+            val = None
         if val is None and not allow_unexpanded and self.get_context().parent_container is not None:
             val = self.get_context().parent_container.var_value(name,
                                                                 allow_unexpanded=allow_unexpanded)
@@ -875,8 +878,7 @@ class NamespaceModelMeta(ModelBaseMeta):
         return newbie
     
 
-@six.add_metaclass(NamespaceModelMeta)
-class NamespaceModel(ModelBase, VariableContainer):
+class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableContainer)):
     """
     Base class for Namespace model classes.
     
@@ -888,7 +890,6 @@ class NamespaceModel(ModelBase, VariableContainer):
     
     @ivar ivar: infra. DEPRECATED-- use self.nexus.inf instead
     """
-    # __metaclass__ = NamespaceModelMeta
     ref_class = ModelInstanceReference
 
     def __init__(self, name, **kwargs):

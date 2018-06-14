@@ -19,14 +19,15 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 Example classes mainly used in testing.
-'''
+"""
 from actuator.infra import Provisionable
 
 
 class ProvisionableWithFixer(Provisionable):
     def _fix_arguments(self, provisioner=None):
+        super(ProvisionableWithFixer, self)._fix_arguments()
         for k, v in self.__dict__.items():
             if k.startswith("_") and hasattr(self, k[1:]):
                 setattr(self, k[1:], self._get_arg_value(v))

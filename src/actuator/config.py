@@ -600,8 +600,7 @@ class ConfigModelMeta(ModelBaseMeta):
         return newbie
 
 
-@six.add_metaclass(ConfigModelMeta)
-class ConfigModel(ModelBase, GraphableModelMixin):
+class ConfigModel(six.with_metaclass(ConfigModelMeta, ModelBase, GraphableModelMixin)):
     """
     Base class for all config models.
     

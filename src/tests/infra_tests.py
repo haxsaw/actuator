@@ -67,7 +67,6 @@ def teardown_module():
     reset_all_narrations()
 
 
-
 def test01():
     assert type({}) == type(MyInfra.__components), "the __components attr is missing or the wrong type"
 
@@ -1512,6 +1511,28 @@ def test169():
         _ = pte.get_tasks()
     except ProvisionerException as e:
         assert False, "Got an exception: %s" % str(e)
+
+
+def test170():
+    """
+    test170: test case for ctxt paths out of nested MultiResourceGroups
+    """
+    class Infra170(InfraModel):
+        outer = MultiResourceGroup("outer_group",
+                                   inner=MultiResourceGroup("inner_group",
+                                                            server=Server("server",
+                                                                          outer=ctxt.comp.container.container.container)
+                                                            ),
+                                   bystander=Server("bystander")
+                                   )
+    i = Infra170(test170)
+    _ = i.outer["A"].inner[1]
+    for c in i.components():
+        c.fix_arguments()
+        _ = 0
+    assert i.outer["A"].inner[1].server.outer.value().bystander is i.outer["A"].value().bystander, \
+        "wrong value: {}, {}".format(i.outer["A"].inner[1].server.outer.value().name,
+                                     i.outer["A"].value().name)
 
 
 def do_all():

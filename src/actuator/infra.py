@@ -202,13 +202,11 @@ class InfraModelMeta(ModelBaseMeta):
         return new_class
             
 
-@six.add_metaclass(InfraModelMeta)
-class InfraModel(ModelBase):
+class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
     """
     This is the base class to use for any infrastructure model. Derive a class
     from this class to make your own infra models.
     """
-    # __metaclass__ = InfraModelMeta
     ref_class = ModelInstanceReference
     
     def __init__(self, name, event_handler=None, **kwargs):

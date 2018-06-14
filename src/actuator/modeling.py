@@ -26,6 +26,7 @@ import uuid
 import sys
 import re
 import itertools
+import inspect
 import weakref
 import six
 
@@ -127,11 +128,11 @@ class ContextExpr(_Persistable):
                                       "the context expr".format(a),
                             p):
                 val = getattr(ref, p)
-            with narrate_cm(lambda a: "-and I found that the '{}' attribute yields a callable so I tried "
-                                      "invoking it".format(a),
-                            p):
                 if callable(val):
-                    val = val(ctx)
+                    with narrate_cm(lambda a: "-and I found that the '{}' attribute yields a callable so I tried "
+                                              "invoking it".format(a),
+                                    p):
+                        val = val(ctx)
         return val
 
     def get_containing_component(self, ctx):
@@ -1448,18 +1449,31 @@ class ModelBaseMeta(type):
 
     def __new__(mcs, name, bases, attr_dict, as_component=(AbstractModelingEntity,)):
         components = {}
-        for n, v in attr_dict.items():
+        final_attrs = {}
+        final_attrs[mcs._COMPONENTS] = components
+        vatborn = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
+        for base in reversed(vatborn.__mro__[:-1]):
+            if not isinstance(base, mcs) or not hasattr(base, mcs._COMPONENTS):
+                continue
+            for k, v in getattr(base, mcs._COMPONENTS).items():
+                final_attrs[k] = v
+        final_attrs.update(attr_dict)
+        newbie = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, final_attrs)
+        for n, v in final_attrs.items():
             if isinstance(v, as_component):
-                components[n] = v
-        attr_dict[mcs._COMPONENTS] = components
-        newbie = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
+                if inspect.isclass(v):
+                    components[n] = v
+                else:
+                    components[n] = v.clone()
+        # attr_dict[mcs._COMPONENTS] = components
+        # newbie = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
 
     def __getattribute__(cls, attrname):  # @NoSelf
         ga = super(ModelBaseMeta, cls).__getattribute__
         value = (cls.model_ref_class(attrname, obj=cls, parent=None)
-                 if attrname in ga(ModelBaseMeta._COMPONENTS) and cls.model_ref_class
+                 if not attrname.startswith("__") and attrname in ga(ModelBaseMeta._COMPONENTS) and cls.model_ref_class
                  else ga(attrname))
         return value
 
@@ -1490,8 +1504,8 @@ class _NexusMember(_Persistable):
         self.set_nexus(new_nexus)
 
 
-@six.add_metaclass(ModelBaseMeta)
-class ModelBase(AbstractModelingEntity, _NexusMember, _ComputeModelComponents, _ArgumentProcessor):
+class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _NexusMember, _ComputeModelComponents,
+                                   _ArgumentProcessor)):
     """
     This is the common base class for all models
     """

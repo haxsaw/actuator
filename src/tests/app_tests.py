@@ -2,7 +2,7 @@ import json
 import six
 from nose import SkipTest
 from errator import reset_all_narrations, set_default_options
-from actuator import Service, ctxt
+from actuator import Service, ctxt, expose
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
@@ -506,6 +506,29 @@ def test030():
     d_prime = json.loads(json.dumps(d))
     franken_t30 = reanimate_from_dict(d_prime)
     compare_t26(t30, franken_t30)
+
+
+class BaseInfra(InfraModel):
+    server = StaticServer("server", "127.0.0.1")
+
+
+class BaseService(Service):
+    infra = BaseInfra
+
+
+class FinalService(BaseService):
+    theip = expose(ctxt.nexus.svc.infra.server.hostname_or_ip)
+    namespace = NamespaceModel
+
+
+def test031():
+    """
+    test031: try deriving one service from another
+    """
+    fs = FinalService("fs", infra_args=(('baseinfra',), {}))
+    fs.fix_arguments()
+    # assert isinstance(fs.server, ModelInstanceReference), "fs.server isn't a ref: {}".format(fs.server)
+    assert fs.theip == "127.0.0.1", "theip is {}".format(fs.theip)
 
 
 def do_all():

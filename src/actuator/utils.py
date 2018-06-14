@@ -229,10 +229,8 @@ class _SigDictMeta(type):
         return isinstance(o, dict) and cls._SIG_ in o
     
 
-@six.add_metaclass(_SigDictMeta)
-class _SignatureDict(dict):
+class _SignatureDict(six.with_metaclass(_SigDictMeta, dict)):
     _KIND_ = "SignatureDict"
-    # __metaclass__ = _SigDictMeta
 
     def __init__(self):
         super(_SignatureDict, self).__init__()
