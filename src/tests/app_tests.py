@@ -550,8 +550,47 @@ def test032():
     assert fs.theip == "127.0.0.1", "theip is {}".format(fs.theip)
 
 
+class BaseService33(Service):
+    infra = BaseInfra
+    theip = expose(ctxt.model.infra.server.hostname_or_ip)
+
+
+class FinalServive33(BaseService33):
+    redirected_ip = expose(ctxt.model.theip)
+
+
+def test033():
+    """
+    test033: test if exposed item can be redirected
+    """
+    fs = FinalServive33("fs33", infra_args=(("ba33",), {}))
+    fs.fix_arguments()
+    assert fs.redirected_ip == "127.0.0.1", "redirected is {}".format(fs.redirected_ip)
+
+
+class BaseInfra34(InfraModel):
+    server = StaticServer("someserver", "99.99.99.99")
+    server_ip = expose(ctxt.model.server.hostname_or_ip)
+
+
+class BaseService34(Service):
+    infra = BaseInfra34
+    theip = expose(ctxt.model.infra.server_ip)
+
+
+def test034():
+    """
+    test034: check that you can expose an attribute on an infra and access in a service
+    """
+    fs = BaseService34("bs34", infra_args=(("bi34",), {}))
+    fs.fix_arguments()
+    # assert fs.infra.server_ip == "99.99.99.99", "wrong value for infra's server ip: {}".format(fs.infra.server_ip)
+    assert fs.theip == "99.99.99.99", "wrong value for the server's theip: {}".format(fs.theip)
+
+
 def do_all():
     setup_module()
+    test034()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

@@ -63,12 +63,12 @@ class expose(object):
     def __get__(self, obj, type=None):
         cc = CallContext(obj, None)
         val = self.cexpr(cc)
-        if isinstance(val, ModelInstanceReference):
+        while isinstance(val, ModelInstanceReference):
             val = val.value()
         return val
 
     def __set__(self, obj, new_cexpr):
-        raise AttributeError("Can't set an expose")
+        raise AttributeError("Can't set an expose'd attribute")
 
 
 class ServiceMeta(ModelBaseMeta):
