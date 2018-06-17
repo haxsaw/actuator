@@ -8,6 +8,7 @@ from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
 from actuator.modeling import ModelReference, ModelInstanceReference
 from actuator.utils import persist_to_dict, reanimate_from_dict
+from actuator.provisioners.example_resources import Network
 
 
 def setup_module():
@@ -584,13 +585,69 @@ def test034():
     """
     fs = BaseService34("bs34", infra_args=(("bi34",), {}))
     fs.fix_arguments()
-    # assert fs.infra.server_ip == "99.99.99.99", "wrong value for infra's server ip: {}".format(fs.infra.server_ip)
+    assert fs.infra.server_ip.value() == "99.99.99.99", "wrong value for infra's server ip: {}".format(fs.infra.server_ip)
     assert fs.theip == "99.99.99.99", "wrong value for the server's theip: {}".format(fs.theip)
+
+
+class ExposeViaVar(Service):
+    with_variables(Var("EXPOSED", ctxt.model.theip))
+    infra = BaseInfra
+    theip = expose(ctxt.model.infra.server.hostname_or_ip)
+
+
+def test035():
+    """
+    test035: check that an exposed attr value is available via a variable.
+    :return:
+    """
+    s = ExposeViaVar("t35", infra_args=(("bi35",), {}))
+    s.fix_arguments()
+    assert s.v.EXPOSED() == "127.0.0.1", "the EXPOSED var is {}".format(s.v.EXPOSED())
+
+
+class InfraMissingIP(InfraModel):
+    server = StaticServer("missingip", ctxt.nexus.svc.v.SERVER_IP)
+
+
+class IPSupplierSvc(Service):
+    with_variables(Var("SERVER_IP", "66.66.66.66"))
+    svcip = expose(ctxt.model.infra.server.hostname_or_ip)
+    infra = InfraMissingIP
+
+
+def test036():
+    """
+    test036: check that we can specify an infra that get's an IP from the service namespace
+    """
+    s = IPSupplierSvc("t36", infra_args=(("i36",), {}))
+    s.fix_arguments()
+    assert s.svcip == "66.66.66.66", "svcip is {}".format(s.svcip)
+
+
+class InnerInfra37(InfraModel):
+    server = StaticServer("inner37", ctxt.model.container.ip)
+
+
+class Service37(Service):
+    ip = "55.55.55.55"
+    somevar = StaticServer("yum", "0.0.0.0")
+    infra = InnerInfra37
+
+
+def test037():
+    """
+    tes037: test that we can write a context expression that fetches a value from a service
+    from a contained component
+    """
+    s = Service37("s37", infra_args=(("i37",), {}))
+    s.refs_for_components()
+    s.fix_arguments()
+    assert s.infra.server.hostname_or_ip.value() == "55.55.55.55"
 
 
 def do_all():
     setup_module()
-    test034()
+    test011()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

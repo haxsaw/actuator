@@ -949,14 +949,17 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
             AbstractModelReference._inst_cache[key] = inst
 
         if obj is not None:
-            if isinstance(name, KeyAsAttr):
-                target = obj
-            else:
-                target = object.__getattribute__(obj, name)
-                try:
-                    _ = hash(target)
-                except TypeError as _:
+            if name is not None:
+                if isinstance(name, KeyAsAttr):
                     target = obj
+                else:
+                    target = object.__getattribute__(obj, name)
+                    try:
+                        _ = hash(target)
+                    except TypeError as _:
+                        target = obj
+            else:
+                target = obj
             if target is not None:
                 # We can *never* store a single ref to None; too many things
                 # share this value
@@ -966,7 +969,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
 
     @classmethod
     def _cache_key(cls, name, obj, parent):
-        return (cls, name, obj, parent)
+        return cls, name, obj, parent
 
     def _get_attrs_dict(self):
         d = super(AbstractModelReference, self)._get_attrs_dict()
@@ -1066,7 +1069,11 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         KeyAsAttr.
         """
         parent = self._parent
-        return (parent.get_path() if parent is not None else []) + [self._name]
+        if self._name is not None:
+            retval = (parent.get_path() if parent is not None else []) + [self._name]
+        else:
+            retval = (parent.get_path() if parent is not None else [])
+        return retval
 
     @narrate(lambda s, a: "...which required getting the attribute {} from "
                            "ref {} for an instance of {}".format(a,
@@ -1081,7 +1088,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
             if isinstance(name, KeyAsAttr):
                 theobj = ga("_obj")
             else:
-                theobj = object.__getattribute__(ga("_obj"), name)
+                theobj = ga("_obj") if name is None else object.__getattribute__(ga("_obj"), name)
             if hasattr(theobj, attrname):
                 value = getattr(theobj, attrname)
                 if (not callable(value) and
@@ -1099,7 +1106,8 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     @narrate(lambda s, k: "...which necessitated retrieving an item in ref {} with key {}".format(s._name, k))
     def __getitem__(self, key):
         ga = super(AbstractModelReference, self).__getattribute__
-        theobj = object.__getattribute__(ga("_obj"), ga("_name"))
+        name = ga("_name")
+        theobj = ga("_obj") if name is None else object.__getattribute__(ga("_obj"), name)
         key = KeyAsAttr(key)
         if isinstance(theobj, MultiComponent):
             value = self.__class__(key, self._get_item_ref_obj(theobj, key), self)
@@ -1127,9 +1135,14 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         ga = super(AbstractModelReference, self).__getattribute__
         name = ga("_name")
         obj = ga("_obj")
-        return (obj
-                if isinstance(name, KeyAsAttr)
-                else object.__getattribute__(obj, name))
+        value = (obj
+                 if isinstance(name, KeyAsAttr)
+                 else (object.__getattribute__(obj, name) if name is not None else obj))
+        # there are a couple of degenerate cases where the value is another reference, namely
+        # fetching 'idx' off a nested model. So for those we may need to unwrap that final reference.
+        if isinstance(value, AbstractModelReference):
+            value = value.value()
+        return value
 
 
 class ModelReference(AbstractModelReference):
@@ -1465,16 +1478,16 @@ class ModelBaseMeta(type):
                     components[n] = v
                 else:
                     components[n] = v.clone()
-        # attr_dict[mcs._COMPONENTS] = components
-        # newbie = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
 
     def __getattribute__(cls, attrname):  # @NoSelf
         ga = super(ModelBaseMeta, cls).__getattribute__
-        value = (cls.model_ref_class(attrname, obj=cls, parent=None)
-                 if not attrname.startswith("__") and attrname in ga(ModelBaseMeta._COMPONENTS) and cls.model_ref_class
-                 else ga(attrname))
+        if not attrname.startswith("__") and attrname in ga(ModelBaseMeta._COMPONENTS) and cls.model_ref_class:
+            par = cls.model_ref_class(None, obj=cls, parent=None)
+            value = cls.model_ref_class(attrname, obj=cls, parent=par)
+        else:
+            value = ga(attrname)
         return value
 
 
@@ -1534,9 +1547,11 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
 
     def __getattribute__(self, attrname):
         ga = super(ModelBase, self).__getattribute__
-        value = (self.ref_class(attrname, obj=self, parent=None)
-                 if attrname in ga(ModelBaseMeta._COMPONENTS)
-                 else ga(attrname))
+        if attrname in ga(ModelBaseMeta._COMPONENTS):
+            par = self.ref_class(None, obj=self, parent=None)
+            value = self.ref_class(attrname, obj=self, parent=par)
+        else:
+            value = ga(attrname)
         return value
 
     def _get_arg_value(self, arg):

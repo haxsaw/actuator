@@ -57,10 +57,12 @@ __version__ = "0.3"
 
 
 class expose(object):
-    def __init__(self, cexpr):
+    def __init__(self, cexpr=None):
         self.cexpr = cexpr
 
-    def __get__(self, obj, type=None):
+    def __get__(self, obj, _=None):
+        if self.cexpr is None:
+            raise AttributeError("Unable to retrieve value; no context expression has been set")
         cc = CallContext(obj, None)
         val = self.cexpr(cc)
         while isinstance(val, ModelInstanceReference):
@@ -68,7 +70,7 @@ class expose(object):
         return val
 
     def __set__(self, obj, new_cexpr):
-        raise AttributeError("Can't set an expose'd attribute")
+        self.cexpr = new_cexpr
 
 
 class ServiceMeta(ModelBaseMeta):
@@ -246,6 +248,16 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
 
         if _common_vars in self.__class__.__dict__:
             self.add_variable(*self.__class__.__dict__[_common_vars])
+
+    def _comp_source(self):
+        d = {}
+        for a in ("infra", "namespace", "config"):
+            m = getattr(self, a).value()
+            d[a] = m
+        for sn in self.services:
+            svc = getattr(self, sn).value()
+            d[sn] = svc
+        return d
 
     def get_init_args(self):
         return ((self.name,),
