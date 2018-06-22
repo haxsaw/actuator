@@ -127,7 +127,7 @@ if __name__ == "__main__":
     pp(rep)
 
     # Azure trial
-    from azuretest import AzureExample
+    from azurehadoop import AzureExample
     ae = AzureExample("azure")
     for i in range(5):
         _ = ae.slaves[i]

@@ -69,8 +69,9 @@ if __name__ == "__main__":
 
     if with_zabbix:
         if not os.environ.get("ZABBIX_SERVER") or not os.environ.get("ZABBIX_PRIVATE"):
-            six.print_("Ensure that you've set the ZABBIX_SERVER environment var to the public IP of the server,")
-            six.print_("and that ZABBIX_PRIVATE is set to the internal IP of the server")
+            six.print_("You must set the ZABBIX_SERVER environment var to the public IP of the server,")
+            six.print_("and ZABBIX_PRIVATE is set to the internal IP of the server")
+            sys.exit(1)
 
     if with_mongo:
         six.print_("Ensure that mongod is running")

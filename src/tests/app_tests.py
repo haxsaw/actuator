@@ -2,7 +2,7 @@ import json
 import six
 from nose import SkipTest
 from errator import reset_all_narrations, set_default_options
-from actuator import Service, ctxt, expose
+from actuator import Service, ctxt, expose, MultiResource
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
@@ -645,9 +645,61 @@ def test037():
     assert s.infra.server.hostname_or_ip.value() == "55.55.55.55"
 
 
+class BaseInfra38(InfraModel):
+    bs = StaticServer("base", "127.0.0.1")
+
+
+class DerivedInfra(BaseInfra38):
+    annudder = StaticServer("annudder", "127.0.1.1")
+
+
+def test038():
+    """
+    test038: check that derived model processing works for infra resources
+    """
+    assert isinstance(DerivedInfra.bs, ModelReference), "bs via class is {}".format(DerivedInfra.bs)
+    i = DerivedInfra("di")
+    assert isinstance(i.bs, ModelInstanceReference), "bs via instance is {}".format(i.bs)
+
+
+class BaseInfra39(InfraModel):
+    slaves = MultiResource(StaticServer("slave", "127.0.0.1"))
+
+
+class Derived39(BaseInfra39):
+    nn = StaticServer("namenode", "127.0.1.1")
+
+
+def test039():
+    """
+    test039: check that multi-resources derive properly over infras
+    """
+    assert isinstance(Derived39.slaves[1], ModelReference), "slave ref via class is {}".format(Derived39.slaves[1])
+    i = Derived39("d39")
+    for x in range(5):
+        _ = i.slaves[x]
+    assert len(i.slaves) == 5, "wrong length: {}".format(len(i.slaves))
+    assert len(i.components()) == 6, "wrong number of components: {}".format(len(i.components()))
+
+
+class TestSetInfra(InfraModel):
+    server = StaticServer("svr", "127.0.0.1")
+    svrip = expose()
+
+
+def test040():
+    """
+    test040: test basic setting of an 'expose' descriptor into an infra
+    """
+    i = TestSetInfra("tsi")
+    i.svrip = ctxt.model.server.hostname_or_ip
+    i.fix_arguments()
+    assert i.svrip == "127.0.0.1", "the svrip is {}".format(i.svrip)
+
+
 def do_all():
     setup_module()
-    test011()
+    test040()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:
