@@ -22,6 +22,7 @@
 import json
 import os
 import sys
+from pprint import pprint
 import six
 from errator import get_narration
 from actuator import ActuatorOrchestration
@@ -31,9 +32,9 @@ from actuator.namespace import Var
 from hadoop import HadoopInfra, HadoopNamespace
 from prices import create_price_table, CITYCLOUD, RACKSPACE, VSPHERE
 from hsimple import do_it
-# from hevent import TaskEventManager
 from vstest import VSHadoopInfra
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
+from actuator.reporting import namespace_report, security_check
 user_env = "OS_USER"
 pass_env = "OS_PASS"
 tenant_env = "OS_TENANT"
@@ -93,9 +94,11 @@ if __name__ == "__main__":
     teardown_op = "t=teardown known system"
     load_op = "l=load persisted model"
     forecast_op = "f=forecast"
+    namespace_op = "n=namespace report"
+    security_op = "u=security report"
     quit_op = "q=quit"
     while not quit:
-        ops = [quit_op, load_op, forecast_op]
+        ops = [quit_op, load_op, forecast_op, namespace_op, security_op]
         if ao:
             ops.append(persist_op)
             ops.append(teardown_op)
@@ -113,6 +116,43 @@ if __name__ == "__main__":
         if cmd == quit_op[0]:
             six.print_("goodbye")
             sys.exit(0)
+        elif cmd == namespace_op[0]:
+            if ao:
+                six.print_("Using namespace from last orchestration")
+                namespace = ao.namespace_model_inst
+            else:
+                six.print_("No current namespace; one will be created. How many slaves? ",)
+                num_slaves = sys.stdin.readline().strip()
+                try:
+                    num_slaves = int(num_slaves)
+                except Exception as _:
+                    six.print_("%s isn't a number" % num_slaves)
+                    num_slaves = None
+                namespace = HadoopNamespace("TrialNamespace")
+                namespace.create_slaves(num_slaves)
+            report = namespace_report(namespace)
+            for l in report:
+                six.print_(l)
+            del namespace
+        elif cmd == security_op[0]:
+            if ao:
+                six.print_("Using infra from last orchestration")
+                infra = ao.infra_model_inst
+                namespace = ao.namespace_model_inst
+            else:
+                six.print_("No current infra; one will be created. How many slaves? ",)
+                num_slaves = sys.stdin.readline().strip()
+                try:
+                    num_slaves = int(num_slaves)
+                except Exception as _:
+                    six.print_("%s isn't a number" % num_slaves)
+                    num_slaves = None
+                namespace = HadoopNamespace("SecurityTrial")
+                infra = HadoopInfra("SecurityTrial")
+                namespace.set_infra_model(infra)
+                namespace.create_slaves(num_slaves)
+            pprint(security_check(infra))
+            del infra, namespace
         elif cmd in (standup_op[0], forecast_op[0]):
             num_slaves = None
             while num_slaves is None:
@@ -198,7 +238,21 @@ if __name__ == "__main__":
                         import traceback
                         traceback.print_exception(*sys.exc_info())
                         six.print_()
-                six.print_("\nStandup complete! You can reach the assets at the following IPs:")
+                six.print_("\n>>>Standup complete!")
+                try:
+                    six.print_("---Namespace report:")
+                    for l in namespace_report(ao.namespace_model_inst):
+                        six.print_(l)
+                except:
+                    six.print_("PRINTING NAMESPACE REPORT FAILED:")
+                    traceback.print_exc()
+                try:
+                    six.print_("---Security report:")
+                    pprint(security_check(ao.infra_model_inst))
+                except:
+                    six.print_("PRINTING SECURITY REPORT FAILED:")
+                    traceback.print_exc()
+                six.print_("---You can reach the assets at the following IPs:")
                 six.print_(">>>namenode: %s" % infra.name_node_fip.get_ip())
                 six.print_(">>>slaves:")
                 for s in infra.slaves.values():
@@ -236,8 +290,6 @@ if __name__ == "__main__":
                     za.deregister_servers(zabbix_host_ids)
                     six.print_("...done")
                 six.print_("\n...done! Your system has been de-commissioned")
-                six.print_("quitting now")
-                break
             else:
                 six.print_("Orchestration failed; see the log for error messages")
         elif cmd == load_op[0]:

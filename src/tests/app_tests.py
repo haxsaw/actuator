@@ -682,7 +682,7 @@ def test039():
     assert len(i.components()) == 6, "wrong number of components: {}".format(len(i.components()))
 
 
-class TestSetInfra(InfraModel):
+class TestSetInfra40(InfraModel):
     server = StaticServer("svr", "127.0.0.1")
     svrip = expose()
 
@@ -691,7 +691,7 @@ def test040():
     """
     test040: test basic setting of an 'expose' descriptor into an infra
     """
-    i = TestSetInfra("tsi")
+    i = TestSetInfra40("tsi")
     i.svrip = ctxt.model.server.hostname_or_ip
     i.fix_arguments()
     assert i.svrip == "127.0.0.1", "the svrip is {}".format(i.svrip)
@@ -699,7 +699,6 @@ def test040():
 
 def do_all():
     setup_module()
-    test040()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:
