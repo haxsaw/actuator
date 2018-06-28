@@ -660,6 +660,7 @@ def test038():
     assert isinstance(DerivedInfra.bs, ModelReference), "bs via class is {}".format(DerivedInfra.bs)
     i = DerivedInfra("di")
     assert isinstance(i.bs, ModelInstanceReference), "bs via instance is {}".format(i.bs)
+    assert BaseInfra38.bs.value() is not i.bs.value(), "they were the same!"
 
 
 class BaseInfra39(InfraModel):
@@ -693,12 +694,14 @@ def test040():
     """
     i = TestSetInfra40("tsi")
     i.svrip = ctxt.model.server.hostname_or_ip
-    i.fix_arguments()
+    for c in i.components():
+        c.fix_arguments()
     assert i.svrip == "127.0.0.1", "the svrip is {}".format(i.svrip)
 
 
 def do_all():
     setup_module()
+    test040()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:
