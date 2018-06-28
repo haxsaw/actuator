@@ -694,14 +694,30 @@ def test040():
     """
     i = TestSetInfra40("tsi")
     i.svrip = ctxt.model.server.hostname_or_ip
-    for c in i.components():
-        c.fix_arguments()
+    i.fix_arguments()
     assert i.svrip == "127.0.0.1", "the svrip is {}".format(i.svrip)
+
+
+class TestSetExpose41(InfraModel):
+    server1 = StaticServer("s1", "11.11.11.11")
+    server2 = StaticServer("s2", "22.22.22.22")
+    theip = expose()
+
+
+def test041():
+    """
+    test041: ensure independence of expose properties across infra instances
+    """
+    i1 = TestSetExpose41("t41a")
+    i1.theip = ctxt.model.server1.hostname_or_ip
+    i2 = TestSetExpose41("t41b")
+    i2.theip = ctxt.model.server2.hostname_or_ip
+    i1.fix_arguments()
+    assert i1.theip == "11.11.11.11", "wrong ip: {}".format(i1.theip)
 
 
 def do_all():
     setup_module()
-    test040()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

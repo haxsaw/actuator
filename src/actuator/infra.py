@@ -136,19 +136,6 @@ class Provisionable(_LNMixin, ModelComponent, _Performable):
     This class serves as a marker class for any L{ModelComponent} derived
     class as something that can actually be provisioned.
     """
-    # def __init__(self, *args, **kwargs):
-    #     if "other_deps" in kwargs:
-    #         self._other_deps = list(kwargs["other_deps"])
-    #         del kwargs["other_deps"]
-    #     else:
-    #         self._other_deps = []
-    #     self.other_deps = None
-    #     super(Provisionable, self).__init__(*args, **kwargs)
-    #
-    # def _fix_arguments(self):
-    #     super(Provisionable, self)._fix_arguments()
-    #     self.other_deps = [d.fix_arguments() for d in self._other_deps
-    #                        if isinstance(d, Provisionable)]
 
     def __init__(self, *args, **kwargs):
         cloud = None
@@ -238,6 +225,11 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
             attrdict[k] = clone = v.clone()
             clone._set_model_instance(self)
         self.provisioning_computed = False
+
+    def _fix_arguments(self):
+        super(InfraModel, self)._fix_arguments()
+        for comp in self.components():
+            comp.fix_arguments()
 
     def get_event_handler(self):
         return self.event_handler
