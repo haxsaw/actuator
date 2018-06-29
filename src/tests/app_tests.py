@@ -2,11 +2,11 @@ import json
 import six
 from nose import SkipTest
 from errator import reset_all_narrations, set_default_options
-from actuator import Service, ctxt, expose, MultiResource
+from actuator import Service, ctxt, MultiResource
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
-from actuator.modeling import ModelReference, ModelInstanceReference
+from actuator.modeling import ModelReference, ModelInstanceReference, expose
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.provisioners.example_resources import Network
 

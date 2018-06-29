@@ -56,23 +56,6 @@ from .utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
 __version__ = "0.3"
 
 
-class expose(object):
-    def __init__(self, cexpr=None):
-        self.cexpr = cexpr
-
-    def __get__(self, obj, _=None):
-        if self.cexpr is None:
-            raise AttributeError("Unable to retrieve value; no context expression has been set")
-        cc = CallContext(obj, None)
-        val = self.cexpr(cc)
-        while isinstance(val, ModelInstanceReference):
-            val = val.value()
-        return val
-
-    def __set__(self, obj, new_cexpr):
-        self.cexpr = new_cexpr
-
-
 class ServiceMeta(ModelBaseMeta):
     model_ref_class = ModelReference
 

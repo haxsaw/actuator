@@ -1456,14 +1456,58 @@ class _Nexus(_Persistable):
         self.mapper.update(other_nexus.mapper)
 
 
+# tightly integrated to ModelBaseMeta to ensure storage of ctxt expr
+class expose(object):
+    _EXPOSES = '__exposes'
+
+    def __init__(self, cexpr=None):
+        self.cexpr = cexpr
+        self.name = None
+
+    def _set_name(self, name):
+        # called during class creation from the metaclass; name is the the key  in the object's exposes dict
+        # where the ctxt expr goes
+        self.name = name
+
+    def __get__(self, obj, _=None):
+        if self.name is None:
+            raise AttributeError('Improperly created expose; there is no value for name')
+        exposes = getattr(obj, self._EXPOSES, None)
+        if exposes is None:
+            raise AttributeError('Improperly created expose; instance has no {} attribute'.format(self._EXPOSES))
+        cexpr = exposes.get(self.name)
+        if self.cexpr is None and cexpr is None:
+            raise AttributeError("Unable to retrieve value; no context expression has been set")
+        if cexpr is None:
+            cexpr = self.cexpr
+            self.cexpr = None
+            exposes[self.name] = cexpr
+        cc = CallContext(obj, None)
+        val = cexpr(cc)
+        while isinstance(val, ModelInstanceReference):
+            val = val.value()
+        return val
+
+    def __set__(self, obj, new_cexpr):
+        if self.name is None:
+            raise AttributeError('Improperly created expose; there is no value for name')
+        exposes = getattr(obj, self._EXPOSES, None)
+        if exposes is None:
+            raise AttributeError('Improperly created expose; instance has no {} attribute'.format(self._EXPOSES))
+        exposes[self.name] = new_cexpr
+        self.cexpr = None
+
+
 class ModelBaseMeta(type):
     model_ref_class = None
     _COMPONENTS = "__components"
 
     def __new__(mcs, name, bases, attr_dict, as_component=(AbstractModelingEntity,)):
         components = {}
+        exposes = {}
         final_attrs = {}
         final_attrs[mcs._COMPONENTS] = components
+        final_attrs[expose._EXPOSES] = exposes
         vatborn = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
         for base in reversed(vatborn.__mro__[:-1]):
             if not isinstance(base, mcs) or not hasattr(base, mcs._COMPONENTS):
