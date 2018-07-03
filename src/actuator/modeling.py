@@ -1456,7 +1456,7 @@ class _Nexus(_Persistable):
         self.mapper.update(other_nexus.mapper)
 
 
-# tightly integrated to ModelBaseMeta to ensure storage of ctxt expr
+# tightly integrated to ModelBaseMeta to ensure storage expose() context exprs
 class expose(object):
     _EXPOSES = '__exposes'
 
@@ -1465,10 +1465,14 @@ class expose(object):
         self.name = None
 
     def _set_name(self, name):
-        # called during class creation from the metaclass; name is the the key  in the object's exposes dict
+        # called during class creation from the metaclass; name is the the key in the object's exposes dict
         # where the ctxt expr goes
         self.name = name
 
+    def _get_cexpr(self):
+        return self.cexpr
+
+    @narrate(lambda s, o, _=None: "which initiated fetching the value for ")
     def __get__(self, obj, _=None):
         if self.name is None:
             raise AttributeError('Improperly created expose; there is no value for name')
@@ -1483,12 +1487,16 @@ class expose(object):
             self.cexpr = None
             exposes[self.name] = cexpr
         cc = CallContext(obj, None)
-        val = cexpr(cc)
+        with narrate_cm(lambda n, p: "expose'd attribute {} being evaluated with expression {}".format(n, p),
+                        self.name, reversed(cexpr._path)):
+            val = cexpr(cc)
         while isinstance(val, ModelInstanceReference):
             val = val.value()
         return val
 
     def __set__(self, obj, new_cexpr):
+        if not isinstance(new_cexpr, ContextExpr):
+            raise AttributeError("Attempting to set a value that is not a context expression")
         if self.name is None:
             raise AttributeError('Improperly created expose; there is no value for name')
         exposes = getattr(obj, self._EXPOSES, None)
@@ -1522,6 +1530,9 @@ class ModelBaseMeta(type):
                     components[n] = v
                 else:
                     components[n] = v.clone()
+            elif isinstance(v, expose):
+                exposes[n] = v._get_cexpr()
+                v._set_name(n)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
 
@@ -1566,6 +1577,14 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
     """
     This is the common base class for all models
     """
+
+    def __init__(self, *args, **kwargs):
+        super(ModelBase, self).__init__(*args, **kwargs)
+        setattr(self, expose._EXPOSES, dict(object.__getattribute__(self, expose._EXPOSES)))
+    #     # @FIXME: something similar should be done with ModelBaseMeta._COMPONENTS, however
+    #     # it's more complicated; that collection refers to a different set of items than are
+    #     # attributes on the model class, so you really need the keys from ModelBaseMeta._COMPONENTS
+    #     # and the values from the class itself
 
     def get_inst_ref(self, model_ref):
         """

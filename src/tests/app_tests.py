@@ -231,7 +231,6 @@ def test017():
     """
     test017: basic persistence check
     """
-    # @FIXME
     a = get_simple_instance()
     a.infra.server.fix_arguments()
     d = persist_to_dict(a)
@@ -242,6 +241,24 @@ def test017():
     assert a.infra.server.name.value() == a_clone.infra.server.name.value()
     assert a.config.task.name.value() == a_clone.config.task.name.value()
     assert a.infra.server.hostname_or_ip.value() == a_clone.infra.server.hostname_or_ip.value()
+
+
+class Infra017a(InfraModel):
+    none = StaticServer("017a", "11.11.11.11")
+
+
+def test017a():
+    """
+    test017a: work out errors in persistence due to copy of __components to model instances
+    """
+    i = Infra017a("17a")
+    i.fix_arguments()
+    d = persist_to_dict(i)
+    i_clone = reanimate_from_dict(d)
+    assert isinstance(i_clone, Infra017a)
+    assert i.name == i_clone.name
+    assert i.none.hostname_or_ip.value() == i_clone.none.hostname_or_ip.value(), "orig={}, clone={}".format(i.none.hostname_or_ip,
+                                                                                            i_clone.none.hostname_or_ip)
 
 
 def test018():
@@ -713,7 +730,9 @@ def test041():
     i2 = TestSetExpose41("t41b")
     i2.theip = ctxt.model.server2.hostname_or_ip
     i1.fix_arguments()
+    i2.fix_arguments()
     assert i1.theip == "11.11.11.11", "wrong ip: {}".format(i1.theip)
+    assert i2.theip == "22.22.22.22", "wrong ip: {}".format(i2.theip)
 
 
 def do_all():
