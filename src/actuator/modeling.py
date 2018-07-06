@@ -1586,6 +1586,10 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
     #     # attributes on the model class, so you really need the keys from ModelBaseMeta._COMPONENTS
     #     # and the values from the class itself
 
+    # def clone(self, clone_into_class=None):
+    #     inst = super(ModelBase, self).clone(clone_into_class=clone_into_class)
+    #     # setattr(inst, expose._EXPOSES, dict(object.__getattribute__(self, expose._EXPOSES)))
+
     def get_inst_ref(self, model_ref):
         """
         Take a model ref object and get an associated model instance ref for

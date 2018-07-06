@@ -735,8 +735,30 @@ def test041():
     assert i2.theip == "22.22.22.22", "wrong ip: {}".format(i2.theip)
 
 
+class Inner42(Service):
+    inner_svr = StaticServer("inner", ctxt.model.theip)
+    theip = expose()
+
+
+class Outer42(Service):
+    inner = Inner42("inner svc")
+    inner.inner_svr.theip = ctxt.model.parent.theip
+    theip = "22.22.22.22"
+
+
+def test042():
+    """
+    test042: see if we can set the ip on an inner service from a containing svc
+    """
+    out = Outer42("outer")
+    out.fix_arguments()
+    assert out.inner.inner_svr.hostname_or_ip.value() == "22.22.22.22", "the ip was {}".format(
+        out.inner.inner_svr.hostname_or_ip.value())
+
+
 def do_all():
     setup_module()
+    test42()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:
