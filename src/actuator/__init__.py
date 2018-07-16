@@ -267,6 +267,7 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
             comp.fix_arguments()
         for k in self.service_names:
             v = getattr(self, k).value()
+            v.fix_arguments()
             v.namespace.compute_provisioning_for_environ(v.infra.value())
         self.config.fix_arguments()
 

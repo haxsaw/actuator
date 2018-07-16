@@ -2,14 +2,13 @@ import json
 import six
 from nose import SkipTest
 from errator import reset_all_narrations, set_default_options
-from actuator import Service, ctxt, MultiResource
+from actuator import Service, ctxt, MultiResource, ActuatorException
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
-from actuator.modeling import ModelReference, ModelInstanceReference, expose
+from actuator.modeling import ModelReference, ModelInstanceReference, channel, CallContext
 from actuator.utils import persist_to_dict, reanimate_from_dict
-from actuator.provisioners.example_resources import Network
-
+from actuator.provisioners.openstack.resources import (SecGroup, SecGroupRule)
 
 def setup_module():
     reset_all_narrations()
@@ -535,8 +534,8 @@ class BaseService(Service):
 
 
 class FinalService(BaseService):
-    theip = expose(ctxt.nexus.svc.infra.server.hostname_or_ip)
-    ip_no_nexus = expose(ctxt.model.infra.server.hostname_or_ip)
+    theip = channel(ctxt.nexus.svc.infra.server.hostname_or_ip)
+    ip_no_nexus = channel(ctxt.model.infra.server.hostname_or_ip)
     namespace = NamespaceModel
 
 
@@ -552,7 +551,7 @@ def test031():
 
 class BaseService32(Service):
     infra = BaseInfra
-    theip = expose(ctxt.model.infra.server.hostname_or_ip)
+    theip = channel(ctxt.model.infra.server.hostname_or_ip)
 
 
 class FinalService32(BaseService32):
@@ -561,7 +560,7 @@ class FinalService32(BaseService32):
 
 def test032():
     """
-    test032: test if an exposed item is inherited properly
+    test032: test if a channel is inherited properly
     """
     fs = FinalService32("fs32", infra_args=(("ba32",), {}))
     fs.fix_arguments()
@@ -570,16 +569,16 @@ def test032():
 
 class BaseService33(Service):
     infra = BaseInfra
-    theip = expose(ctxt.model.infra.server.hostname_or_ip)
+    theip = channel(ctxt.model.infra.server.hostname_or_ip)
 
 
 class FinalServive33(BaseService33):
-    redirected_ip = expose(ctxt.model.theip)
+    redirected_ip = channel(ctxt.model.theip)
 
 
 def test033():
     """
-    test033: test if exposed item can be redirected
+    test033: test if a channel can be redirected
     """
     fs = FinalServive33("fs33", infra_args=(("ba33",), {}))
     fs.fix_arguments()
@@ -588,17 +587,17 @@ def test033():
 
 class BaseInfra34(InfraModel):
     server = StaticServer("someserver", "99.99.99.99")
-    server_ip = expose(ctxt.model.server.hostname_or_ip)
+    server_ip = channel(ctxt.model.server.hostname_or_ip)
 
 
 class BaseService34(Service):
     infra = BaseInfra34
-    theip = expose(ctxt.model.infra.server_ip)
+    theip = channel(ctxt.model.infra.server_ip)
 
 
 def test034():
     """
-    test034: check that you can expose an attribute on an infra and access in a service
+    test034: check that you can channel an attribute on an infra and access in a service
     """
     fs = BaseService34("bs34", infra_args=(("bi34",), {}))
     fs.fix_arguments()
@@ -609,12 +608,12 @@ def test034():
 class ExposeViaVar(Service):
     with_variables(Var("EXPOSED", ctxt.model.theip))
     infra = BaseInfra
-    theip = expose(ctxt.model.infra.server.hostname_or_ip)
+    theip = channel(ctxt.model.infra.server.hostname_or_ip)
 
 
 def test035():
     """
-    test035: check that an exposed attr value is available via a variable.
+    test035: check that a channel attr value is available via a variable.
     :return:
     """
     s = ExposeViaVar("t35", infra_args=(("bi35",), {}))
@@ -628,7 +627,7 @@ class InfraMissingIP(InfraModel):
 
 class IPSupplierSvc(Service):
     with_variables(Var("SERVER_IP", "66.66.66.66"))
-    svcip = expose(ctxt.model.infra.server.hostname_or_ip)
+    svcip = channel(ctxt.model.infra.server.hostname_or_ip)
     infra = InfraMissingIP
 
 
@@ -702,12 +701,12 @@ def test039():
 
 class TestSetInfra40(InfraModel):
     server = StaticServer("svr", "127.0.0.1")
-    svrip = expose()
+    svrip = channel()
 
 
 def test040():
     """
-    test040: test basic setting of an 'expose' descriptor into an infra
+    test040: test basic setting of an 'channel' descriptor into an infra
     """
     i = TestSetInfra40("tsi")
     i.svrip = ctxt.model.server.hostname_or_ip
@@ -715,19 +714,19 @@ def test040():
     assert i.svrip == "127.0.0.1", "the svrip is {}".format(i.svrip)
 
 
-class TestSetExpose41(InfraModel):
+class TestSetChannel41(InfraModel):
     server1 = StaticServer("s1", "11.11.11.11")
     server2 = StaticServer("s2", "22.22.22.22")
-    theip = expose()
+    theip = channel()
 
 
 def test041():
     """
-    test041: ensure independence of expose properties across infra instances
+    test041: ensure independence of channel properties across infra instances
     """
-    i1 = TestSetExpose41("t41a")
+    i1 = TestSetChannel41("t41a")
     i1.theip = ctxt.model.server1.hostname_or_ip
-    i2 = TestSetExpose41("t41b")
+    i2 = TestSetChannel41("t41b")
     i2.theip = ctxt.model.server2.hostname_or_ip
     i1.fix_arguments()
     i2.fix_arguments()
@@ -735,14 +734,14 @@ def test041():
     assert i2.theip == "22.22.22.22", "wrong ip: {}".format(i2.theip)
 
 
-class Inner42(Service):
+class Inner42(InfraModel):
     inner_svr = StaticServer("inner", ctxt.model.theip)
-    theip = expose()
+    theip = channel()
 
 
 class Outer42(Service):
-    inner = Inner42("inner svc")
-    inner.inner_svr.theip = ctxt.model.parent.theip
+    infra = Inner42("inner svc")
+    infra.theip = ctxt.nexus.svc.theip
     theip = "22.22.22.22"
 
 
@@ -752,13 +751,184 @@ def test042():
     """
     out = Outer42("outer")
     out.fix_arguments()
-    assert out.inner.inner_svr.hostname_or_ip.value() == "22.22.22.22", "the ip was {}".format(
-        out.inner.inner_svr.hostname_or_ip.value())
+    assert out.infra.inner_svr.hostname_or_ip.value() == "22.22.22.22", "the ip was {}".format(
+        out.infra.inner_svr.hostname_or_ip.value())
+
+
+# test043 support
+class SubInfra1(InfraModel):
+    srvr = StaticServer("sub1-43", "43.43.43.43")
+    my_cidr = channel(ctxt.model.srvr.get_cidr4)
+
+
+class SubSvc1(Service):
+    infra = SubInfra1("sub1")
+    the_cidr = channel(ctxt.model.infra.my_cidr)
+
+
+class SubInfra2(InfraModel):
+    sg = SecGroup("wibble")
+    sgr = SecGroupRule("restriction", ctxt.model.sg,
+                       from_port=5000, to_port=5000,
+                       cidr=ctxt.model.allowed_peer)
+    allowed_peer = channel()
+
+
+class SubSvc2(Service):
+    infra = SubInfra2("sub2")
+    infra.allowed_peer = ctxt.nexus.svc.conn_pt
+    conn_pt = channel()
+
+
+class Svc43(Service):
+    sub1 = SubSvc1("ss1")
+    sub2 = SubSvc2("ss2")
+    sub2.conn_pt = ctxt.nexus.parent.svc.sub1.the_cidr
+
+
+def test043():
+    """
+    test043: compose a svc from two sub-services with channels that allow getting an IP from the sibling svc
+    """
+    # @NOTE: this points up the issue of fix_arguments() being blind to dependencies
+    # we currently rely on the discovered task dependencies for each component to
+    # ensure we do our "fixing" in the right time. The need for dependency management at
+    # global fixing time is unclear, as there are values we may want to fix that won't
+    # actually be available until some of the tasks have executed. For instance, if
+    # on service wants to create a security group rule that uses a host IP from another
+    # service, than until that host has been provisioned you can't determine the IP, and hence
+    # fixing before execution will never lead to a useful value. Hence it isn't clear as to
+    # whether or not making fixing respect dependencies is even useful in the first place.
+    svc = Svc43("test43")
+    # force the order that should be generated just to see if the chaing of ctxt-exprs are respected
+    svc.sub1.infra.srvr.fix_arguments()
+    svc.fix_arguments()
+    assert svc.sub2.infra.sgr.cidr.value() == "43.43.43.43/32", "the cidr was {}".format(
+        svc.sub2.infra.sgr.cidr.value()
+    )
+
+
+class Test044(InfraModel):
+    wibble = channel()
+    wobble = channel(ctxt.model.wibble)
+
+
+def test044():
+    """
+    test044: check that we can test for the presence/absence of an channel descriptor
+    """
+    i = Test044("test044")
+    assert i.has_channel_descriptor("wibble")
+    assert i.has_channel_descriptor("wobble")
+    assert not i.has_channel_descriptor("wamble")
+
+
+class Test045(InfraModel):
+    wibble = channel()
+    wobble = channel(ctxt.model.wibble)
+
+
+def test045():
+    """
+    test045: check that we get appropriate values when fetching cexprs for channel descriptors
+    """
+    i = Test045("test045")
+    assert i.get_channel_cexpr("wibble") is None
+    assert i.get_channel_cexpr("wobble")._path == ("wibble", "model"), "path is: {}".format(
+        i.get_channel_cexpr("wobble")._path
+    )
+    try:
+        _ = i.get_channel_cexpr("wamble")
+        assert False, "this should have raised"
+    except ActuatorException:
+        pass
+
+
+class SubInfra1_046(InfraModel):
+    srvr = StaticServer("sub1-43", "43.43.43.43")
+    my_cidr = channel(ctxt.model.srvr.get_cidr4)
+
+
+class SubSvc1_046(Service):
+    infra = SubInfra1_046("sub1")
+    the_cidr = channel(ctxt.model.infra.my_cidr)
+
+
+class SubInfra2_046(InfraModel):
+    sg = SecGroup("wibble")
+    sgr = SecGroupRule("restriction", ctxt.model.sg,
+                       from_port=5000, to_port=5000,
+                       cidr=ctxt.model.allowed_peer)
+    allowed_peer = channel()
+
+
+class SubSvc2_046(Service):
+    infra = SubInfra2_046("sub2")
+    infra.allowed_peer = ctxt.nexus.svc.conn_pt
+    conn_pt = channel()
+
+
+class Svc046(Service):
+    sub1 = SubSvc1_046("ss1")
+    sub2 = SubSvc2_046("ss2")
+    sub2.conn_pt = ctxt.nexus.parent.svc.sub1.the_cidr
+
+
+def test046():
+    """
+    test046: check that we detect the proper containing component for a value in an channel chain
+    """
+    i = Svc046("t046")
+    cexpr = i.sub2.infra.sgr._cidr
+    cc = CallContext(i.sub2.infra.value(), i.sub2.infra.sgr)
+    owner = cexpr.get_containing_component(cc)
+    assert owner is i.sub1.infra.srvr.value()
+
+
+class Infra047(InfraModel):
+    sg = SecGroup("wibble")
+    # An interesting note:
+    # we could make the cidr= kwarg of SecGroupRule below
+    # be cidr=ctxt.model.svr.hostname_or_ip to get the same info into the rule.
+    # However, the containing component in this case will be the StaticServer, not the
+    # instance of Svc047. This is because we don't chase across chained context expressions
+    # for attribute values like we do for channel() attributes. Nonetheless you get the right
+    # answer, as you'd only get an different dependency between the Rule and the Server instead
+    # of the Rule and the Service. Since the Service is dependent on the Server, the net effect
+    # is the same. An open question is whether we should make argument resolution also
+    # chain through
+    sgr = SecGroupRule("rest", ctxt.model.sg,
+                       from_port=5000, to_port=5000,
+                       cidr=ctxt.model.allowed_ip)
+    allowed_ip = channel()
+    svr = StaticServer("server047", ctxt.model.allowed_ip)
+
+
+class Svc047(Service):
+    infra = Infra047("wamble")
+    theip = "75.75.75.75"
+    infra.allowed_ip = ctxt.nexus.svc.theip
+
+
+def test047():
+    """
+    test047: check that we detect the proper parent container
+    """
+    i = Svc047("asfd")
+    cexpr = i.infra.sgr._cidr
+    cc = CallContext(i.infra.value(), i.infra.sgr)
+    owner = cexpr.get_containing_component(cc)
+    assert owner is i, "owner is {}".format(owner)
+    cexpr = i.infra.svr._hostname_or_ip
+    cc = CallContext(i.infra.value(), i.infra.svr)
+    owner = cexpr.get_containing_component(cc)
+    assert owner is i, "owner is {}".format(owner)
+    i.fix_arguments()
+    assert i.infra.svr.hostname_or_ip.value() == "75.75.75.75"
 
 
 def do_all():
     setup_module()
-    test42()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

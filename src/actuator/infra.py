@@ -406,3 +406,6 @@ class StaticServer(IPAddressable, Provisionable):
             callable value for ann argument.
         """
         return self.hostname_or_ip
+
+    def get_cidr4(self, *_):
+        return "{}/32".format(self.hostname_or_ip)

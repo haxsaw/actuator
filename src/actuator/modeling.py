@@ -137,7 +137,7 @@ class ContextExpr(_Persistable):
 
     def get_containing_component(self, ctx):
         """
-        returns the component that a context expresison refers to. Similar to
+        returns the component that a context expression refers to. Similar to
         AbstractModelComponent.get_containing_component(), except that this
         requires a CallContext instance to actually find the component
         :param ctx: instance of CallContext to use to resolve the ContextExpr's
@@ -157,13 +157,36 @@ class ContextExpr(_Persistable):
                                                                                         p, type(e), str(e)))
             else:
                 refs.append(ref)
-        result = None
-        for r in reversed(refs):
+
+        # NEW
+        prev_n = None
+        for r, n in zip(reversed(refs), self._path):
             if isinstance(r, AbstractModelReference):
                 r = r.value()
-            if isinstance(r, (ModelComponent, ModelBase)):
+            if isinstance(r, ModelBase):
+                if prev_n is not None and r.has_channel_descriptor(prev_n):
+                    cexpr = r.get_channel_cexpr(prev_n)
+                    cc = CallContext(model_inst=r, component=None)
+                    result = cexpr.get_containing_component(cc)
+                else:
+                    result = r
+                break
+            elif isinstance(r, ModelComponent):
                 result = r
                 break
+            prev_n = n
+        else:
+            result = None
+
+        # OLD
+        # result = None
+        # for r in reversed(refs):
+        #     if isinstance(r, AbstractModelReference):
+        #         r = r.value()
+        #     if isinstance(r, (ModelComponent, ModelBase)):
+        #         result = r
+        #         break
+
         return result
 
 
@@ -883,6 +906,13 @@ class _Dummy(object):
     pass
 
 
+_noattr = object()
+
+
+def _hasattr(o, a):
+    return getattr(o, a, _noattr)
+
+
 class AbstractModelReference(_ValueAccessMixin, _Persistable):
     """
     Base for all model reference classes.
@@ -1089,8 +1119,8 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                 theobj = ga("_obj")
             else:
                 theobj = ga("_obj") if name is None else object.__getattribute__(ga("_obj"), name)
-            if hasattr(theobj, attrname):
-                value = getattr(theobj, attrname)
+            value = getattr(theobj, attrname, _noattr)
+            if value is not _noattr:
                 if (not callable(value) and
                         not attrname.startswith("_") and
                         (not isinstance(value, AbstractModelReference) or isinstance(theobj, ModelBase))):
@@ -1456,16 +1486,18 @@ class _Nexus(_Persistable):
         self.mapper.update(other_nexus.mapper)
 
 
-# tightly integrated to ModelBaseMeta to ensure storage expose() context exprs
-class expose(object):
-    _EXPOSES = '__exposes'
+# tightly integrated to ModelBaseMeta to ensure storage Channel() context exprs
+# ALTERNATE NAMES:
+# hookup, hitch, channel, pathway
+class Channel(object):
+    _CHANNELS = '__channels'
 
     def __init__(self, cexpr=None):
         self.cexpr = cexpr
         self.name = None
 
     def _set_name(self, name):
-        # called during class creation from the metaclass; name is the the key in the object's exposes dict
+        # called during class creation from the metaclass; name is the the key in the object's channels dict
         # where the ctxt expr goes
         self.name = name
 
@@ -1475,19 +1507,19 @@ class expose(object):
     @narrate(lambda s, o, _=None: "which initiated fetching the value for ")
     def __get__(self, obj, _=None):
         if self.name is None:
-            raise AttributeError('Improperly created expose; there is no value for name')
-        exposes = getattr(obj, self._EXPOSES, None)
-        if exposes is None:
-            raise AttributeError('Improperly created expose; instance has no {} attribute'.format(self._EXPOSES))
-        cexpr = exposes.get(self.name)
+            raise AttributeError('Improperly created Channel; there is no value for name')
+        channels = getattr(obj, self._CHANNELS, None)
+        if channels is None:
+            raise AttributeError('Improperly created Channel; instance has no {} attribute'.format(self._CHANNELS))
+        cexpr = channels.get(self.name)
         if self.cexpr is None and cexpr is None:
             raise AttributeError("Unable to retrieve value; no context expression has been set")
         if cexpr is None:
             cexpr = self.cexpr
             self.cexpr = None
-            exposes[self.name] = cexpr
+            channels[self.name] = cexpr
         cc = CallContext(obj, None)
-        with narrate_cm(lambda n, p: "expose'd attribute {} being evaluated with expression {}".format(n, p),
+        with narrate_cm(lambda n, p: "Channel'd attribute {} being evaluated with expression {}".format(n, p),
                         self.name, reversed(cexpr._path)):
             val = cexpr(cc)
         while isinstance(val, ModelInstanceReference):
@@ -1498,12 +1530,15 @@ class expose(object):
         if not isinstance(new_cexpr, ContextExpr):
             raise AttributeError("Attempting to set a value that is not a context expression")
         if self.name is None:
-            raise AttributeError('Improperly created expose; there is no value for name')
-        exposes = getattr(obj, self._EXPOSES, None)
-        if exposes is None:
-            raise AttributeError('Improperly created expose; instance has no {} attribute'.format(self._EXPOSES))
-        exposes[self.name] = new_cexpr
+            raise AttributeError('Improperly created Channel; there is no value for name')
+        channels = getattr(obj, self._CHANNELS, None)
+        if channels is None:
+            raise AttributeError('Improperly created Channel; instance has no {} attribute'.format(self._CHANNELS))
+        channels[self.name] = new_cexpr
         self.cexpr = None
+
+
+channel = Channel
 
 
 class ModelBaseMeta(type):
@@ -1512,10 +1547,10 @@ class ModelBaseMeta(type):
 
     def __new__(mcs, name, bases, attr_dict, as_component=(AbstractModelingEntity,)):
         components = {}
-        exposes = {}
+        channels = {}
         final_attrs = {}
         final_attrs[mcs._COMPONENTS] = components
-        final_attrs[expose._EXPOSES] = exposes
+        final_attrs[Channel._CHANNELS] = channels
         vatborn = super(ModelBaseMeta, mcs).__new__(mcs, name, bases, attr_dict)
         for base in reversed(vatborn.__mro__[:-1]):
             if not isinstance(base, mcs) or not hasattr(base, mcs._COMPONENTS):
@@ -1530,8 +1565,8 @@ class ModelBaseMeta(type):
                     components[n] = v
                 else:
                     components[n] = v.clone()
-            elif isinstance(v, expose):
-                exposes[n] = v._get_cexpr()
+            elif isinstance(v, Channel):
+                channels[n] = v._get_cexpr()
                 v._set_name(n)
         setattr(newbie, 'q', RefSelectBuilder(newbie))
         return newbie
@@ -1580,15 +1615,39 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
 
     def __init__(self, *args, **kwargs):
         super(ModelBase, self).__init__(*args, **kwargs)
-        setattr(self, expose._EXPOSES, dict(object.__getattribute__(self, expose._EXPOSES)))
+        setattr(self, Channel._CHANNELS, dict(object.__getattribute__(self, Channel._CHANNELS)))
     #     # @FIXME: something similar should be done with ModelBaseMeta._COMPONENTS, however
     #     # it's more complicated; that collection refers to a different set of items than are
     #     # attributes on the model class, so you really need the keys from ModelBaseMeta._COMPONENTS
     #     # and the values from the class itself
 
-    # def clone(self, clone_into_class=None):
-    #     inst = super(ModelBase, self).clone(clone_into_class=clone_into_class)
-    #     # setattr(inst, expose._EXPOSES, dict(object.__getattribute__(self, expose._EXPOSES)))
+    def has_channel_descriptor(self, descname):
+        """
+        predicate that returns True if this class has a (potentially unset) descriptor named descname
+        :param descname: string; name of the descriptor to test
+        :return: bool; True if this class implements this descriptor, False otherwise
+        """
+        c = object.__getattribute__(self, "__class__")
+        cd = object.__getattribute__(c, Channel._CHANNELS)
+        return descname in cd
+
+    def get_channel_cexpr(self, descname):
+        """
+        returns the context expression associated with an Channel descriptor object rather than the
+        value of the __get__ method of the descriptor
+        :param descname: string; name of the descriptor to return
+        :return: the context expression stored in this descriptor, if any. None if no descriptor supplied
+        :raises ActuatorException: if there is no such descriptor
+        """
+        if not self.has_channel_descriptor(descname):
+            raise ActuatorException("No Channel descriptor named {}".format(descname))
+        d = object.__getattribute__(self, Channel._CHANNELS)
+        return d.get(descname, None)
+
+    def clone(self, clone_into_class=None):
+        inst = super(ModelBase, self).clone(clone_into_class=clone_into_class)
+        setattr(inst, Channel._CHANNELS, dict(object.__getattribute__(self, Channel._CHANNELS)))
+        return inst
 
     def get_inst_ref(self, model_ref):
         """
