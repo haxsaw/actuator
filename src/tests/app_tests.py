@@ -2,13 +2,14 @@ import json
 import six
 from nose import SkipTest
 from errator import reset_all_narrations, set_default_options
-from actuator import Service, ctxt, MultiResource, ActuatorException
+from actuator import Service, ctxt, MultiResource, ActuatorException, ActuatorOrchestration
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
 from actuator.modeling import ModelReference, ModelInstanceReference, channel, CallContext
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.provisioners.openstack.resources import (SecGroup, SecGroupRule)
+
 
 def setup_module():
     reset_all_narrations()
@@ -925,6 +926,44 @@ def test047():
     assert owner is i, "owner is {}".format(owner)
     i.fix_arguments()
     assert i.infra.svr.hostname_or_ip.value() == "75.75.75.75"
+
+
+class Svc048(Service):
+    recover = channel(ctxt.model.wibble)
+    wibble = "wobble"
+
+
+def test048():
+    """
+    test048: check the recovery of a channel's context expression
+    """
+    svc = Svc048("test048")
+    svc.fix_arguments()
+    d = persist_to_dict(svc)
+    svc_prime = reanimate_from_dict(d)
+    assert svc_prime.wibble == "wobble"
+    assert svc_prime.recover == "wobble", "recover has {}".format(svc_prime.recover)
+    path = svc_prime.get_channel_cexpr("recover")._path
+    assert ["wibble", "model"] == path, "path is {}".format(path)
+
+
+class Svc049(Service):
+    recover = channel()
+    someattr = "glee"
+
+
+def test049():
+    """
+    test049: check recovery of a assigned context expression
+    """
+    svc = Svc049("s049")
+    svc.recover = ctxt.model.someattr
+    d = persist_to_dict(svc)
+    sp = reanimate_from_dict(d)
+    path = svc.get_channel_cexpr("recover")._path
+    assert ["someattr", "model"] == list(path), "path is {}".format(path)
+    path = sp.get_channel_cexpr("recover")._path
+    assert ["someattr", "model"] == list(path), "path is {}".format(path)
 
 
 def do_all():

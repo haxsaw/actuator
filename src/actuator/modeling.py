@@ -158,7 +158,6 @@ class ContextExpr(_Persistable):
             else:
                 refs.append(ref)
 
-        # NEW
         prev_n = None
         for r, n in zip(reversed(refs), self._path):
             if isinstance(r, AbstractModelReference):
@@ -177,15 +176,6 @@ class ContextExpr(_Persistable):
             prev_n = n
         else:
             result = None
-
-        # OLD
-        # result = None
-        # for r in reversed(refs):
-        #     if isinstance(r, AbstractModelReference):
-        #         r = r.value()
-        #     if isinstance(r, (ModelComponent, ModelBase)):
-        #         result = r
-        #         break
 
         return result
 
@@ -1643,6 +1633,17 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
             raise ActuatorException("No Channel descriptor named {}".format(descname))
         d = object.__getattribute__(self, Channel._CHANNELS)
         return d.get(descname, None)
+
+    def _get_attrs_dict(self):
+        d = super(ModelBase, self)._get_attrs_dict()
+        d[Channel._CHANNELS] = object.__getattribute__(self, Channel._CHANNELS)
+        return d
+
+    def _find_persistables(self):
+        for o in super(ModelBase, self)._find_persistables():
+            yield o
+        for v in object.__getattribute__(self, Channel._CHANNELS).values():
+            yield v
 
     def clone(self, clone_into_class=None):
         inst = super(ModelBase, self).clone(clone_into_class=clone_into_class)
