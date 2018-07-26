@@ -801,7 +801,7 @@ class ConfigModel(six.with_metaclass(ConfigModelMeta, ModelBase, GraphableModelM
         if with_fix:
             for n in nodes:
                 n.fix_arguments()
-        deps = self.get_dependencies()
+        deps, _ = self.get_dependencies()
         graph = nx.DiGraph()
         graph.add_nodes_from(nodes)
         graph.add_edges_from([d.edge() for d in deps])
@@ -1069,7 +1069,7 @@ class ConfigModel(six.with_metaclass(ConfigModelMeta, ModelBase, GraphableModelM
         return list(set(itertools.chain(list(itertools.chain(*[n.unpack()
                                                                for n in inst_nodes
                                                                if isinstance(n, _Unpackable)])),
-                                        *[d.unpack() for d in self.dependencies])))
+                                        *[d.unpack() for d in self.dependencies]))), {}
 
     @classmethod
     def get_class_dependencies(cls):
@@ -1235,7 +1235,7 @@ class ConfigClassTask(ConfigTask, _Unpackable, StructuralTask, GraphableModelMix
         graph = self.get_graph(with_fix=True)
         entry_nodes = [n for n in graph.nodes() if graph.in_degree(n) == 0]
         exit_nodes = [n for n in graph.nodes() if graph.out_degree(n) == 0]
-        self.dependencies = list(itertools.chain(self.instance.get_dependencies(),
+        self.dependencies = list(itertools.chain(self.instance.get_dependencies()[0],
                                                  [_Dependency(self, c) for c in entry_nodes],
                                                  [_Dependency(c, self.rendezvous) for c in exit_nodes]))
 

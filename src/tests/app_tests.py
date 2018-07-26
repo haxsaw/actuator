@@ -9,6 +9,8 @@ from actuator.config import ConfigModel, NullTask
 from actuator.modeling import ModelReference, ModelInstanceReference, channel, CallContext
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.provisioners.openstack.resources import (SecGroup, SecGroupRule)
+from actuator.provisioners.openstack import OpenStackProvisionerProxy
+from actuator.provisioners.core import ProvisioningTaskEngine
 
 
 def setup_module():
@@ -966,8 +968,160 @@ def test049():
     assert ["someattr", "model"] == list(path), "path is {}".format(path)
 
 
+class BaseInfra050(InfraModel):
+    sg = SecGroup("wibble")
+    sgr = SecGroupRule("sgr", ctxt.model.sg, ip_protocol="tcp",
+                       from_port=5000, to_port=5000, cidr=ctxt.model.host.get_cidr4)
+    host = channel()
+
+
+class DerivedInfra050(BaseInfra050):
+    svr = StaticServer("svr050", "64.64.64.64")
+    host = ctxt.model.svr
+
+
+class Svc050(Service):
+    infra = DerivedInfra050("50")
+
+
+def test050():
+    """
+    test050: check that setting a channel on a derived class works, persists/comes back as well
+    """
+    i = Svc050("t050")
+    i.infra.svr.fix_arguments()
+    i.fix_arguments()
+    assert i.infra.sgr.cidr.value() == "64.64.64.64/32", "cidr before is {}".format(i.infra.sgr.cidr.value())
+    d = persist_to_dict(i)
+    newi = reanimate_from_dict(d)
+    assert newi.infra.sgr.cidr.value() == "64.64.64.64/32", "cidr after is {}".format(newi.infra.sgr.cidr.value())
+
+
+class SubInfra1_051(InfraModel):
+    srvr = StaticServer("sub1-51", "51.51.51.51")
+    my_cidr = channel(ctxt.model.srvr.get_cidr4)
+
+
+class SubSvc1_051(Service):
+    infra = SubInfra1_051("sub1")
+    the_cidr = channel(ctxt.model.infra.my_cidr)
+
+
+class SubInfra2_051(InfraModel):
+    sg = SecGroup("wibble")
+    sgr = SecGroupRule("restriction", ctxt.model.sg,
+                       from_port=5000, to_port=5000,
+                       cidr=ctxt.model.allowed_peer)
+    allowed_peer = channel()
+
+
+class SubSvc2_051(Service):
+    infra = SubInfra2_051("sub2")
+    infra.allowed_peer = ctxt.nexus.svc.conn_pt
+    conn_pt = channel()
+
+
+class Svc051(Service):
+    sub1 = SubSvc1_051("ss1")
+    sub2 = SubSvc2_051("ss2")
+    sub2.conn_pt = ctxt.nexus.parent.svc.sub1.the_cidr
+
+
+def test051():
+    """
+    test051: check that composed services persist/reanimate properly
+    """
+    i = Svc051("t051")
+    cexpr = i.sub2.infra.sgr._cidr
+    cc = CallContext(i.sub2.infra.value(), i.sub2.infra.sgr)
+    owner = cexpr.get_containing_component(cc)
+    assert owner is i.sub1.infra.srvr.value()
+    d = persist_to_dict(i)
+    newi = reanimate_from_dict(d)
+    cc = CallContext(newi.sub2.infra.value(), newi.sub2.infra.sgr)
+    owner = cexpr.get_containing_component(cc)
+    assert owner is newi.sub1.infra.srvr.value()
+
+
+class BaseInfra052(InfraModel):
+    pass
+
+
+class DeepBaseSvc_052(Service):
+    infra = BaseInfra052("deepinfra")
+
+
+class BaseSvc1_052(Service):
+    dbs = DeepBaseSvc_052("dbs1")
+
+
+class BaseSvc2_052(Service):
+    infra = BaseInfra052("annuder")
+
+
+class FinalSvc_052(Service):
+    svc1 = BaseSvc1_052("svc1")
+    svc2 = BaseSvc2_052("svc2")
+
+
+def test052():
+    """
+    test052: check that we can find all the services in a nested collection of services
+    """
+    s = FinalSvc_052("final")
+
+    def all_svcs(i):
+        assert isinstance(i, Service)
+        svcs = [i]
+        for c in i.contained_services():
+            svcs.extend(all_svcs(c))
+        return svcs
+
+    thesvcs = all_svcs(s)
+    assert len(thesvcs) == 4, "the services are: {}".format(thesvcs)
+
+
+class SvcInfra1_053(InfraModel):
+    sg = SecGroup("sg053")
+
+
+class Svc1_053(Service):
+    infra = SvcInfra1_053("sg")
+
+
+class SvcInfra2_053(InfraModel):
+    sgr = SecGroupRule("sgr053", ctxt.nexus.svc.thesg, ip_protocol="tcp",
+                       from_port=5000, to_port=5000,
+                       cidr="127.0.0.1/32")
+
+
+class Svc2_053(Service):
+    infra = SvcInfra2_053("sgr053")
+    thesg = channel()
+
+
+class TopSvc_053(Service):
+    svc1 = Svc1_053("svc1")
+    svc2 = Svc2_053("svc2")
+    svc2.thesg = ctxt.nexus.parent.svc.svc1.infra.sg
+
+
+def test053():
+    """
+    test053: test cross model dependencies
+    """
+    svc = TopSvc_053("testy053")
+    svc.fix_arguments()
+    pp = OpenStackProvisionerProxy("citycloud")
+    pte = ProvisioningTaskEngine(svc.svc2.infra.value(), [pp])
+    deps, ei = pte.get_dependencies()
+    total_ei = sum(len(x) for x in ei.values())
+    assert total_ei == 1, "deps is {}".format(ei)
+
+
 def do_all():
     setup_module()
+    test052()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

@@ -333,10 +333,12 @@ def test13():
     d_json = json.dumps(d)
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
+    deps, _ = conf.get_dependencies()
+    depsp, _ = cp.get_dependencies()
     assert (hasattr(cp, "ct") and
             len(conf.get_tasks()) == len(cp.get_tasks()) and
             hasattr(cp, "namespace_model_instance") and
-            len(conf.get_dependencies()) == len(cp.get_dependencies()) and
+            len(deps) == len(depsp) and
             cp.ct.task_role.name.value() == "r1")
 
 
@@ -453,7 +455,7 @@ def test18():
     d_json = json.dumps(d)
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
-    deps = cp.get_dependencies()
+    deps, _ = cp.get_dependencies()
     assert (len(deps) == 2 and
             deps[0].from_task is cp.t1.value() and
             deps[0].to_task is cp.t2.value() and
@@ -485,7 +487,7 @@ def test19():
     d_json = json.dumps(d)
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
-    deps = cp.get_dependencies()
+    deps, _ = cp.get_dependencies()
     assert (len(deps) == 2 and
             deps[0].from_task is cp.t1.value() and
             deps[0].to_task is cp.t2.value() and
@@ -521,7 +523,7 @@ def test20():
     d_json = json.dumps(d)
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
-    deps = cp.get_dependencies()
+    deps, _ = cp.get_dependencies()
     assert len(deps) == 5
 
 
@@ -553,7 +555,7 @@ def test21():
     d_json = json.dumps(d)
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
-    deps = cp.get_dependencies()
+    deps, _ = cp.get_dependencies()
     deps.sort(key=lambda x: (x.from_task.name, x.to_task.name))
     assert (len(deps) == 5 and
             deps[0].from_task is cp.t0.value() and
@@ -603,7 +605,7 @@ def test22():
     d_json = json.dumps(d)
     d = json.loads(d_json)
     cp = reanimate_from_dict(d)
-    deps = cp.get_dependencies()
+    deps, _ = cp.get_dependencies()
     deps.sort(key=lambda x: (x.from_task.name, x.to_task.name))
     assert len(deps) == 16
 

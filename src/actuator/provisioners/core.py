@@ -321,7 +321,7 @@ class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
         the tasks returned by get_tasks(), an exception is raised.
 
         @raise ProvisionerException: Raised if a dependency is discovered that
-            involves a resource not considered by get_tasks()
+            involves a resource not considered by get_tasks() IF that resource isn't part of a different model
         """
         # now, self already contains a rsrc_task_map, but that's meant to be
         # used as a cache for multiple calls to get_tasks so that the tasks
@@ -332,25 +332,33 @@ class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
         # map, just to be on the safe side.
         rsrc_task_map = {task.rsrc: task for task in self.get_tasks()}
         dependencies = []
+        external_independents = collections.defaultdict(list)
         for rsrc, task in rsrc_task_map.items():
             for d in task.depends_on_list():
+                assert isinstance(d, Provisionable)
                 with narrate_cm(lambda r:
                                 "-first, resource {}, class {} is check to be in the set of known resources"
-                                        .format(r.name, r.__class__.__name__), rsrc):
+                                .format(r.name, r.__class__.__name__), rsrc):
                     if d not in rsrc_task_map:
-                        ref = AbstractModelReference.find_ref_for_obj(d)
-                        path = ref.get_path() if ref is not None else "NO PATH"
-                        raise self.exception_class("Resource {} named {} path {} says it depends on {}, "
-                                                   "but the latter isn't in the list of all components"
-                                                   .format(rsrc.__class__.__name__,
-                                                           rsrc.name, path,
-                                                           d.name))
+                        if d.get_model_instance() == self.infra_model:
+                            ref = AbstractModelReference.find_ref_for_obj(d)
+                            path = ref.get_path() if ref is not None else "NO PATH"
+                            raise self.exception_class("Resource {} named {} says it depends on {}, a {} at path {}, "
+                                                       "but the latter isn't in the list of all components"
+                                                       .format(rsrc.__class__.__name__,
+                                                               rsrc.name, d.name, d.__class__.__name__, path))
+                        else:
+                            # OK, so if we don't know about the thing rsrc depends on (d) and it's in a different
+                            # infra model, then it belongs to a different model and we need to resolve it later
+                            # as an external task that we rely on
+                            external_independents[task].append(d)
+                            continue
                 dtask = rsrc_task_map[d]
                 if dtask is task:
                     continue
                 dependencies.append(dtask | task)
         self.logger.info("%d resource dependencies" % len(dependencies))
-        return dependencies
+        return dependencies, external_independents
 
     @narrate(lambda _, t, **kw: "...when the task engine was asked to start preforming task {}".format(t.name))
     def _perform_task(self, task, logfile=None):

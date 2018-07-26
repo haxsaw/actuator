@@ -432,7 +432,7 @@ class GraphableModelMixin(object):
         if with_fix:
             for n in nodes:
                 n.fix_arguments()
-        deps = self.get_dependencies()
+        deps, external_independents = self.get_dependencies()
         graph = nx.DiGraph()
         graph.add_nodes_from(nodes)
         graph.add_edges_from([d.edge() for d in deps])

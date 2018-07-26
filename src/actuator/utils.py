@@ -559,8 +559,8 @@ class _Persistable(object):
             try:
                 v = self.recover_attr_value(k, v, catalog)
             except UtilsException as e:
-                raise UtilsException("Got an exception trying to recover attribute '%s': %s"
-                                     % (k, e.message))
+                raise UtilsException("Got an exception trying to recover attribute '%s' on %s: %s"
+                                     % (k, str(self), e.message))
             if isinstance(v, _InvokableAttrRef):
                 v.recover(self)
             else:

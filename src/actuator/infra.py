@@ -248,6 +248,8 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
     def _find_persistables(self):
         with narrate_cm(lambda s: "---so we started looking for persistables "
                                   "in model {}".format(s.name), self):
+            for o in super(InfraModel, self)._find_persistables():
+                yield o
             for p in self.__dict__.values():
                 if isinstance(p, _Persistable):
                     for q in p.find_persistables():

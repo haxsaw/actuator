@@ -116,7 +116,7 @@ class FauxModel(GraphableModelMixin, _Persistable):
         self.tasks.append(task)
     
     def get_dependencies(self):
-        return self.dependencies
+        return self.dependencies, {}
     
     def add_dependency(self, dep):
         self.dependencies.append(dep)

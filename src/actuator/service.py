@@ -193,6 +193,13 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
             d[sn] = svc
         return d
 
+    def contained_services(self):
+        """
+        generator that yields all the service objects in a service
+        """
+        for s in object.__getattribute__(self, "service_names"):
+            yield object.__getattribute__(self, s)
+
     def get_init_args(self):
         return ((self.name,),
                 {"infra": (self._infra.value()
