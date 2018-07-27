@@ -199,7 +199,9 @@ class BaseProvisionerProxy(object):
 
 @capture_mapping(_base_provisioner_map, StaticServer)
 class NullProvisioningTask(ProvisioningTask):
-    pass
+    def _perform(self, engine):
+        self.rsrc._refix_arguments()
+        super(NullProvisioningTask, self)._perform(engine)
 
 
 class StaticRunContext(AbstractRunContext):

@@ -1183,6 +1183,52 @@ def test055():
     assert not teh.starting.symmetric_difference(teh.finished)
 
 
+class Infra056A(InfraModel):
+    svc = StaticServer("svrA", ctxt.nexus.svc.ip)
+
+
+class Svc056A(Service):
+    infra = Infra056A("wibble")
+    ip = channel()
+
+
+class Infra056B(InfraModel):
+    svc = StaticServer("svrB", "88.88.88.88")
+
+
+class Svc056B(Service):
+    infra = Infra056B("wobble")
+    ip = channel(ctxt.nexus.svc.infra.svc.hostname_or_ip)
+
+
+class Svc056(Service):
+    svc_a = Svc056A("inner_a")
+    svc_b = Svc056B("inner_b")
+    svc_a.ip = ctxt.nexus.parent.svc.svc_b.ip
+    svcb_ip = channel(ctxt.nexus.svc.svc_b.ip)
+
+
+def test056():
+    """
+    test056: first cross-model dependency check
+    """
+    teh = CountingTaskEventHandler()
+    svc = Svc056("service056",
+                 event_handler=teh)
+    ao = ActuatorOrchestration(service=svc)
+    result = ao.initiate_system()
+    assert result
+    assert len(teh.starting) == 2
+    assert len(teh.finished) == 2
+    assert not teh.starting.symmetric_difference(teh.finished)
+    assert (svc.svc_a.infra.svc.hostname_or_ip.value() == "88.88.88.88",
+            "ip: {}".format(svc.svc_a.infra.svc.hostname_or_ip.value()))
+    deps, exts = ao.pte.get_dependencies()
+    assert not exts
+    assert len(deps) == 1, "deps is {}".format(deps)
+    assert ("svrB", "svrA") == (deps[0].from_task.rsrc.name, deps[0].to_task.rsrc.name)
+
+
 def do_all():
     setup_module()
     for k, v in globals().items():
