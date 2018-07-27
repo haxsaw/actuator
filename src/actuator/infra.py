@@ -361,7 +361,7 @@ class StaticServer(IPAddressable, Provisionable):
     """
     Represents an already existing server to be used in an infrastructure.
     
-    A StaticServer provides a way knit non-dynamic (virtual or cloud) resources
+    A StaticServer provides a way to knit non-dynamic (virtual or cloud) resources
     into an infra model. This resource won't be provisioned, as it already has,
     but it can be used wherever a reference to a server & L{IPAddressable} are
     required in other models.

@@ -28,10 +28,13 @@ import threading
 from errator import narrate, narrate_cm
 from actuator.modeling import AbstractModelReference, ContextExpr, CallContext
 from actuator.task import Task
-from actuator.infra import InfraModel, Provisionable
+from actuator.infra import InfraModel, Provisionable, StaticServer
 from actuator.task import TaskEngine, GraphableModelMixin
-from actuator.utils import (root_logger, LOG_INFO, get_mapper)
+from actuator.service import Service
+from actuator.utils import (root_logger, LOG_INFO, get_mapper, capture_mapping)
 
+
+_base_provisioner_map = "base_provisioner_map"
 
 class ProvisionerException(Exception):
     def __init__(self, msg, record=None):
@@ -194,14 +197,83 @@ class BaseProvisionerProxy(object):
         return self.class_mapper.get(rsrc.__class__)
 
 
-class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
+@capture_mapping(_base_provisioner_map, StaticServer)
+class NullProvisioningTask(ProvisioningTask):
+    pass
+
+
+class StaticRunContext(AbstractRunContext):
+    pass
+
+
+class StaticResourceProvisionerProxy(BaseProvisionerProxy):
+    mapper_domain_name = _base_provisioner_map
+
+    def run_context_factory(self):
+        return StaticRunContext()
+
+
+class BaseProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
     try:
         no_punc = string.maketrans(string.punctuation, "_" * len(string.punctuation))
     except AttributeError:
         no_punc = str.maketrans(string.punctuation, "_" * len(string.punctuation))
     exception_class = ProvisionerException
-    exec_agent = "rsrc_provisioning_engine"
     repeat_count = 3
+
+    def __init__(self, name, model, provisioner_proxies, num_threads=5, log_level=LOG_INFO, no_delay=True):
+        """
+        Creates a new provisioning task engine
+        :param name: name to use for logging and other activities
+        :param model: kind of GraphableModelMixin that will provide the tasks and dependencies
+        :param provisioner_proxies: a sequence of BaseProvisionerProxy objects that are able
+            to provide the assistance needed for each resource to be provisioned
+        :param num_threads: the number of threads to start when provisioning is to begin
+        :param log_level: one of the logging levels from the logging module
+        :param no_delay: bool; False if a short artificial delay should be injected prior
+            to the performance of a task.
+        """
+        for pp in provisioner_proxies:
+            if not isinstance(pp, BaseProvisionerProxy):
+                raise ProvisionerException("%s is not a kind of BaseProvisionerProxy" % str(pp))
+        self.provisioner_proxies = list(provisioner_proxies) if provisioner_proxies else []
+        for pp in self.provisioner_proxies:
+            if isinstance(pp, StaticResourceProvisionerProxy):
+                break
+        else:
+            self.provisioner_proxies.append(StaticResourceProvisionerProxy("static-auto"))
+        super(BaseProvisioningTaskEngine, self).__init__(name,
+                                                         model,
+                                                         num_threads=num_threads,
+                                                         log_level=log_level,
+                                                         no_delay=no_delay
+                                                         )
+        self.rsrc_task_map = {}
+        self.task_proxy_map = {}
+
+    @narrate(lambda _, t, **kw: "...when the task engine was asked to start preforming task {}".format(t.name))
+    def _perform_task(self, task, logfile=None):
+        self.logger.info("Starting provisioning task %s named %s, id %s" %
+                         (task.__class__.__name__, task.name, str(task._id)))
+        try:
+            task.perform(self.task_proxy_map[task])
+        finally:
+            self.logger.info("Completed attempting to provision task %s named %s, id %s" %
+                             (task.__class__.__name__, task.name, str(task._id)))
+
+    @narrate(lambda _, t, **kw: "...when a provisioning task engine worker was asked to reverse task {}".format(t.name))
+    def _reverse_task(self, task, logfile=None):
+        self.logger.info("Starting reversing task %s named %s, id %s" %
+                         (task.__class__.__name__, task.name, str(task._id)))
+        try:
+            task.reverse(self.task_proxy_map[task])
+        finally:
+            self.logger.info("Completed attempting to reverse task %s named %s, id %s" %
+                             (task.__class__.__name__, task.name, str(task._id)))
+
+
+class ProvisioningTaskEngine(BaseProvisioningTaskEngine):
+    exec_agent = "rsrc_provisioning_engine"
 
     def __init__(self, infra_model, provisioner_proxies, num_threads=5,
                  log_level=LOG_INFO, no_delay=True):
@@ -217,20 +289,15 @@ class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
         """
         if not isinstance(infra_model, InfraModel):
             raise ProvisionerException("the supplied infra_model isn't an instance of a class derived from InfraModel")
-        for pp in provisioner_proxies:
-            if not isinstance(pp, BaseProvisionerProxy):
-                raise ProvisionerException("%s is not a kind of BaseProvisionerProxy" % str(pp))
         self.logger = root_logger.getChild("prov_task_engine")
         self.infra_model = infra_model
         self.event_handler = infra_model.get_event_handler()
-        self.provisioner_proxies = provisioner_proxies
         super(ProvisioningTaskEngine, self).__init__("{}-engine".format(infra_model.name),
                                                      self,
+                                                     provisioner_proxies,
                                                      num_threads=num_threads,
                                                      log_level=log_level,
                                                      no_delay=no_delay)
-        self.rsrc_task_map = {}
-        self.task_proxy_map = {}
 
     def get_event_handler(self):
         """
@@ -360,26 +427,6 @@ class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
         self.logger.info("%d resource dependencies" % len(dependencies))
         return dependencies, external_independents
 
-    @narrate(lambda _, t, **kw: "...when the task engine was asked to start preforming task {}".format(t.name))
-    def _perform_task(self, task, logfile=None):
-        self.logger.info("Starting provisioning task %s named %s, id %s" %
-                         (task.__class__.__name__, task.name, str(task._id)))
-        try:
-            task.perform(self.task_proxy_map[task])
-        finally:
-            self.logger.info("Completed attempting to provision task %s named %s, id %s" %
-                             (task.__class__.__name__, task.name, str(task._id)))
-
-    @narrate(lambda _, t, **kw: "...when a provisioning task engine worker was asked to reverse task {}".format(t.name))
-    def _reverse_task(self, task, logfile=None):
-        self.logger.info("Starting reversing task %s named %s, id %s" %
-                         (task.__class__.__name__, task.name, str(task._id)))
-        try:
-            task.reverse(self.task_proxy_map[task])
-        finally:
-            self.logger.info("Completed attempting to reverse task %s named %s, id %s" %
-                             (task.__class__.__name__, task.name, str(task._id)))
-
     @narrate(lambda _, **kwargs: "...resulting in the provisioner task engine to start performing tasks")
     def perform_tasks(self, completion_record=None):
         self.infra_model.refs_for_components()
@@ -389,3 +436,84 @@ class ProvisioningTaskEngine(TaskEngine, GraphableModelMixin):
     def perform_reverses(self, completion_record=None):
         self.infra_model.refs_for_components()
         super(ProvisioningTaskEngine, self).perform_reverses(completion_record=completion_record)
+
+
+class ServiceProvisioningTaskEngine(BaseProvisioningTaskEngine):
+    exec_agent = "svc_rsrc_provisioning_engine"
+
+    def __init__(self, service_model, provisioner_proxies, num_threads=5,
+                 log_level=LOG_INFO, no_delay=True):
+        """
+        creates a new task engine that can parallelise provisioning across multiple infras in a service.
+        :param service_model: an instance of a Service derived class
+        :param provisioner_proxies: a sequence of BaseProvisionerProxy objects that are able
+            to provide the assistance needed for each resource to be provisioned
+        :param num_threads: the number of threads to start when provisioning is to begin
+        :param log_level: one of the logging levels from the logging module
+        :param no_delay: bool; False if a short artificial delay should be injected prior
+            to the performance of a task.
+        """
+        if not isinstance(service_model, Service):
+            raise ProvisionerException("%s is not a kind of Service model".format(service_model))
+        self.logger = root_logger.getChild("svc_prov_task_engine")
+        self.service_model = service_model
+        self.event_handler = service_model.get_event_handler()
+        super(ServiceProvisioningTaskEngine, self).__init__("service-{}-engine".format(service_model.name),
+                                                            self,
+                                                            provisioner_proxies=provisioner_proxies,
+                                                            num_threads=num_threads,
+                                                            log_level=log_level,
+                                                            no_delay=no_delay)
+        self.task_engines = {}
+
+    def get_event_handler(self):
+        """
+        Return the event handler object (if any) used to flag
+        :return:
+        """
+        return self.event_handler
+
+    @narrate("...causing initiation of collection of tasks across all service infras")
+    def get_tasks(self):
+        """
+        Returns a list of all the tasks across all the services in the service
+        :return:
+        """
+        if len(self.task_engines) == 0:
+            for svc in self.service_model.all_services():
+                self.task_engines[svc.infra.value()] = ProvisioningTaskEngine(svc.infra.value(),
+                                                                              self.provisioner_proxies)
+
+        all_tasks = []
+        for te in self.task_engines.values():
+            all_tasks.extend(te.get_tasks())
+            self.task_proxy_map.update(te.task_proxy_map)
+
+        return list(set(all_tasks))
+
+    @narrate("...which led to acquiring all service dependencies for all infra models")
+    def get_dependencies(self):
+        rsrc_task_map = {}
+        model_task_map = {}
+        for te in self.task_engines.values():
+            tasks = te.get_tasks()
+            rsrc_task_map.update({task.rsrc: task for task in tasks})
+            model_task_map[te.infra_model] = tasks
+
+        all_deps = []
+        for im, te in self.task_engines.items():
+            assert isinstance(te, ProvisioningTaskEngine)
+            deps, ext_indeps = te.get_dependencies()
+            all_deps.extend(deps)
+            for task, indep_rsrcs in ext_indeps.items():
+                for rsrc in indep_rsrcs:
+                    if rsrc not in rsrc_task_map:
+                        svcmodel_name = ("-unknown-"
+                                         if rsrc.get_model_instance() is None
+                                         else rsrc.get_model_instance().name)
+                        raise self.exception_class("Resource {} named {} from model {} can't be found in "
+                                                   "the union of all service infras".format(rsrc,
+                                                                                            rsrc.name,
+                                                                                            svcmodel_name))
+                    all_deps.append(rsrc_task_map[rsrc] | task)
+        return all_deps, {}

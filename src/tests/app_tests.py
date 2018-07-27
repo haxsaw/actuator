@@ -11,6 +11,7 @@ from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.provisioners.openstack.resources import (SecGroup, SecGroupRule)
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.core import ProvisioningTaskEngine
+from actuator.task import TaskEventHandler
 
 
 def setup_module():
@@ -1070,14 +1071,7 @@ def test052():
     """
     s = FinalSvc_052("final")
 
-    def all_svcs(i):
-        assert isinstance(i, Service)
-        svcs = [i]
-        for c in i.contained_services():
-            svcs.extend(all_svcs(c))
-        return svcs
-
-    thesvcs = all_svcs(s)
+    thesvcs = s.all_services()
     assert len(thesvcs) == 4, "the services are: {}".format(thesvcs)
 
 
@@ -1119,9 +1113,78 @@ def test053():
     assert total_ei == 1, "deps is {}".format(ei)
 
 
+class CountingTaskEventHandler(TaskEventHandler):
+    def __init__(self):
+        self.starting = set()
+        self.finished = set()
+        self.failed = set()
+        self.retry = set()
+
+    def task_starting(self, tec):
+        self.starting.add(tec)
+
+    def task_finished(self, tec):
+        self.finished.add(tec)
+
+    def task_retry(self, tec, errtext):
+        self.retry.add(tec)
+
+    def task_failed(self, tec, errtext):
+        self.failed.add(tec)
+
+
+class Infra054(InfraModel):
+    server = StaticServer("s054", "127.0.0.1")
+
+
+class Service054(Service):
+    infra = Infra054
+
+
+def test054():
+    """
+    test054: basic test of orchestration using a simple service
+    """
+    teh = CountingTaskEventHandler()
+    svc = Service054("service054", event_handler=teh)
+    ao = ActuatorOrchestration(service=svc)
+    result = ao.initiate_system()
+    assert result
+    assert len(teh.starting) == 1
+    assert len(teh.finished) == 1
+    assert not teh.starting.symmetric_difference(teh.finished)
+
+
+class Infra055(InfraModel):
+    server = StaticServer("s055", "127.0.0.1")
+
+
+class SvcInner055(Service):
+    infra = Infra055
+
+
+class SvcOuter055(Service):
+    infra = Infra055
+    inner = SvcInner055
+
+
+def test055():
+    """
+    test055: Test nested services, outer svc has it's own infra
+    """
+    teh = CountingTaskEventHandler()
+    svc = SvcOuter055("service055", services={"inner": (("inner055",), {})},
+                      event_handler=teh)
+    ao = ActuatorOrchestration(service=svc)
+    result = ao.initiate_system()
+    assert result
+    assert len(teh.starting) == 2
+    assert len(teh.finished) == 2
+    assert not teh.starting.symmetric_difference(teh.finished)
+
+
 def do_all():
     setup_module()
-    test052()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

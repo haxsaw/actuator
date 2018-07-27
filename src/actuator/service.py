@@ -3,9 +3,16 @@ import inspect
 import six
 
 
-from actuator import ModelBaseMeta, ModelReference, InfraModel, InfraModelMeta, ActuatorException, NamespaceModel, \
-    NamespaceModelMeta, ConfigModel, ConfigModelMeta, AbstractModelingEntity, process_modifiers, _Nexus, ModelComponent, \
+from actuator import ModelBaseMeta, ModelReference, InfraModel, InfraModelMeta, NamespaceModel, \
+    NamespaceModelMeta, ConfigModel, ConfigModelMeta, AbstractModelingEntity, _Nexus, ModelComponent, \
     ModelBase, VariableContainer, ModelInstanceReference, _common_vars
+from actuator.utils import process_modifiers
+from actuator.task import TaskEventHandler
+from actuator import ActuatorException
+
+
+class ServiceException(ActuatorException):
+    pass
 
 
 class ServiceMeta(ModelBaseMeta):
@@ -38,7 +45,8 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
 
     def __init__(self, name, infra=None, infra_args=_default_model_args,
                  namespace=None, namespace_args=_default_model_args,
-                 config=None, config_args=_default_model_args, services=None, **kwargs):
+                 config=None, config_args=_default_model_args, services=None,
+                 event_handler=None, **kwargs):
         """
         Creates a new instance of a service model
         :param name: string; name of the service model
@@ -71,6 +79,9 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
 
         self.service_names = set()
         self.services = {} if services is None else dict(services)
+        if event_handler is not None and not isinstance(event_handler, TaskEventHandler):
+            raise ServiceException("event_handler is not a kind of TaskEventHandler")
+        self.event_handler = event_handler
 
         self._infra = infra
         self._infra_args = infra_args
@@ -183,6 +194,9 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
         if _common_vars in self.__class__.__dict__:
             self.add_variable(*self.__class__.__dict__[_common_vars])
 
+    def get_event_handler(self):
+        return self.event_handler
+
     def _comp_source(self):
         d = {}
         for a in ("infra", "namespace", "config"):
@@ -195,10 +209,21 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
 
     def contained_services(self):
         """
-        generator that yields all the service objects in a service
+        generator that yields all the service objects directly owned by a service
         """
         for s in object.__getattribute__(self, "service_names"):
             yield object.__getattribute__(self, s)
+
+    def all_services(self):
+        """
+        returns a list of all services, starting with self, including all directly owned
+        services, and all recursively owned services
+        :return: set of services
+        """
+        result = set([self])
+        for s in self.contained_services():
+            result.update(s.all_services())
+        return result
 
     def get_init_args(self):
         return ((self.name,),

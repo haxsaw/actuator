@@ -43,7 +43,8 @@ from .task import (TaskGroup)
 from .config import (ConfigModel, with_searchpath, with_dependencies,
                      ConfigException, MultiTask, NullTask,
                      ConfigClassTask, with_config_options, ConfigModelMeta)
-from .provisioners.core import ProvisionerException, ProvisioningTaskEngine, BaseProvisionerProxy
+from .provisioners.core import (ProvisionerException, ProvisioningTaskEngine, ServiceProvisioningTaskEngine,
+                                BaseProvisionerProxy)
 from .exec_agents.core import ExecutionAgent, ExecutionException
 from .exec_agents.paramiko.agent import ParamikoExecutionAgent
 from .config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
@@ -230,7 +231,8 @@ class ActuatorOrchestration(_Persistable):
         return d
 
     def _find_persistables(self):
-        for p in [self.infra_model_inst, self.config_model_inst, self.namespace_model_inst]:
+        for p in [self.infra_model_inst, self.config_model_inst,
+                  self.namespace_model_inst, self.service]:
             if p:
                 for q in p.find_persistables():
                     yield q
@@ -276,6 +278,43 @@ class ActuatorOrchestration(_Persistable):
                 errors = self.config_ea.get_aborted_tasks()
         return errors
 
+    def initiate_service(self):
+        """
+        stands up the service given to the orchestrator
+
+        :raises ActuatorException if there is no service in the orchestrator
+
+        :return: boolean; True if stand-up is successful, False otherwise
+        """
+        if self.service is None:
+            raise ActuatorException("There is no service to initiate")
+
+        for svc in self.service.all_services():
+            svc.namespace.compute_provisioning_for_environ(svc.infra.value())
+            _ = svc.infra.refs_for_components()
+
+        if self.pte is None:
+            self.pte = ServiceProvisioningTaskEngine(self.service, self.provisioner_proxies,
+                                                     num_threads=self.num_threads, log_level=self.log_level,
+                                                     no_delay=True)
+        try:
+            self.pte.perform_tasks()
+        except ProvisionerException as e:
+            self.status = self.ABORT_PROVISION
+            self.logger.critical(">>> Provisioner failed "
+                                 "with '%s'; failed resources shown below" % str(e))
+            if self.pte is not None:
+                for t, et, ev, tb, _ in self.pte.get_aborted_tasks():
+                    self.logger.critical("Task %s named %s id %s" %
+                                         (t.__class__.__name__, t.name, str(t._id)),
+                                         exc_info=(et, ev, tb))
+            else:
+                self.logger.critical("No further information")
+            self.logger.critical("Aborting orchestration")
+            self.initiate_end_time = str(datetime.datetime.utcnow())
+            return False
+        return True
+
     @narrate("The orchestrator was asked to initiate the system")
     def initiate_system(self):
         """
@@ -287,6 +326,9 @@ class ActuatorOrchestration(_Persistable):
         
         @return: True if initiation was successful, False otherwise.
         """
+        if self.service:
+            return self.initiate_service()
+
         self.initiate_start_time = str(datetime.datetime.utcnow())
         self.logger.info("Orchestration starting")
         did_provision = False
