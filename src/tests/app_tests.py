@@ -1229,6 +1229,36 @@ def test056():
     assert ("svrB", "svrA") == (deps[0].from_task.rsrc.name, deps[0].to_task.rsrc.name)
 
 
+class NS057(NamespaceModel):
+    midpoint = channel(ctxt.model.v.ENDPOINT)
+    with_variables(Var("STARTPOINT", ctxt.model.midpoint),
+                   Var("ENDPOINT", "bingo!"))
+
+
+def test057():
+    """
+    test057: check that var that uses a channel that uses a var works
+    """
+    ns = NS057("wow")
+    assert ns.v.STARTPOINT() == "bingo!", "it was {}".format(ns.v.STARTPOINT())
+    assert ns.midpoint == "bingo!", "it was {}".format(ns.midpoint.value())
+
+
+class NS058(NamespaceModel):
+    final = "target"
+    midpoint = channel(ctxt.model.final)
+    with_variables(Var("START", ctxt.model.midpoint))
+
+
+def test058():
+    """
+    test058
+    """
+    ns = NS058("asdf")
+    assert ns.v.START() == "target", "it was {}".format(ns.v.START())
+    assert ns.midpoint == "target", "it was {}".format(ns.midpoint)
+
+
 def do_all():
     setup_module()
     for k, v in globals().items():

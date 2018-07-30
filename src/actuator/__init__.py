@@ -56,6 +56,60 @@ from actuator.service import Service
 __version__ = "0.3"
 
 
+class BaseProvisioningPrep(object):
+    def __init__(self, orch):
+        assert isinstance(orch, ActuatorOrchestration)
+        self.orch = orch
+
+    def provision_prep(self):
+        """
+        called prior to provisioning to ensure proper setup operations are taken
+        :return: A ProvisioningTaskEngine() if there is provisioning to do, else None
+        """
+        return None
+
+
+class ModelsProvisioningPrep(BaseProvisioningPrep):
+    def provision_prep(self):
+        orch = self.orch
+        pte = None
+        if orch.infra_model_inst is not None and orch.provisioner_proxies:
+            orch.status = orch.PERFORMING_PROVISION
+            orch.logger.info("Starting provisioning phase")
+            if orch.namespace_model_inst:
+                orch.namespace_model_inst.set_infra_model(orch.infra_model_inst)
+                orch.namespace_model_inst.compute_provisioning_for_environ(orch.infra_model_inst)
+            _ = orch.infra_model_inst.refs_for_components()
+            pte = ProvisioningTaskEngine(orch.infra_model_inst, orch.provisioner_proxies,
+                                         num_threads=orch.num_threads)
+        elif orch.infra_model_inst is not None:
+            # we can at least fix up the args
+            if orch.namespace_model_inst:
+                orch.namespace_model_inst.set_infra_model(orch.infra_model_inst)
+                orch.namespace_model_inst.compute_provisioning_for_environ(orch.infra_model_inst)
+            _ = orch.infra_model_inst.refs_for_components()
+        else:
+            orch.logger.info("No infra model or provisioner; skipping provisioning step")
+
+        return pte
+
+
+class ServiceProvisioningPrep(BaseProvisioningPrep):
+    def provision_prep(self):
+        orch = self.orch
+        if orch.service is None:
+            raise ActuatorException("There is no service to initiate")
+
+        for svc in orch.service.all_services():
+            svc.namespace.compute_provisioning_for_environ(svc.infra.value())
+            _ = svc.infra.refs_for_components()
+
+        pte = ServiceProvisioningTaskEngine(orch.service, orch.provisioner_proxies,
+                                            num_threads=orch.num_threads, log_level=orch.log_level,
+                                            no_delay=True)
+        return pte
+
+
 class ActuatorOrchestration(_Persistable):
     """
     Processes Actuator models to stand up the system being model (initiate a system).
@@ -278,43 +332,6 @@ class ActuatorOrchestration(_Persistable):
                 errors = self.config_ea.get_aborted_tasks()
         return errors
 
-    def initiate_service(self):
-        """
-        stands up the service given to the orchestrator
-
-        :raises ActuatorException if there is no service in the orchestrator
-
-        :return: boolean; True if stand-up is successful, False otherwise
-        """
-        if self.service is None:
-            raise ActuatorException("There is no service to initiate")
-
-        for svc in self.service.all_services():
-            svc.namespace.compute_provisioning_for_environ(svc.infra.value())
-            _ = svc.infra.refs_for_components()
-
-        if self.pte is None:
-            self.pte = ServiceProvisioningTaskEngine(self.service, self.provisioner_proxies,
-                                                     num_threads=self.num_threads, log_level=self.log_level,
-                                                     no_delay=True)
-        try:
-            self.pte.perform_tasks()
-        except ProvisionerException as e:
-            self.status = self.ABORT_PROVISION
-            self.logger.critical(">>> Provisioner failed "
-                                 "with '%s'; failed resources shown below" % str(e))
-            if self.pte is not None:
-                for t, et, ev, tb, _ in self.pte.get_aborted_tasks():
-                    self.logger.critical("Task %s named %s id %s" %
-                                         (t.__class__.__name__, t.name, str(t._id)),
-                                         exc_info=(et, ev, tb))
-            else:
-                self.logger.critical("No further information")
-            self.logger.critical("Aborting orchestration")
-            self.initiate_end_time = str(datetime.datetime.utcnow())
-            return False
-        return True
-
     @narrate("The orchestrator was asked to initiate the system")
     def initiate_system(self):
         """
@@ -326,23 +343,20 @@ class ActuatorOrchestration(_Persistable):
         
         @return: True if initiation was successful, False otherwise.
         """
-        if self.service:
-            return self.initiate_service()
-
         self.initiate_start_time = str(datetime.datetime.utcnow())
         self.logger.info("Orchestration starting")
         did_provision = False
-        if self.infra_model_inst is not None and self.provisioner_proxies:
+
+        # start with the infrastructure
+        if self.pte is None:   # we want to be sure to re-use existing task engines as they have important state
+            if self.service is not None:
+                prepper = ServiceProvisioningPrep(self)
+            else:
+                prepper = ModelsProvisioningPrep(self)
+            self.pte = prepper.provision_prep()
+        if self.pte:
             try:
-                self.status = self.PERFORMING_PROVISION
                 self.logger.info("Starting provisioning phase")
-                if self.namespace_model_inst:
-                    self.namespace_model_inst.set_infra_model(self.infra_model_inst)
-                    self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
-                _ = self.infra_model_inst.refs_for_components()
-                if self.pte is None:
-                    self.pte = ProvisioningTaskEngine(self.infra_model_inst, self.provisioner_proxies,
-                                                      num_threads=self.num_threads)
                 self.pte.perform_tasks()
                 self.logger.info("Provisioning phase complete")
                 did_provision = True
@@ -360,14 +374,6 @@ class ActuatorOrchestration(_Persistable):
                 self.logger.critical("Aborting orchestration")
                 self.initiate_end_time = str(datetime.datetime.utcnow())
                 return False
-        elif self.infra_model_inst is not None:
-            # we can at least fix up the args
-            if self.namespace_model_inst:
-                self.namespace_model_inst.set_infra_model(self.infra_model_inst)
-                self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
-            _ = self.infra_model_inst.refs_for_components()
-        else:
-            self.logger.info("No infra model or provisioner; skipping provisioning step")
 
         if self.config_model_inst is not None and self.namespace_model_inst is not None:
             pause = self.post_prov_pause

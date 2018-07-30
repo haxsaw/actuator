@@ -53,6 +53,9 @@ from actuator.utils import (find_file, persist_to_dict,
                             reanimate_from_dict)
 from actuator.infra import StaticServer
 from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
+from actuator.service import Service
+from actuator.task import TaskEventHandler
+from actuator.modeling import channel
 
 
 def setup_module():
@@ -66,6 +69,28 @@ def teardown_module():
 
 def get_engine(im):
     return ProvisioningTaskEngine(im, [OpenStackProvisionerProxy(cloud_name="wibble")])
+
+
+class CountingTaskEventHandler(TaskEventHandler):
+    def __init__(self):
+        self.order = []
+        self.starting = set()
+        self.finished = set()
+        self.failed = set()
+        self.retry = set()
+
+    def task_starting(self, tec):
+        self.order.append(tec.task.rsrc.name)
+        self.starting.add(tec)
+
+    def task_finished(self, tec):
+        self.finished.add(tec)
+
+    def task_retry(self, tec, errtext):
+        self.retry.add(tec)
+
+    def task_failed(self, tec, errtext):
+        self.failed.add(tec)
 
 
 def test001():
@@ -1486,13 +1511,80 @@ def test083():  # repeating test063 but with persistence/reanimation
     orch2.set_provisioner_proxies(provs)
     orch2.teardown_system()
     assert True
-    
+
+
+class CommonInfra084(InfraModel):
+    net = Network("route_out")
+    subnet = Subnet("router_out_subnet", ctxt.model.net,
+                    u"192.168.23.0/24", dns_nameservers=[u"8.8.8.8"])
+    router = Router("router")
+    gateway = RouterGateway("gateway", ctxt.model.router, "external")
+    interface = RouterInterface("interface", ctxt.model.router, ctxt.model.subnet)
+    group = SecGroup("secgroup", "test084 group")
+    ssh_rule = SecGroupRule("sg_rule", ctxt.model.group, ip_protocol="tcp",
+                            from_port=22, to_port=22)
+
+
+class CommonSvc084(Service):
+    infra = CommonInfra084("common-infra084")
+    group = channel(ctxt.model.infra.group)
+    network = channel(ctxt.model.infra.net)
+
+
+class DBInfra084(InfraModel):
+    server = Server("dbserver", u"Ubuntu 13.10", "m1.small",
+                    security_groups=[ctxt.model.group],
+                    nics=[ctxt.model.net])
+    fip = FloatingIP("dbserver-fip", ctxt.model.server, ctxt.model.server.iface0.addr0,
+                     pool="external")
+    net = channel()
+    group = channel()
+    server_ip = channel(ctxt.model.fip.get_ip)
+
+
+class DBService084(Service):
+    infra = DBInfra084("dbservice")
+    network = CommonSvc084("common-network")
+    infra.net = ctxt.nexus.svc.network.network
+    infra.group = ctxt.nexus.svc.network.group
+
+
+def test084():
+    """
+    test084: do a cross-linked set of nested services
+    """
+    provs = [OpenStackProvisionerProxy(cloud_name="wibble")]
+    teh = CountingTaskEventHandler()
+    svc = DBService084("test084", event_handler=teh)
+    orch = ActuatorOrchestration(service=svc, provisioner_proxies=provs)
+    result = orch.initiate_system()
+    assert result
+    assert len(teh.starting) == 9
+    assert len(teh.finished) == 9
+    assert not teh.starting.symmetric_difference(teh.finished)
+    router_idx = teh.order.index("router")
+    secgroup_idx = teh.order.index("secgroup")
+    route_out_idx = teh.order.index("route_out")
+    gateway_idx = teh.order.index("gateway")
+    sg_rule_idx = teh.order.index("sg_rule")
+    dbserver_idx = teh.order.index("dbserver")
+    subnet_idx = teh.order.index("router_out_subnet")
+    fip_idx = teh.order.index("dbserver-fip")
+    interface_idx = teh.order.index("interface")
+    assert router_idx < gateway_idx
+    assert route_out_idx < subnet_idx
+    assert route_out_idx < interface_idx
+    assert subnet_idx < interface_idx
+    assert secgroup_idx < sg_rule_idx
+    assert route_out_idx < dbserver_idx
+    assert secgroup_idx < dbserver_idx
+    assert dbserver_idx < fip_idx
+
 
 def do_all():
     setup_module()
     globs = globals()
     tests = []
-    test012()
     for k, v in globs.items():
         if k.startswith("test") and callable(v):
             tests.append(k)
