@@ -1017,7 +1017,7 @@ class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableC
         self.refs_for_components()
         for v in self._roles.values():
             v.fix_arguments()
-        self.infra.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs)
+        self.infra.compute_provisioning_from_refs(self._get_model_refs(), exclude_refs=exclude_refs)
         return set([p for p in self.infra.components()
                     if AbstractModelReference.find_ref_for_obj(p) not in exclude_refs])
 

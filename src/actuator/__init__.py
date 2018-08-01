@@ -51,7 +51,7 @@ from .config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                            CopyFileTask, ProcessCopyFileTask)
 from .utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
                     root_logger, adb, _Persistable, process_modifiers)
-from actuator.service import Service
+from actuator.service import ServiceModel
 
 __version__ = "0.3"
 
@@ -161,7 +161,7 @@ class ActuatorOrchestration(_Persistable):
             L{actuator.config.ConfigModel}. If absent, no configuration will be carried
             out, but the namespace can be interrogated after orchestration to
             determine values from any provisioned infra
-        @keyword service: Optional; an instance of a subclass of L{actuator.Service}.
+        @keyword service: Optional; an instance of a subclass of L{actuator.ServiceModel}.
             If provided, this service will be what the orchestrator stands up. The
             service argument and the infra_model_inst/namespace_model_inst/config_model_inst
             arguments are mutually exclusive; if a service is specified along with any
@@ -213,8 +213,8 @@ class ActuatorOrchestration(_Persistable):
                                     namespace_model_inst is not None):
             raise ExecutionException("You can only supply either a service or some combination of "
                                      "infra/config/namespace models, but not both")
-        if service is not None and not isinstance(service, Service):
-            raise ExecutionException("The service argument is not an instance of a Service class")
+        if service is not None and not isinstance(service, ServiceModel):
+            raise ExecutionException("The service argument is not an instance of a ServiceModel class")
         self.service = service
 
         if not (infra_model_inst is None or isinstance(infra_model_inst, InfraModel)):

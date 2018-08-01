@@ -1477,8 +1477,6 @@ class _Nexus(_Persistable):
 
 
 # tightly integrated to ModelBaseMeta to ensure storage Channel() context exprs
-# ALTERNATE NAMES:
-# hookup, hitch, channel, pathway
 class Channel(object):
     _CHANNELS = '__channels'
 
@@ -1661,6 +1659,8 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
         
         @param model_ref: 
         """
+        if isinstance(model_ref, ModelInstanceReference):
+            return model_ref
         ref = self
         for p in model_ref.get_path():
             if isinstance(p, KeyAsAttr):

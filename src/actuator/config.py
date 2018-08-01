@@ -995,6 +995,16 @@ class ConfigModel(six.with_metaclass(ConfigModelMeta, ModelBase, GraphableModelM
 
     @narrate(lambda s: "...resulting in config model %s providing the default run host for a task" %
                        s.__class__.__name__)
+    def get_run_host(self):
+        """
+        Return the host IP associated with the run_from Role for this task.
+        """
+        host = self.get_raw_run_host()
+        if isinstance(host, IPAddressable):
+            host.fix_arguments()
+            host = host.get_ip()
+        return host
+
     # def get_run_host(self):
     #     """
     #     Compute the IP address of the host where the task is to run from.
@@ -1011,16 +1021,6 @@ class ConfigModel(six.with_metaclass(ConfigModelMeta, ModelBase, GraphableModelM
     #         host.fix_arguments()
     #         host = host.get_ip()
     #     return host
-
-    def get_run_host(self):
-        """
-        Return the host IP associated with the run_from Role for this task.
-        """
-        host = self.get_raw_run_host()
-        if isinstance(host, IPAddressable):
-            host.fix_arguments()
-            host = host.get_ip()
-        return host
 
     def get_raw_run_host(self):
         """

@@ -2,7 +2,7 @@ import json
 import six
 from nose import SkipTest
 from errator import reset_all_narrations, set_default_options
-from actuator import Service, ctxt, MultiResource, ActuatorException, ActuatorOrchestration
+from actuator import ServiceModel, ctxt, MultiResource, ActuatorException, ActuatorOrchestration
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
@@ -35,7 +35,7 @@ class TestConfig(ConfigModel):
     task = NullTask("task", task_role=ctxt.nexus.ns.role)
 
 
-class TestSvc(Service):
+class TestSvc(ServiceModel):
     server_ip = ctxt.nexus.svc.infra.server.hostname_or_ip
     with_variables(Var("WIBBLE", "hiya"),
                    Var("buried", server_ip),
@@ -286,13 +286,13 @@ def test19():
     test19: check we can tell when we have the wrong kind of value for the infra class attr
     """
     try:
-        class T19a(Service):
+        class T19a(ServiceModel):
             infra = 1
         assert False, "this should have raised with infra = 1"
     except Exception as e:
         assert "'infra' attribute" in str(e)
     try:
-        class T19b(Service):
+        class T19b(ServiceModel):
             infra = TestNamespace
         assert False, "this should have raised with infra = TestNamespace"
     except Exception as e:
@@ -304,13 +304,13 @@ def test20():
     test20: check we can tell when we have the wrong kind of value for the namespace class attr
     """
     try:
-        class T20a(Service):
+        class T20a(ServiceModel):
             namespace = 1
         assert False, "this should have raised with namespace = 1"
     except Exception as e:
         assert "'namespace' attribute" in str(e)
     try:
-        class T20b(Service):
+        class T20b(ServiceModel):
             namespace = TestInfra
         assert False, "this should have raised with namespace = TestNamespace"
     except Exception as e:
@@ -322,19 +322,19 @@ def test21():
     test21: check we can tell when we have the wrong kind of value for the config class attr
     """
     try:
-        class T21a(Service):
+        class T21a(ServiceModel):
             config = 1
         assert False, "this should have raised with config = 1"
     except Exception as e:
         assert "'config' attribute" in str(e)
     try:
-        class T21b(Service):
+        class T21b(ServiceModel):
             config = TestInfra
         assert False, "this should have raised with config = TestNamespace"
     except Exception as e:
         assert "'config' attribute" in str(e)
     try:
-        class T21c(Service):
+        class T21c(ServiceModel):
             config = TestNamespace("wibble")
         assert False, "this should have raised with config = TestInfra('wibble')"
     except Exception as e:
@@ -345,7 +345,7 @@ def test022():
     """
     test022: Nest a service inside another service, connect them using Vars and context exprs
     """
-    class T22(Service):
+    class T22(ServiceModel):
         with_variables(Var("buried2", "127.0.0.1"))
         inner = TestSvc
         infra = TestInfra
@@ -362,7 +362,7 @@ def test023():
     """
     test023: Nest a service inside another service, create context expr for a var in the outer
     """
-    class T23(Service):
+    class T23(ServiceModel):
         with_variables(Var("buried2", ctxt.nexus.parent.svc.v.THE_IP),
                        Var("THE_IP", "127.0.0.1"))
         inner = TestSvc
@@ -388,7 +388,7 @@ def test024():
     """
     test024: Nest a service inside another service, fish a host ip out of another infra
     """
-    class T24(Service):
+    class T24(ServiceModel):
         with_variables(Var("buried2", ctxt.nexus.parent.svc.infra.server.hostname_or_ip),
                        Var("THE_IP", "127.0.0.1"),
                        Var("SERVER_IP", "!{THE_IP}"))
@@ -409,7 +409,7 @@ def test25():
     """
     test25: create a service with model instances instead of just classes
     """
-    class T25(Service):
+    class T25(ServiceModel):
         with_variables(Var("buried2", ctxt.nexus.svc.infra.server.hostname_or_ip),
                        Var("SERVER_IP", "127.0.0.1"))
         infra = TestInfra("t25-infra")
@@ -425,7 +425,7 @@ def test25():
     assert a.namespace.var_value("buried2") is not None
 
 
-class T26(Service):
+class T26(ServiceModel):
     with_variables(Var("buried2", ctxt.nexus.parent.svc.v.THE_IP),
                    Var("SERVER_IP", "wibble"),
                    Var("THE_IP", "127.0.0.1"))
@@ -533,7 +533,7 @@ class BaseInfra(InfraModel):
     server = StaticServer("server", "127.0.0.1")
 
 
-class BaseService(Service):
+class BaseService(ServiceModel):
     infra = BaseInfra
 
 
@@ -553,7 +553,7 @@ def test031():
     assert fs.ip_no_nexus == "127.0.0.1", "ip_no_nexus is {}".format(fs.ip_no_nexus)
 
 
-class BaseService32(Service):
+class BaseService32(ServiceModel):
     infra = BaseInfra
     theip = channel(ctxt.model.infra.server.hostname_or_ip)
 
@@ -571,7 +571,7 @@ def test032():
     assert fs.theip == "127.0.0.1", "theip is {}".format(fs.theip)
 
 
-class BaseService33(Service):
+class BaseService33(ServiceModel):
     infra = BaseInfra
     theip = channel(ctxt.model.infra.server.hostname_or_ip)
 
@@ -594,7 +594,7 @@ class BaseInfra34(InfraModel):
     server_ip = channel(ctxt.model.server.hostname_or_ip)
 
 
-class BaseService34(Service):
+class BaseService34(ServiceModel):
     infra = BaseInfra34
     theip = channel(ctxt.model.infra.server_ip)
 
@@ -609,7 +609,7 @@ def test034():
     assert fs.theip == "99.99.99.99", "wrong value for the server's theip: {}".format(fs.theip)
 
 
-class ExposeViaVar(Service):
+class ExposeViaVar(ServiceModel):
     with_variables(Var("EXPOSED", ctxt.model.theip))
     infra = BaseInfra
     theip = channel(ctxt.model.infra.server.hostname_or_ip)
@@ -629,7 +629,7 @@ class InfraMissingIP(InfraModel):
     server = StaticServer("missingip", ctxt.nexus.svc.v.SERVER_IP)
 
 
-class IPSupplierSvc(Service):
+class IPSupplierSvc(ServiceModel):
     with_variables(Var("SERVER_IP", "66.66.66.66"))
     svcip = channel(ctxt.model.infra.server.hostname_or_ip)
     infra = InfraMissingIP
@@ -648,7 +648,7 @@ class InnerInfra37(InfraModel):
     server = StaticServer("inner37", ctxt.model.container.ip)
 
 
-class Service37(Service):
+class Service37(ServiceModel):
     ip = "55.55.55.55"
     somevar = StaticServer("yum", "0.0.0.0")
     infra = InnerInfra37
@@ -743,7 +743,7 @@ class Inner42(InfraModel):
     theip = channel()
 
 
-class Outer42(Service):
+class Outer42(ServiceModel):
     infra = Inner42("inner svc")
     infra.theip = ctxt.nexus.svc.theip
     theip = "22.22.22.22"
@@ -765,7 +765,7 @@ class SubInfra1(InfraModel):
     my_cidr = channel(ctxt.model.srvr.get_cidr4)
 
 
-class SubSvc1(Service):
+class SubSvc1(ServiceModel):
     infra = SubInfra1("sub1")
     the_cidr = channel(ctxt.model.infra.my_cidr)
 
@@ -778,13 +778,13 @@ class SubInfra2(InfraModel):
     allowed_peer = channel()
 
 
-class SubSvc2(Service):
+class SubSvc2(ServiceModel):
     infra = SubInfra2("sub2")
     infra.allowed_peer = ctxt.nexus.svc.conn_pt
     conn_pt = channel()
 
 
-class Svc43(Service):
+class Svc43(ServiceModel):
     sub1 = SubSvc1("ss1")
     sub2 = SubSvc2("ss2")
     sub2.conn_pt = ctxt.nexus.parent.svc.sub1.the_cidr
@@ -853,7 +853,7 @@ class SubInfra1_046(InfraModel):
     my_cidr = channel(ctxt.model.srvr.get_cidr4)
 
 
-class SubSvc1_046(Service):
+class SubSvc1_046(ServiceModel):
     infra = SubInfra1_046("sub1")
     the_cidr = channel(ctxt.model.infra.my_cidr)
 
@@ -866,13 +866,13 @@ class SubInfra2_046(InfraModel):
     allowed_peer = channel()
 
 
-class SubSvc2_046(Service):
+class SubSvc2_046(ServiceModel):
     infra = SubInfra2_046("sub2")
     infra.allowed_peer = ctxt.nexus.svc.conn_pt
     conn_pt = channel()
 
 
-class Svc046(Service):
+class Svc046(ServiceModel):
     sub1 = SubSvc1_046("ss1")
     sub2 = SubSvc2_046("ss2")
     sub2.conn_pt = ctxt.nexus.parent.svc.sub1.the_cidr
@@ -898,7 +898,7 @@ class Infra047(InfraModel):
     # instance of Svc047. This is because we don't chase across chained context expressions
     # for attribute values like we do for channel() attributes. Nonetheless you get the right
     # answer, as you'd only get an different dependency between the Rule and the Server instead
-    # of the Rule and the Service. Since the Service is dependent on the Server, the net effect
+    # of the Rule and the ServiceModel. Since the ServiceModel is dependent on the Server, the net effect
     # is the same. An open question is whether we should make argument resolution also
     # chain through
     sgr = SecGroupRule("rest", ctxt.model.sg,
@@ -908,7 +908,7 @@ class Infra047(InfraModel):
     svr = StaticServer("server047", ctxt.model.allowed_ip)
 
 
-class Svc047(Service):
+class Svc047(ServiceModel):
     infra = Infra047("wamble")
     theip = "75.75.75.75"
     infra.allowed_ip = ctxt.nexus.svc.theip
@@ -931,7 +931,7 @@ def test047():
     assert i.infra.svr.hostname_or_ip.value() == "75.75.75.75"
 
 
-class Svc048(Service):
+class Svc048(ServiceModel):
     recover = channel(ctxt.model.wibble)
     wibble = "wobble"
 
@@ -950,7 +950,7 @@ def test048():
     assert ["wibble", "model"] == path, "path is {}".format(path)
 
 
-class Svc049(Service):
+class Svc049(ServiceModel):
     recover = channel()
     someattr = "glee"
 
@@ -981,7 +981,7 @@ class DerivedInfra050(BaseInfra050):
     host = ctxt.model.svr
 
 
-class Svc050(Service):
+class Svc050(ServiceModel):
     infra = DerivedInfra050("50")
 
 
@@ -1003,7 +1003,7 @@ class SubInfra1_051(InfraModel):
     my_cidr = channel(ctxt.model.srvr.get_cidr4)
 
 
-class SubSvc1_051(Service):
+class SubSvc1_051(ServiceModel):
     infra = SubInfra1_051("sub1")
     the_cidr = channel(ctxt.model.infra.my_cidr)
 
@@ -1016,13 +1016,13 @@ class SubInfra2_051(InfraModel):
     allowed_peer = channel()
 
 
-class SubSvc2_051(Service):
+class SubSvc2_051(ServiceModel):
     infra = SubInfra2_051("sub2")
     infra.allowed_peer = ctxt.nexus.svc.conn_pt
     conn_pt = channel()
 
 
-class Svc051(Service):
+class Svc051(ServiceModel):
     sub1 = SubSvc1_051("ss1")
     sub2 = SubSvc2_051("ss2")
     sub2.conn_pt = ctxt.nexus.parent.svc.sub1.the_cidr
@@ -1048,19 +1048,19 @@ class BaseInfra052(InfraModel):
     pass
 
 
-class DeepBaseSvc_052(Service):
+class DeepBaseSvc_052(ServiceModel):
     infra = BaseInfra052("deepinfra")
 
 
-class BaseSvc1_052(Service):
+class BaseSvc1_052(ServiceModel):
     dbs = DeepBaseSvc_052("dbs1")
 
 
-class BaseSvc2_052(Service):
+class BaseSvc2_052(ServiceModel):
     infra = BaseInfra052("annuder")
 
 
-class FinalSvc_052(Service):
+class FinalSvc_052(ServiceModel):
     svc1 = BaseSvc1_052("svc1")
     svc2 = BaseSvc2_052("svc2")
 
@@ -1079,7 +1079,7 @@ class SvcInfra1_053(InfraModel):
     sg = SecGroup("sg053")
 
 
-class Svc1_053(Service):
+class Svc1_053(ServiceModel):
     infra = SvcInfra1_053("sg")
 
 
@@ -1089,12 +1089,12 @@ class SvcInfra2_053(InfraModel):
                        cidr="127.0.0.1/32")
 
 
-class Svc2_053(Service):
+class Svc2_053(ServiceModel):
     infra = SvcInfra2_053("sgr053")
     thesg = channel()
 
 
-class TopSvc_053(Service):
+class TopSvc_053(ServiceModel):
     svc1 = Svc1_053("svc1")
     svc2 = Svc2_053("svc2")
     svc2.thesg = ctxt.nexus.parent.svc.svc1.infra.sg
@@ -1137,7 +1137,7 @@ class Infra054(InfraModel):
     server = StaticServer("s054", "127.0.0.1")
 
 
-class Service054(Service):
+class Service054(ServiceModel):
     infra = Infra054
 
 
@@ -1159,11 +1159,11 @@ class Infra055(InfraModel):
     server = StaticServer("s055", "127.0.0.1")
 
 
-class SvcInner055(Service):
+class SvcInner055(ServiceModel):
     infra = Infra055
 
 
-class SvcOuter055(Service):
+class SvcOuter055(ServiceModel):
     infra = Infra055
     inner = SvcInner055
 
@@ -1187,7 +1187,7 @@ class Infra056A(InfraModel):
     svc = StaticServer("svrA", ctxt.nexus.svc.ip)
 
 
-class Svc056A(Service):
+class Svc056A(ServiceModel):
     infra = Infra056A("wibble")
     ip = channel()
 
@@ -1196,12 +1196,12 @@ class Infra056B(InfraModel):
     svc = StaticServer("svrB", "88.88.88.88")
 
 
-class Svc056B(Service):
+class Svc056B(ServiceModel):
     infra = Infra056B("wobble")
     ip = channel(ctxt.nexus.svc.infra.svc.hostname_or_ip)
 
 
-class Svc056(Service):
+class Svc056(ServiceModel):
     svc_a = Svc056A("inner_a")
     svc_b = Svc056B("inner_b")
     svc_a.ip = ctxt.nexus.parent.svc.svc_b.ip
@@ -1221,8 +1221,8 @@ def test056():
     assert len(teh.starting) == 2
     assert len(teh.finished) == 2
     assert not teh.starting.symmetric_difference(teh.finished)
-    assert (svc.svc_a.infra.svc.hostname_or_ip.value() == "88.88.88.88",
-            "ip: {}".format(svc.svc_a.infra.svc.hostname_or_ip.value()))
+    assert svc.svc_a.infra.svc.hostname_or_ip.value() == "88.88.88.88",  \
+           "ip: {}".format(svc.svc_a.infra.svc.hostname_or_ip.value())
     deps, exts = ao.pte.get_dependencies()
     assert not exts
     assert len(deps) == 1, "deps is {}".format(deps)
@@ -1252,11 +1252,160 @@ class NS058(NamespaceModel):
 
 def test058():
     """
-    test058
+    test058: have a variable ref a channel that refs a plain attribute
     """
     ns = NS058("asdf")
     assert ns.v.START() == "target", "it was {}".format(ns.v.START())
     assert ns.midpoint == "target", "it was {}".format(ns.midpoint)
+
+
+class NS059(NamespaceModel):
+    with_variables(Var("START", ctxt.model.middle))
+    middle = channel(ctxt.model.v.END)
+    with_variables(Var("END", ctxt.model.v.START))
+
+
+def test059():
+    """
+    test059: check that a var loop involving a channel is detected
+    """
+    # FIXME
+    # This test is deactivated for now, as it points up an issue that is too broad
+    # to address at this time. While we are able to detect reference cycles within
+    # a homogeneous reference space (all variables, only model components), we can't
+    # detect cycles where we change the reference space. For instance, in this test,
+    # the variable START references a channel named 'middle', which has a context
+    # expression that takes it to a variable named END. However, the value of END
+    # is a reference to the START variable. Only variables actively detect cycles,
+    # although when models attempt to build execution graphs for their components
+    # they will also detect cycles. However, the arrangement in this test won't detect
+    # the cycle, and that causes a stack overflow runtime error. *This is not easy to
+    # fix*, as it would involve somehow tracking a path more globally to see if you
+    # get back to where you were before. Until we can dedicate some time to addressing
+    # this, this will just have to remain an issue that still needs to be resolved.
+    raise SkipTest("Difficult problem that we don't have the time to fix right now")
+    ns = NS059("059")
+    try:
+        value = ns.v.START()
+        assert False, "this should not have been allowed: {}".format(value)
+    except Exception as e:
+        pass
+
+
+class NS060(NamespaceModel):
+    start = channel(ctxt.model.middle)
+    middle = channel(ctxt.model.end)
+    end = channel(ctxt.model.start)
+
+
+def test060():
+    """
+    test060: check that a channel loop is detected
+    """
+    # FIXME
+    # This test is deactivated for now, as it points up an issue that is too broad
+    # to address at this time. While we are able to detect reference cycles within
+    # a homogeneous reference space (all variables, only model components), we can't
+    # detect cycles where we change the reference space. For instance, in this test,
+    # the variable START references a channel named 'middle', which has a context
+    # expression that takes it to a variable named END. However, the value of END
+    # is a reference to the START variable. Only variables actively detect cycles,
+    # although when models attempt to build execution graphs for their components
+    # they will also detect cycles. However, the arrangement in this test won't detect
+    # the cycle, and that causes a stack overflow runtime error. *This is not easy to
+    # fix*, as it would involve somehow tracking a path more globally to see if you
+    # get back to where you were before. Until we can dedicate some time to addressing
+    # this, this will just have to remain an issue that still needs to be resolved.
+    raise SkipTest("Difficult problem that we don't have the time to fix right now")
+    ns = NS060("asdf")
+    try:
+        value = ns.start
+        assert False, "this should not have been allowed: {}".format(value)
+    except Exception as e:
+        pass
+
+
+class Inf061(InfraModel):
+    server = StaticServer("test061", "25.25.25.25")
+    server_ip = channel(ctxt.model.server.hostname_or_ip)
+
+
+class NS061(NamespaceModel):
+    with_variables(Var("SERVER_IP", ctxt.model.ippath))
+    ippath = channel()
+
+
+class Service061(ServiceModel):
+    infra = Inf061("wibble")
+    namespace = NS061("wobble")
+    namespace.ippath = ctxt.nexus.svc.infra.server_ip
+
+
+def test061():
+    """
+    test061: check that a variable can be populated from a cross-model channel
+    """
+    svc = Service061("061")
+    svc.fix_arguments()
+    assert svc.namespace.v.SERVER_IP() == "25.25.25.25", "the ip is {}".format(svc.namespace.v.SERVER_IP())
+
+
+class Inf062(InfraModel):
+    server = StaticServer("test061", ctxt.model.server_ip)
+    server_ip = channel()
+
+
+class NS062(NamespaceModel):
+    with_variables(Var("SERVER_IP", "23.23.23.23"))
+    ippath = channel(ctxt.model.v.SERVER_IP)
+
+
+class Service062(ServiceModel):
+    infra = Inf062("asdf")
+    namespace = NS062("dfg")
+    infra.server_ip = ctxt.nexus.svc.namespace.ippath
+
+
+def test062():
+    """
+    test062: check that param can be fetched from a var using channels
+    """
+    service = Service062("test062")
+    service.fix_arguments()
+    assert service.infra.server.hostname_or_ip.value() == "23.23.23.23", \
+        "it was {}".format(service.infra.server.hostname_or_ip.value())
+
+
+class Infra063(InfraModel):
+    svr = StaticServer("wibble", "127.0.0.1")
+
+
+class NS063(NamespaceModel):
+    s = Role("s", host_ref=ctxt.model.svchost)
+    svchost = channel()
+
+
+class Cfg063(ConfigModel):
+    t = NullTask("nul063", task_role=ctxt.model.taskhost)
+    taskrole = channel()
+
+
+class Svc063(ServiceModel):
+    infra = Infra063("infra")
+    namespace = NS063("ns")
+    config = Cfg063("cfg")
+    namespace.svchost = ctxt.nexus.svc.infra.svr
+    config.taskrole = ctxt.nexus.svc.namespace.svchost
+
+
+def test063():
+    """
+    test063: initial test of service support for configuration
+    """
+    svc = Svc063("wibble")
+    ao = ActuatorOrchestration(service=svc)
+    result = ao.initiate_system()
+    assert result
 
 
 def do_all():

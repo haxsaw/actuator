@@ -37,7 +37,7 @@ class ServiceMeta(ModelBaseMeta):
 _default_model_args = (("_UNNAMED_",), {})
 
 
-class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, VariableContainer)):
+class ServiceModel(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, VariableContainer)):
     ref_class = ModelInstanceReference
     infra = InfraModel
     namespace = NamespaceModel
@@ -68,14 +68,14 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
             Ignored if the config parameter is specified. If used, self.config must be a subvlass
             of ConfigModel.
         :param services: optional; a dict whose keys are names of services and whose values can
-            be one of two things: they can be a Service instance, or they can be a sequence of
+            be one of two things: they can be a ServiceModel instance, or they can be a sequence of
             [(), {}] parameters that can be used to instantiate a service. In this latter
-            case, the Service that is "self" must have an attribute of the same name that is
-            a Service model class to which these parameters will be applied to create a service
+            case, the ServiceModel that is "self" must have an attribute of the same name that is
+            a ServiceModel model class to which these parameters will be applied to create a service
             instance. The new instance will be added as a new attribute of self with the name
             of the key in the services dict.
         """
-        super(Service, self).__init__(name, **kwargs)
+        super(ServiceModel, self).__init__(name, **kwargs)
 
         self.service_names = set()
         self.services = {} if services is None else dict(services)
@@ -150,21 +150,21 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
         #
         # first, we'll look for class attributes that are either service classes or instances
         for k, v in self.__class__.__dict__.items():
-            if isinstance(v, (Service, ServiceMeta)):
+            if isinstance(v, (ServiceModel, ServiceMeta)):
                 if isinstance(v, ServiceMeta):
                     # then we have an inner service to instantiate; look for the args or an inst
                     if k not in self.services:
                         raise ActuatorException("No init args for service '{}'".format(k))
                     args = self.services[k]
-                    if isinstance(args, Service):
+                    if isinstance(args, ServiceModel):
                         newsvc = args
                         del self.services[k]  # this is a service which we
                     elif isinstance(args, collections.Sequence):
                         newsvc = v(*args[0], **args[1])
                     else:
                         raise ActuatorException("services entry for service '{}' isn't an instance "
-                                                "of a kind of a Service or sequence of args".format(k))
-                else:  # must be a Service instance; clone it
+                                                "of a kind of a ServiceModel or sequence of args".format(k))
+                else:  # must be a ServiceModel instance; clone it
                     newsvc = v.clone()
                 setattr(self, k, newsvc)
                 self.service_names.add(k)
@@ -174,7 +174,7 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
         for k, v in self.services.items():
             if k in self.service_names:
                 continue  # already covered
-            if isinstance(v, Service):
+            if isinstance(v, ServiceModel):
                 # something someone just decided to toss in here
                 setattr(self, k, v)
                 self.service_names.add(k)
@@ -244,7 +244,7 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
         self.service_names = set(self.service_names)
 
     def _fix_arguments(self):
-        super(Service, self)._fix_arguments()
+        super(ServiceModel, self)._fix_arguments()
         comps = self.namespace.compute_provisioning_for_environ(self.infra.value())
         for comp in comps:
             comp.fix_arguments()
@@ -255,7 +255,7 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
         self.config.fix_arguments()
 
     def _get_attrs_dict(self):
-        d = super(Service, self)._get_attrs_dict()
+        d = super(ServiceModel, self)._get_attrs_dict()
         d.update({"name": self.name,
                   "infra": self.infra.value(),
                   "_infra_args": self._infra_args,
@@ -271,7 +271,7 @@ class Service(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Variabl
         return d
 
     def _find_persistables(self):
-        for p in super(Service, self)._find_persistables():
+        for p in super(ServiceModel, self)._find_persistables():
             yield p
 
         for p in [self.infra, self._infra, self.namespace, self._namespace,

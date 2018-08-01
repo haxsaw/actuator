@@ -362,4 +362,3 @@ class ExecutionAgent(TaskEngine):
                 raise self.exception_class("Tasks aborted causing reverse to abort; see the execution agent's aborted_tasks list for details")
         else:
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
-

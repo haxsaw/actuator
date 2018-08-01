@@ -53,7 +53,7 @@ from actuator.utils import (find_file, persist_to_dict,
                             reanimate_from_dict)
 from actuator.infra import StaticServer
 from actuator.provisioners.openstack.resource_tasks import ProvisionNetworkTask
-from actuator.service import Service
+from actuator.service import ServiceModel
 from actuator.task import TaskEventHandler
 from actuator.modeling import channel
 
@@ -1525,7 +1525,7 @@ class CommonInfra084(InfraModel):
                             from_port=22, to_port=22)
 
 
-class CommonSvc084(Service):
+class CommonSvc084(ServiceModel):
     infra = CommonInfra084("common-infra084")
     group = channel(ctxt.model.infra.group)
     network = channel(ctxt.model.infra.net)
@@ -1542,7 +1542,7 @@ class DBInfra084(InfraModel):
     server_ip = channel(ctxt.model.fip.get_ip)
 
 
-class DBService084(Service):
+class DBService084(ServiceModel):
     infra = DBInfra084("dbservice")
     network = CommonSvc084("common-network")
     infra.net = ctxt.nexus.svc.network.network

@@ -30,7 +30,7 @@ from actuator.modeling import AbstractModelReference, ContextExpr, CallContext
 from actuator.task import Task
 from actuator.infra import InfraModel, Provisionable, StaticServer
 from actuator.task import TaskEngine, GraphableModelMixin
-from actuator.service import Service
+from actuator.service import ServiceModel
 from actuator.utils import (root_logger, LOG_INFO, get_mapper, capture_mapping)
 
 
@@ -447,7 +447,7 @@ class ServiceProvisioningTaskEngine(BaseProvisioningTaskEngine):
                  log_level=LOG_INFO, no_delay=True):
         """
         creates a new task engine that can parallelise provisioning across multiple infras in a service.
-        :param service_model: an instance of a Service derived class
+        :param service_model: an instance of a ServiceModel derived class
         :param provisioner_proxies: a sequence of BaseProvisionerProxy objects that are able
             to provide the assistance needed for each resource to be provisioned
         :param num_threads: the number of threads to start when provisioning is to begin
@@ -455,8 +455,8 @@ class ServiceProvisioningTaskEngine(BaseProvisioningTaskEngine):
         :param no_delay: bool; False if a short artificial delay should be injected prior
             to the performance of a task.
         """
-        if not isinstance(service_model, Service):
-            raise ProvisionerException("%s is not a kind of Service model".format(service_model))
+        if not isinstance(service_model, ServiceModel):
+            raise ProvisionerException("%s is not a kind of ServiceModel model".format(service_model))
         self.logger = root_logger.getChild("svc_prov_task_engine")
         self.service_model = service_model
         self.event_handler = service_model.get_event_handler()

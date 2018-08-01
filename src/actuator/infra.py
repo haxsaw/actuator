@@ -298,9 +298,9 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
         to satisfy the refs. An optional collection of model refs can be supplied and any
         ref in both collections will be skipped when computing the Provisionables.
         
-        @param modelrefs: an iterable of InfraModelReference instances for the model this
+        @param modelrefs: an iterable of ModelInstanceReference instances for the model this
             SystemSpec instance is for
-        @param exclude_refs: an iterable of InfraModelReference instances whioh should not
+        @param exclude_refs: an iterable of ModelInstanceReference instances whioh should not
             be considered when computing Provisionables (this will be skipped)
         """
         if self.provisioning_computed:

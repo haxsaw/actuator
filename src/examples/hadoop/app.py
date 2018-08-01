@@ -1,11 +1,11 @@
 
-from actuator import Service, ctxt
+from actuator import ServiceModel, ctxt
 from actuator.namespace import with_variables, Var
 
 from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 
 
-class HadoopService(Service):
+class HadoopService(ServiceModel):
     with_variables(Var("WIBBLE", "hiya"))
     infra = HadoopInfra
     namespace = HadoopNamespace
@@ -13,7 +13,7 @@ class HadoopService(Service):
     summat = 1
 
 
-class OuterService(Service):
+class OuterService(ServiceModel):
     with_services(hadoop=HadoopService,
                   db=DBService,
                   db_backup=DBService)
@@ -22,13 +22,13 @@ class OuterService(Service):
     config = SummatElseConfig
 
 
-class DatabaseService(Service):
+class DatabaseService(ServiceModel):
     infra = DBInfra(...)
     namespace = DBNamespace(...)
     config = DBConfig(...)
 
 
-class MsgAreaService(Service):
+class MsgAreaService(ServiceModel):
     with_variables(Var("DBHOST", None),
                    Var("DBADMINUSER", None),
                    Var("DBADMINPWD", None),
@@ -39,7 +39,7 @@ class MsgAreaService(Service):
     config = MAConfig(...)
 
 
-class OSRMService(Service):
+class OSRMService(ServiceModel):
     with_variables(Var("DBHOST", None),
                    Var("DBADMINUSER", None),
                    Var("DBADMINPWD", None),
