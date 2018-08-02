@@ -79,17 +79,17 @@ class CountingTaskEventHandler(TaskEventHandler):
         self.failed = set()
         self.retry = set()
 
-    def task_starting(self, tec):
+    def task_starting(self, model, tec):
         self.order.append(tec.task.rsrc.name)
         self.starting.add(tec)
 
-    def task_finished(self, tec):
+    def task_finished(self, model, tec):
         self.finished.add(tec)
 
-    def task_retry(self, tec, errtext):
+    def task_retry(self, model, tec, errtext):
         self.retry.add(tec)
 
-    def task_failed(self, tec, errtext):
+    def task_failed(self, model, tec, errtext):
         self.failed.add(tec)
 
 
@@ -1556,7 +1556,7 @@ def test084():
     provs = [OpenStackProvisionerProxy(cloud_name="wibble")]
     teh = CountingTaskEventHandler()
     svc = DBService084("test084", event_handler=teh)
-    orch = ActuatorOrchestration(service=svc, provisioner_proxies=provs)
+    orch = ActuatorOrchestration(service=svc, provisioner_proxies=provs, post_prov_pause=0)
     result = orch.initiate_system()
     assert result
     assert len(teh.starting) == 9

@@ -55,7 +55,7 @@ def compute_pos(opos, xyrange, win_xysize):
         the source coordinate system; that is, any value for opos would be able
         to be found within this range.
     @param win_xysize: sequence of length 2 that represents the destination
-        coordinate system size. THis is generally the size of window where
+        coordinate system size. This is generally the size of window where
         something should be drawn
     @return: a 2-tuple of the mapped xy postion of the new point in the
         win_xysize coordinate system

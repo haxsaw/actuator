@@ -31,7 +31,7 @@ class TaskEventDispatcher(EventDispatcher):
         self.register_event_type("on_redraw_task")
         super(TaskEventDispatcher, self).__init__(**kwargs)
 
-    def task_event_received(self, tec, errtext=None):
+    def task_event_received(self, model, tec, errtext=None):
         self.dispatch('on_redraw_task', tec, errtext)
 
     def on_redraw_task(self, tec, errtext=None):
@@ -59,19 +59,20 @@ class TaskEventManager(TaskEventHandler):
             self.app.setup_for_graph(graph, label=model.__class__.__name__)
             self.app.render_graph()
 
-    def task_starting(self, tec):
-        self.ted.task_event_received(tec)
+    def task_starting(self, model, tec):
+        self.ted.task_event_received(model, tec)
 
-    def task_finished(self, tec):
-        self.ted.task_event_received(tec)
+    def task_finished(self, model, tec):
+        self.ted.task_event_received(model, tec)
 
-    def task_retry(self, tec, errtext=None):
-        self.ted.task_event_received(tec, errtext)
+    def task_retry(self, model, tec, errtext=None):
+        self.ted.task_event_received(model, tec, errtext)
 
-    def task_failed(self, tec, errtext=None):
-        self.ted.task_event_received(tec, errtext)
+    def task_failed(self, model, tec, errtext=None):
+        self.ted.task_event_received(model, tec, errtext)
 
     def update_task(self, tec, errtext=None):
+        # FIXME this needs to have the model added.
         while self.app is None:
             # it's possible that events come in so fast that the display isn't ready yet; this is
             # only a startup issue, so a short delay will allow that startup to complete and then

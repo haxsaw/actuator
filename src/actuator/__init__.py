@@ -46,7 +46,7 @@ from .config import (ConfigModel, with_searchpath, with_dependencies,
 from .provisioners.core import (ProvisionerException, ProvisioningTaskEngine, ServiceProvisioningTaskEngine,
                                 BaseProvisionerProxy)
 from .exec_agents.core import ExecutionAgent, ExecutionException
-from .exec_agents.paramiko.agent import ParamikoExecutionAgent
+from .exec_agents.paramiko.agent import ParamikoExecutionAgent, ParamikoServiceExecutionAgent
 from .config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                            CopyFileTask, ProcessCopyFileTask)
 from .utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
@@ -194,6 +194,9 @@ class ActuatorOrchestration(_Persistable):
             contents of which will be ignored by Actuator. The dict will be persisted
             along with all other data in the orchestrator, hence both keys and values
             must be objects that can be stored to/from JSON
+        @keyword event_handler: optional; instance L{task.TaskEventHandler} derived class. This
+            instance will be installed as the event handler for all infra and config models. This
+            instance will only be installed if there isn't already an event handler on the model.
 
         @raise ExecutionException: In the following circumstances this method
         will raise actuator.ExecutionException:
@@ -246,7 +249,12 @@ class ActuatorOrchestration(_Persistable):
         self.initiate_end_time = None
         self.num_threads = num_threads
 
-        if self.config_model_inst is not None:
+        if self.service:
+            self.config_ea = ParamikoServiceExecutionAgent(self.service,
+                                                           num_threads=self.num_threads,
+                                                           no_delay=no_delay,
+                                                           log_level=self.log_level)
+        elif self.config_model_inst is not None:
             self.config_ea = ParamikoExecutionAgent(config_model_instance=self.config_model_inst,
                                                     namespace_model_instance=self.namespace_model_inst,
                                                     num_threads=self.num_threads,
@@ -264,6 +272,9 @@ class ActuatorOrchestration(_Persistable):
             self.infra_model_inst.set_event_handler(handler)
         if self.config_model_inst:
             self.config_model_inst.set_event_handler(handler)
+        if self.service:
+            for svc in self.service.all_services():
+                svc.set_event_handler(handler)
 
     def _get_attrs_dict(self):
         d = super(ActuatorOrchestration, self)._get_attrs_dict()
@@ -375,7 +386,8 @@ class ActuatorOrchestration(_Persistable):
                 self.initiate_end_time = str(datetime.datetime.utcnow())
                 return False
 
-        if self.config_model_inst is not None and self.namespace_model_inst is not None:
+        if ((self.config_model_inst is not None and self.namespace_model_inst is not None) or
+                self.service is not None):
             pause = self.post_prov_pause
             if pause and did_provision:
                 self.logger.info("Pausing %d secs before starting config" % pause)

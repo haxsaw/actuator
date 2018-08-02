@@ -197,6 +197,11 @@ class ServiceModel(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Va
     def get_event_handler(self):
         return self.event_handler
 
+    def set_event_handler(self, event_handler):
+        self.event_handler = event_handler
+        self.infra.set_event_handler(event_handler)
+        self.config.set_event_handler(event_handler)
+
     def _comp_source(self):
         d = {}
         for a in ("infra", "namespace", "config"):

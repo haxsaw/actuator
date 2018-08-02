@@ -1120,16 +1120,16 @@ class CountingTaskEventHandler(TaskEventHandler):
         self.failed = set()
         self.retry = set()
 
-    def task_starting(self, tec):
+    def task_starting(self, model, tec):
         self.starting.add(tec)
 
-    def task_finished(self, tec):
+    def task_finished(self, model, tec):
         self.finished.add(tec)
 
-    def task_retry(self, tec, errtext):
+    def task_retry(self, model, tec, errtext):
         self.retry.add(tec)
 
-    def task_failed(self, tec, errtext):
+    def task_failed(self, model, tec, errtext):
         self.failed.add(tec)
 
 
@@ -1147,7 +1147,7 @@ def test054():
     """
     teh = CountingTaskEventHandler()
     svc = Service054("service054", event_handler=teh)
-    ao = ActuatorOrchestration(service=svc)
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
     result = ao.initiate_system()
     assert result
     assert len(teh.starting) == 1
@@ -1175,7 +1175,7 @@ def test055():
     teh = CountingTaskEventHandler()
     svc = SvcOuter055("service055", services={"inner": (("inner055",), {})},
                       event_handler=teh)
-    ao = ActuatorOrchestration(service=svc)
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
     result = ao.initiate_system()
     assert result
     assert len(teh.starting) == 2
@@ -1215,7 +1215,7 @@ def test056():
     teh = CountingTaskEventHandler()
     svc = Svc056("service056",
                  event_handler=teh)
-    ao = ActuatorOrchestration(service=svc)
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
     result = ao.initiate_system()
     assert result
     assert len(teh.starting) == 2
@@ -1386,7 +1386,7 @@ class NS063(NamespaceModel):
 
 
 class Cfg063(ConfigModel):
-    t = NullTask("nul063", task_role=ctxt.model.taskhost)
+    t = NullTask("nul063", task_role=ctxt.model.taskrole)
     taskrole = channel()
 
 
@@ -1402,14 +1402,141 @@ def test063():
     """
     test063: initial test of service support for configuration
     """
+    eh = CountingTaskEventHandler()
     svc = Svc063("wibble")
-    ao = ActuatorOrchestration(service=svc)
+    svc.config.set_event_handler(eh)
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
     result = ao.initiate_system()
     assert result
+    assert len(eh.starting) == 1
+
+
+class NSInner064(NamespaceModel):
+    with_variables(Var("QUESTION", ctxt.model.source))
+    source = channel()
+
+
+class SvcInner064(ServiceModel):
+    namespace = NSInner064("inner")
+    namespace.source = ctxt.nexus.svc.bridge
+    bridge = channel()
+
+
+class NSOuter064(NamespaceModel):
+    with_variables(Var("TARGET", "answer"))
+    answer = channel(ctxt.model.v.TARGET)
+
+
+class SvcOuter064(ServiceModel):
+    namespace = NSOuter064("outer")
+    inner_svc = SvcInner064("inner-svc")
+    inner_svc.bridge = ctxt.nexus.parent.svc.namespace.answer
+
+
+def test064():
+    """
+    test064: checking that a namespace in a nested service can get a var value from outside
+    """
+    svc = SvcOuter064("test")
+    svc.fix_arguments()
+    assert svc.inner_svc.namespace.v.QUESTION() == "answer"
+
+
+class NSInner065(NamespaceModel):
+    role = Role("inner_role", host_ref=ctxt.model.the_host)
+    the_host = channel()
+
+
+class SvcInner065(ServiceModel):
+    namespace = NSInner065("inner_ns")
+    namespace.the_host = ctxt.nexus.svc.supplied_host
+    supplied_host = channel()
+
+
+class InfraOuter065(InfraModel):
+    server = StaticServer("t065outer", "67.67.67.67")
+
+
+class SvcOuter065(ServiceModel):
+    infra = InfraOuter065("outer")
+    inner_svc = SvcInner065("inner")
+    inner_svc.supplied_host = ctxt.nexus.parent.svc.infra.server
+
+
+def test065():
+    """
+    test065: check that a role in a inner svc namespace can get the host from an outer infra
+    """
+    svc = SvcOuter065("outer")
+    svc.fix_arguments()
+    assert svc.infra.server.value() is svc.inner_svc.namespace.role.host_ref.value()
+
+
+class NSInner1_066(NamespaceModel):
+    role = Role("inner1", host_ref=ctxt.model.host1)
+    host1 = channel()
+
+
+class ConfigInner1_066(ConfigModel):
+    task = NullTask("cfg1_inner", task_role=ctxt.model.role)
+    role = channel()
+
+
+class SvcInner1_066(ServiceModel):
+    namespace = NSInner1_066("asfd")
+    config = ConfigInner1_066("asdf")
+    config.role = ctxt.nexus.svc.namespace.role
+    host1 = channel()
+    namespace.host1 = ctxt.nexus.svc.host1
+
+
+class NSInner2_066(NamespaceModel):
+    role = Role("inner2", host_ref=ctxt.model.host2)
+    host2 = channel()
+
+
+class ConfigInner2_066(ConfigModel):
+    task = NullTask("cfg2_inner", task_role=ctxt.model.role)
+    role = channel()
+
+
+class SvcInner2_066(ServiceModel):
+    namespace = NSInner2_066("asfd")
+    config = ConfigInner2_066("asdg")
+    config.role = ctxt.nexus.svc.namespace.role
+    host2 = channel()
+    namespace.host2 = ctxt.nexus.svc.host2
+
+
+class Infra066(InfraModel):
+    server = StaticServer("adkfh", "89.89.98.98")
+
+
+class SvcOuter_066(ServiceModel):
+    infra = Infra066("asdfas")
+    svc1 = SvcInner1_066("svc1")
+    svc2 = SvcInner2_066("svc2")
+    svc1.host1 = ctxt.nexus.parent.svc.infra.server
+    svc2.host2 = ctxt.nexus.parent.svc.infra.server
+
+
+def test066():
+    """
+    test066: checking properly running configs in two sub-services
+    """
+    eh = CountingTaskEventHandler()
+    svc = SvcOuter_066("test066")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    ao.initiate_system()
+    assert len(eh.starting) == 3, "{}".format(eh.starting)
+    assert svc.svc1.namespace.role.host_ref.value() is svc.svc2.namespace.role.host_ref.value()
+    assert svc.svc1.namespace.role.host_ref.value() is svc.infra.server.value()
 
 
 def do_all():
     setup_module()
+    test066()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

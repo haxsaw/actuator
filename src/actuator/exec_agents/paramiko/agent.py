@@ -40,11 +40,12 @@ from paramiko import (SSHClient, SSHException, BadHostKeyException, Authenticati
 
 from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
-from actuator.utils import capture_mapping
+from actuator.utils import capture_mapping, LOG_INFO
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
                                    LocalCommandTask)
 from actuator.namespace import _ComputableValue
+from actuator.service import ServiceModel
 from errator import narrate, narrate_cm
 if sys.version.startswith("2"):
     from six.moves import StringIO
@@ -753,3 +754,52 @@ class ParamikoExecutionAgent(ExecutionAgent):
                                                                         str(a), str(kw)))
     def _perform_with_args(self, task, processor, args, kwargs):
         return processor.process_task(self, *args, **kwargs)
+
+
+class ParamikoServiceExecutionAgent(object):
+    def __init__(self, service, num_threads=5, do_log=False, no_delay=False, log_level=LOG_INFO):
+        if service is None or not isinstance(service, ServiceModel):
+            raise ExecutionException("'service' must be an instance of some kind of ServiceModel")
+        self.service = service
+        self.num_threads = num_threads
+        self.do_log = do_log
+        self.no_delay = no_delay
+        self.log_level = log_level
+        self.ptes = {}
+        self.results = {}
+
+    def _process_config_model(self, pea):
+        try:
+            pea.perform_config()
+            self.results[pea] = None
+        except ExecutionException as e:
+            self.results[pea] = e
+
+    def perform_config(self):
+        services = self.service.all_services()
+        num_threads = int(self.num_threads / len(services)) + 1
+        exec_threads = []
+        for service in services:
+            self.ptes[service] = ParamikoExecutionAgent(config_model_instance=service.config.value(),
+                                                        namespace_model_instance=service.namespace.value(),
+                                                        infra_model_instance=service.infra.value(),
+                                                        num_threads=num_threads,
+                                                        do_log=self.do_log,
+                                                        no_delay=self.no_delay,
+                                                        log_level=self.log_level
+                                                        )
+            t = threading.Thread(target=self._process_config_model,
+                                 args=(self.ptes[service],),
+                                 name=service.name)
+            exec_threads.append(t)
+            t.start()
+
+        for t in exec_threads:
+            t.join()
+
+    def get_aborted_tasks(self):
+        for pea, exc in self.results.items():
+            if exc is None:
+                continue
+            for t, et, ev, tb, story in pea.get_aborted_tasks():
+                yield t, et, ev, tb, story
