@@ -501,12 +501,32 @@ class TaskEventHandler(object):
     methods in specific circumstances to allow external code know about the progress being made
     in processing a task.
 
+    The event handler can be used on single models, all models in an orchestration, or an
+    orchestration itself. The event handler interface is meant to convey events from a single
+    orchestration, not across multiple orchestrations. Hence, there should be an instance of
+    this interface's implementation per orchestration.
+
     NOTE: derived class methods should be prepared to operate in a re-entrant fashion, as
     task operation may occur in different threads and hence it is possible for any method to
     be invoked from different threads.
     """
 
     # no __init__; supplied by derived class
+
+    def orchestration_starting(self, orchestrator):
+        """
+        Called to signal that an overall orchestration is starting.
+        :param orchestrator: an instance of L{actuator.ActuatorOrchestration}
+        """
+        pass
+
+    def orchestration_finished(self, orchestration, result):
+        """
+        Called to signal that an overall orchestration has finished.
+        :param orchestration:  an instance of L{actuator.ActuatorOrchestration}
+        :param result: integer; one of the numeric status codes defined in L{actuator.ActuatorOrchestration}
+        """
+        pass
 
     def engine_starting(self, model, graph):
         """

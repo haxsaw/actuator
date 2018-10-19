@@ -216,6 +216,10 @@ class ProvisionServerTask(ProvisioningTask):
         if isinstance(kwargs["key_name"], KeyPair):
             kwargs["key_name"] = kwargs["key_name"].get_key_name()
 
+        # strip out empty availability_zone
+        if not kwargs.get("availability_zone"):
+            del kwargs["availability_zone"]
+
         with narrate_cm(lambda n, i, f, a:
                         "-and the attempt to create the server '{}', image '{}' flavor '{}'"
                         " was started with args {} ".format(n, i, f, a),
@@ -224,7 +228,6 @@ class ProvisionServerTask(ProvisioningTask):
         self.rsrc.set_osid(srvr["id"])
         run_context.record.add_server_id(self.rsrc._id, self.rsrc.osid)
         
-        # while not srvr.addresses:
         with narrate_cm("-which requires waiting for the server creation to complete to get the server's addresses"):
             while not srvr["addresses"]:
                 time.sleep(0.25)
@@ -237,7 +240,7 @@ class ProvisionServerTask(ProvisioningTask):
         run_context = proxy.get_context()
         run_context.cloud.delete_server(self.rsrc.osid)
 
-                
+
 @capture_mapping(_rt_domain, Router)
 class ProvisionRouterTask(ProvisioningTask):
     # depends on nothing

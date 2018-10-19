@@ -111,8 +111,10 @@ def namespace_report(nsm):
     nsvds = all_nsvs[nsm]
     for vd in nsvds:
         d = vd.to_dict()
-        report.append("{name:21}|{in_env:^3}|{value:50s}|{complete:^3}|{external:^3}|{path:15}|".
-                      format(**d))
+        for k, v in d.items():
+            if v is None:
+                d[k] = ""
+        report.append("{name:21}|{in_env:^3}|{value:50s}|{complete:^3}|{external:^3}|{path:15}|".format(**d))
     del all_nsvs[nsm]
     report.append("")
 
@@ -132,6 +134,9 @@ def namespace_report(nsm):
         report.append("-" * len(report[-1]))
         for vd in rolevars:
             d = vd.to_dict()
+            for k, v in d.items():
+                if v is None:
+                    d[k] = ""
             report.append("{name:21}|{in_env:^3}|{value:50s}|{complete:^3}|{external:^3}|{path:15}|".
                           format(**d))
         report.append("")

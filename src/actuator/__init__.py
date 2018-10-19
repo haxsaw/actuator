@@ -39,7 +39,7 @@ from .infra import (InfraModel, InfraException, with_resources, StaticServer,
 from .namespace import (Var, NamespaceModel, with_variables, NamespaceException, VariableContainer,
                         Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup, _common_vars,
                         NamespaceModelMeta)
-from .task import (TaskGroup)
+from .task import (TaskGroup, TaskEventHandler)
 from .config import (ConfigModel, with_searchpath, with_dependencies,
                      ConfigException, MultiTask, NullTask,
                      ConfigClassTask, with_config_options, ConfigModelMeta)
@@ -110,7 +110,7 @@ class ServiceProvisioningPrep(BaseProvisioningPrep):
         return pte
 
 
-class ActuatorOrchestration(_Persistable):
+class ActuatorOrchestration(_Persistable, TaskEventHandler):
     """
     Processes Actuator models to stand up the system being model (initiate a system).
     
@@ -136,7 +136,7 @@ class ActuatorOrchestration(_Persistable):
 
     def __init__(self, infra_model_inst=None, provisioner_proxies=(), namespace_model_inst=None,
                  config_model_inst=None, service=None, log_level=LOG_INFO, no_delay=False, num_threads=5,
-                 post_prov_pause=60, client_keys=None):
+                 post_prov_pause=60, client_keys=None, event_handler=None):
         """
         Create an instance of the orchestrator to operate on the supplied models/provisioner
         
@@ -195,8 +195,7 @@ class ActuatorOrchestration(_Persistable):
             along with all other data in the orchestrator, hence both keys and values
             must be objects that can be stored to/from JSON
         @keyword event_handler: optional; instance L{task.TaskEventHandler} derived class. This
-            instance will be installed as the event handler for all infra and config models. This
-            instance will only be installed if there isn't already an event handler on the model.
+            instance will be installed as the event handler for all infra and config models.
 
         @raise ExecutionException: In the following circumstances this method
         will raise actuator.ExecutionException:
@@ -249,6 +248,17 @@ class ActuatorOrchestration(_Persistable):
         self.initiate_end_time = None
         self.num_threads = num_threads
 
+        self.event_handler = event_handler
+        # now set up the orchestrator to be the event handler for all models; it will forward
+        # on events to any external event handler
+        if self.infra_model_inst:
+            self.infra_model_inst.set_event_handler(self)
+        if self.config_model_inst:
+            self.config_model_inst.set_event_handler(self)
+        if self.service:
+            for svc in self.service.all_services():
+                svc.set_event_handler(self)
+
         if self.service:
             self.config_ea = ParamikoServiceExecutionAgent(self.service,
                                                            num_threads=self.num_threads,
@@ -268,13 +278,51 @@ class ActuatorOrchestration(_Persistable):
         self.provisioner_proxies = proxies
 
     def set_event_handler(self, handler):
-        if self.infra_model_inst:
-            self.infra_model_inst.set_event_handler(handler)
-        if self.config_model_inst:
-            self.config_model_inst.set_event_handler(handler)
-        if self.service:
-            for svc in self.service.all_services():
-                svc.set_event_handler(handler)
+        if not isinstance(handler, TaskEventHandler):
+            raise ExecutionException("Provided handler is not a kind of TaskEventHandler")
+        self.event_handler = handler
+
+    # methods for TaskEventHandler
+    def orchestration_starting(self, orchestrator):
+        if self.event_handler is not None:
+            try:
+                self.event_handler.orchestration_starting(self)
+            except Exception as e:
+                self.logger.warning("External event handler failed on orchestration_starting() with {}".
+                                    format(str(e)))
+
+    def orchestration_finished(self, orchestration, result):
+        if self.event_handler is not None:
+            try:
+                self.event_handler.orchestration_finished(self, result)
+            except Exception as e:
+                self.logger.warning("External event handler failed on orchestration_finished() with {}".
+                                    format(str(e)))
+
+    def engine_starting(self, model, graph):
+        if self.event_handler is not None:
+            self.event_handler.engine_starting(model, graph)
+
+    def engine_finished(self, model):
+        if self.event_handler is not None:
+            self.event_handler.engine_finished(model)
+
+    def task_starting(self, model, tec):
+        if self.event_handler is not None:
+            self.event_handler.task_starting(model, tec)
+
+    def task_finished(self, model, tec):
+        if self.event_handler is not None:
+            self.event_handler.task_finished(model, tec)
+
+    def task_failed(self, model, tec, errtext):
+        if self.event_handler is not None:
+            self.event_handler.task_failed(model, tec, errtext)
+
+    def task_retry(self, model, tec, errtext):
+        if self.event_handler is not None:
+            self.event_handler.task_retry(model, tec, errtext)
+    # end methods for TaskEventHandler
 
     def _get_attrs_dict(self):
         d = super(ActuatorOrchestration, self)._get_attrs_dict()
@@ -292,7 +340,8 @@ class ActuatorOrchestration(_Persistable):
                   "initiate_end_time": self.initiate_end_time,
                   "provisioner_proxies": (),
                   "num_threads": self.num_threads,
-                  "pte": None})
+                  "pte": None,
+                  "event_handler": None})
         return d
 
     def _find_persistables(self):
@@ -357,6 +406,7 @@ class ActuatorOrchestration(_Persistable):
         self.initiate_start_time = str(datetime.datetime.utcnow())
         self.logger.info("Orchestration starting")
         did_provision = False
+        self.orchestration_starting(self)
 
         # start with the infrastructure
         if self.pte is None:   # we want to be sure to re-use existing task engines as they have important state
@@ -384,6 +434,7 @@ class ActuatorOrchestration(_Persistable):
                     self.logger.critical("No further information")
                 self.logger.critical("Aborting orchestration")
                 self.initiate_end_time = str(datetime.datetime.utcnow())
+                self.orchestration_finished(self, self.status)
                 return False
 
         if ((self.config_model_inst is not None and self.namespace_model_inst is not None) or
@@ -415,11 +466,13 @@ class ActuatorOrchestration(_Persistable):
                     self.logger.critical("")
                 self.logger.critical("Aborting orchestration")
                 self.initiate_end_time = str(datetime.datetime.utcnow())
+                self.orchestration_finished(self, self.status)
                 return False
 
         self.logger.info("Orchestration complete")
         self.status = self.COMPLETE
         self.initiate_end_time = str(datetime.datetime.utcnow())
+        self.orchestration_finished(self, self.status)
         return True
 
     def teardown_system(self):

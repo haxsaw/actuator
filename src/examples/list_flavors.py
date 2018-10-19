@@ -18,7 +18,7 @@ if __name__ == "__main__":
     else:
         cname = sys.argv[1]
     config = os_client_config.OpenStackConfig().get_one_cloud(cname)
-    print config.name, config.region, config.config
+    print(config.name, config.region, config.config)
     cloud = shade.OpenStackCloud(cloud_config=config)
 
     try:

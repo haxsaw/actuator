@@ -35,14 +35,13 @@ def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
     """
     if proxy is None:
         proxy = OpenStackProvisionerProxy(cloud_name=cloud_name)
-    inf = infra_class("hadoop-infra", cloud=cloud_name, event_handler=handler)
+    inf = infra_class("hadoop-infra", cloud=cloud_name)
     namespace = HadoopNamespace("hadoop-ns")
     namespace.add_override(*overrides)
     namespace.create_slaves(num_slaves)
     conf = HadoopConfig("hadoop-conf", remote_user="ubuntu",
                         private_key_file=pkf,
-                        remote_pass=rempass,
-                        event_handler=handler)
+                        remote_pass=rempass)
 
     orch = ActuatorOrchestration(infra_model_inst=inf,
                                  provisioner_proxies=[proxy],
@@ -50,7 +49,8 @@ def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,
                                  config_model_inst=conf,
                                  post_prov_pause=10,
                                  num_threads=num_slaves*2+10,
-                                 client_keys=client_data)
+                                 client_keys=client_data,
+                                 event_handler=handler)
     try:
         success = orch.initiate_system()
     except KeyboardInterrupt:

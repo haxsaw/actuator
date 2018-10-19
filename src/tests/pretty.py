@@ -7,7 +7,7 @@ import json
 
 def formatit(fname):
     d = json.loads(open(fname, "r").read())
-    print "d has %d items" % len(d["CATALOG"])
+    print("d has %d items" % len(d["CATALOG"]))
     oname = ".".join([fname.split(".")[0], "txt"])
     f = open(oname, "w")
     pp.pprint(d, stream=f)

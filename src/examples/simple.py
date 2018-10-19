@@ -19,11 +19,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import sys
+import traceback
 from actuator import *   # @UnusedWildImport
 from actuator.provisioners.openstack.resource_tasks import (Server, SecGroup, SecGroupRule,
                                                             Network, Router, RouterGateway,
                                                             RouterInterface, Subnet, KeyPair,
-                                                            FloatingIP, OpenstackProvisioner)
+                                                            FloatingIP)
+from actuator.provisioners.openstack import OpenStackProvisionerProxy
 
 # cloud_name = "trystack"
 cloud_name = "citycloud"
@@ -86,14 +89,14 @@ class SimpleInfra(InfraModel):
 
 def start_and_stop():
     infra = SimpleInfra("simple")
-    prov = OpenstackProvisioner(num_threads=1, cloud_name=cloud_name)
-    ao = ActuatorOrchestration(infra_model_inst=infra, provisioner=prov)
+    prov = OpenStackProvisionerProxy(cloud_name, config_files=["someFilePath"])
+    ao = ActuatorOrchestration(infra_model_inst=infra, provisioner_proxies=[prov])
     success = ao.initiate_system()
     if not success:
         for t, et, ev, tb in ao.get_errors():
-            print "\nFAILED TASK: %s" % t.name
+            print("\nFAILED TASK: %s" % t.name)
             traceback.print_exception(et, ev, tb)
-    print "\nHit return when you want to tear down:\n",
+    print("\nHit return when you want to tear down:\n",)
     _ = sys.stdin.readline()
     ao.teardown_system()
 

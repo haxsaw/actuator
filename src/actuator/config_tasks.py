@@ -21,6 +21,7 @@
 Configuration tasks modeled after Ansible modules
 """
 
+import time
 from errator import narrate
 from actuator.config import ConfigTask, ConfigException
 from actuator.exec_agents.core import ExecutionException
@@ -363,3 +364,24 @@ class LocalCommandTask(ConfigTask):
     def _fix_arguments(self):
         super(LocalCommandTask, self)._fix_arguments()
         self.command = self._get_arg_value(self._command)
+
+
+class WaitForTaskTask(ConfigTask):
+    def __init__(self, name, awaited_task, **kwargs):
+        super(WaitForTaskTask, self).__init__(name, **kwargs)
+        self._awaited_task = awaited_task
+        self.awaited_task = None
+
+    def _fix_arguments(self):
+        super(WaitForTaskTask, self)._fix_arguments()
+        self.awaited_task = self._get_arg_value(self._awaited_task)
+
+    def get_init_args(self):
+        args, kwargs = super(WaitForTaskTask, self).get_init_args()
+        args += (self._awaited_task,)
+        return args, kwargs
+
+    def _perform(self, engine):
+        while not engine.stop:
+            if self.awaited_task.performance_status != self.UNSTARTED:
+                time.sleep(0.2)

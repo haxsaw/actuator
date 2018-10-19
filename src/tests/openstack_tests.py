@@ -1555,8 +1555,9 @@ def test084():
     """
     provs = [OpenStackProvisionerProxy(cloud_name="wibble")]
     teh = CountingTaskEventHandler()
-    svc = DBService084("test084", event_handler=teh)
-    orch = ActuatorOrchestration(service=svc, provisioner_proxies=provs, post_prov_pause=0)
+    svc = DBService084("test084")
+    orch = ActuatorOrchestration(service=svc, provisioner_proxies=provs, post_prov_pause=0,
+                                 event_handler=teh)
     result = orch.initiate_system()
     assert result
     assert len(teh.starting) == 9

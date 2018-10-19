@@ -2,12 +2,14 @@ import json
 import six
 from nose import SkipTest
 from errator import reset_all_narrations, set_default_options
-from actuator import ServiceModel, ctxt, MultiResource, ActuatorException, ActuatorOrchestration
+from actuator import (ServiceModel, ctxt, MultiResource, ActuatorException, ActuatorOrchestration,
+                      ExecutionException)
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
 from actuator.config import ConfigModel, NullTask
+from actuator.config_tasks import WaitForTaskTask
 from actuator.modeling import ModelReference, ModelInstanceReference, channel, CallContext
-from actuator.utils import persist_to_dict, reanimate_from_dict
+from actuator.utils import persist_to_dict, reanimate_from_dict, adb
 from actuator.provisioners.openstack.resources import (SecGroup, SecGroupRule)
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.core import ProvisioningTaskEngine
@@ -1146,8 +1148,8 @@ def test054():
     test054: basic test of orchestration using a simple service
     """
     teh = CountingTaskEventHandler()
-    svc = Service054("service054", event_handler=teh)
-    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
+    svc = Service054("service054")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0, event_handler=teh)
     result = ao.initiate_system()
     assert result
     assert len(teh.starting) == 1
@@ -1173,9 +1175,8 @@ def test055():
     test055: Test nested services, outer svc has it's own infra
     """
     teh = CountingTaskEventHandler()
-    svc = SvcOuter055("service055", services={"inner": (("inner055",), {})},
-                      event_handler=teh)
-    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
+    svc = SvcOuter055("service055", services={"inner": (("inner055",), {})})
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0, event_handler=teh)
     result = ao.initiate_system()
     assert result
     assert len(teh.starting) == 2
@@ -1213,9 +1214,8 @@ def test056():
     test056: first cross-model dependency check
     """
     teh = CountingTaskEventHandler()
-    svc = Svc056("service056",
-                 event_handler=teh)
-    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
+    svc = Svc056("service056")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0, event_handler=teh)
     result = ao.initiate_system()
     assert result
     assert len(teh.starting) == 2
@@ -1404,11 +1404,11 @@ def test063():
     """
     eh = CountingTaskEventHandler()
     svc = Svc063("wibble")
-    svc.config.set_event_handler(eh)
-    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0)
+    # svc.config.set_event_handler(eh)
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0.0, event_handler=eh)
     result = ao.initiate_system()
     assert result
-    assert len(eh.starting) == 1
+    assert len(eh.starting) == 2
 
 
 class NSInner064(NamespaceModel):
@@ -1534,9 +1534,378 @@ def test066():
     assert svc.svc1.namespace.role.host_ref.value() is svc.infra.server.value()
 
 
+class Infra067(InfraModel):
+    pass
+
+
+class Service067(ServiceModel):
+    pass
+
+
+def test067():
+    """
+    test067: raise an exception if we give a service and infra to an orchestrator
+    """
+    inf = Infra067("infra067")
+    svc = Service067("service067")
+    try:
+        ao = ActuatorOrchestration(infra_model_inst=inf, service=svc)
+        assert False, "this should have raised an exception"
+    except ExecutionException as _:
+        pass
+
+
+class InfraInner068(InfraModel):
+    server = StaticServer("inner_server", "94.04.48.43")
+
+
+class InnerNS068(NamespaceModel):
+    with_variables(Var("HAYSTACK", "needle"))
+    role = Role("role068", host_ref=ctxt.model.host)
+    host = channel()
+
+
+class InnerConfig068(ConfigModel):
+    task = NullTask("task068", task_role=ctxt.model.role)
+    role = channel()
+
+
+class SvcInner068(ServiceModel):
+    infra = InfraInner068("asfd")
+    namespace = InnerNS068("dfgb")
+    config = InnerConfig068("avzxc")
+    namespace.host = ctxt.nexus.inf.server
+    config.role = ctxt.nexus.ns.role
+
+
+class SvcOuter068(ServiceModel):
+    with_variables(Var("HAYSTACK", ctxt.model.inner.namespace.v.HAYSTACK))
+    inner = SvcInner068("inner")
+
+
+def test068():
+    """
+    test068: check service nested in an empty service orchestrates right
+    """
+    eh = CountingTaskEventHandler()
+    svc = SvcOuter068("test068")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    assert len(eh.starting) == 2, "starting is {}".format(eh.starting)
+    assert (svc.inner.config.task.task_role.host_ref.value() is
+            svc.inner.infra.server.value())
+    assert svc.v.HAYSTACK() == "needle"
+
+
+class InfraInner069(InfraModel):
+    server = StaticServer("inner", "41.41.41.41")
+
+
+class NSInner069(NamespaceModel):
+    with_variables(Var("HAYSTACK", "needle"))
+    role = Role("ns069", host_ref=ctxt.model.host)
+    host = channel()
+
+
+class SvcInner069(ServiceModel):
+    infra = InfraInner069("inner")
+    namespace = NSInner069("inner-ns")
+    namespace.host = ctxt.nexus.inf.server
+
+
+class ConfigOuter069(ConfigModel):
+    task = NullTask("task069", task_role=ctxt.model.role)
+    role = channel()
+
+
+class Service069(ServiceModel):
+    with_variables(Var("HAYSTACK", ctxt.model.inner.namespace.v.HAYSTACK))
+    config = ConfigOuter069("outer069")
+    inner = SvcInner069("inner069")
+    config.role = ctxt.nexus.svc.inner.namespace.role
+
+
+def test069():
+    """
+    test069: check we can link an outer config to an inner namespace
+    """
+    eh = CountingTaskEventHandler()
+    svc = Service069("test069")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    assert len(eh.starting) == 2, "tasks: {}".format(eh.starting)
+    assert (svc.config.task.task_role.host_ref.value() is svc.inner.infra.server.value())
+    assert svc.v.HAYSTACK() == "needle"
+
+
+class NSInner070(NamespaceModel):
+    with_variables(Var("HAYSTACK", "needle"))
+    role = Role("inner-070", host_ref=ctxt.model.host)
+    host = channel()
+
+
+class SvcInner070(ServiceModel):
+    namespace = NSInner070("svc-inner-070")
+    namespace.host = ctxt.nexus.svc.host
+    host = channel()
+
+
+class InfraOuter070(InfraModel):
+    server = StaticServer("server070", "67.45.64.34")
+
+
+class ConfigOuter070(ConfigModel):
+    task = NullTask("task070", task_role=ctxt.model.role)
+    role = channel()
+
+
+class SvcOuter070(ServiceModel):
+    with_variables(Var("HAYSTACK", ctxt.model.inner.namespace.v.HAYSTACK))
+    inner = SvcInner070("inner")
+    infra = InfraOuter070("outer070")
+    config = ConfigOuter070("")
+    inner.host = ctxt.nexus.parent.svc.infra.server
+    config.role = ctxt.nexus.svc.inner.namespace.role
+
+
+def test070():
+    """
+    test070: inner service with just the namespace, outer has config and infra
+    """
+    eh = CountingTaskEventHandler()
+    svc = SvcOuter070("test070")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    assert svc.config.task.task_role.host_ref.value() is svc.infra.server.value()
+    assert svc.v.HAYSTACK() == "needle"
+
+
+class NSInner071(NamespaceModel):
+    with_variables(Var("HAYSTACK", "needle"))
+    role = Role("role071", host_ref=ctxt.model.host)
+    host = channel()
+
+
+class ConfigInner071(ConfigModel):
+    task = NullTask("task071", task_role=ctxt.model.role)
+    role = channel()
+
+
+class SvcInner071(ServiceModel):
+    namespace = NSInner071("ns071")
+    config = ConfigInner071("cfg071")
+    config.role = ctxt.nexus.svc.namespace.role
+    namespace.host = ctxt.nexus.svc.host
+    host = channel()
+
+
+class InfraOuter071(InfraModel):
+    server = StaticServer("svr017", "12.12.12.12")
+
+
+class SvcOuter071(ServiceModel):
+    with_variables(Var("HAYSTACK", ctxt.model.inner.namespace.v.HAYSTACK))
+    inner = SvcInner071("inner")
+    infra = InfraOuter071("infra071")
+    inner.host = ctxt.nexus.parent.svc.infra.server
+
+
+def test071():
+    """
+    test071: check inner ns/cfg works with outer inf
+    """
+    eh = CountingTaskEventHandler()
+    svc = SvcOuter071("test071")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    assert svc.inner.config.task.task_role.host_ref.value() is svc.infra.server.value()
+    assert svc.v.HAYSTACK() == "needle"
+
+
+class InfraInner072(InfraModel):
+    server = StaticServer("svr072", "13.13.13.13")
+
+
+class ConfigInner072(ConfigModel):
+    task = NullTask("task072", task_role=ctxt.model.role)
+    role = channel()
+
+
+class ServiceInner072(ServiceModel):
+    infra = InfraInner072("infra072")
+    config = ConfigInner072("config072")
+    config.role = ctxt.nexus.svc.role
+    role = channel()
+
+
+class NSOuter072(NamespaceModel):
+    with_variables(Var("HAYSTACK", "needle"))
+    role = Role("role072", host_ref=ctxt.model.host)
+    host = channel()
+
+
+class ServiceOuter072(ServiceModel):
+    with_variables(Var("HAYSTACK", ctxt.model.namespace.v.HAYSTACK))
+    inner = ServiceInner072("inner072")
+    namespace = NSOuter072("ns072")
+    namespace.host = ctxt.nexus.svc.inner.infra.server
+    inner.role = ctxt.nexus.parent.svc.namespace.role
+
+
+def test072():
+    """
+    test072: infra/cfg in inner service, ns in outer
+    """
+    eh = CountingTaskEventHandler()
+    svc = ServiceOuter072("test072")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    assert (svc.inner.config.task.task_role.host_ref.value() is svc.inner.infra.server.value())
+    assert svc.v.HAYSTACK() == "needle"
+
+
+class InfraInner073(InfraModel):
+    server = StaticServer("server073", "13.13.13.13")
+
+
+class ServiceInner073(ServiceModel):
+    infra = InfraInner073("infra073")
+    server = channel(ctxt.model.infra.server)
+
+
+class NSOuter073(NamespaceModel):
+    with_variables(Var("HAYSTACK", "needle"))
+    role = Role("role073", host_ref=ctxt.model.host)
+    host = channel()
+
+
+class ConfigOuter073(ConfigModel):
+    task = NullTask("task073", task_role=ctxt.nexus.ns.role)
+
+
+class ServiceOuter073(ServiceModel):
+    with_variables(Var("HAYSTACK", ctxt.model.namespace.v.HAYSTACK))
+    inner = ServiceInner073("inner073")
+    namespace = NSOuter073("ns073")
+    config = ConfigOuter073("cfg073")
+    namespace.host = ctxt.nexus.svc.inner.infra.server
+
+
+def test073():
+    """
+    test073: check that inner inf can be found by outer ns
+    """
+    eh = CountingTaskEventHandler()
+    svc = ServiceOuter073("test073")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    assert svc.inner.server.value() is svc.config.task.task_role.host_ref.value()
+    assert svc.v.HAYSTACK() == "needle"
+
+
+class ConfigInner074(ConfigModel):
+    task = NullTask("task074", task_role=ctxt.model.role)
+    role = channel()
+
+
+class ServiceInner074(ServiceModel):
+    config = ConfigInner074("cfg074")
+    config.role = ctxt.nexus.svc.role
+    role = channel()
+
+
+class InfraOuter074(InfraModel):
+    server = StaticServer("server074", "35.35.35.35")
+
+
+class NSOuter074(NamespaceModel):
+    with_variables(Var("HAYSTACK", "needle"))
+    role = Role("role074", host_ref=ctxt.nexus.inf.server)
+
+
+class ServiceOuter074(ServiceModel):
+    with_variables(Var("HAYSTACK", ctxt.model.namespace.v.HAYSTACK))
+    inner = ServiceInner074("inner074")
+    infra = InfraOuter074("infra074")
+    namespace = NSOuter074("ns074")
+    inner.role = ctxt.nexus.parent.ns.role
+
+
+def test074():
+    """
+    test074: check inner cfg, outer ns/infra
+    """
+    eh = CountingTaskEventHandler()
+    svc = ServiceOuter074("test074")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    assert svc.infra.server.value() is svc.inner.config.task.task_role.host_ref.value()
+    assert svc.v.HAYSTACK() == "needle"
+
+
+class ConfigInner075(ConfigModel):
+    task = NullTask("task-inner-075", task_role=ctxt.model.role)
+    role = channel()
+
+
+class InfraInner075(InfraModel):
+    server = StaticServer("server075", "127.0.0.1")
+
+
+class NSInner075(NamespaceModel):
+    role = Role("role-inner-075", host_ref=ctxt.model.host)
+    host = channel()
+
+
+class ServiceInner075(ServiceModel):
+    infra = InfraInner075("infra075")
+    config = ConfigInner075("config-inner-075")
+    namespace = NSInner075("ns-inner-075")
+    namespace.host = ctxt.nexus.svc.infra.server
+    config.role = ctxt.nexus.svc.namespace.role
+
+
+class ConfigOuter075(ConfigModel):
+    task = WaitForTaskTask("task-outer-075", ctxt.model.related)
+    related = channel()
+
+
+class ServiceOuter075(ServiceModel):
+    inner = ServiceInner075("inner075")
+    config = ConfigOuter075("config075")
+    config.related = ctxt.nexus.svc.inner.config.task
+
+
+def test075():
+    """
+    test075: wait in one config for a task in another to complete
+    """
+    eh = CountingTaskEventHandler()
+    svc = ServiceOuter075("test075")
+    ao = ActuatorOrchestration(service=svc, post_prov_pause=0)
+    ao.set_event_handler(eh)
+    result = ao.initiate_system()
+    assert result
+    _ = svc.inner.config.get_dependencies()
+    _ = 1
+
+
 def do_all():
     setup_module()
-    test066()
     for k, v in globals().items():
         if callable(v) and k.startswith("test"):
             try:

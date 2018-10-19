@@ -35,6 +35,8 @@ from hsimple import do_it
 from vstest import VSHadoopInfra
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
 from actuator.reporting import namespace_report, security_check
+import traceback
+
 user_env = "OS_USER"
 pass_env = "OS_PASS"
 tenant_env = "OS_TENANT"
@@ -235,7 +237,6 @@ if __name__ == "__main__":
                     except Exception as e:
                         six.print_("\nZABBIX UPDATED FAILED with %s:" % str(e))
                         six.print_("...traceback:")
-                        import traceback
                         traceback.print_exception(*sys.exc_info())
                         six.print_()
                 six.print_("\n>>>Standup complete!")
