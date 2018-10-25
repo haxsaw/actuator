@@ -211,18 +211,22 @@ class HadoopNamespace(NamespaceModel):
     
 
 class HadoopConfig(ConfigModel):
-    select_all = HadoopNamespace.q.union(HadoopNamespace.q.name_node,
-                                         HadoopNamespace.q.slaves.all())
-    node_setup = MultiTask("node_setup",
-                           ConfigClassTask("setup_suite", HadoopNodeConfig, init_args=("node-setup",)),
-                           select_all)
-    slave_ip = ShellTask("slave_ips",
-                         "for i in localhost !{SLAVE_IPS}; do echo $i; done"
-                         " > !{HADOOP_CONF_DIR}/slaves",
-                         task_role=HadoopNamespace.name_node)
+    namenode_setup = ConfigClassTask("nn_suite", HadoopNodeConfig, init_args=("namenode-setup",),
+                                     task_role=HadoopNamespace.name_node)
+
+    slaves_setup = MultiTask("slaves_setup",
+                             ConfigClassTask("setup_suite", HadoopNodeConfig, init_args=("slave-setup",)),
+                             HadoopNamespace.q.slaves.all())
+
+    slave_ips = ShellTask("slave_ips",
+                          "for i in localhost !{SLAVE_IPS}; do echo $i; done"
+                          " > !{HADOOP_CONF_DIR}/slaves",
+                          task_role=HadoopNamespace.name_node)
+
     format_hdfs = CommandTask("format_hdfs",
                               "bin/hadoop namenode -format -nonInteractive -force",
                               chdir="!{HADOOP_HOME}", repeat_count=3,
                               task_role=HadoopNamespace.name_node)
 
-    with_dependencies(node_setup | (slave_ip & format_hdfs))
+    with_dependencies(namenode_setup | format_hdfs)
+    with_dependencies((namenode_setup & slaves_setup) | slave_ips)

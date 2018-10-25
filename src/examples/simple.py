@@ -93,9 +93,7 @@ def start_and_stop():
     ao = ActuatorOrchestration(infra_model_inst=infra, provisioner_proxies=[prov])
     success = ao.initiate_system()
     if not success:
-        for t, et, ev, tb in ao.get_errors():
-            print("\nFAILED TASK: %s" % t.name)
-            traceback.print_exception(et, ev, tb)
+        print("\nFAILED: see the log for errors")
     print("\nHit return when you want to tear down:\n",)
     _ = sys.stdin.readline()
     ao.teardown_system()

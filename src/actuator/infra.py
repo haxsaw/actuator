@@ -97,9 +97,20 @@ class _LongnameProp(object):
     def __get__(self, inst, _):
         mi = inst.get_model_instance()
         ref = AbstractModelReference.find_ref_for_obj(inst)
-        ln = ".".join(([mi.name] if mi else ["NONE"]) +
-                      (ref.get_path() if ref is not None else []) +
-                      [inst.name])
+        parts = (([mi.name] if mi else ["NONE"]) +
+                 (ref.get_path() if ref is not None else []) +
+                 [inst.name])
+        final = []
+        last = None
+        for p in parts:
+            if p == last:
+                continue
+            final.append(p)
+            last = p
+        ln = ".".join(final)
+        # ln = ".".join(([mi.name] if mi else ["NONE"]) +
+        #               (ref.get_path() if ref is not None else []) +
+        #               [inst.name])
         return ln
     
 

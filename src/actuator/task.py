@@ -520,11 +520,43 @@ class TaskEventHandler(object):
         """
         pass
 
-    def orchestration_finished(self, orchestration, result):
+    def orchestration_finished(self, orchestrator, result):
         """
         Called to signal that an overall orchestration has finished.
-        :param orchestration:  an instance of L{actuator.ActuatorOrchestration}
+        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
         :param result: integer; one of the numeric status codes defined in L{actuator.ActuatorOrchestration}
+        """
+        pass
+
+    def provisioning_starting(self, orchestrator):
+        """
+        Called to signal that the provisioning phase of orchestration is starting
+        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+        """
+        pass
+
+    def provisioning_finished(self, orchetrator, success):
+        """
+        Called to signal that the provisioning phase of orchestration has concluded.
+        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+        :param success: boolean; indicates if the provisioning completed successfully.
+            If false, the orchestrator can be interrogated for details.
+        """
+        pass
+
+    def configuration_starting(self, orchestrator):
+        """
+        Called to signal that the configuration phase of orchestration has started.
+        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+        """
+        pass
+
+    def configuration_finished(self, orchestrator, success):
+        """
+        Called to signal that the configuration phase of orchestration has concluded.
+        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+        :param success: boolean; indicates if the configuration completed successfully.
+            If False, then the orchestrator can be interrogated for details
         """
         pass
 

@@ -146,7 +146,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         semantics being requested, otherwise the method simply returns an
         orchestrator ready to go.
     
-        @keyword infra_model_instance: Optional; an instance of a subclass of
+        @keyword infra_model_inst: Optional; an instance of a subclass of
             L{actuator.infra.InfraModel}. If absent, all host information must be
             contained as values for host_refs in the NamespaceModel that resolve to
             either an IP address or a resolvable host name.
@@ -157,7 +157,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         @keyword namespace_model_inst: Optional; an instance of a subclass of
             L{actuator.namespace.NamespaceModel}. If absent, then only infra model
             processing will be possible (if one was supplied).
-        @keyword config_model_instance: Optional; an instance of a subclass of
+        @keyword config_model_inst: Optional; an instance of a subclass of
             L{actuator.config.ConfigModel}. If absent, no configuration will be carried
             out, but the namespace can be interrogated after orchestration to
             determine values from any provisioned infra
@@ -299,6 +299,38 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 self.logger.warning("External event handler failed on orchestration_finished() with {}".
                                     format(str(e)))
 
+    def provisioning_starting(self, orchestrator):
+        if self.event_handler:
+            try:
+                self.event_handler.provisioning_starting(self)
+            except Exception as e:
+                self.logger.warning("External event handler failed on provisioning_starting() with {}".
+                                    format(str(e)))
+
+    def provisioning_finished(self, orchetrator, success):
+        if self.event_handler:
+            try:
+                self.event_handler.provisioning_finished(self, success)
+            except Exception as e:
+                self.logger.warning("External event handler failed on provisioning_finished() with {}".
+                                    format(str(e)))
+
+    def configuration_starting(self, orchestrator):
+        if self.event_handler:
+            try:
+                self.event_handler.configuration_starting(self)
+            except Exception as e:
+                self.logger.warning("External event handler failed on configuration_starting() with {}".
+                                    format(str(e)))
+
+    def configuration_finished(self, orchestrator, success):
+        if self.event_handler:
+            try:
+                self.event_handler.configuration_finished(self, success)
+            except Exception as e:
+                self.logger.warning("External event handler failed on configuration_finished() with {}".
+                                    format(str(e)))
+
     def engine_starting(self, model, graph):
         if self.event_handler is not None:
             self.event_handler.engine_starting(model, graph)
@@ -373,24 +405,25 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         """
         return self.status == self.COMPLETE
 
-    def get_errors(self):
-        """
-        Returns the error details of any failed tasks during initiation.
-        
-        @return: A list of 4-tuples: (t, et, ev, tb), where:
-            t is the task that experienced the error
-            et is the exception type
-            ev is the exception value
-            tb is the traceback from where the exception was raised
-        """
-        errors = []
-        if self.status in [self.ABORT_CONFIG, self.ABORT_EXEC,
-                           self.ABORT_PROVISION]:
-            if self.status == self.ABORT_PROVISION:
-                errors = self.provisioner.agent.get_aborted_tasks()
-            elif self.status == self.ABORT_CONFIG:
-                errors = self.config_ea.get_aborted_tasks()
-        return errors
+    # TODO: needs re-thinking
+    # def get_errors(self):
+    #     """
+    #     Returns the error details of any failed tasks during initiation.
+    #
+    #     @return: A list of 4-tuples: (t, et, ev, tb), where:
+    #         t is the task that experienced the error
+    #         et is the exception type
+    #         ev is the exception value
+    #         tb is the traceback from where the exception was raised
+    #     """
+    #     errors = []
+    #     if self.status in [self.ABORT_CONFIG, self.ABORT_EXEC,
+    #                        self.ABORT_PROVISION]:
+    #         if self.status == self.ABORT_PROVISION:
+    #             errors = self.provisioner.agent.get_aborted_tasks()
+    #         elif self.status == self.ABORT_CONFIG:
+    #             errors = self.config_ea.get_aborted_tasks()
+    #     return errors
 
     @narrate("The orchestrator was asked to initiate the system")
     def initiate_system(self):
@@ -418,7 +451,9 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         if self.pte:
             try:
                 self.logger.info("Starting provisioning phase")
+                self.provisioning_starting(self)
                 self.pte.perform_tasks()
+                self.provisioning_finished(self, True)
                 self.logger.info("Provisioning phase complete")
                 did_provision = True
             except ProvisionerException as e:
@@ -434,6 +469,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                     self.logger.critical("No further information")
                 self.logger.critical("Aborting orchestration")
                 self.initiate_end_time = str(datetime.datetime.utcnow())
+                self.provisioning_finished(self, False)
                 self.orchestration_finished(self, self.status)
                 return False
 
@@ -449,7 +485,9 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
             try:
                 self.status = self.PERFORMING_CONFIG
                 self.logger.info("Starting config phase")
+                self.configuration_starting(self)
                 self.config_ea.perform_config()
+                self.configuration_finished(self, True)
                 self.logger.info("Config phase complete")
             except ExecutionException as e:
                 self.status = self.ABORT_CONFIG
@@ -466,6 +504,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                     self.logger.critical("")
                 self.logger.critical("Aborting orchestration")
                 self.initiate_end_time = str(datetime.datetime.utcnow())
+                self.configuration_finished(self, False)
                 self.orchestration_finished(self, self.status)
                 return False
 
