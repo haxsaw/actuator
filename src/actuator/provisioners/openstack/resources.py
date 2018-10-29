@@ -28,9 +28,9 @@ import six
 from errator import narrate
 
 from actuator.modeling import ContextExpr
-from actuator.infra import Provisionable, IPAddressable
+from actuator.infra import Provisionable
 from actuator.provisioners.core import ProvisionerException
-from actuator.utils import _Persistable
+from actuator.utils import _Persistable, IPAddressable
 
 
 class _OpenstackProvisionableInfraResource(Provisionable):

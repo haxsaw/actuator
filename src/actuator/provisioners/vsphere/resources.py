@@ -21,7 +21,8 @@
 
 from errator import narrate
 
-from actuator.infra import Provisionable, IPAddressable
+from actuator.infra import Provisionable
+from actuator.utils import IPAddressable
 
 
 class _VSphereProvisionableInfraResource(Provisionable):

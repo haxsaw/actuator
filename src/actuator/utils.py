@@ -732,3 +732,27 @@ def persist_to_dict(o, name=None):
     d["CATALOG"] = catalog.to_list()
     d["ROOT_OBJ"] = _PersistableRef(o)
     return d
+
+
+class IPAddressable(object):
+    """
+    This is a protocol for any object that can acquire and be addressed with
+    an IP adddress. Other classes derive from this to allow them to be used
+    as references for other components.
+    """
+    def get_ip(self, context=None):
+        """
+        Return the IP address for self as a string. Derived classes are
+        responsible for implementing this.
+
+        @keyword context: Ignored; this param exists to allow this method to be
+            used where callable params are allowed so that a L{CallContext} object
+            can be passed in.
+        """
+        raise TypeError("Not implemented")
+
+    def get_cidr4(self, *_):
+        """
+        Return a string in CIDR format for the IPv4 address
+        """
+        raise TypeError("Not implemented")

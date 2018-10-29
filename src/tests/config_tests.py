@@ -28,7 +28,7 @@ import six
 from actuator import *
 from actuator.config import _Dependency, ConfigTask, StructuralTask,\
     with_config_options
-from actuator.infra import IPAddressable
+from actuator.utils import IPAddressable
 
 MyConfig = None
 search_path = ["p1", "p2", "p3"]
@@ -116,7 +116,7 @@ def test08():
                               t2 | t3,
                               t3 | t1)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException as _:
+    except TaskException as _:
         assert True
 
 
@@ -137,7 +137,7 @@ def test10():
             t3 = NullTask("t3", path="t3")
             with_dependencies(t1 | t2 | t3 | t1)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException as _:
+    except TaskException as _:
         assert True
 
 
@@ -149,7 +149,7 @@ def test10a():
             t3 = NullTask("t3", path="t3")
             with_dependencies(t1 | t2 | t1)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException as _:
+    except TaskException as _:
         assert True
 
 
@@ -165,7 +165,7 @@ def test11():
             with_dependencies(t3 | t4 | t5)
             with_dependencies(t4 | t2)
         assert False, "Cycle in dependencies was not detected"
-    except ConfigException as _:
+    except TaskException as _:
         assert True
 
 
@@ -1692,7 +1692,6 @@ def test72():
 
 def do_all():
     setup_module()
-    test08()
     for k, v in globals().items():
         if k.startswith("test") and callable(v):
             v()

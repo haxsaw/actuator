@@ -1142,7 +1142,7 @@ def test149():
 
 
 def test150():
-    from actuator.infra import IPAddressable
+    from actuator.utils import IPAddressable
 
     class NoAdminIP(IPAddressable):
         pass

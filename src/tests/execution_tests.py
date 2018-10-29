@@ -23,7 +23,7 @@ import traceback
 import sys
 from errator import reset_all_narrations, set_default_options
 from actuator.namespace import NamespaceModel, Role
-from actuator.execute import ExecModel, SimpleCommand
+from actuator.execute import ExecuteModel, SimpleCommandTask
 from actuator.config import with_dependencies
 
 
@@ -44,7 +44,7 @@ def test001():
     """
     test001: check creation of a basic execution command
     """
-    cmd1 = SimpleCommand("ex001-command", CommonTestNS.role, "some stuff")
+    cmd1 = SimpleCommandTask("ex001-command", CommonTestNS.role, "some stuff")
     assert True
 
 
@@ -52,7 +52,7 @@ def test002():
     """
     test002: define an empty execution model
     """
-    class EM002(ExecModel):
+    class EM002(ExecuteModel):
         pass
     assert True
 
@@ -61,8 +61,8 @@ def test003():
     """
     test003: instantiate an empty execution model
     """
-    class EM003(ExecModel):
-        cmd1 = SimpleCommand("ex003-cmd", CommonTestNS.role, "some stuff")
+    class EM003(ExecuteModel):
+        cmd1 = SimpleCommandTask("ex003-cmd", CommonTestNS.role, "some stuff")
     em = EM003("model 003")
 
 
@@ -70,9 +70,9 @@ def test004():
     """
     test004: try to create some dependencies
     """
-    class EM004(ExecModel):
-        cmd1 = SimpleCommand("ex004-cmd1", CommonTestNS.role, "some stuff")
-        cmd2 = SimpleCommand("ex004-cmd2", CommonTestNS.role, "some stuff")
+    class EM004(ExecuteModel):
+        cmd1 = SimpleCommandTask("ex004-cmd1", CommonTestNS.role, "some stuff")
+        cmd2 = SimpleCommandTask("ex004-cmd2", CommonTestNS.role, "some stuff")
         with_dependencies(cmd1 | cmd2)
 
 

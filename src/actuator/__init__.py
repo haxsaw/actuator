@@ -39,7 +39,7 @@ from .infra import (InfraModel, InfraException, with_resources, StaticServer,
 from .namespace import (Var, NamespaceModel, with_variables, NamespaceException, VariableContainer,
                         Role, with_roles, MultiRole, RoleGroup, MultiRoleGroup, _common_vars,
                         NamespaceModelMeta)
-from .task import (TaskGroup, TaskEventHandler)
+from .task import (TaskGroup, TaskEventHandler, TaskException)
 from .config import (ConfigModel, with_searchpath, with_dependencies,
                      ConfigException, MultiTask, NullTask,
                      ConfigClassTask, with_config_options, ConfigModelMeta)

@@ -19,27 +19,51 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from modeling import ModelBase, ModelComponent
-from task import Orable, _Dependency, Task
+import six
+from actuator.modeling import _Nexus
+from actuator.remote_task import (RemoteTask, RemoteTaskException, RemoteTaskModel,
+                                  RemoteTaskModelMeta, RemoteTaskClass, with_remote_options,
+                                  with_dependencies, MultiTask)
+
+with_execute_options = with_remote_options
 
 
-class ExecModel(ModelBase):
+class ExecuteException(RemoteTaskException):
     pass
 
 
-class BaseExecModelComponent(ModelComponent, Orable):
-    def _or_result_class(self):
-        return _Dependency
+class ExecuteTask(RemoteTask):
+    pass
 
 
-class SimpleCommand(BaseExecModelComponent):
+class ExecuteModelMeta(RemoteTaskModelMeta):
+    _allowed_task_class = ExecuteTask
+
+    def __new__(mcs, name, bases, attr_dict):
+        newbie = super(ExecuteModelMeta, mcs).__new__(mcs, name, bases, attr_dict)
+        _Nexus._add_model_desc("exe", newbie)
+        return newbie
+
+
+class ExecuteModel(six.with_metaclass(ExecuteModelMeta, RemoteTaskModel)):
+    pass
+
+
+class ExecuteTaskClass(RemoteTaskClass):
+    pass
+
+
+class SimpleCommandTask(ExecuteTask):
     def __init__(self, name, role, command, **kwargs):
-        super(SimpleCommand, self).__init__(name, **kwargs)
+        super(SimpleCommandTask, self).__init__(name, **kwargs)
         self.role = role
         self.commmand = command
 
     def get_init_args(self):
-        args, kwargs = super(SimpleCommand, self).get_init_args()
+        args, kwargs = super(SimpleCommandTask, self).get_init_args()
         args += (self.role, self.commmand)
         return args, kwargs
 
+
+__all__ = ["ExecuteModel", "with_dependencies", "with_execute_options", "ExecuteException",
+           "ExecuteTaskClass", "SimpleCommandTask", "RemoteTaskException", "MultiTask"]

@@ -26,7 +26,7 @@ Support for creating Actuator infrastructure models
 import six
 from errator import narrate, narrate_cm
 from actuator.utils import (ClassModifier, process_modifiers, _Persistable, KeyAsAttr,
-                            _Performable)
+                            _Performable, IPAddressable)
 from actuator.modeling import (ActuatorException, ModelBaseMeta, ModelBase,
                                ModelComponent, AbstractModelingEntity,
                                ModelInstanceReference,
@@ -342,32 +342,8 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
     
     def _comp_source(self):
         return dict(self.__dict__)
-    
-    
-class IPAddressable(object):
-    """
-    This is a protocol for any object that can acquire and be addressed with
-    and IP adddress. Other classes derive from this to allow them to be used
-    as references for other components.
-    """
-    def get_ip(self, context=None):
-        """
-        Return the IP address for self as a string. Derived classes are
-        responsible for implementing this.
-        
-        @keyword context: Ignored; this param exists to allow this method to be
-            used where callable params are allowed so that a L{CallContext} object
-            can be passed in.
-        """
-        raise TypeError("Not implemented")
 
-    def get_cidr4(self, *_):
-        """
-        Return a string in CIDR format for the IPv4 address
-        """
-        raise TypeError("Not implemented")
-    
-    
+
 class StaticServer(IPAddressable, Provisionable):
     """
     Represents an already existing server to be used in an infrastructure.

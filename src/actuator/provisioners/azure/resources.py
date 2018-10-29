@@ -23,7 +23,8 @@
 This module contains resource classes for provisioning Openstack resources.
 """
 import collections
-from actuator.infra import Provisionable, IPAddressable
+from actuator.infra import Provisionable
+from actuator.utils import IPAddressable
 from actuator.provisioners.core import ProvisionerException
 
 
