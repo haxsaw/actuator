@@ -199,7 +199,7 @@ class RemoteTask(Task):
             used; the Vars visible from the perspective of this Role are what will
             govern the operation of the task. If no task_role has been identified,
             one may still be assigned due to the actions of the task container
-            classes (such as MultiTask). If a task_role can't be determined, then
+            classes (such as MultiRemoteTask). If a task_role can't be determined, then
             the model's default_task_role is used. If that can't be determined
             then an exception is raised.
 
@@ -1046,8 +1046,8 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         @param namespace: An instance of a L{NamespaceModel} subclass.
         """
         if not isinstance(namespace, NamespaceModel):
-            raise RemoteTaskException("given an object that is not "
-                                      "a kind of NamespaceModel: %s" % str(namespace))
+            raise RemoteTaskException("given an object that is not a kind of NamespaceModel: %s" %
+                                      str(namespace))
         self.namespace_model_instance = namespace
         self.namespace_model_instance.nexus.merge_from(self.nexus)
         self.nexus = self.namespace_model_instance.nexus
@@ -1265,7 +1265,7 @@ class RemoteTaskClass(RemoteTask, _Unpackable, StructuralTask, GraphableModelMix
         return deps
 
 
-class MultiTask(RemoteTask, _Unpackable, StructuralTask):
+class MultiRemoteTask(RemoteTask, _Unpackable, StructuralTask):
     """
     This class allows a template task to be run against a list of different
     Roles.
@@ -1281,11 +1281,11 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
 
     def __init__(self, name, template, task_role_list, **kwargs):
         """
-        Creates a new MultiTask object.
+        Creates a new MultiRemoteTask object.
 
-        @param name: String; the logical name for the MultiTask
+        @param name: String; the logical name for the MultiRemoteTask
         @param template: Any kind of task object instance, including
-            L{RemoteClassTask}, or even another MultiTask
+            L{RemoteClassTask}, or even another MultiRemoteTask
         @param task_role_list: Must either be an explicit iterable of references
             to Roles, a callable that takes a L{CallContext} as an argument
             and returns an iterable of references to Roles, or a RefSelectBuilder
@@ -1293,7 +1293,7 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
             task to
         @keyword **kwargs: keyword arguments as defined on L{RemoteTask}
         """
-        super(MultiTask, self).__init__(name, **kwargs)
+        super(MultiRemoteTask, self).__init__(name, **kwargs)
         self.template = None
         self._template = template
         self.task_role_list = None
@@ -1305,9 +1305,9 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
     def __len__(self):
         return len(self.instances)
 
-    @narrate(lambda s: "...and so the attrs dict for multitask {} was requested".format(s.name))
+    @narrate(lambda s: "...and so the attrs dict for multi task {} was requested".format(s.name))
     def _get_attrs_dict(self):
-        d = super(MultiTask, self)._get_attrs_dict()
+        d = super(MultiRemoteTask, self)._get_attrs_dict()
         d.update(template=self.template,
                  task_role_list=list(self.task_role_list),
                  dependencies=self.dependencies,
@@ -1316,9 +1316,9 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
         return d
 
     def _find_persistables(self):
-        with narrate_cm(lambda s: "---so the persistables in multitask {} were "
+        with narrate_cm(lambda s: "---so the persistables in multi task {} were "
                                   "yielded".format(s.name), self):
-            for p in super(MultiTask, self)._find_persistables():
+            for p in super(MultiRemoteTask, self)._find_persistables():
                 yield p
             for p in self.template.find_persistables():
                 yield p
@@ -1338,12 +1338,12 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
         self.task_role_list = set(self.task_role_list)
 
     def _set_model_instance(self, mi):
-        super(MultiTask, self)._set_model_instance(mi)
+        super(MultiRemoteTask, self)._set_model_instance(mi)
         self.rendezvous._set_model_instance(mi)
 
     def _perform(self, engine):
         """
-        Empty perform method for the MultiTask itself.
+        Empty perform method for the MultiRemoteTask itself.
         """
         return
 
@@ -1356,13 +1356,13 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
     @narrate(lambda s: "...so multitask {} was asked to return its init args".format(s.name))
     def get_init_args(self):
         __doc__ = RemoteTask.get_init_args.__doc__  # @ReservedAssignment
-        args, kwargs = super(MultiTask, self).get_init_args()
+        args, kwargs = super(MultiRemoteTask, self).get_init_args()
         args = args + (self._template, self._task_role_list)
         return args, kwargs
 
     @narrate(lambda s: "...so multitask {} was asked to fix its args".format(s.name))
     def _fix_arguments(self):
-        super(MultiTask, self)._fix_arguments()
+        super(MultiRemoteTask, self)._fix_arguments()
         self.rendezvous.fix_arguments()
         self.template = self._get_arg_value(self._template)
         self.task_role_list = self._get_arg_value(self._task_role_list)
@@ -1372,7 +1372,7 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
                 keys = self.task_role_list.keys()
                 comp_refs = [self.task_role_list[k] for k in keys]
             except TypeError as _:
-                raise RemoteTaskException("The value for task_role_list provided to the MultiTask "
+                raise RemoteTaskException("The value for task_role_list provided to the MultiRemoteTask "
                                           "role named {} does not support 'keys()', "
                                           "and so can't be used to acquire a list of roles "
                                           "that the task should be run against".format(self.name))
@@ -1398,7 +1398,7 @@ class MultiTask(RemoteTask, _Unpackable, StructuralTask):
     @narrate(lambda s: "...requiring unpacking the dependencies of the tasks in multitask {}".format(s.name))
     def unpack(self):
         """
-        Unpacks the internal dependencies for the tasks that the MultiTask contains,
+        Unpacks the internal dependencies for the tasks that the MultiRemoteTask contains,
         returns a list of _Dependency objects.
         """
         deps = list(self.dependencies)

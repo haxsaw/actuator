@@ -26,8 +26,9 @@ Created on 13 Jul 2014
 from errator import set_default_options, reset_all_narrations
 import six
 from actuator import *
-from actuator.config import _Dependency, ConfigTask, StructuralTask,\
+from actuator.config import ConfigTask, StructuralTask,\
     with_config_options
+from actuator.remote_task import _Dependency
 from actuator.utils import IPAddressable
 
 MyConfig = None
