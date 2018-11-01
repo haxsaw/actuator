@@ -43,7 +43,9 @@ from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
 from actuator.utils import capture_mapping, LOG_INFO
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
-                                   LocalCommandTask)
+                                   LocalCommandTask, LocalShellCommandTask)
+from actuator.execute_tasks import (RemoteExecTask, RemoteShellExecTask, LocalExecTask,
+                                    LocalShellExecTask, WaitForExecTaskTask)
 from actuator.namespace import _ComputableValue
 from actuator.service import ServiceModel
 from errator import narrate, narrate_cm
@@ -329,6 +331,7 @@ class ScriptProcessor(PTaskProcessor):
         
 
 @capture_mapping(_paramiko_domain, CommandTask)
+@capture_mapping(_paramiko_domain, RemoteExecTask)
 class CommandProcessor(ScriptProcessor):
     @narrate(lambda s, t: "...which required getting the remaining arguments for "
                           "command processing task {}".format(t.name))
@@ -392,13 +395,17 @@ class CommandProcessor(ScriptProcessor):
     
     
 @capture_mapping(_paramiko_domain, ShellTask)
+@capture_mapping(_paramiko_domain, RemoteShellExecTask)
 class ShellProcessor(CommandProcessor):
     def _format_command(self, command):
         return command
 
 
 @capture_mapping(_paramiko_domain, LocalCommandTask)
+@capture_mapping(_paramiko_domain, LocalExecTask)
 class LocalCommandProcessor(PTaskProcessor):
+    with_shell = False
+
     @narrate(lambda s, t: "...which required getting the remaining arguments for "
                           "local command processing task {}".format(t.name))
     def _make_args(self, task):
@@ -409,13 +416,24 @@ class LocalCommandProcessor(PTaskProcessor):
     @narrate(lambda s, c, t, **kw: "...which starts processing the local command task {}".format(t.name))
     def _process_task(self, client, task, command=None):
         output = []
-        args = shlex.split(command)
-        sp = subprocess32.Popen(args, stdout=subprocess32.PIPE, stderr=subprocess32.STDOUT)
+        # this different handling of the command is based on the documentation for Popen
+        if not self.with_shell:
+            args = shlex.split(command)
+        else:
+            args = command
+        sp = subprocess32.Popen(args, stdout=subprocess32.PIPE, stderr=subprocess32.STDOUT,
+                                shell=self.with_shell)
         for l in sp.stdout:
             output.append(l)
         sp.wait()
         success = sp.returncode == 0
         return _Result(success, sp.returncode, "".join(output), "")
+
+
+@capture_mapping(_paramiko_domain, LocalShellCommandTask)
+@capture_mapping(_paramiko_domain, LocalShellExecTask)
+class LocalShellCommandProcessor(LocalCommandProcessor):
+    with_shell = True
             
 
 @capture_mapping(_paramiko_domain, CopyFileTask)

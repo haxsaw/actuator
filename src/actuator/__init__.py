@@ -135,8 +135,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
     DEPROV_COMPLETE = 10
 
     def __init__(self, infra_model_inst=None, provisioner_proxies=(), namespace_model_inst=None,
-                 config_model_inst=None, service=None, log_level=LOG_INFO, no_delay=False, num_threads=5,
-                 post_prov_pause=60, client_keys=None, event_handler=None):
+                 config_model_inst=None, execute_model_inst=None, service=None, log_level=LOG_INFO,
+                 no_delay=False, num_threads=5, post_prov_pause=60, client_keys=None, event_handler=None):
         """
         Create an instance of the orchestrator to operate on the supplied models/provisioner
         
@@ -161,6 +161,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
             L{actuator.config.ConfigModel}. If absent, no configuration will be carried
             out, but the namespace can be interrogated after orchestration to
             determine values from any provisioned infra
+        @keyword excute_model_instance: Optionaal; an instance of a subclass of L{actuator.execute.ExecuteModel}.
+            This is required to actually run any software.
         @keyword service: Optional; an instance of a subclass of L{actuator.ServiceModel}.
             If provided, this service will be what the orchestrator stands up. The
             service argument and the infra_model_inst/namespace_model_inst/config_model_inst
@@ -212,7 +214,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         """
         if service is not None and (infra_model_inst is not None or
                                     config_model_inst is not None or
-                                    namespace_model_inst is not None):
+                                    namespace_model_inst is not None or
+                                    execute_model_inst is not None):
             raise ExecutionException("You can only supply either a service or some combination of "
                                      "infra/config/namespace models, but not both")
         if service is not None and not isinstance(service, ServiceModel):

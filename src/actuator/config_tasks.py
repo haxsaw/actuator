@@ -39,9 +39,7 @@ class ScriptTask(ConfigTask):
     Transfers a script *as is* to the remote host and executes it. The script
     is run in a shell environment. This task will process Var replacement 
     patterns out of the arguments, but does not touch the contents of the 
-    script. 
-    
-    See http://docs.ansible.com/script_module.html for full details.
+    script.
     """
     def __init__(self, name, free_form, creates=None, removes=None, proc_ns=False, **kwargs):
         """
@@ -105,10 +103,8 @@ class CommandTask(ScriptTask):
     will be processed through the task_role's view of its Vars in the
     namespace.
     
-    If your commmand needs to use shell metacharacters, use L{ShellTask}
+    If your command needs to use shell metacharacters, use L{ShellTask}
     instead.
-    
-    See http://docs.ansible.com/command_module.html for full details.
     """
     def __init__(self, name, free_form, chdir=None, creates=None,
                  executable=None, removes=None, warn=None, **kwargs):
@@ -164,8 +160,6 @@ class ShellTask(CommandTask):
     a shell, and so shell meta-characters (redirection, etc) can be used.
     
     The arguments for ShellTask are the same as those for L{CommandTask}.
-    
-    See http://docs.ansible.com/shell_module.html for full details
     """
     pass
 
@@ -179,8 +173,6 @@ class CopyFileTask(ConfigTask):
     namespace, use L{ProcessCopyFileTask} instead.
     
     Copy can work on a single file or a directory hierachy of files.
-    
-    For full details see http://docs.ansible.com/copy_module.html
     """
     def __init__(self, name, dest, backup=False, content=None,
                  directory_mode=None, follow=False, force=True, group=None,
@@ -344,7 +336,7 @@ class ProcessCopyFileTask(CopyFileTask):
 class LocalCommandTask(ConfigTask):
     """
     Runs some command on the local host in a subprocess. A shell is not
-    invoked so shell metachars are NOT expanded (use L{LocalShell} if metachar
+    invoked so shell metachars are NOT expanded (use L{LocalShellCommandTask} if metachar
     support is required).
     """
     def __init__(self, name, command=None, **kwargs):
@@ -364,6 +356,14 @@ class LocalCommandTask(ConfigTask):
     def _fix_arguments(self):
         super(LocalCommandTask, self)._fix_arguments()
         self.command = self._get_arg_value(self._command)
+
+
+class LocalShellCommandTask(LocalCommandTask):
+    """
+    Like L{LocalCommandTask} except that the command is run in a shell and hence
+    shell metacharacters are allowed in the command
+    """
+    pass
 
 
 class WaitForTaskTask(ConfigTask):

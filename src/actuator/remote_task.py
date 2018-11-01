@@ -577,6 +577,7 @@ class RendezvousTask(RemoteTask, StructuralTask):
 
 class RemoteTaskModelMeta(ModelBaseMeta):
     _allowed_task_class = RemoteTask
+    model_ref_class = ModelReference
 
     def __new__(mcs, name, bases, attr_dict):
         attr_dict["_allowed_task_class"] = mcs._allowed_task_class
