@@ -89,7 +89,7 @@ def test01():
     cm = TestConfigModel("test01")
     nm = TestNamespaceModel("ns'")
     
-    pea = ParamikoExecutionAgent(config_model_instance=cm,
+    pea = ParamikoExecutionAgent(task_model_instance=cm,
                                  namespace_model_instance=nm)
     conn = pea.get_connection(host, user, priv_key_file=pkey_file)
     assert conn
@@ -109,7 +109,7 @@ def test02():
     cm = TestConfigModel("test02")
     nm = TestNamespaceModel("ns")
     
-    pea = ParamikoExecutionAgent(config_model_instance=cm,
+    pea = ParamikoExecutionAgent(task_model_instance=cm,
                                  namespace_model_instance=nm)
     conn = pea.get_connection(host, user, priv_key=pkey)
     assert conn
@@ -128,7 +128,7 @@ def test03():
     cm = TestConfigModel("test03")
     nm = TestNamespaceModel("ns")
     
-    pea = ParamikoExecutionAgent(config_model_instance=cm,
+    pea = ParamikoExecutionAgent(task_model_instance=cm,
                                  namespace_model_instance=nm)
     conn = pea.get_connection(host, user, password=password)
     assert conn
@@ -147,7 +147,7 @@ def test04():
     cm = TestConfigModel("test03")
     nm = TestNamespaceModel("ns")
     
-    pea = ParamikoExecutionAgent(config_model_instance=cm,
+    pea = ParamikoExecutionAgent(task_model_instance=cm,
                                  namespace_model_instance=nm)
     conn = pea.get_connection(host, user, password=password)
     assert conn
@@ -164,7 +164,7 @@ def test05():
     cm = TestConfigModel("test03")
     nm = TestNamespaceModel("ns")
     
-    pea = ParamikoExecutionAgent(config_model_instance=cm,
+    pea = ParamikoExecutionAgent(task_model_instance=cm,
                                  namespace_model_instance=nm)
     conn = pea.get_connection(host, user, password=password)
 
@@ -205,7 +205,7 @@ def test06():
         ping = PingTask("ping", task_role=NS06.target)
     cfg = C06("cm")
     
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -221,7 +221,7 @@ def test07():
         ls = CommandTask("list", "ls -l", task_role=SingleRoleNS.target)
     ns = SingleRoleNS("ns")
     cfg = C07("list")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
@@ -239,7 +239,7 @@ def test08():
 
     ns = SingleRoleNS("ns")
     cfg = C08("double list")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
@@ -261,7 +261,7 @@ def test09():
 
     ns = SingleRoleNS("ns")
     cfg = C09("remove/create")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
@@ -284,7 +284,7 @@ def test10():
     
     ns = SingleRoleNS("ns")
     cfg = C10("bad chdir")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
@@ -309,7 +309,7 @@ def test11():
                             creates="/tmp/xyz")
     ns = SingleRoleNS("ns")
     cfg = C11("create skip")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     
@@ -345,7 +345,7 @@ def test11a():
                             creates="/tmp/def")
     ns = SingleRoleNS("ns")
     cfg = C11a("create doesn't exist")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
 
@@ -374,7 +374,7 @@ def test12():
         
     ns = SingleRoleNS("ns")
     cfg = C12("remove skip")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
 
@@ -402,7 +402,7 @@ def test13():
                             task_role=SingleRoleNS.target)
     ns = SingleRoleNS("ns")
     cfg = C13("run test13 script")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     try:
@@ -426,7 +426,7 @@ def test13a():
                             proc_ns=True)
     ns = SingleRoleNS("ns")
     cfg = C13a("run test13a script")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     try:
@@ -450,7 +450,7 @@ def test14():
     
     ns = SingleRoleNS("ns")
     cfg = C14("shell task")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -468,7 +468,7 @@ def test15():
         
     ns = SingleRoleNS("ns")
     cfg = C15("alt shell")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -486,7 +486,7 @@ def test16():
         
     ns = SingleRoleNS("ns")
     cfg = C16("echo-1")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     try:
@@ -516,7 +516,7 @@ def test17():
     ns = SingleRoleNS("ns")
     ns.add_variable(Var("SINK_FILE", thefile))
     cfg = C17("echo-2")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -544,7 +544,7 @@ def test18():
  
     ns = SingleRoleNS("ns")
     cfg = C18("system-creds-check")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -572,7 +572,7 @@ def test19():
         
     ns = SingleRoleNS("ns")
     cfg = C19("local command and simple copy")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -601,7 +601,7 @@ def test20():
 
     ns = SingleRoleNS("ns")
     cfg = C20("copy content from memory")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -629,7 +629,7 @@ def test21():
 
     ns = SingleRoleNS("ns")
     cfg = C21("copy directory with root")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)   
@@ -659,7 +659,7 @@ def test22():
         
     ns = SingleRoleNS("ns")
     cfg = C22("copy directory without root")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -688,7 +688,7 @@ def test23():
         
     ns = SingleRoleNS("ns")
     cfg = C23("deep copy")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -718,7 +718,7 @@ def test24():
         
     ns = SingleRoleNS("ns")
     cfg = C24("set file mode")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)
@@ -751,7 +751,7 @@ def test25():
         
     ns = SingleRoleNS("ns")
     cfg = C25("set dir mode")
-    pea = ParamikoExecutionAgent(config_model_instance=cfg,
+    pea = ParamikoExecutionAgent(task_model_instance=cfg,
                                  namespace_model_instance=ns,
                                  no_delay=True)
     perform_and_complain(pea)

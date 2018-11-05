@@ -145,7 +145,7 @@ def test001():
             six.print_()
         assert False, "can't proceed due to provisioning errors"
         
-    ea = ParamikoExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(task_model_instance=cfg,
                                 namespace_model_instance=ns,
                                 num_threads=1,
                                 no_delay=True, log_level=LOG_DEBUG)
@@ -173,7 +173,7 @@ def test002():
         pass
     
     try:
-        _ = ParamikoExecutionAgent(config_model_instance=Infra2("i2"))
+        _ = ParamikoExecutionAgent(task_model_instance=Infra2("i2"))
         assert False, "should have complained about wrong type for config_model_instance"
     except ExecutionException as _:
         assert True
@@ -223,7 +223,7 @@ def test005():
     class NS5(NamespaceModel):
         pass
 
-    ea = ExecutionAgent(config_model_instance=Config5("cm"),
+    ea = ExecutionAgent(task_model_instance=Config5("cm"),
                         namespace_model_instance=NS5("ns"))
     try:
         ea.reverse_task({}, {})
@@ -242,7 +242,7 @@ def test006():
     class NS6(NamespaceModel):
         pass
 
-    ea = ExecutionAgent(config_model_instance=Config6("cm"),
+    ea = ExecutionAgent(task_model_instance=Config6("cm"),
                         namespace_model_instance=NS6("ns"))
     ea.abort_process_tasks()
     assert ea.stop, "Processing state not set to stop"
@@ -257,7 +257,7 @@ def test007():
 
     class NS7(NamespaceModel):
         pass
-    ea = ExecutionAgent(config_model_instance=Config7("cm"),
+    ea = ExecutionAgent(task_model_instance=Config7("cm"),
                         namespace_model_instance=NS7("ns"))
 
     def wait_and_abort(lea):

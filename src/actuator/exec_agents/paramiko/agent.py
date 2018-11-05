@@ -798,7 +798,7 @@ class ParamikoServiceExecutionAgent(object):
         num_threads = int(self.num_threads / len(services)) + 1
         exec_threads = []
         for service in services:
-            self.ptes[service] = ParamikoExecutionAgent(config_model_instance=service.config.value(),
+            self.ptes[service] = ParamikoExecutionAgent(task_model_instance=service.config.value(),
                                                         namespace_model_instance=service.namespace.value(),
                                                         infra_model_instance=service.infra.value(),
                                                         num_threads=num_threads,
