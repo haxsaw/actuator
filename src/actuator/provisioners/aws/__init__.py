@@ -21,3 +21,46 @@
 """
 Amazon Web Services provisioner for Actuator
 """
+import threading
+from collections import defaultdict
+from actuator.provisioners.aws import aws_class_factory
+
+# boto3 resources are not thread safe, so we're going to make a per-thread cache
+# for each type of resource so we re-use resources within a single thread
+
+_session_by_thread_cache = defaultdict(lambda: aws_class_factory.get_aws_factory())
+
+_session_resource_cache = defaultdict(dict)
+
+_cache_lock = threading.RLock()
+
+# AWS resource names
+S3 = 's3'
+EC2 = 'ec2'
+SQS = 'sqs'
+SNS = 'sns'
+OPSWORKS = 'opsworks'
+IAM = 'iam'
+GLACIER = 'glacier'
+DYNAMODB = 'dynamodb'
+CLOUDWATCH = 'cloudwatch'
+CLOUDFORMATION = 'cloudformation'
+
+
+def _make_resource_key(resource_name, region_name, access_key_id, secret_access_key):
+    return resource_name, region_name, access_key_id, secret_access_key
+
+
+def get_resource(resource_name, region_name=None, aws_access_key_id=None, aws_secret_access_key=None):
+    with _cache_lock:
+        session = _session_by_thread_cache[threading.current_thread()]
+    resource_cache = _session_resource_cache[session]
+    key = _make_resource_key(resource_name, region_name, aws_access_key_id, aws_secret_access_key)
+    resource = resource_cache.get(key)
+    if resource is None:
+        resource = session.resource(resource_name, region_name=region_name,
+                                    aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+        resource_cache[key] = resource
+    return resource
+
+
