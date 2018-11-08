@@ -182,3 +182,110 @@ class RouteTableTask(ProvisioningTask):
             rsrc.association_id = None
         rt = ec2.RouteTable(rsrc.aws_id)
         rt.delete()
+
+
+@capture_mapping(_aws_domain, Route)
+class RouteTask(ProvisioningTask):
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, Route)
+        ec2 = run_context.ec2(region_name=rsrc.cloud)
+        rt = ec2.RouteTable(rsrc.route_table.aws_id)
+        args = {}
+        if rsrc.dest_cidr_block:
+            args["DestinationCidrBlock"] = rsrc.dest_cidr_block
+        if rsrc.dest_ipv6_cidr_block:
+            args["DestinationIpv6CidrBlock"] = rsrc.dest_ipv6_cidr_block
+        if rsrc.egress_only_gateway:
+            args["EgressOnlyInternetGatewayId"] = rsrc.egress_only_gateway.aws_id
+        if rsrc.gateway:
+            args["GatewayId"] = rsrc.gateway.aws_id
+        # FIXME: not cover InstanceId param
+        if rsrc.nat_gateway:
+            args["NatGatewayId"] = rsrc.nat_gateway.aws_id
+        if rsrc.network_interface:
+            args["NetworkInterfaceId"] = rsrc.network_interface.aws_id
+        # FIXME: not covering VpCPeeringConnectionId
+        _ = rt.create_route(**args)
+        rsrc.aws_id = rsrc.route_table.aws_id, (rsrc.dest_cidr_block or
+                                                rsrc.dest_ipv6_cidr_block)
+
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, Route)
+        ec2 = run_context.ec2(region_name=rsrc.cloud)
+        r = ec2.Route(*rsrc.aws_id)
+        r.delete()
+
+
+@capture_mapping(_aws_domain, NetworkInterface)
+class NetworkInterfaceTask(ProvisioningTask):
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, NetworkInterface)
+        ec2 = run_context.ec2(region_name=rsrc.cloud)
+        if rsrc.sec_groups:
+            gids = [sg.aws_id for sg in rsrc.sec_groups]
+        else:
+            gids = []
+        args = dict(SubnetId=rsrc.subnet.aws_id,
+                    Groups=gids)
+        if rsrc.private_ip_address:
+            args["PrivateIpAddress"] = rsrc.private_ip_address
+        # FIXME: skipping private_ip_addresses for now
+        if rsrc.description:
+            args["Description"] = rsrc.description
+        ni = ec2.create_network_interface(**args)
+        rsrc.aws_id = ni.network_interface_id
+
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, NetworkInterface)
+        ec2 = run_context.ec2(region_name=rsrc.cloud)
+        ni = ec2.NetworkInterface(rsrc.aws_id)
+        ni.delete()
+
+
+@capture_mapping(_aws_domain, AWSServer)
+class AWSServerTask(ProvisioningTask):
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, AWSServer)
+        ec2 = run_context.ec2(region_name=rsrc.cloud)
+        if rsrc.network_interfaces:
+            nids = [{"NetworkInterfaceId": ni.aws_id,
+                     "DeviceIndex": i}
+                    for i, ni in enumerate(rsrc.network_interfaces)]
+        else:
+            nids = []
+        if rsrc.sec_groups:
+            sgids = [sg.aws_id for sg in rsrc.sec_groups]
+        else:
+            sgids = []
+        args = dict(ImageId=rsrc.image_id,
+                    InstanceType=rsrc.instance_type,
+                    NetworkInterfaces=nids,
+                    SecurityGroupIds=sgids,
+                    MaxCount=1,
+                    MinCount=1)
+        if rsrc.subnet:
+            args["SubnetId"] = rsrc.subnet.aws_id
+        if rsrc.key_pair:
+            args["KeyName"] = rsrc.key_pair.name
+        instances = ec2.create_instances(**args)
+        inst = instances[0]
+        inst.wait_until_running()
+        rsrc.aws_id = inst.instance_id
+
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, AWSServer)
+        ec2 = run_context.ec2(region_name=rsrc.cloud)
+        inst = ec2.Instance(rsrc.aws_id)
+        inst.terminate()

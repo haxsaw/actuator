@@ -413,6 +413,17 @@ class NetworkInterface(AWSProvisionableInfraResource):
         return d
 
 
+class PublicIP(AWSProvisionableInfraResource):
+    def __init__(self, name, *args, domain="vpc", **kwargs):
+        """
+        create a new publicly available elastic IP that can be associated with a private IP
+        :param name:
+        :param args:
+        :param domain:
+        :param kwargs:
+        """
+
+
 class AWSServer(AWSProvisionableInfraResource):
     def __init__(self, name, image_id, *args, instance_type=None, key_pair=None,
                  sec_groups=None, subnet=None, network_interfaces=None, **kwargs):
