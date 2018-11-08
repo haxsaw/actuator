@@ -181,7 +181,7 @@ class SecurityGroupRule(AWSProvisionableInfraResource):
 
 
 class Subnet(AWSProvisionableInfraResource):
-    def __init__(self, name, cidr_block, vpc, *args, availability_zone=None, ipv6_cidr_block=None, **kwargs):
+    def __init__(self, name, cidr_block, vpc, *args, availability_zone="", ipv6_cidr_block="", **kwargs):
         """
         Create a new subnet on a vpc.
 
@@ -255,13 +255,15 @@ class InternetGateway(AWSProvisionableInfraResource):
 
 
 class Route(AWSProvisionableInfraResource):
-    def __init__(self, name, *args, dest_cidr_block=None, dest_ipv6_cidr_block=None, gateway=None,
+    def __init__(self, name, route_table, *args, dest_cidr_block=None, dest_ipv6_cidr_block=None, gateway=None,
                  egress_only_gateway=None, nat_instance=None, nat_gateway=None, network_interface=None,
                  peering_connection=None, **kwargs):
         """
         create a route that can be used in multiple routing tables
 
         :param name: model name for the route
+        :param route_table: the L{RouteTable} the rule is to be applied to. This can be an actual instance
+            of a L{RouteTable}, or a model reference or context expression that leads to a L{RouteTable}
         :param dest_cidr_block: string, optional. IPv4 destination CIDR
         :param dest_ipv6_cidr_block: string, optional. IPv6 destination CIDR
         :param gateway: optional InternetGateway. Can be an actual instance, a model reference, or a context
@@ -275,6 +277,8 @@ class Route(AWSProvisionableInfraResource):
         :param peering_connection: unused
         """
         super(Route, self).__init__(name, *args, **kwargs)
+        self.route_table = None
+        self._route_table = route_table
         self.dest_cidr_block = None
         self._dest_cidr_block = dest_cidr_block
         self.dest_ipv6_cidr_block = None
@@ -294,6 +298,7 @@ class Route(AWSProvisionableInfraResource):
 
     def get_init_args(self):
         args, kwargs = super(Route, self).get_init_args()
+        args += (self._route_table,)
         kwargs.update({"dest_cidr_block": self._dest_cidr_block,
                        "dest_ipv6_cidr_block": self._dest_ipv6_cidr_block,
                        "gateway": self._gateway,
@@ -306,6 +311,7 @@ class Route(AWSProvisionableInfraResource):
 
     def _fix_arguments(self):
         super(Route, self)._fix_arguments()
+        self.route_table = self._get_arg_value(self._route_table)
         self.dest_cidr_block = self._get_arg_value(self._dest_cidr_block)
         self.dest_ipv6_cidr_block = self._get_arg_value(self._dest_ipv6_cidr_block)
         self.gateway = self._get_arg_value(self._gateway)
@@ -317,7 +323,8 @@ class Route(AWSProvisionableInfraResource):
 
     def _get_attrs_dict(self):
         d = super(Route, self)._get_attrs_dict()
-        d.update({"dest_cidr_block": self.dest_cidr_block,
+        d.update({"route_table": self.route_table,
+                  "dest_cidr_block": self.dest_cidr_block,
                   "dest_ipv6_cidr_block": self.dest_ipv6_cidr_block,
                   "gateway": self.gateway,
                   "egress_only_gateway": self.egress_only_gateway,
@@ -329,42 +336,35 @@ class Route(AWSProvisionableInfraResource):
 
 
 class RouteTable(AWSProvisionableInfraResource):
-    def __init__(self, name, vpc, subnet, routes, *args, **kwargs):
+    def __init__(self, name, vpc, subnet, *args, **kwargs):
         """
         Create a routing table with the identified routes
         :param name: model name for the table
         :param vpc: the VPC the table is to be associated with
         :param subnet: the subnet the table is to be associated with
-        :param routes: a sequence of L{Route} s; the sequence can contain actual L{Route} instances,
-            model references, or context expressions for L{Route} instances
         """
         super(RouteTable, self).__init__(name, *args, **kwargs)
         self.vpc = None
         self._vpc = vpc
         self.subnet = None
         self._subnet = subnet
-        self.routes = None
-        self._routes = routes
+        self.association_id = None
 
     def get_init_args(self):
         args, kwargs = super(RouteTable, self).get_init_args()
-        args += (self._vpc, self._subnet, self._routes)
+        args += (self._vpc, self._subnet)
         return args, kwargs
 
     def _fix_arguments(self):
         super(RouteTable, self)._fix_arguments()
         self.vpc = self._get_arg_value(self._vpc)
         self.subnet = self._get_arg_value(self._subnet)
-        if isinstance(self._routes, Iterable):
-            self.routes = [self._get_arg_value(r) for r in self._routes]
-        else:
-            self.routes = self._get_arg_value(self._routes)
 
     def _get_attrs_dict(self):
         d = super(RouteTable, self)._get_attrs_dict()
         d["vpc"] = self.vpc
         d["subnet"] = self.subnet
-        d["routes"] = self.routes
+        d["association_id"] = self.association_id
         return d
 
 

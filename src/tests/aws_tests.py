@@ -369,7 +369,7 @@ def test017():
     """
     test017: test making a RouteTable
     """
-    rt = RouteTable("rt17", ctxt.model.vpc, ctxt.model.sn, [])
+    rt = RouteTable("rt17", ctxt.model.vpc, ctxt.model.sn)
     assert rt
 
 
@@ -381,7 +381,7 @@ def test018():
         vpc = VPC("t18", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
         sn = Subnet("sn118", "192.168.1.0/24", ctxt.model.vpc,
                     availability_zone="wibble", ipv6_cidr_block="whatever")
-        rt = RouteTable("t18", ctxt.model.vpc, ctxt.model.sn, [])
+        rt = RouteTable("t18", ctxt.model.vpc, ctxt.model.sn)
     i = I018("t18")
     i.fix_arguments()
     assert i
@@ -393,7 +393,7 @@ class I018a(InfraModel):
     vpc = VPC("t18a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
     sn = Subnet("sn118a", "192.168.1.0/24", ctxt.model.vpc,
                 availability_zone="wibble", ipv6_cidr_block="whatever")
-    rt = RouteTable("t18", ctxt.model.vpc, ctxt.model.sn, [])
+    rt = RouteTable("t18", ctxt.model.vpc, ctxt.model.sn)
 
 
 def test018a():
@@ -413,7 +413,7 @@ def test019():
     """
     test019: try creating a route
     """
-    r = Route("r19", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+    r = Route("r19", ctxt.model.rt, dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
     assert r
 
 
@@ -424,17 +424,24 @@ def test020():
     class I020(InfraModel):
         ig = InternetGateway("ig20", ctxt.model.vpc)
         vpc = VPC("vpc20", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
-        r = Route("r20", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+        r = Route("r20", ctxt.model.rt, dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+        sn = Subnet("sn20", "192.168.1.0/24", ctxt.model.vpc,
+                    availability_zone="wibble", ipv6_cidr_block="whatever")
+        rt = RouteTable("t20", ctxt.model.vpc, ctxt.model.sn)
     i = I020("i20")
     i.fix_arguments()
     assert i.r.gateway.value() is i.ig.value()
     assert i.r.dest_cidr_block.value() == "0.0.0.0/0"
+    assert i.r.route_table.value() is i.rt.value()
 
 
 class I020a(InfraModel):
     ig = InternetGateway("ig20a", ctxt.model.vpc)
     vpc = VPC("vpc20a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
-    r = Route("r20a", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+    r = Route("r20a", ctxt.model.rt, dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+    sn = Subnet("sn20a", "192.168.1.0/24", ctxt.model.vpc,
+                availability_zone="wibble", ipv6_cidr_block="whatever")
+    rt = RouteTable("t20a", ctxt.model.vpc, ctxt.model.sn)
 
 
 def test020a():
@@ -448,41 +455,7 @@ def test020a():
     i = reanimate_from_dict(dp)
     assert i.r.gateway.value() is i.ig.value()
     assert i.r.dest_cidr_block.value() == "0.0.0.0/0"
-
-
-def test021():
-    """
-    test021: check the use of a route with a routing table in a model
-    """
-    class I021(InfraModel):
-        ig = InternetGateway("ig21", ctxt.model.vpc)
-        vpc = VPC("vpc21", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
-        r = Route("r21", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
-        sn = Subnet("sn21", "192.168.1.0/24", ctxt.model.vpc)
-        rt = RouteTable("rt21", ctxt.model.vpc, ctxt.model.sn, [ctxt.model.r])
-    i = I021("i21")
-    i.fix_arguments()
-    assert i.rt.value().routes[0] is i.r.value()
-
-
-class I021a(InfraModel):
-    ig = InternetGateway("ig21a", ctxt.model.vpc)
-    vpc = VPC("vpc21a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
-    r = Route("r21a", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
-    sn = Subnet("sn21a", "192.168.1.0/24", ctxt.model.vpc)
-    rt = RouteTable("rt21a", ctxt.model.vpc, ctxt.model.sn, [ctxt.model.r])
-
-
-def test021a():
-    """
-    test021a: check that a route table with a route persists/reanimates properly
-    """
-    j = I021a("i21a")
-    j.fix_arguments()
-    d = persist_to_dict(j)
-    dp = json.loads(json.dumps(d))
-    i = reanimate_from_dict(dp)
-    assert i.rt.value().routes[0] is i.r.value()
+    assert i.r.route_table.value() is i.rt.value()
 
 
 def test022():
