@@ -23,7 +23,9 @@ Amazon Web Services provisioner for Actuator
 """
 import threading
 from collections import defaultdict
+from actuator.provisioners.core import (BaseProvisionerProxy, AbstractRunContext)
 from actuator.provisioners.aws import aws_class_factory
+from actuator.provisioners.aws.resource_tasks import _aws_domain
 
 # boto3 resources are not thread safe, so we're going to make a per-thread cache
 # for each type of resource so we re-use resources within a single thread
@@ -64,3 +66,31 @@ def get_resource(resource_name, region_name=None, aws_access_key_id=None, aws_se
     return resource
 
 
+class _AWSCredentials(object):
+    def __init__(self, region, aws_access_key, aws_secret_key):
+        self.region = region
+        self.aws_access_key = aws_access_key
+        self.aws_secret_key = aws_secret_key
+
+
+class AWSRunContext(AbstractRunContext):
+    def __init__(self, default_creds):
+        self.default_creds = default_creds
+
+    def ec2(self, region_name=None):
+        return get_resource(EC2, self.default_creds.region if region_name is None else region_name,
+                            self.default_creds.aws_access_key, self.default_creds.aws_secret_key)
+
+
+class AWSProvisionerProxy(BaseProvisionerProxy):
+    mapper_domain_name = _aws_domain
+
+    def __init__(self, name, default_region=None, aws_access_key=None, aws_secret_access_key=None):
+        super(AWSProvisionerProxy, self).__init__(name)
+        self.creds = _AWSCredentials(default_region, aws_access_key, aws_secret_access_key)
+
+    def run_context_factory(self):
+        return AWSRunContext(self.creds)
+
+
+__all__ = ["AWSProvisionerProxy"]

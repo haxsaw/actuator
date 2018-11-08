@@ -20,28 +20,27 @@
 # SOFTWARE.
 
 from errator import narrate
+from collections import Iterable
 
-
-from actuator.modeling import ContextExpr
-from actuator.infra import Provisionable, IPAddressable
+from actuator.infra import IPAddressable
 from actuator.provisioners.core import Provisionable, ProvisionerException
 from actuator.utils import _Persistable
 
 
-class _AWSProvisionableInfraResource(Provisionable):
+class AWSProvisionableInfraResource(Provisionable):
     def __init__(self, name, *args, **kwargs):
-        super(_AWSProvisionableInfraResource, self).__init__(name, *args, **kwargs)
+        super(AWSProvisionableInfraResource, self).__init__(name, *args, **kwargs)
         self.aws_id = None
 
     def _get_attrs_dict(self):
-        d = super(_AWSProvisionableInfraResource, self)._get_attrs_dict()
+        d = super(AWSProvisionableInfraResource, self)._get_attrs_dict()
         d["aws_id"] = self.aws_id
         return d
 
 
-class VPC(_AWSProvisionableInfraResource):
+class VPC(AWSProvisionableInfraResource):
     def __init__(self, name, cidr_block, *args, amazon_provided_ipv6_cidr_block=False,
-                 instance_tenancy=None, **kwargs):
+                 instance_tenancy="default", **kwargs):
         """
         Create an AWS VPC
         :param name: string; name to use for the vpc in the model
@@ -82,7 +81,7 @@ class VPC(_AWSProvisionableInfraResource):
         return d
 
 
-class SecurityGroup(_AWSProvisionableInfraResource):
+class SecurityGroup(AWSProvisionableInfraResource):
     def __init__(self, name, description, vpc, *args, **kwargs):
         super(SecurityGroup, self).__init__(name, *args, **kwargs)
         self.description = None
@@ -107,7 +106,7 @@ class SecurityGroup(_AWSProvisionableInfraResource):
         return d
 
 
-class KeyPair(_AWSProvisionableInfraResource):
+class KeyPair(AWSProvisionableInfraResource):
     def __init__(self, name, *args, ensure_unique=False, **kwargs):
         super(KeyPair, self).__init__(name, *args, **kwargs)
         self.ensure_unique = None
@@ -128,7 +127,7 @@ class KeyPair(_AWSProvisionableInfraResource):
         return d
 
 
-class SecurityGroupRule(_AWSProvisionableInfraResource):
+class SecurityGroupRule(AWSProvisionableInfraResource):
     def __init__(self, name, security_group, kind, cidrip, from_port, to_port, ip_protocol, *args, **kwargs):
         """
         Create a rule on the named security group
@@ -181,7 +180,7 @@ class SecurityGroupRule(_AWSProvisionableInfraResource):
         return d
 
 
-class Subnet(_AWSProvisionableInfraResource):
+class Subnet(AWSProvisionableInfraResource):
     def __init__(self, name, cidr_block, vpc, *args, availability_zone=None, ipv6_cidr_block=None, **kwargs):
         """
         Create a new subnet on a vpc.
@@ -229,6 +228,254 @@ class Subnet(_AWSProvisionableInfraResource):
         return d
 
 
-class InternetGateway(_AWSProvisionableInfraResource):
-    def __init__(self, name, *args, **kwargs):
+class InternetGateway(AWSProvisionableInfraResource):
+    def __init__(self, name, vpc, *args, **kwargs):
+        """
+        Create a new internet gateway to be used for a particular VPC
+        :param name: model name of the gateway
+        :param vpc: the VPC to attach the gatweway to
+        """
         super(InternetGateway, self).__init__(name, *args, **kwargs)
+        self.vpc = None
+        self._vpc = vpc
+
+    def get_init_args(self):
+        args, kwargs = super(InternetGateway, self).get_init_args()
+        args += (self._vpc,)
+        return args, kwargs
+
+    def _fix_arguments(self):
+        super(InternetGateway, self)._fix_arguments()
+        self.vpc = self._get_arg_value(self._vpc)
+
+    def _get_attrs_dict(self):
+        d = super(InternetGateway, self)._get_attrs_dict()
+        d["vpc"] = self.vpc
+        return d
+
+
+class Route(AWSProvisionableInfraResource):
+    def __init__(self, name, *args, dest_cidr_block=None, dest_ipv6_cidr_block=None, gateway=None,
+                 egress_only_gateway=None, nat_instance=None, nat_gateway=None, network_interface=None,
+                 peering_connection=None, **kwargs):
+        """
+        create a route that can be used in multiple routing tables
+
+        :param name: model name for the route
+        :param dest_cidr_block: string, optional. IPv4 destination CIDR
+        :param dest_ipv6_cidr_block: string, optional. IPv6 destination CIDR
+        :param gateway: optional InternetGateway. Can be an actual instance, a model reference, or a context
+            expression that leads to an InternetGateway
+        :param egress_only_gateway: optional egress-only L{InternetGateway}; IPv6 traffic only. Can be an actual instance,
+            a model reference, or a context expression that leads to an L{InternetGateway}
+        :param nat_instance: optional; a NAT instance in the VPC
+        :param nat_gateway: a NAT gateway
+        :param network_interface: optional; a NetworkInterface. Can be an actual instance, model reference, or
+            context expression that leads to a L{NetworkInterface}
+        :param peering_connection: unused
+        """
+        super(Route, self).__init__(name, *args, **kwargs)
+        self.dest_cidr_block = None
+        self._dest_cidr_block = dest_cidr_block
+        self.dest_ipv6_cidr_block = None
+        self._dest_ipv6_cidr_block = dest_ipv6_cidr_block
+        self.gateway = None
+        self._gateway = gateway
+        self.egress_only_gateway = None
+        self._egress_only_gateway = egress_only_gateway
+        self.nat_instance = None
+        self._nat_instance = nat_instance
+        self.nat_gateway = None
+        self._nat_gateway = nat_gateway
+        self.network_interface = None
+        self._network_interface = network_interface
+        self.peering_connection = None
+        self._peering_connection = peering_connection
+
+    def get_init_args(self):
+        args, kwargs = super(Route, self).get_init_args()
+        kwargs.update({"dest_cidr_block": self._dest_cidr_block,
+                       "dest_ipv6_cidr_block": self._dest_ipv6_cidr_block,
+                       "gateway": self._gateway,
+                       "egress_only_gateway": self._egress_only_gateway,
+                       "nat_instance": self._nat_instance,
+                       "nat_gateway": self._nat_gateway,
+                       "network_interface": self._network_interface,
+                       "peering_connection": self._peering_connection})
+        return args, kwargs
+
+    def _fix_arguments(self):
+        super(Route, self)._fix_arguments()
+        self.dest_cidr_block = self._get_arg_value(self._dest_cidr_block)
+        self.dest_ipv6_cidr_block = self._get_arg_value(self._dest_ipv6_cidr_block)
+        self.gateway = self._get_arg_value(self._gateway)
+        self.egress_only_gateway = self._get_arg_value(self._egress_only_gateway)
+        self.nat_instance = self._get_arg_value(self._nat_instance)
+        self.nat_gateway = self._get_arg_value(self._nat_gateway)
+        self.network_interface = self._get_arg_value(self._network_interface)
+        self.peering_connection = self._get_arg_value(self._peering_connection)
+
+    def _get_attrs_dict(self):
+        d = super(Route, self)._get_attrs_dict()
+        d.update({"dest_cidr_block": self.dest_cidr_block,
+                  "dest_ipv6_cidr_block": self.dest_ipv6_cidr_block,
+                  "gateway": self.gateway,
+                  "egress_only_gateway": self.egress_only_gateway,
+                  "nat_instance": self.nat_instance,
+                  "nat_gateway": self.nat_gateway,
+                  "network_interface": self.network_interface,
+                  "peering_connection": self.peering_connection})
+        return d
+
+
+class RouteTable(AWSProvisionableInfraResource):
+    def __init__(self, name, vpc, subnet, routes, *args, **kwargs):
+        """
+        Create a routing table with the identified routes
+        :param name: model name for the table
+        :param vpc: the VPC the table is to be associated with
+        :param subnet: the subnet the table is to be associated with
+        :param routes: a sequence of L{Route} s; the sequence can contain actual L{Route} instances,
+            model references, or context expressions for L{Route} instances
+        """
+        super(RouteTable, self).__init__(name, *args, **kwargs)
+        self.vpc = None
+        self._vpc = vpc
+        self.subnet = None
+        self._subnet = subnet
+        self.routes = None
+        self._routes = routes
+
+    def get_init_args(self):
+        args, kwargs = super(RouteTable, self).get_init_args()
+        args += (self._vpc, self._subnet, self._routes)
+        return args, kwargs
+
+    def _fix_arguments(self):
+        super(RouteTable, self)._fix_arguments()
+        self.vpc = self._get_arg_value(self._vpc)
+        self.subnet = self._get_arg_value(self._subnet)
+        if isinstance(self._routes, Iterable):
+            self.routes = [self._get_arg_value(r) for r in self._routes]
+        else:
+            self.routes = self._get_arg_value(self._routes)
+
+    def _get_attrs_dict(self):
+        d = super(RouteTable, self)._get_attrs_dict()
+        d["vpc"] = self.vpc
+        d["subnet"] = self.subnet
+        d["routes"] = self.routes
+        return d
+
+
+class NetworkInterface(AWSProvisionableInfraResource):
+    def __init__(self, name, subnet, *args, description="", sec_groups=None, private_ip_address=None,
+                 private_ip_addresses=None, **kwargs):
+        super(NetworkInterface, self).__init__(name, *args, **kwargs)
+        self.subnet = None
+        self._subnet = subnet
+        self.description = None
+        self._description = description
+        self.sec_groups = None
+        self._sec_groups = sec_groups
+        self.private_ip_address = None
+        self._private_ip_address = private_ip_address
+        self.private_ip_addresses = private_ip_addresses
+        self._private_ip_addresses = private_ip_addresses
+
+    def get_init_args(self):
+        args, kwargs = super(NetworkInterface, self).get_init_args()
+        args += (self._subnet,)
+        kwargs.update({"description": self._description,
+                       "sec_groups": self._sec_groups,
+                       "private_ip_address": self._private_ip_address,
+                       "private_ip_addresses": self._private_ip_addresses})
+        return args, kwargs
+
+    def _fix_arguments(self):
+        super(NetworkInterface, self)._fix_arguments()
+        self.subnet = self._get_arg_value(self._subnet)
+        self.description = self._get_arg_value(self._description)
+        if isinstance(self._sec_groups, Iterable):
+            self.sec_groups = [self._get_arg_value(sg) for sg in self._sec_groups]
+        else:
+            self.sec_groups = self._get_arg_value(self._sec_groups)
+        self.private_ip_address = self._get_arg_value(self._private_ip_address)
+        self.private_ip_addresses = self._get_arg_value(self._private_ip_addresses)
+
+    def _get_attrs_dict(self):
+        d = super(NetworkInterface, self)._get_attrs_dict()
+        d.update({"subnet": self.subnet,
+                  "description": self.description,
+                  "sec_groups": self.sec_groups,
+                  "private_ip_address": self.private_ip_address,
+                  "private_ip_addresses": self.private_ip_addresses})
+        return d
+
+
+class AWSServer(AWSProvisionableInfraResource):
+    def __init__(self, name, image_id, *args, instance_type=None, key_pair=None,
+                 sec_groups=None, subnet=None, network_interfaces=None, **kwargs):
+        """
+        create a new server instance
+        :param name: model name of the server; may wind up in the machine too
+        :param image_id: string; AMI id of a machine image to start
+        :param instance_type: string, optional. defines the type of instance on wihch to run
+            the image. The default is 'm1.small'
+        :param key_pair: string, optional. the name of a keypair to use to allow access. If not supplied,
+            some other remote access arrangements must be available in the image
+        :param sec_groups: list; optional. List of SecurityGroups; list elements must either be instances,
+            model references, or context expressions that lead to a SecurityGroup
+        :param subnet: optional; a L{Subnet} instance, model reference, or context expression for a Subnet
+        :param network_interfaces: list, optional. List of NetworkInterfaces to connect to the machine. List
+            elements can be NetworkInterface instances, model references, or context expressions that refer
+            to a NetworkInterface
+        """
+        super(AWSServer, self).__init__(name, *args, **kwargs)
+        self.image_id = None
+        self._image_id = image_id
+        self.instance_type = None
+        self._instance_type = instance_type
+        self.key_pair = None
+        self._key_pair = key_pair
+        self.sec_groups = None
+        self._sec_groups = sec_groups
+        self.subnet = None
+        self._subnet = subnet
+        self.network_interfaces = None
+        self._network_interfaces = network_interfaces
+
+    def get_init_args(self):
+        args, kwargs = super(AWSServer, self).get_init_args()
+        args += (self._image_id,)
+        kwargs.update({"instance_type": self._instance_type,
+                       "key_pair": self._key_pair,
+                       "sec_groups": self._sec_groups,
+                       "subnet": self._subnet,
+                       "network_interfaces": self._network_interfaces})
+        return args, kwargs
+
+    def _fix_arguments(self):
+        super(AWSServer, self)._fix_arguments()
+        self.image_id = self._get_arg_value(self._image_id)
+        self.instance_type = self._get_arg_value(self._instance_type)
+        self.key_pair = self._get_arg_value(self._key_pair)
+        if isinstance(self._sec_groups, Iterable):
+            self.sec_groups = [self._get_arg_value(sg) for sg in self._sec_groups]
+        else:
+            self.sec_groups = self._get_arg_value(self._sec_groups)
+        self.subnet = self._get_arg_value(self._subnet)
+        if isinstance(self._network_interfaces, Iterable):
+            self.network_interfaces = [self._get_arg_value(ni) for ni in self._network_interfaces]
+        else:
+            self.network_interfaces = self._get_arg_value(self._network_interfaces)
+
+    def _get_attrs_dict(self):
+        d = super(AWSServer, self)._get_attrs_dict()
+        d.update({"image_id": self.image_id,
+                  "instance_type": self.instance_type,
+                  "key_pair": self.key_pair,
+                  "sec_groups": self.sec_groups,
+                  "subnet": self.subnet,
+                  "network_interfaces": self.network_interfaces})
+        return d

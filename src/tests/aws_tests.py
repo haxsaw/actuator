@@ -26,7 +26,8 @@ from actuator.provisioners.aws import get_resource, EC2, S3
 from actuator import ctxt
 from actuator.infra import InfraModel
 from actuator.provisioners.aws.resources import (SecurityGroupRule, SecurityGroup, Subnet, VPC,
-                                                 KeyPair, InternetGateway)
+                                                 KeyPair, InternetGateway, RouteTable, Route,
+                                                 NetworkInterface, AWSServer)
 from actuator.utils import persist_to_dict, reanimate_from_dict
 
 
@@ -310,7 +311,7 @@ class I014a(InfraModel):
 
 def test014a():
     """
-    test014a: put a persist/reanimate a subnet
+    test014a: persist/reanimate a subnet
     """
     i = I014a("infra14a")
     i.fix_arguments()
@@ -324,6 +325,280 @@ def test014a():
                                                                                                   iprime.vpc.cidr_block.value())
     assert iprime.sn.availability_zone.value() == "wibble", "zone was {}".format(iprime.sn.availability_zone.value())
     assert iprime.sn.ipv6_cidr_block.value() == "whatever"
+
+
+def test015():
+    """
+    test015: create an internet gateway
+    """
+    ig = InternetGateway("ig15", ctxt.model.vpc)
+    assert ig
+
+
+def test016():
+    """
+    test016: put an internet gateway into a model
+    """
+    class I016(InfraModel):
+        ig = InternetGateway("ig16", ctxt.model.vpc)
+        vpc = VPC("t16", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+    i = I016("t16")
+    i.fix_arguments()
+    assert i
+    assert i.ig.vpc.value() is i.vpc.value()
+
+
+class I016a(InfraModel):
+    ig = InternetGateway("ig16a", ctxt.model.vpc)
+    vpc = VPC("t16a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+
+
+def test016a():
+    """
+    test016a: test persisting/reanimating an internet gateway
+    """
+    i = I016a("i16a")
+    i.fix_arguments()
+    d = persist_to_dict(i)
+    dp = json.loads(json.dumps(d))
+    iprime = reanimate_from_dict(dp)
+    assert iprime.ig.vpc.value() is iprime.vpc.value()
+
+
+def test017():
+    """
+    test017: test making a RouteTable
+    """
+    rt = RouteTable("rt17", ctxt.model.vpc, ctxt.model.sn, [])
+    assert rt
+
+
+def test018():
+    """
+    test018: put a route table in a model
+    """
+    class I018(InfraModel):
+        vpc = VPC("t18", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+        sn = Subnet("sn118", "192.168.1.0/24", ctxt.model.vpc,
+                    availability_zone="wibble", ipv6_cidr_block="whatever")
+        rt = RouteTable("t18", ctxt.model.vpc, ctxt.model.sn, [])
+    i = I018("t18")
+    i.fix_arguments()
+    assert i
+    assert i.rt.vpc.value() is i.vpc.value()
+    assert i.rt.subnet.value() is i.sn.value()
+
+
+class I018a(InfraModel):
+    vpc = VPC("t18a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+    sn = Subnet("sn118a", "192.168.1.0/24", ctxt.model.vpc,
+                availability_zone="wibble", ipv6_cidr_block="whatever")
+    rt = RouteTable("t18", ctxt.model.vpc, ctxt.model.sn, [])
+
+
+def test018a():
+    """
+    test018a: try persisting/reanimating a route table
+    """
+    i = I018a("t18a")
+    i.fix_arguments()
+    d = persist_to_dict(i)
+    dp = json.loads(json.dumps(d))
+    iprime = reanimate_from_dict(dp)
+    assert iprime.rt.vpc.value() is iprime.vpc.value()
+    assert iprime.rt.subnet.value() is iprime.sn.value()
+
+
+def test019():
+    """
+    test019: try creating a route
+    """
+    r = Route("r19", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+    assert r
+
+
+def test020():
+    """
+    test020: add a route to a model
+    """
+    class I020(InfraModel):
+        ig = InternetGateway("ig20", ctxt.model.vpc)
+        vpc = VPC("vpc20", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+        r = Route("r20", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+    i = I020("i20")
+    i.fix_arguments()
+    assert i.r.gateway.value() is i.ig.value()
+    assert i.r.dest_cidr_block.value() == "0.0.0.0/0"
+
+
+class I020a(InfraModel):
+    ig = InternetGateway("ig20a", ctxt.model.vpc)
+    vpc = VPC("vpc20a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+    r = Route("r20a", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+
+
+def test020a():
+    """
+    test020a: persist/reanimate a model with a route
+    """
+    j = I020a("i20a")
+    j.fix_arguments()
+    d = persist_to_dict(j)
+    dp = json.loads(json.dumps(d))
+    i = reanimate_from_dict(dp)
+    assert i.r.gateway.value() is i.ig.value()
+    assert i.r.dest_cidr_block.value() == "0.0.0.0/0"
+
+
+def test021():
+    """
+    test021: check the use of a route with a routing table in a model
+    """
+    class I021(InfraModel):
+        ig = InternetGateway("ig21", ctxt.model.vpc)
+        vpc = VPC("vpc21", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+        r = Route("r21", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+        sn = Subnet("sn21", "192.168.1.0/24", ctxt.model.vpc)
+        rt = RouteTable("rt21", ctxt.model.vpc, ctxt.model.sn, [ctxt.model.r])
+    i = I021("i21")
+    i.fix_arguments()
+    assert i.rt.value().routes[0] is i.r.value()
+
+
+class I021a(InfraModel):
+    ig = InternetGateway("ig21a", ctxt.model.vpc)
+    vpc = VPC("vpc21a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+    r = Route("r21a", dest_cidr_block="0.0.0.0/0", gateway=ctxt.model.ig)
+    sn = Subnet("sn21a", "192.168.1.0/24", ctxt.model.vpc)
+    rt = RouteTable("rt21a", ctxt.model.vpc, ctxt.model.sn, [ctxt.model.r])
+
+
+def test021a():
+    """
+    test021a: check that a route table with a route persists/reanimates properly
+    """
+    j = I021a("i21a")
+    j.fix_arguments()
+    d = persist_to_dict(j)
+    dp = json.loads(json.dumps(d))
+    i = reanimate_from_dict(dp)
+    assert i.rt.value().routes[0] is i.r.value()
+
+
+def test022():
+    """
+    test022: create a network interface
+    """
+    ni = NetworkInterface("ni22", ctxt.model.sn, description="wibble",
+                          sec_groups=[ctxt.model.sg1,
+                                      ctxt.model.sg2])
+    assert ni
+
+
+def test023():
+    """
+    test023: put a network interface into a model
+    """
+    class I023(InfraModel):
+        vpc = VPC("vpc23", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+        ni = NetworkInterface("ni23", ctxt.model.sn, description="wibble",
+                              sec_groups=[ctxt.model.sg1,
+                                          ctxt.model.sg2])
+        sn = Subnet("sn23", "192.168.1.0/24", ctxt.model.vpc)
+        sg1 = SecurityGroup("i23-sg1", "sg1", ctxt.model.vpc)
+        sg2 = SecurityGroup("i23-sg2", "sg2", ctxt.model.vpc)
+    i = I023("i23")
+    i.fix_arguments()
+    assert i.ni.subnet.value() is i.sn.value()
+    assert i.ni.value().sec_groups[0] is i.sg1.value()
+    assert i.ni.value().sec_groups[1] is i.sg2.value()
+    assert i.ni.description.value() == "wibble"
+
+
+class I023a(InfraModel):
+    vpc = VPC("vpc23a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+    ni = NetworkInterface("ni23a", ctxt.model.sn, description="wibble",
+                          sec_groups=[ctxt.model.sg1, ctxt.model.sg2])
+    sn = Subnet("sn23a", "192.168.1.0/24", ctxt.model.vpc)
+    sg1 = SecurityGroup("i23a-sg1", "sg1", ctxt.model.vpc)
+    sg2 = SecurityGroup("i23a-sg2", "sg2", ctxt.model.vpc)
+
+
+def test023a():
+    """
+    test023a: try persisting/reanimating a model with a network interface
+    """
+    j = I023a("i23a")
+    j.fix_arguments()
+    d = persist_to_dict(j)
+    dp = json.loads(json.dumps(d))
+    i = reanimate_from_dict(dp)
+    assert i.ni.subnet.value() is i.sn.value()
+    assert i.ni.value().sec_groups[0] is i.sg1.value()
+    assert i.ni.value().sec_groups[1] is i.sg2.value()
+    assert i.ni.description.value() == "wibble"
+
+
+ami_id = "ami-0f27df5f159bccfba"
+instance_type = 't2.nano'
+
+
+def test024():
+    """
+    test024: create a server
+    """
+    s = AWSServer("s24", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                  sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+    assert s
+
+
+def test025():
+    """
+    test025: put a server into a model
+    """
+    class I025(InfraModel):
+        s = AWSServer("s25", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                      sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+        kp = KeyPair("kp25")
+        sg = SecurityGroup("sg25", "sg25 desc", ctxt.model.vpc)
+        vpc = VPC("vpc25", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+        sn = Subnet("sn25", "192.168.1.0/24", ctxt.model.vpc)
+        ni = NetworkInterface("ni25", ctxt.model.sn, description="wibble", sec_groups=[ctxt.model.sg])
+    i = I025("i25")
+    i.fix_arguments()
+    assert i.s.key_pair.value() is i.kp.value()
+    assert i.s.sec_groups.value()[0] is i.sg.value()
+    assert i.s.network_interfaces.value()[0] is i.ni.value()
+    assert i.s.subnet.value() is i.sn.value()
+    assert i.s.image_id.value() == ami_id
+    assert i.s.instance_type.value() == instance_type
+
+
+class I025a(InfraModel):
+    s = AWSServer("s25a", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                  sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+    kp = KeyPair("kp25a")
+    sg = SecurityGroup("sg2a5", "sg25a desc", ctxt.model.vpc)
+    vpc = VPC("vpc25a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+    sn = Subnet("sn25a", "192.168.1.0/24", ctxt.model.vpc)
+    ni = NetworkInterface("ni25a", ctxt.model.sn, description="wibble", sec_groups=[ctxt.model.sg])
+
+
+def test025a():
+    """
+    test025a: persist/reanimate a model with a server
+    """
+    j = I025a("i25a")
+    j.fix_arguments()
+    d = persist_to_dict(j)
+    dp = json.loads(json.dumps(d))
+    i = reanimate_from_dict(dp)
+    assert i.s.key_pair.value() is i.kp.value()
+    assert i.s.sec_groups.value()[0] is i.sg.value()
+    assert i.s.network_interfaces.value()[0] is i.ni.value()
+    assert i.s.subnet.value() is i.sn.value()
+    assert i.s.image_id.value() == ami_id
+    assert i.s.instance_type.value() == instance_type
 
 
 def do_all():
