@@ -240,6 +240,7 @@ class NetworkInterfaceTask(ProvisioningTask):
             args["Description"] = rsrc.description
         ni = ec2.create_network_interface(**args)
         rsrc.aws_id = ni.network_interface_id
+        client = run_context.ec2_client(region_name=rsrc.cloud)
 
     def _reverse(self, proxy):
         run_context = proxy.get_context()
@@ -250,12 +251,12 @@ class NetworkInterfaceTask(ProvisioningTask):
         ni.delete()
 
 
-@capture_mapping(_aws_domain, AWSServer)
-class AWSServerTask(ProvisioningTask):
+@capture_mapping(_aws_domain, AWSInstance)
+class AWSInstanceTask(ProvisioningTask):
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
-        assert isinstance(rsrc, AWSServer)
+        assert isinstance(rsrc, AWSInstance)
         ec2 = run_context.ec2(region_name=rsrc.cloud)
         if rsrc.network_interfaces:
             nids = [{"NetworkInterfaceId": ni.aws_id,
@@ -285,7 +286,57 @@ class AWSServerTask(ProvisioningTask):
     def _reverse(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
-        assert isinstance(rsrc, AWSServer)
+        assert isinstance(rsrc, AWSInstance)
         ec2 = run_context.ec2(region_name=rsrc.cloud)
         inst = ec2.Instance(rsrc.aws_id)
         inst.terminate()
+
+
+@capture_mapping(_aws_domain, PublicIP)
+class PublicIPTask(ProvisioningTask):
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, PublicIP)
+        cli = run_context.ec2_client(region_name=rsrc.cloud)
+        if rsrc.aws_id is None:
+            args = {"Domain": rsrc.domain}
+            if rsrc.address:
+                args["Address"] = rsrc.address
+            if rsrc.public_ipv4_pool:
+                args["PublicIpv4Pool"] = rsrc.public_ipv4_pool
+            response = cli.allocate_address(**args)
+            rsrc.aws_id = response["AllocationId"]
+            rsrc.ip_address = response["PublicIp"]
+        # now do the association
+        args = {"AllocationId": rsrc.aws_id}
+        if rsrc.domain == "standard":
+            args["Public"] = rsrc.ip_address
+        if rsrc.network_interface:
+            args["NetworkInterfaceId"] = rsrc.network_interface.aws_id
+        if rsrc.instance:
+            args["InstanceId"] = rsrc.instance.aws_id
+        if rsrc.private_ip_address:
+            args["PrivateIpAddress"] = rsrc.private_ip_address
+        response = cli.associate_address(**args)
+        rsrc.association_id = response["AssociationId"]
+
+    def _reverse(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, PublicIP)
+        cli = run_context.ec2_client(region_name=rsrc.cloud)
+        args = {"AssociationId": rsrc.aws_id}
+        if rsrc.domain == "standard":
+            args["PublicIp"] = rsrc.ip_address
+        if rsrc.association_id is not None:
+            args = {"AssociationId": rsrc.association_id}
+            if rsrc.domain == "standard":
+                args["PublicIp"] = rsrc.ip_address
+            cli.disassociate_address(**args)
+            rsrc.association_id = None
+        # now release the address
+        args = {"AllocationId": rsrc.aws_id}
+        if rsrc.domain == "standard":
+            args["PublicIp"] = rsrc.ip_address
+        cli.release_address(**args)

@@ -380,7 +380,7 @@ class NetworkInterface(AWSProvisionableInfraResource):
         self._sec_groups = sec_groups
         self.private_ip_address = None
         self._private_ip_address = private_ip_address
-        self.private_ip_addresses = private_ip_addresses
+        self.private_ip_addresses = None
         self._private_ip_addresses = private_ip_addresses
 
     def get_init_args(self):
@@ -413,18 +413,83 @@ class NetworkInterface(AWSProvisionableInfraResource):
         return d
 
 
-class PublicIP(AWSProvisionableInfraResource):
-    def __init__(self, name, *args, domain="vpc", **kwargs):
+class PublicIP(AWSProvisionableInfraResource, IPAddressable):
+    def __init__(self, name, *args, domain="vpc", public_ipv4_pool=None, address=None,
+                 instance=None, network_interface=None, private_ip_address=None, **kwargs):
         """
         create a new publicly available elastic IP that can be associated with a private IP
-        :param name:
-        :param args:
-        :param domain:
-        :param kwargs:
+
+        :param name: model name of the elastic ip
+        :param domain: string, optional. One of 'standard' or 'vpc'. Default is 'vpc'
+        :param public_ipv4_pool: string, optional id of an address pool owned by the caller.
+            EC2 will select an address from the pool.
+        :param address: string, optional. allows the caller to specify a particular public ip.
+            can't be used with public_ipv4_pool
+        :param instance: L{AWSInstance}, optional. Either an actual L{AWSInstance}, or a model
+            reference or context expression that leads to an AWSInstance. One of instance,
+            network_interface, or private_ip_address must be provided.
+        :param network_interface: L{NetworkInterface}, optional. Either an L{NetworkInterface},
+            or a model reference or context expression that leads to a NetworkInterface. One of
+            instance, network_interface, or private_ip_address must be provided.
+        :param private_ip_address: string, optional. private IP to associate the public ip with.
+            One of instance, network_interface, or private_ip_address must be provided.
         """
+        super(PublicIP, self).__init__(name, *args, **kwargs)
+        if sum([instance is not None and 1,
+               network_interface is not None and 1,
+               private_ip_address is not None and 1]) != 1:
+            raise ProvisionerException("You must specify exactly one of instance, network_interface "
+                                       "or private_ip_address")
+        if public_ipv4_pool and address:
+            raise ProvisionerException("You can only specify one of address or public_ipv4_pool")
+        self.domain = None
+        self._domain = domain
+        self.public_ipv4_pool = None
+        self._public_ipv4_pool = public_ipv4_pool
+        self.address = None
+        self._address = address
+        self.instance = None
+        self._instance = instance
+        self.network_interface = None
+        self._network_interface = network_interface
+        self.private_ip_address = None
+        self._private_ip_address = private_ip_address
+        self.ip_address = None
+        self.association_id = None
+
+    def get_init_args(self):
+        args, kwargs = super(PublicIP, self).get_init_args()
+        kwargs.update({"domain": self._domain,
+                       "public_ipv4_pool": self._public_ipv4_pool,
+                       "address": self._address,
+                       "instance": self._instance,
+                       "network_interface": self._network_interface,
+                       "private_ip_address": self._private_ip_address})
+        return args, kwargs
+
+    def _fix_arguments(self):
+        super(PublicIP, self)._fix_arguments()
+        self.domain = self._get_arg_value(self._domain)
+        self.public_ipv4_pool = self._get_arg_value(self._public_ipv4_pool)
+        self.address = self._get_arg_value(self._address)
+        self.instance = self._get_arg_value(self._instance)
+        self.network_interface = self._get_arg_value(self._network_interface)
+        self.private_ip_address = self._get_arg_value(self._private_ip_address)
+
+    def _get_attrs_dict(self):
+        d = super(PublicIP, self)._get_attrs_dict()
+        d.update({"domain": self.domain,
+                  "public_ipv4_pool": self.public_ipv4_pool,
+                  "address": self.address,
+                  "instance": self.instance,
+                  "network_interface": self.network_interface,
+                  "private_ip_address": self.private_ip_address,
+                  "ip_address": self.ip_address,
+                  "association_id": self.association_id})
+        return d
 
 
-class AWSServer(AWSProvisionableInfraResource):
+class AWSInstance(AWSProvisionableInfraResource):
     def __init__(self, name, image_id, *args, instance_type=None, key_pair=None,
                  sec_groups=None, subnet=None, network_interfaces=None, **kwargs):
         """
@@ -442,7 +507,7 @@ class AWSServer(AWSProvisionableInfraResource):
             elements can be NetworkInterface instances, model references, or context expressions that refer
             to a NetworkInterface
         """
-        super(AWSServer, self).__init__(name, *args, **kwargs)
+        super(AWSInstance, self).__init__(name, *args, **kwargs)
         self.image_id = None
         self._image_id = image_id
         self.instance_type = None
@@ -457,7 +522,7 @@ class AWSServer(AWSProvisionableInfraResource):
         self._network_interfaces = network_interfaces
 
     def get_init_args(self):
-        args, kwargs = super(AWSServer, self).get_init_args()
+        args, kwargs = super(AWSInstance, self).get_init_args()
         args += (self._image_id,)
         kwargs.update({"instance_type": self._instance_type,
                        "key_pair": self._key_pair,
@@ -467,7 +532,7 @@ class AWSServer(AWSProvisionableInfraResource):
         return args, kwargs
 
     def _fix_arguments(self):
-        super(AWSServer, self)._fix_arguments()
+        super(AWSInstance, self)._fix_arguments()
         self.image_id = self._get_arg_value(self._image_id)
         self.instance_type = self._get_arg_value(self._instance_type)
         self.key_pair = self._get_arg_value(self._key_pair)
@@ -482,7 +547,7 @@ class AWSServer(AWSProvisionableInfraResource):
             self.network_interfaces = self._get_arg_value(self._network_interfaces)
 
     def _get_attrs_dict(self):
-        d = super(AWSServer, self)._get_attrs_dict()
+        d = super(AWSInstance, self)._get_attrs_dict()
         d.update({"image_id": self.image_id,
                   "instance_type": self.instance_type,
                   "key_pair": self.key_pair,

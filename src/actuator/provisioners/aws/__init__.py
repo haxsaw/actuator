@@ -34,6 +34,8 @@ _session_by_thread_cache = defaultdict(lambda: aws_class_factory.get_aws_factory
 
 _session_resource_cache = defaultdict(dict)
 
+_session_client_cache = defaultdict(dict)
+
 _cache_lock = threading.RLock()
 
 # AWS resource names
@@ -66,6 +68,19 @@ def get_resource(resource_name, region_name=None, aws_access_key_id=None, aws_se
     return resource
 
 
+def get_client(resource_name, region_name=None, aws_access_key_id=None, aws_secret_access_key=None):
+    with _cache_lock:
+        session = _session_by_thread_cache[threading.current_thread()]
+    client_cache = _session_client_cache[session]
+    key = _make_resource_key(resource_name, region_name, aws_access_key_id, aws_secret_access_key)
+    client = client_cache.get(key)
+    if client is None:
+        client = session.client(resource_name, region_name=region_name,
+                                aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+        client_cache[key] = client
+    return client
+
+
 class _AWSCredentials(object):
     def __init__(self, region, aws_access_key, aws_secret_key):
         self.region = region
@@ -80,6 +95,10 @@ class AWSRunContext(AbstractRunContext):
     def ec2(self, region_name=None):
         return get_resource(EC2, self.default_creds.region if region_name is None else region_name,
                             self.default_creds.aws_access_key, self.default_creds.aws_secret_key)
+
+    def ec2_client(self, region_name=None):
+        return get_client(EC2, self.default_creds.region if region_name is None else region_name,
+                          self.default_creds.aws_access_key, self.default_creds.aws_secret_key)
 
 
 class AWSProvisionerProxy(BaseProvisionerProxy):

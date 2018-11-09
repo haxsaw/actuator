@@ -22,12 +22,13 @@
 import json
 import threading
 from actuator.provisioners.aws import aws_class_factory
-from actuator.provisioners.aws import get_resource, EC2, S3
+from actuator.provisioners.aws import get_resource, EC2, S3, get_client
 from actuator import ctxt
 from actuator.infra import InfraModel
+from actuator.provisioners.core import ProvisionerException
 from actuator.provisioners.aws.resources import (SecurityGroupRule, SecurityGroup, Subnet, VPC,
                                                  KeyPair, InternetGateway, RouteTable, Route,
-                                                 NetworkInterface, AWSServer)
+                                                 NetworkInterface, AWSInstance, PublicIP)
 from actuator.utils import persist_to_dict, reanimate_from_dict
 
 
@@ -36,6 +37,9 @@ real_factory = aws_class_factory.get_aws_factory
 
 class MockSession(object):
     def resource(self, _, **kw):
+        return object()
+
+    def client(self, _, **kw):
         return object()
 
 
@@ -60,6 +64,14 @@ def test001():
     assert resource
 
 
+def test001a():
+    """
+    test001a: test that we can get a client
+    """
+    client = get_client(EC2)
+    assert client
+
+
 def test002():
     """
     test002: test that a default resource with the same name is returned on multiple calls
@@ -69,18 +81,36 @@ def test002():
     assert r1 is r2
 
 
+def test002a():
+    """
+    test002a: test that a default clients is returned with the same default params
+    """
+    c1 = get_client(EC2)
+    c2 = get_client(EC2)
+    assert c1 is c2
+
+
 def test003():
     """
-    test003: check that multiple calls with the same params yield the same resource
+    test003: check that multiple calls with different params yield different resources
     """
     r1 = get_resource(EC2, region_name="east-1")
     r2 = get_resource(EC2, region_name="west-1")
     assert r1 is not r2
 
 
+def test003a():
+    """
+    test003a: ccheck that multiple calls with different params yield different clients
+    """
+    c1 = get_client(EC2, region_name="eu-west-2")
+    c2 = get_client(EC2, region_name="eu-east-2")
+    assert c1 is not c2
+
+
 def test004():
     """
-    test004: Check that the same we acquire different resource instances across different threads
+    test004: Check that we acquire different resource instances across different threads
     """
     r1 = get_resource(S3)
 
@@ -100,6 +130,30 @@ def test004():
     t.start()
     t.join()
     assert r1 is not c.val
+
+
+def test004a():
+    """
+    test004a: Check that we acquire different client instances across different threads
+    """
+    c1 = get_client(S3)
+
+    class C(object):
+        def __init__(self):
+            self.val = None
+
+        def capture(self, val):
+            self.val = val
+    c = C()
+
+    def acquire():
+        resource = get_client(S3)
+        c.capture(resource)
+
+    t = threading.Thread(target=acquire)
+    t.start()
+    t.join()
+    assert c1 is not c.val
 
 
 def test005():
@@ -520,8 +574,8 @@ def test024():
     """
     test024: create a server
     """
-    s = AWSServer("s24", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
-                  sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+    s = AWSInstance("s24", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                    sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
     assert s
 
 
@@ -530,8 +584,8 @@ def test025():
     test025: put a server into a model
     """
     class I025(InfraModel):
-        s = AWSServer("s25", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
-                      sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+        s = AWSInstance("s25", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                        sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
         kp = KeyPair("kp25")
         sg = SecurityGroup("sg25", "sg25 desc", ctxt.model.vpc)
         vpc = VPC("vpc25", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
@@ -548,8 +602,8 @@ def test025():
 
 
 class I025a(InfraModel):
-    s = AWSServer("s25a", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
-                  sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+    s = AWSInstance("s25a", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                    sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
     kp = KeyPair("kp25a")
     sg = SecurityGroup("sg2a5", "sg25a desc", ctxt.model.vpc)
     vpc = VPC("vpc25a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
@@ -572,6 +626,161 @@ def test025a():
     assert i.s.subnet.value() is i.sn.value()
     assert i.s.image_id.value() == ami_id
     assert i.s.instance_type.value() == instance_type
+
+
+def test26():
+    """
+    test026: create a PublicIP
+    """
+    ip = PublicIP("ip26", domain="vpc", network_interface=ctxt.model.ni)
+    assert ip
+
+
+def test27():
+    """
+    test027: check that we raise when none of the required args are supplied
+    """
+    try:
+        ip = PublicIP("ip27", domain="vpc")
+        assert False, "this should have raised"
+    except ProvisionerException:
+        pass
+
+
+def test28():
+    """
+    test028: check that we raise when too many required args are supplied
+    """
+    try:
+        ip = PublicIP("ip28", network_interface=ctxt.model.ni, private_ip_address="192.168.1.1")
+        assert False, "this should have raised"
+    except ProvisionerException:
+        pass
+
+    try:
+        ip = PublicIP("ip28", instance=ctxt.model.srvr, network_interface=ctxt.model.ni)
+        assert False, "this should have raised"
+    except ProvisionerException:
+        pass
+
+
+def test029():
+    """
+    test029: check that we get an exception with both and address and pub ip pool
+    """
+    try:
+        _ = PublicIP("ip29", public_ipv4_pool="pool-id", address="8.8.8.8",
+                     instance=ctxt.model.srvr)
+        assert False, "this should have raised"
+    except ProvisionerException:
+        pass
+
+
+def test030():
+    """
+    test030: put a public ip associated with a private ip into a model
+    """
+    class I030(InfraModel):
+        ip = PublicIP("ip30", domain="standard", public_ipv4_pool="pool_id",
+                      private_ip_address="192.168.1.1")
+    i = I030("i30")
+    i.fix_arguments()
+    assert i.ip.domain.value() == "standard"
+    assert i.ip.public_ipv4_pool.value() == "pool_id"
+    assert i.ip.private_ip_address.value() == "192.168.1.1"
+
+
+class I030a(InfraModel):
+    ip = PublicIP("ip30a", domain="standard", public_ipv4_pool="pool_id",
+                  private_ip_address="192.168.1.1")
+
+
+def test030a():
+    """
+    test030a: persist/reanimate a pub ip using a private ip
+    """
+    j = I030a("i30a")
+    j.fix_arguments()
+    d = persist_to_dict(j)
+    dp = json.loads(json.dumps(d))
+    i = reanimate_from_dict(dp)
+    assert i.ip.domain.value() == "standard"
+    assert i.ip.public_ipv4_pool.value() == "pool_id"
+    assert i.ip.private_ip_address.value() == "192.168.1.1"
+
+
+def test031():
+    """
+    test031: public ip with a network interface
+    """
+    class I031(InfraModel):
+        ni = NetworkInterface("ni31", ctxt.model.sn)
+        sn = Subnet("sn31", "192.168.1.0/24", ctxt.model.vpc)
+        vpc = VPC("vpc31", "192.168.1.0/24")
+        ip = PublicIP("ip31", domain="vpc", network_interface=ctxt.model.ni)
+    i = I031("i31")
+    i.fix_arguments()
+    assert i.ip.network_interface.value() is i.ni.value()
+
+
+class I031a(InfraModel):
+    ni = NetworkInterface("ni31a", ctxt.model.sn)
+    sn = Subnet("sn31a", "192.168.1.0/24", ctxt.model.vpc)
+    vpc = VPC("vpc31a", "192.168.1.0/24")
+    ip = PublicIP("ip31a", domain="vpc", network_interface=ctxt.model.ni)
+
+
+def test031a():
+    """
+    test031a: persist/reanimate an ip that uses a network interface
+    """
+    j = I031a("i31a")
+    j.fix_arguments()
+    d = persist_to_dict(j)
+    dp = json.loads(json.dumps(d))
+    i = reanimate_from_dict(dp)
+    assert i.ip.network_interface.value() is i.ni.value()
+
+
+def test032():
+    """
+    test032: test an ip that uses an instance
+    """
+    class I032(InfraModel):
+        s = AWSInstance("s32", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                        sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+        kp = KeyPair("kp32")
+        sg = SecurityGroup("sg32", "sg32 desc", ctxt.model.vpc)
+        vpc = VPC("vpc32", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+        sn = Subnet("sn32", "192.168.1.0/24", ctxt.model.vpc)
+        ni = NetworkInterface("ni32", ctxt.model.sn, description="wibble", sec_groups=[ctxt.model.sg])
+        ip = PublicIP("ip32", domain="vpc", instance=ctxt.model.s)
+    i = I032("i32")
+    i.fix_arguments()
+    assert i.ip.instance.value() is i.s.value()
+
+
+class I032a(InfraModel):
+    s = AWSInstance("s32a", ami_id, instance_type=instance_type, key_pair=ctxt.model.kp,
+                    sec_groups=[ctxt.model.sg], subnet=ctxt.model.sn, network_interfaces=[ctxt.model.ni])
+    kp = KeyPair("kp32a")
+    sg = SecurityGroup("sg32a", "sg32a desc", ctxt.model.vpc)
+    vpc = VPC("vpc32a", "192.168.1.0/24", amazon_provided_ipv6_cidr_block=True, instance_tenancy='dedicated')
+    sn = Subnet("sn32a", "192.168.1.0/24", ctxt.model.vpc)
+    ni = NetworkInterface("ni32a", ctxt.model.sn, description="wibble", sec_groups=[ctxt.model.sg])
+    ip = PublicIP("ip32a", domain="vpc", instance=ctxt.model.s)
+
+
+def test032a():
+    """
+    test032a: persist/reanimate model with ip that uses an instance
+    """
+    j = I032a("i32a")
+    j.fix_arguments()
+    d = persist_to_dict(j)
+    dp = json.loads(json.dumps(d))
+    i = reanimate_from_dict(dp)
+    assert i.ip.instance.value() is i.s.value()
 
 
 def do_all():
