@@ -19,10 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import time
 from actuator.provisioners.core import ProvisioningTask
 from actuator.provisioners.aws.resources import *
-# from actuator.provisioners.aws import AWSRunContext
 from actuator.utils import capture_mapping
+from botocore.exceptions import ClientError
 
 _aws_domain = "AWS_DOMAIN"
 
@@ -56,15 +57,34 @@ class KeyPairTask(ProvisioningTask):
         rsrc = self.rsrc
         assert isinstance(rsrc, KeyPair)
         ec2 = run_context.ec2(region_name=rsrc.cloud)
-        kp = ec2.create_key_pair(KeyName=rsrc.name)
+        kp = ec2.KeyPair(rsrc.aws_name)   # set up lookup to see if key already exists
+        try:
+            _ = kp.key_fingerprint   # this will raise an exception if the key doesn't exist
+            if rsrc.public_key_file:
+                raise ProvisionerException("KeyPair {} cannot specify a public_key_file for an existing key")
+            rsrc.retain_on_reverse = True
+        except ClientError as e:
+            if "NotFound" not in str(e):
+                raise
+            if rsrc.public_key_file:
+                key_material = open(rsrc.public_key_file, "r").read().encode()
+                _ = ec2.import_key_pair(KeyName=rsrc.aws_name, PublicKeyMaterial=key_material)
+            else:
+                kp = ec2.create_key_pair(KeyName=rsrc.aws_name)
+                rsrc.key_material = kp.key_material
 
     def _reverse(self, proxy):
-        run_context = proxy.get_context()
         rsrc = self.rsrc
         assert isinstance(rsrc, KeyPair)
-        ec2 = run_context.ec2(region_name=rsrc.cloud)
-        kp = ec2.KeyPair(rsrc.name)
-        kp.delete()
+        if not rsrc.retain_on_reverse:
+            run_context = proxy.get_context()
+            ec2 = run_context.ec2(region_name=rsrc.cloud)
+            kp = ec2.KeyPair(rsrc.aws_name)
+            try:
+                kp.delete()
+            except ClientError as e:
+                if "NotFound" not in str(e):
+                    raise
 
 
 @capture_mapping(_aws_domain, SecurityGroup)
@@ -258,30 +278,49 @@ class AWSInstanceTask(ProvisioningTask):
         rsrc = self.rsrc
         assert isinstance(rsrc, AWSInstance)
         ec2 = run_context.ec2(region_name=rsrc.cloud)
-        if rsrc.network_interfaces:
-            nids = [{"NetworkInterfaceId": ni.aws_id,
-                     "DeviceIndex": i}
-                    for i, ni in enumerate(rsrc.network_interfaces)]
+        if rsrc.aws_id is None:
+            if rsrc.network_interfaces:
+                nids = [{"NetworkInterfaceId": ni.aws_id,
+                         "DeviceIndex": i}
+                        for i, ni in enumerate(rsrc.network_interfaces)]
+            else:
+                nids = []
+            if rsrc.sec_groups:
+                sgids = [sg.aws_id for sg in rsrc.sec_groups]
+            else:
+                sgids = []
+            args = dict(ImageId=rsrc.image_id,
+                        InstanceType=rsrc.instance_type,
+                        NetworkInterfaces=nids,
+                        SecurityGroupIds=sgids,
+                        MaxCount=1,
+                        MinCount=1)
+            if rsrc.subnet:
+                args["SubnetId"] = rsrc.subnet.aws_id
+            if rsrc.key_pair:
+                args["KeyName"] = rsrc.key_pair.name
+            instances = ec2.create_instances(**args)
+            inst = instances[0]
+            inst.wait_until_running()
+            rsrc.aws_id = inst.instance_id
+        # now delay finishing until the instance's status is 'ok'
+        cli = run_context.ec2_client(region_name=rsrc.cloud)
+        ticks = 0
+        while ticks < 300:
+            time.sleep(1)
+            if not (ticks % 15):
+                status = cli.describe_instance_status(InstanceIds=[rsrc.aws_id])
+                status_value = status["InstanceStatuses"][0]["InstanceStatus"]["Status"]
+                if status_value == "ok":
+                    break
+                elif status_value in ("impaired", "insufficient-data"):
+                    details = status["InstanceStatuses"][0]["InstanceStatus"]["Details"]["Status"]
+                    raise ProvisionerException("Instance {} startup failed; status:{}, details:{}".format(
+                        rsrc.name, status_value, details
+                    ))
+            ticks += 1
         else:
-            nids = []
-        if rsrc.sec_groups:
-            sgids = [sg.aws_id for sg in rsrc.sec_groups]
-        else:
-            sgids = []
-        args = dict(ImageId=rsrc.image_id,
-                    InstanceType=rsrc.instance_type,
-                    NetworkInterfaces=nids,
-                    SecurityGroupIds=sgids,
-                    MaxCount=1,
-                    MinCount=1)
-        if rsrc.subnet:
-            args["SubnetId"] = rsrc.subnet.aws_id
-        if rsrc.key_pair:
-            args["KeyName"] = rsrc.key_pair.name
-        instances = ec2.create_instances(**args)
-        inst = instances[0]
-        inst.wait_until_running()
-        rsrc.aws_id = inst.instance_id
+            raise ProvisionerException("Timed out waiting for instance {} to come ready".format(rsrc.name))
 
     def _reverse(self, proxy):
         run_context = proxy.get_context()
@@ -299,6 +338,7 @@ class PublicIPTask(ProvisioningTask):
         rsrc = self.rsrc
         assert isinstance(rsrc, PublicIP)
         cli = run_context.ec2_client(region_name=rsrc.cloud)
+        # first allocate the address
         if rsrc.aws_id is None:
             args = {"Domain": rsrc.domain}
             if rsrc.address:
@@ -326,6 +366,7 @@ class PublicIPTask(ProvisioningTask):
         rsrc = self.rsrc
         assert isinstance(rsrc, PublicIP)
         cli = run_context.ec2_client(region_name=rsrc.cloud)
+        # first disassociate
         args = {"AssociationId": rsrc.aws_id}
         if rsrc.domain == "standard":
             args["PublicIp"] = rsrc.ip_address

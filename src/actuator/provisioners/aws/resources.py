@@ -19,12 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from errator import narrate
 from collections import Iterable
+from uuid import uuid4
 
 from actuator.infra import IPAddressable
 from actuator.provisioners.core import Provisionable, ProvisionerException
-from actuator.utils import _Persistable
 
 
 class AWSProvisionableInfraResource(Provisionable):
@@ -107,23 +106,74 @@ class SecurityGroup(AWSProvisionableInfraResource):
 
 
 class KeyPair(AWSProvisionableInfraResource):
-    def __init__(self, name, *args, ensure_unique=False, **kwargs):
+    def __init__(self, name, *args, ensure_unique=False, public_key_file=None,
+                 retain_on_reverse=False, **kwargs):
+        """
+        makes a KeyPair resource that can either refer to an existing key pair or define a new one
+
+        A KeyPair can:
+        - name an existing key pair on AWS for which the private key is already held
+        - name a new key pair to be created on AWS for which the private key will be created and downloaded
+        - use an existing public/private key pair, uploading the public key to AWS and using the private
+          key already held
+
+        Additionally, a key pair on AWS can be created such that it won't be deleted upon reversal, so that
+        the pair can be left while the other resources are deleted/released
+
+        If ensure_unique is False (the default), the named key pair is looked up on AWS first to see if it exists.
+        If it does, then that key pair is used and it is assumed the the client has access to the private
+        key. Key pairs that are found are not deleted during system teardown.
+
+        If ensure_unique is True or if the named key doesn't exist on AWS, then the AWS key pair is created
+        and the private key is acquired from AWS. This private key can be used in configuration models
+        to remotely run commands on hosts that use this key.
+
+        :param name: both model name for the key pair and the AWS name
+        :param ensure_unique: bool, optional. If True, append a random suffix to the name to ensure
+            uniqueness at AWS, and hence force the creation of a key pair there.
+        :param public_key_file: string, optional. Path to a file containing the public key for the
+            AWS key with the name 'name'. You can't supply a public_key_file if the key already exists;
+            this will raise an error during provisioning (standup).
+        :param retain_on_reverse: bool, optional. Default False. If True, the key pair is left behind
+            on AWS when the resource is deprovisioned. NOTE: this will be set to True internally in
+            the case that the key already exists on AWS-- pre-existing keys will not be be deleted on
+            system teardown.
+        """
         super(KeyPair, self).__init__(name, *args, **kwargs)
         self.ensure_unique = None
         self._ensure_unique = ensure_unique
+        self.public_key_file = None
+        self._public_key_file = public_key_file
+        self.retain_on_reverse = None
+        self._retain_on_reverse = retain_on_reverse
+        self.key_material = None
+        self.aws_name = None
 
     def get_init_args(self):
         args, kwargs = super(KeyPair, self).get_init_args()
-        kwargs["ensure_unique"] = self._ensure_unique
+        kwargs.update({"ensure_unique": self._ensure_unique,
+                       "public_key_file": self._public_key_file,
+                       "retain_on_reverse": self._retain_on_reverse})
         return args, kwargs
 
     def _fix_arguments(self):
         super(KeyPair, self)._fix_arguments()
         self.ensure_unique = bool(self._get_arg_value(self._ensure_unique))
+        self.public_key_file = self._get_arg_value(self._public_key_file)
+        self.retain_on_reverse = self._get_arg_value(self._retain_on_reverse)
+        if self.ensure_unique:
+            self.aws_name = "{}-{}".format(self.name, str(uuid4()))
+        else:
+            self.aws_name = self.name
 
     def _get_attrs_dict(self):
         d = super(KeyPair, self)._get_attrs_dict()
         d["ensure_unique"] = self.ensure_unique
+        d.update({"ensure_unique": self.ensure_unique,
+                  "public_key_file": self.public_key_file,
+                  "retain_on_reverse": self.retain_on_reverse,
+                  "key_material": self.key_material,
+                  "aws_name": self.aws_name})
         return d
 
 
@@ -488,8 +538,14 @@ class PublicIP(AWSProvisionableInfraResource, IPAddressable):
                   "association_id": self.association_id})
         return d
 
+    def get_ip(self, context=None):
+        return self.ip_address
 
-class AWSInstance(AWSProvisionableInfraResource):
+    def get_cidr4(self, *_):
+        return "{}/32".format(self.ip_address)
+
+
+class AWSInstance(AWSProvisionableInfraResource, IPAddressable):
     def __init__(self, name, image_id, *args, instance_type=None, key_pair=None,
                  sec_groups=None, subnet=None, network_interfaces=None, **kwargs):
         """
@@ -520,6 +576,7 @@ class AWSInstance(AWSProvisionableInfraResource):
         self._subnet = subnet
         self.network_interfaces = None
         self._network_interfaces = network_interfaces
+        self.ip_address = None
 
     def get_init_args(self):
         args, kwargs = super(AWSInstance, self).get_init_args()
@@ -553,5 +610,12 @@ class AWSInstance(AWSProvisionableInfraResource):
                   "key_pair": self.key_pair,
                   "sec_groups": self.sec_groups,
                   "subnet": self.subnet,
-                  "network_interfaces": self.network_interfaces})
+                  "network_interfaces": self.network_interfaces,
+                  "ip_address": self.ip_address})
         return d
+
+    def get_ip(self, context=None):
+        return self.ip_address
+
+    def get_cidr4(self, *_):
+        return "{}/32".format(self.ip_address)
