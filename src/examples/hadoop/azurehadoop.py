@@ -78,7 +78,7 @@ if __name__ == "__main__":
                                 secret=sec,
                                 tenant=ten)
 
-    inf = AzureExample("azample", event_handler=ehandler)
+    inf = AzureExample("azample")
 
     ns = HadoopNamespace("azure-ns")
     ns.add_override(Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     num_slaves = 5
     ns.create_slaves(num_slaves)
 
-    cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu", event_handler=ehandler)
+    cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu")
 
     orch = ActuatorOrchestration(infra_model_inst=inf,
                                  namespace_model_inst=ns,
@@ -94,7 +94,8 @@ if __name__ == "__main__":
                                  provisioner_proxies=[app],
                                  post_prov_pause=10,
                                  num_threads=num_slaves*3+3,
-                                 no_delay=True)
+                                 no_delay=True,
+                                 event_handler=ehandler)
     try:
         orch.initiate_system()
     except Exception as e:

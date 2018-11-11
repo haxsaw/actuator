@@ -619,3 +619,8 @@ class AWSInstance(AWSProvisionableInfraResource, IPAddressable):
 
     def get_cidr4(self, *_):
         return "{}/32".format(self.ip_address)
+
+
+__all__ =["VPC", "KeyPair", "SecurityGroupRule", "SecurityGroup", "Subnet",
+          "InternetGateway", "RouteTable", "Route", "NetworkInterface",
+          "AWSInstance", "PublicIP"]
