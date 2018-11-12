@@ -85,6 +85,9 @@ if __name__ == "__main__":
                     Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False))
     num_slaves = 5
     ns.create_slaves(num_slaves)
+    #
+    ns.set_infra_model(inf)
+    from prices import create_azure_price_table
 
     cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu")
 

@@ -1,4 +1,5 @@
 import sys
+from pprint import pprint
 from actuator import ActuatorOrchestration, ctxt, Var
 from actuator.infra import InfraModel, MultiResourceGroup, with_infra_options
 from actuator.provisioners.aws import AWSProvisionerProxy
@@ -6,27 +7,35 @@ from actuator.provisioners.aws.resources import *
 from actuator.utils import find_file
 from hevent import TaskEventManager
 from hadoop import HadoopNamespace, HadoopConfig
+from actuator.reporting import security_check
 
 
 class AWSBase(InfraModel):
     vpc = VPC("base-vpc",
               "192.168.1.0/24")
-    sg = SecurityGroup("base-sg",
-                       "a common sg to build on",
-                       ctxt.model.vpc)
+    base_sg = SecurityGroup("base-sg",
+                            "a common sg to build on",
+                            ctxt.model.vpc)
     ping_rule = SecurityGroupRule("test rule",
-                                  ctxt.model.sg,
+                                  ctxt.model.base_sg,
                                   "ingress",
                                   "0.0.0.0/0",
                                   -1,
                                   -1,
                                   "icmp")
     ssh_rule = SecurityGroupRule("sshrule",
-                                 ctxt.model.sg,
+                                 ctxt.model.base_sg,
                                  "ingress",
                                  "0.0.0.0/0",
                                  22, 22,
                                  "tcp")
+    zabbix_rule = SecurityGroupRule("zabbix-rule",
+                                    ctxt.model.base_sg,
+                                    "ingress",
+                                    "0.0.0.0/0",
+                                    10050,
+                                    10050,
+                                    "tcp")
     sn = Subnet("base subnet",
                 "192.168.1.0/24",
                 ctxt.model.vpc)
@@ -45,14 +54,42 @@ class AWSTrialInfra(AWSBase):
     with_infra_options(long_names=True)
 
     kp = KeyPair("wibble", public_key_file="actuator-dev-key.pub")
+    # custom security groups and rules
+    namenode_sg = SecurityGroup("namenode-sg", "special rules to contact the name node", ctxt.model.vpc)
+    jobtrkr_webui_rule = SecurityGroupRule("jobtracker-webui",
+                                           ctxt.model.namenode_sg,
+                                           "ingress",
+                                           "0.0.0.0/0",
+                                           50030, 50030,
+                                           "tcp")
+    namenode_webui_rule = SecurityGroupRule("namenode-webui",
+                                            ctxt.model.namenode_sg,
+                                            "ingress",
+                                            "0.0.0.0/0",
+                                            50070, 50070,
+                                            "tcp")
+    jobtrkr_rule = SecurityGroupRule("jobtracker",
+                                     ctxt.model.namenode_sg,
+                                     "ingress",
+                                     "0.0.0.0/0",
+                                     50031, 50031,
+                                     "tcp")
+    namenode_rule = SecurityGroupRule("namenode",
+                                      ctxt.model.namenode_sg,
+                                      "ingress",
+                                      "0.0.0.0/0",
+                                      50071, 50071,
+                                      "tcp")
+
     slaves = MultiResourceGroup("slaves",
                                 ni=NetworkInterface("slave-ni",
                                                     ctxt.model.sn,
                                                     description="something pith",
-                                                    sec_groups=[ctxt.model.sg]),
+                                                    sec_groups=[ctxt.model.base_sg,
+                                                                ctxt.model.namenode_sg]),
                                 slave=AWSInstance("slave",
                                                   "ami-0f27df5f159bccfba",
-                                                  instance_type='t2.nano',
+                                                  instance_type='t3.nano',
                                                   key_pair=ctxt.model.kp,
                                                   network_interfaces=[ctxt.comp.container.ni]),
                                 slave_fip=PublicIP("slave-eip",
@@ -62,15 +99,16 @@ class AWSTrialInfra(AWSBase):
     ni = NetworkInterface("name_node-ni",
                           ctxt.model.sn,
                           description="something pith",
-                          sec_groups=[ctxt.model.sg])
+                          sec_groups=[ctxt.model.base_sg,
+                                      ctxt.model.namenode_sg])
     name_node = AWSInstance("name_node",
                             "ami-0f27df5f159bccfba",
-                            instance_type='t2.nano',
+                            instance_type='t3.nano',
                             key_pair=ctxt.model.kp,
-                            network_interfaces=[ctxt.comp.container.ni])
+                            network_interfaces=[ctxt.model.ni])
     name_node_fip = PublicIP("name_node_fip",
                              domain="vpc",
-                             network_interface=ctxt.comp.container.ni)
+                             network_interface=ctxt.model.ni)
 
 
 def doit():
@@ -106,6 +144,9 @@ def doit():
         ao.teardown_system()
     except Exception as e:
         print("teardown failed with {}".format(str(e)))
+
+    result = security_check(i)
+    pprint(result)
 
 
 if __name__ == "__main__":

@@ -623,4 +623,4 @@ class AWSInstance(AWSProvisionableInfraResource, IPAddressable):
 
 __all__ =["VPC", "KeyPair", "SecurityGroupRule", "SecurityGroup", "Subnet",
           "InternetGateway", "RouteTable", "Route", "NetworkInterface",
-          "AWSInstance", "PublicIP"]
+          "AWSInstance", "PublicIP", "AWSProvisionableInfraResource"]
