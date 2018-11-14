@@ -159,65 +159,119 @@ If you run 'hdemo.py z' without these environment variables it will complain and
 
 
 Visualisation:
+If you run hdemo.py as follows:
 
+    python hdemo.py v
+
+AND you have Kivy set up properly, you can get a visualisation of the progress of provisioning
+and configuration during standup and teardown. This option illustrates the possibilities
+of integrating an external event system into Actuator during its automation processes. While
+this shows a directly bound visualisation, the interface allows other kinds of interactions such
+as sending messages to a remote system for storage or disply.
+
+The big 'AND' is because setting Kivy up properly is a topic on it's own, and includes SDL2 and
+Graphviz. Setting up Kivy will be addressed elsewhere.
+
+If you do get Kivy setup, when you run either a standup or teardown a window will be
+shown with a directed graph representing the tasks to perform in either an infrastructure
+or configuration model. White nodes denote tasks yet to be performed, blue means tasks in
+process, yellow means that there has been a non-fatal failure and the task will be retried,
+green means the task is completed, and red means that the retry limit for the task has been
+reached that the task has fatally failed, ceasing the automation.
+
+You can also click on a node and get a description of what it is and any errors it currently
+has.
 
 
 3. Structure
 ============
-The example is broken into three source files more to illustrate organizational
-options than to serve some actual need. The overall model is held in hadoop.py,
-while Vars and specific config tasks for a single node are in hadoop_node.py. The
-overall example is run with hrun.py, while a single node can be run with
-hadoop_node.py.
+The demo has been structured to illustrate a nummber of different Actuator features, and so
+can be a source for guidance in a variety of uses.
 
-hadoop.py
----------
-This module contains the main models: infra, namespace, and config. Some things
-to note here are that some resources, namely the networking and basic security
-resources, are factored out into some global ResourceGroups. They've been pulled
-out of the model as they are boilerplate for a number of different models, and
-as such they can easily be extracted to a global variable, or even an external
-module, where they can easily be imported and reused. This makes the infra
-model only contain the pieces that make it unique for this purpose.
+One key feature is that while there are different infrastructure models that work with different
+cloud platforms, the namespace and config models are the same regardless of the infra model. This
+demonstrates the decoupling that Actuator enables in modeling, allowing changes in deployment
+platform as needs dictate.
 
-Another thing to note is that the Vars used in the namespace are actually from
-an external resource (they are imported from hadoop_node.py). This was done so that
-it was easier to develop the single-node configuration model in a place where
-it could be bench-tested on fixed infra during its development (more on this
-below).
+The demo is also structured to illustrate different approaches to use, from simple isolated
+declarative models to highly modular approaches that emphasise reuse and integration into a
+larger environment.
 
-Finally, it's worth noting that the config model in this module includes a
-MultiTask task that has a ConfigClassTask as its template. The ConfigClassTask
-wraps the second config model that is used to setup any Hadoop node; this 
-model is in hadoop_node.py The result of this is that the overall config model
-is quite simple, and provides a quick overview of the config work needed to
-stand up a node.
 
-hadoop_node.py
---------------
-This module contains three important features: the Vars that are used in the
-namespace in hadoop.py as well as the development namespace, a config model for
-a single Hadoop node, regardless of whether it is the name node or a slave,
-and a "main" section and development namespace that allows the single node
-config model to be developed and tested in isolation of the main model. This
-last piece is a particularly useful pattern, as it shows how you can work though
-getting your config tasks right without having to go through the trouble of 
-provisioning some infra everytime you want to test something.
+Key Modules
+-----------
+The key modules in the demo are as follows:
 
-In particular note the values supplied to the HadoopNodeConfig instance being
-created at the bottom; here, values such as user, task role, and private key
-file can be specified for a model that otherwise doesn't have them.
+hcommon.py:
+This module defines the common configuration and namespace models used in the demo, as well
+as a few other common resources such as standard keypair names. It illustrates a number of
+different features such as variable name substitution, using a config model as a task in
+other models, and creating logical references to an infrastructure model from the namespace
+to drive infra provisioning.
 
-Testing of the config model can be done simply by running:
+It also defines a class that is only useful to the demo itself, DemoPlatform: this class bundles
+up the specific knowledge needed for each kind of cloud platform to allow it to run successfully.
 
-python hadoop_node.py (hostname or ip)
+hdemo.py:
+This is the 'main program' of the demo. It brings together the models of hcommon with the specific
+infra model of each cloud platform, and illustrates a variety of higher-level functions that
+Actuator provices.
 
-Using a host that respects the SSH login user and keys provided.
+The main loop is structured to clearly illustrate the activities involved in carrying out each
+function. This provides simple 'recipes' for performing these functions in other contexts.
 
-hrun.py
--------
-This module is the "main" for the example; it processes environment variables
-and command line arguments, and then calls the "do_it()" function. Here is
-where the use of the models and orchestrator take place, as well as where the
-number of slaves is established.
 
+Platform-specific models
+------------------------
+The following three modules illustrate increasing sophistication in the use of Actuator in modeling
+and how the models can be used in broader contexts.
+
+azurehadoop.py:
+This defines a Hadoop infrastructure on the Azure platform. This model illustrates the simplest use
+of Actuator, with all values for all model components specified directly in the model.
+
+awshadoop.py:
+This model defines Hadoop infrastructure on AWS. It is slightly more oomplex than the Azure model,
+illustrating a technique for creating a base model where common components can be defined and
+used, and a derived model that specifies the additional components required for the application
+itself, which can refer to the components of the base model where needed.
+
+openstackhadoop.py:
+This is the most complex model and illustrates many additional capabilities of Actuator:
+
+  - It shows the use of a component that can be brought in from outside the model (possibly
+    imported from library module), external_connection and zabbix_agent_secgroup.
+  - It shows the use of a function that can be used to dynamically create components,
+    make_std_secgroup, as part of the definition of a model.
+  - It shows the use of a function, get_flavor, which is a 'callale' object that can provide
+    the value of a parameter. Such callables can acquire this value from any source, including
+    sources available only via a web service call.
+  - It shows how to use context expressions such as 'ctxt.nexus.ns.v.IMAGE' to tell the model
+    how to acquire a parameter value from a variable in the namespace.
+
+
+Supporting modules
+------------------
+Finally, the demo involves a number of supporting modules that illustrate various ways to
+manipulate and access the model for a variety of purposes.
+
+prices.py:
+This module provides a static price source for the different cloud platforms to show how the
+model can be inspected to look up prices for the model's components. This implementation
+assumes a model that only has components for a single cloud platforrm, but it is possible
+to create a more general version that accepts models with components from multiple platforms.
+
+zabint.py:
+This module provides simple integration with Zabbix, providing a way to add new hosts to monitor,
+and to also delete those hosts so they will no longer be monitored.
+
+hreport.py:
+This module provides integration with Mongo. It provides functions that capture data for a running
+system, an archive for all instances that have run over time, and some query functions for
+looking up information on running or terminated systems.
+
+hevent.py and hdisplay.py:
+Together, these modules illustrate how an external object can be sent events during Actuator
+orchestration operations to allow external systems do additional processes with these events.
+hevent.py illustrates an object that implements the event protocol and passes along to a Kivy
+app, while hdisplay.py shows the actual Kivy app that creates a visualisation of the events.
