@@ -22,7 +22,7 @@
 import sys
 from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
-from hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
+from zArchive.hadoop import HadoopInfra, HadoopNamespace, HadoopConfig
 
 
 def do_it(num_slaves=1, handler=None, pkf="actuator-dev-key", rempass=None,

@@ -1,9 +1,31 @@
+#
+# Copyright (c) 2018 Tom Carroll
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+from collections import Iterable
 from actuator import NamespaceModel, Role, MultiRole, MultiRoleGroup
 from actuator.modeling import AbstractModelReference, ModelInstanceReference
-from actuator.modeling import ContextExpr
 from actuator.provisioners.azure.resources import *
 from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.openstack.resources import _OpenstackProvisionableInfraResource
+from actuator.provisioners.aws.resources import *
 
 
 class VarDescriptor(object):
@@ -155,6 +177,12 @@ def make_az_resource_group(rsrc_grp):
             "Group Servers": []}
 
 
+def make_aws_secgroup_entry(aws_sg):
+    sge = {"Desc": aws_sg.description,
+           "Rules": []}
+    return sge
+
+
 def attr_val(obj, attrname):
     val = getattr(obj, attrname)
     if val is None:
@@ -170,9 +198,11 @@ def security_check(inf_inst):
     report = []
     os_sec_groups = {}
     az_resource_groups = {}
+    aws_sec_groups = {}
     inf_inst.compute_provisioning_from_refs(inf_inst.refs_for_components())
-    for c in inf_inst.components():
-        c.fix_arguments()
+    # for c in inf_inst.components():
+    #     c.fix_arguments()
+    inf_inst.fix_arguments()
     for c in inf_inst.components():
         if isinstance(c, _OpenstackProvisionableInfraResource):
             if isinstance(c, Server):
@@ -209,6 +239,45 @@ def security_check(inf_inst):
                                                                                      c.from_port,
                                                                                      c.to_port,
                                                                                      c.cidr))
+        elif isinstance(c, AWSProvisionableInfraResource):
+            if isinstance(c, (AWSInstance, NetworkInterface)):
+                security_groups = {}
+                server_details = {"Groupholder name": c.get_display_name(),
+                                  "Groupholder type": ("AWS instance"
+                                                       if isinstance(c, AWSInstance)
+                                                       else "NetworkInterface"),
+                                  "Region": c.cloud,
+                                  "Security groups": security_groups}
+                if isinstance(c, AWSInstance) and isinstance(c.network_interfaces, Iterable):
+                    server_details["Network Interface names"] = [ni.get_display_name() for ni in c.network_interfaces]
+                if isinstance(c.sec_groups, Iterable):
+                    for sg in c.sec_groups:
+                        group = aws_sec_groups.get(sg.get_display_name())
+                        if group is None:
+                            group = make_aws_secgroup_entry(sg)
+                            aws_sec_groups[sg.get_display_name()] = group
+                        security_groups[sg.get_display_name()] = group
+                report.append(server_details)
+            elif isinstance(c, SecurityGroup):
+                group = aws_sec_groups.get(c.get_display_name())
+                if group is None:
+                    group = make_aws_secgroup_entry(c)
+                    aws_sec_groups[c.get_display_name()] = group
+            elif isinstance(c, SecurityGroupRule):
+                sg = c.security_group
+                if sg is None:
+                    report.append("Unbound AWS SecurityGroupRule: {}".format(c.get_display_name()))
+                else:
+                    group = aws_sec_groups.get(sg.get_display_name())
+                    if group is None:
+                        group = make_aws_secgroup_entry(sg)
+                        aws_sec_groups[sg.get_display_name()] = group
+                    rules = group["Rules"]
+                    rules.append("Rule {}, proto {}, from {}, to {}, cidr {}".format(c.get_display_name(),
+                                                                                     c.ip_protocol,
+                                                                                     c.from_port,
+                                                                                     c.to_port,
+                                                                                     c.cidrip))
         elif isinstance(c, AzureProvisionableInfraResource):
             if isinstance(c, AzResourceGroup):
                 rg = az_resource_groups.get(c.get_display_name())

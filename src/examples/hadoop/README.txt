@@ -1,82 +1,165 @@
 Hadoop 1.2.1 cluster model
 ==========================
-IMPORTANT:
-
-If you want to try running this with the keys provided, be sure to "chmod 600"
-the "actuator-dev-key*" files first.
-
-Also, if you want to base your provisioning of Hadoop on this example, be sure
-to change the values of the keys if your instance will be in a public cloud!
-
-=====================
 
 This is an Actuator example that illustrates the use of Actuator in modeling a
 Hadoop cluster of arbitrary size. While it doesn't configure every last corner
 of Hadoop (for example, while SSH security is present, other Hadoop security is
 ignored), it does illustrate a broad range of Actuator features in the
-infra, namespace, and config modeling spaces.
+infra, namespace, and config modeling spaces, tools for examining models, and
+possible integrations to other systems.
 
-1. Quick start; what you need to do first if you want to run this
+1. Getting Started; what you need to do first if you want to run this
 2. Execution
 3. Structure
 
-1. Quick start; what you need to do first if you want to run this
-==============================================================
+1. Getting Started; what you need to do first if you want to run this stuff
+===========================================================================
 Besides installing Actuator and its dependendencies, you also need to perform a
-couple of prep steps to make the example work on your Openstack installation.
-You should also review all tasks in the config models to ensure that none are
-contraindicated in your situation.
+couple of prep steps to make the example works for the clouds on which you want to
+run the demo.
 
-SSH keys:
-Make sure the permissions on the private key (actuator-dev-key) are 600!
+You don't need all of the cloud credentials discussed below; you only need the ones
+relevant to the cloud where you want to run the demo.
 
-User:
-Actuator was developed on an Openstack site where a default user named "ubuntu"
-was created for each server instance. You will probably need to change this
-name to whatever default user your Openstack installation creates on new
-servers. You can do this by modifying the value of the Var "USER" in
-the hadoop_node.py module. NOTE: this user must have sudo permissions on new
-instances otherwise some of the tasks will fail.
+PYTHONPATH
+----------
+Be sure to set your path to cover where to find the 'actuator' package as well as the
+path to the haddop demo directory.
 
-Environment vars:
-The example looks for login info in environment variables (you'd probably want
-to do this differently in an environment where security was an issue). These
-variables are in the example file henv.sh. Set these for your installation and
-source this script before running the example.
 
-Hadoop install:
-One of the tasks in the config model is to do a 'wget' on the Hadoop repository
-to fetch the hadoop tarball. If you wish to fetch it somewhere else, you'll
-need to adjust some of the Vars you'll find in hadoop_node.py. In particular,
-look at HADOOP_VER, HADOOP_TARBALL, and HADOOP_URL. Bear in mind that the
-rest of the model expects the paths that result from extracting the tarball,
-so if you have your own packaging you may need to modify other Vars as well.
+Cloud Credentials
+-----------------
+OpenStack:
+When trying to provision against OpenStack, Actuator uses a standard OpenStack package
+called os-client-config that by default looks for a file named clouds.yml in the demo
+directory for details on connecting to an OpenStack cloud. There is some variability
+in what to fill in here, but the file clouds.yml-example shows how to do it for
+CityCloud and Auro. The documentation for os-client-config provides more help.
 
-Unneeded commands:
-The Openstack site used to develop Actuator has some older Ubuntu images that
-need updating and Java to be installed. These tasks can be seen in the 
-HadoopNodeConfig model in hadoop_node.py. If your setup doesn't require these
-steps, comment out these tasks in that model, being sure to also eliminate
-them from any dependency expressions (any good IDE will highlight references
-to non-existant tasks being used in expressions).
+
+AWS:
+When trying to provision against AWS, the demo looks for a file name 'awscreds.txt'
+in the demo directory that contains AWS cloud credentials. The file has a single line
+which consists of account key, a '|' character, and then the secret key like so:
+
+account_key|secret_key
+
+These are the credentials used to contact AWS and manipulate the API.
+
+
+Azure:
+When trying to provision against Azure, the demo looks for a file named 'azurecreds.txt'
+in the demo directory that contains Azure credentials. The file has a single line which
+consists of four pieces of data separated by commas. The required data is the subscription id,
+the client id, the secret, and tenant. The line should appear as follows:
+
+subscription_id,client_id,secret,tenant
+
+
+SSH keys used during configuration
+----------------------------------
+The demo uses the key pair actuator-dev-key/actuator-dev-key.pub for remotely accessing
+provisioned instances in clouds. The private key must have permissions of 600 on Linux
+to work properly. You can substitute your own keypairs if you wish, but if you don't want
+to change the demo then the public and private files should be renamed as above.
+
+
+User
+----
+The demo always starts an instance of Ubuntu server which has a user name of 'ubuntu' under
+which all config activities are conducted. This user must exist, or otherwise the proper user
+name must be supplied.
 
 
 2. Execution
 ============
-Execution is pretty simple. Assuming you've taken care of matters noted in 1.
-above, make sure that you've set the environment vars named in henv.sh with the
-proper values. Once that's been done, run the example with:
+Basic Capabilities
+------------------
+The demo is interactive and provides a number of different functions that display various
+Actuator capabilities. The simplest way to run the demo is to run hdemo.py:
 
-python hrun.py
+    python hdemo.py
 
-This will provision two servers, one for the name node and one slave. If you
-want more slaves, add the number of slaves as an argument to hrun.py:
+This will bring up an interactive prompt that provides the following functions. Only currently
+available functions will be shown when prompted for input.
 
-python hrun.py 7 #for seven slaves
+    f (forecast): Allows you to specify a number of slaves in your Hadoop cluster
+                  and get a price forecast based on the resources required for each
+                  of three different clouds (an Openstack, AWS, and Azure)
+    n (namespace):Generates a namespace report for a Hadoop cluster of specified size.
+                  Generally, it's best to only do a single slave in order to not be
+                  swamped with repetitive output. Shows the namespace visible from
+                  the perspective of each role in the namespace. If you have already
+                  stood-up a system or loaded one from a file, the namespace report
+                  will be generated from this system.
+    u (security): Generates a security report for the type of cloud infra you specify.
+                  The report shows the security groups, rules, and the entities the
+                  groups are applied to. If you have already stood-up a system or loaded
+                  one from a file, the security report will be generated from this system.
+    l (load):     Loads the persisted state of a system from a file. This can be used to
+                  deprovision the system at a later time or run one of the reports on
+                  the system.
+    s (standup):  Allows you to provision a Hadoop cluster on the cloud you select. You
+                  can choose the number of slaves to create in the cluster and what
+                  cloud the system should be built on.
+    p (persist):  Only available after a system has been 'stood-up' or loaded. Prompts
+                  for a file name and writes a JSON representation of the Actuator
+                  state to the file. Can be loaded later using the load function.
+    t (teardown): Causes the current system to be de-provisioned from the cloud where
+                  it came from. You must have first either run the standup or load
+                  functions. Teardown can be run repeatedly if there is a failure and
+                  the entire system hasn't be torn down.
+    r (retry):    In the case of a failure in standup , you can retry the standup with
+                  same system model. Previous steps will be skipped and only the tasks
+                  that remain unfinished will be performed.
+    q (quit):     Exit the demo.
 
-Finally, you can get help for the required envs with
 
-python hrun.py -h
+Additional Integrations
+-----------------------
+The hdemo.py program respects a number of command-line arguments that enable
+additional integrations. If you want to do more than one integration, just concatenate
+the flags as a single argument to hdemo.py, like 'mz'.
+
+
+Mongo:
+If you have Mongo running on the machine with the demo, then:
+
+    python hdemo.py m
+
+Will cause hdemo to store the post-stadnup JSON representation of a system into Mongo.
+Queries against this structure can be made with the functions in hreport.py; run it
+like so:
+
+    python -i hreport.py
+
+You can then get summaries of numbers of servers in each historical system, or the
+active or terminated systems for a particular app (the app name to search for is 'hadoop').
+
+
+Zabbix:
+If you have a Zabbix instance handy, you can have the demo record information regarding
+the provisioned instances in Zabbix and then have Zabbix monitor the instances. The
+Zabbix agent is set up by the config model, but turing on this integration causes the
+demo to notify Zabbix of the instances and start polling for monitoring information. Run
+hdemo like:
+
+    python hdemo.py z
+
+For this to work, you also need to set two environment variables:
+
+    ZABBIX_SERVER: This should be the public IP of the server. This is used to create
+        a security rule on the cloud instance that only allows connections to the
+        Zabbix agent from this IP. This can be the public IP of your NAT host.
+    ZABBIX_PRIVATE: This should be the IP you'd use to contact Zabbix's API to tell
+        it about new machines to monitor. This is generally a private IP address behind
+        your firewall.
+
+If you run 'hdemo.py z' without these environment variables it will complain and exit.
+
+
+Visualisation:
+
 
 
 3. Structure

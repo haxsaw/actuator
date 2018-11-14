@@ -6,7 +6,9 @@ from actuator.provisioners.azure.resources import (AzResourceGroup, AzNetwork, A
 from actuator.infra import InfraModel, with_infra_options, MultiResourceGroup
 from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator import ActuatorOrchestration, ctxt, Var
-from hadoop import HadoopNamespace, HadoopConfig
+from hcommon import HadoopNamespace, HadoopConfig
+from prices import AZURE
+from hcommon import DemoPlatform
 
 
 parent = ctxt.comp.container
@@ -17,7 +19,8 @@ common_server_args = dict(publisher="Canonical",
                           offer="UbuntuServer",
                           sku="16.04.0-LTS",
                           version="latest",
-                          vm_size='Standard_DS1_v2',
+                          # vm_size='Standard_DS1_v2',
+                          vm_size='Standard_B1S',
                           admin_user="ubuntu",
                           admin_password=rempass)
 
@@ -66,6 +69,34 @@ class AzureExample(InfraModel):
     name_node = AzServer("name-node", ctxt.model.nn_rsrc, [ctxt.model.nn_nic], **common_server_args)
 
 
+class AzureDemo(DemoPlatform):
+    def get_infra_instance(self, inst_name):
+        return AzureExample(inst_name)
+
+    def get_platform_proxy(self):
+        with open("azurecreds.txt", "r") as f:
+            subid, cliid, sec, ten = f.readline().strip().split(",")
+        app = AzureProvisionerProxy("azure",
+                                    subscription_id=subid,
+                                    client_id=cliid,
+                                    secret=sec,
+                                    tenant=ten)
+        return app
+
+    def get_supplemental_vars(self):
+        return [Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
+                Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)]
+
+    def get_infra_class(self):
+        return AzureExample
+
+    def platform_name(self):
+        return AZURE
+
+    def get_config_kwargs(self):
+        return dict(pkf=None, rempass=rempass)
+
+
 if __name__ == "__main__":
     from hevent import TaskEventManager
     ehandler = TaskEventManager()
@@ -78,27 +109,40 @@ if __name__ == "__main__":
                                 secret=sec,
                                 tenant=ten)
 
-    inf = AzureExample("azample", event_handler=ehandler)
+    inf = AzureExample("azample")
 
     ns = HadoopNamespace("azure-ns")
     ns.add_override(Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
                     Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False))
-    num_slaves = 5
+    num_slaves = 0
     ns.create_slaves(num_slaves)
+    #
+    ns.set_infra_model(inf)
 
-    cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu", event_handler=ehandler)
+    cfg = HadoopConfig("azure-config", remote_pass=rempass, remote_user="ubuntu")
 
     orch = ActuatorOrchestration(infra_model_inst=inf,
                                  namespace_model_inst=ns,
-                                 config_model_inst=cfg,
+                                 # config_model_inst=cfg,
                                  provisioner_proxies=[app],
                                  post_prov_pause=10,
                                  num_threads=num_slaves*3+3,
-                                 no_delay=True)
+                                 no_delay=True,
+                                 event_handler=ehandler)
     try:
         orch.initiate_system()
     except Exception as e:
         print("init failed with %s" % str(e))
+        traceback.print_exception(*sys.exc_info())
+
+    from actuator.utils import persist_to_dict
+    import json
+    import traceback
+    import sys
+    try:
+        d = persist_to_dict(orch)
+        dp = json.loads(json.dumps(d))
+    except:
         traceback.print_exception(*sys.exc_info())
 
     print("Hit return to deprovision...")

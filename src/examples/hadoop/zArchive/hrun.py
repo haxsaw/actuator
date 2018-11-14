@@ -29,7 +29,7 @@ from actuator import ActuatorOrchestration
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import Var
-from hadoop import HadoopInfra, HadoopNamespace
+from zArchive.hadoop import HadoopInfra, HadoopNamespace
 from prices import create_price_table, CITYCLOUD, RACKSPACE, VSPHERE
 from hsimple import do_it
 from vstest import VSHadoopInfra

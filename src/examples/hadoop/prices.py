@@ -22,6 +22,8 @@
 from actuator.infra import InfraModel
 from actuator.provisioners.openstack.resources import Server, FloatingIP
 from actuator.provisioners.vsphere.resources import TemplatedServer
+from actuator.provisioners.aws.resources import PublicIP, AWSInstance
+from actuator.provisioners.azure.resources import AzServer, AzPublicIP
 
 CORES2_MEM2_STO50 = u"2C-2GB-50GB"
 CORES1_MEM0_5_STO20 = u"1C-0.5GB"
@@ -29,9 +31,12 @@ CORES1_MEM1_STO200 = u'1C-1GB-200GB'
 CORES2_MEM4_STO50 = u'2C-4GB-50GB'
 
 # clouds we can price against
-CITYCLOUD = "citycloud"
-RACKSPACE = "rackspace"
-VSPHERE = 'vsphere'
+CITYCLOUD = "Citycloud"
+RACKSPACE = "Rackspace"
+VSPHERE = 'VSphere'
+AWS = "AWS"
+AZURE = "Azure"
+OPENSTACK = "OpenStack"
 
 #
 # CityCloud pricing
@@ -137,6 +142,95 @@ def create_rackspace_price_table(im):
 
 
 #
+# AWS pricing
+# can't seem to find a library that can hit AWS pricing properly, so I'll hardcode a few bits of data here.
+# all prices are $/hr
+aws_instance_type_price_table = {"t3.nano": 0.0059,
+                                 "t3.micro": 0.0118,
+                                 "t3.small": 0.0236,
+                                 "t3.medium": 0.0472,
+                                 "t2.nano": 0.0066,
+                                 "t2.micro": 0.0132,
+                                 "t2.small": 0.026,
+                                 "t2.medium": 0.052}
+
+elastic_ip_price = 0.005
+
+
+def get_aws_prices(im):
+    instances = [c for c in im.components() if isinstance(c, AWSInstance)]
+    total_server_cost = 0.0
+    for i in instances:
+        try:
+            price = aws_instance_type_price_table[i.instance_type]
+        except KeyError:
+            raise Exception("Pricing doesn't recognise AWS instance type {}".format(i.instance_type))
+        total_server_cost += price
+
+    total_ip_price = elastic_ip_price * len([c for c in im.components() if isinstance(c, PublicIP)])
+
+    return total_server_cost * pound_per_dollar, total_ip_price * pound_per_dollar
+
+
+def create_aws_price_table(im):
+    server_price, ip_price = get_aws_prices(im)
+    result = ["     |    Hourly      Daily      30-day  ",
+              "-----+-----------------------------------"]
+    result.append(
+              "Insts|{:^12.2f}|{:^11.2f}|{:^12.2f}".format(server_price, server_price*24, server_price*24*30))
+    result.append(
+              " IPs |{:^12.2f}|{:^11.2f}|{:^12.2f}".format(ip_price, ip_price*24, ip_price*24*30))
+    result.append(
+              "-----+-----------------------------------")
+    result.append(
+              " Tot |{:^12.2f}|{:^11.2f}|{:^12.2f}".format(server_price+ip_price,
+                                                           24 * (server_price + ip_price),
+                                                           24*30 * (server_price + ip_price)))
+    return "\n".join(result)
+
+
+#
+# Azure pricing
+# prices are in USD/hr
+azure_public_ip_price = 0.7164
+azure_hourly_pricing_table = {"Standard_DS1_v2": 0.07,
+                              "Standard_B1S": 0.012,
+                              "Standard_A0": 0.02}
+
+
+def get_azure_prices(im):
+    assert isinstance(im, InfraModel)
+    servers = [c for c in im.components() if isinstance(c, AzServer)]
+    total_server = 0.0
+    for s in servers:
+        assert isinstance(s, AzServer)
+        try:
+            price = azure_hourly_pricing_table[s.vm_size]
+        except KeyError:
+            raise Exception("Pricing doesn't recognise Azure vm size {}".format(s.vm_size))
+        total_server += price
+    total_ip = azure_public_ip_price * len([c for c in im.components() if isinstance(c, AzPublicIP)])
+    return total_server * pound_per_dollar, total_ip * pound_per_dollar
+
+
+def create_azure_price_table(im):
+    server_price, ip_price = get_azure_prices(im)
+    result = ["     |    Hourly      Daily      30-day  ",
+              "-----+-----------------------------------"]
+    result.append(
+              "Insts|{:^12.2f}|{:^11.2f}|{:^12.2f}".format(server_price, server_price*24, server_price*24*30))
+    result.append(
+              " IPs |{:^12.2f}|{:^11.2f}|{:^12.2f}".format(ip_price, ip_price*24, ip_price*24*30))
+    result.append(
+              "-----+-----------------------------------")
+    result.append(
+              " Tot |{:^12.2f}|{:^11.2f}|{:^12.2f}".format(server_price+ip_price,
+                                                           24 * (server_price + ip_price),
+                                                           24*30 * (server_price + ip_price)))
+    return "\n".join(result)
+
+
+#
 # VSphere pricing
 hours_per_30_days = 30.0 * 24
 vs_vcpu_price = 0.01 / hours_per_30_days
@@ -188,10 +282,14 @@ def create_vsphere_price_table(im):
                                                                24 * 30 * (cc+mc+sc+ic)))
     return "\n".join(result)
 
+
 #
 price_calculators = {CITYCLOUD: create_citycloud_price_table,
                      RACKSPACE: create_rackspace_price_table,
-                     VSPHERE: create_vsphere_price_table}
+                     VSPHERE: create_vsphere_price_table,
+                     AWS: create_aws_price_table,
+                     AZURE: create_azure_price_table,
+                     OPENSTACK: create_citycloud_price_table}
 
 
 def create_price_table(im, for_cloud=CITYCLOUD):

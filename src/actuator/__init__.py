@@ -281,6 +281,13 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         if not isinstance(handler, TaskEventHandler):
             raise ExecutionException("Provided handler is not a kind of TaskEventHandler")
         self.event_handler = handler
+        if self.infra_model_inst:
+            self.infra_model_inst.set_event_handler(self)
+        if self.config_model_inst:
+            self.config_model_inst.set_event_handler(self)
+        if self.service:
+            for svc in self.service.all_services():
+                svc.set_event_handler(self)
 
     # methods for TaskEventHandler
     def orchestration_starting(self, orchestrator):

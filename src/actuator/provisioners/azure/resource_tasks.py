@@ -25,7 +25,7 @@ from actuator.provisioners.azure.resources import *
 from actuator.utils import capture_mapping
 from azure.mgmt.network.models import (PublicIPAddressSku, IPVersion, IPAllocationMethod,
                                        SecurityRule, SecurityRuleAccess, SecurityRuleDirection,
-                                       SecurityRuleProtocol, NetworkSecurityGroup)
+                                       SecurityRuleProtocol, NetworkSecurityGroup, PublicIPAddress)
 # from azure.mgmt.compute.models import LinuxConfiguration, SshConfiguration, SshPublicKey
 
 _azure_domain = "AZURE_DOMAIN"
@@ -137,7 +137,7 @@ class AzNICTask(ProvisioningTask):
         network = run_context.network
         ipconfigs = [{"name": "{}-{}".format(self.rsrc.name, i),
                       "subnet": {"id": sn.get_subnet_id()},
-                      "public_ip_address": self.rsrc.public_ip.get_id()}
+                      "public_ip_address": PublicIPAddress(id=self.rsrc.public_ip.get_id())}
                      for i, sn in enumerate(self.rsrc.subnets)]
         async_creation = network.network_interfaces.create_or_update(self.rsrc.rsrc_grp.get_display_name(),
                                                                      self.rsrc.get_display_name(),
@@ -234,30 +234,45 @@ class AzPublicIPTask(ProvisioningTask):
                                                                       self.rsrc.get_display_name(),
                                                                       params)
         publicip_info = async_creation.result()
-        self.rsrc.set_id(publicip_info)
+        self.rsrc.set_ip(publicip_info.ip_address)
+        self.rsrc.set_id(publicip_info.id)
 
 
 @capture_mapping(_azure_domain, AzSecurityRule)
 class AzSecurityRuleTask(ProvisioningTask):
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
-        sr = SecurityRule(name=self.rsrc.get_display_name(),
-                          access=(SecurityRuleAccess.allow
-                                  if self.rsrc.access.lower() == "allow"
-                                  else SecurityRuleAccess.deny),
-                          description=self.rsrc.description,
-                          destination_address_prefix="*",
-                          destination_port_range=self.rsrc.destination_port_range,
-                          direction=(SecurityRuleDirection.inbound
-                                     if self.rsrc.direction.lower() == "inbound"
-                                     else SecurityRuleDirection.outbound),
-                          protocol=(SecurityRuleProtocol.tcp
-                                    if self.rsrc.protocol.lower() == "tcp"
-                                    else SecurityRuleProtocol.udp),
-                          source_address_prefix=self.rsrc.source_address_prefix,
-                          source_port_range=self.rsrc.source_port_range,
-                          priority=self.rsrc.priority)
-        self.rsrc.set_azure_obj(sr)
+        # we need the Azure object for the sec group later, but the rules don't persist nicely
+        # so we'll put the args to the object into a dict and save that until later
+        kwargs = dict(name=self.rsrc.get_display_name(),
+                      access=self.rsrc.access.lower(),
+                      description=self.rsrc.description,
+                      destination_address_prefix="*",
+                      destination_port_range=self.rsrc.destination_port_range,
+                      direction=self.rsrc.direction.lower(),
+                      protocol=self.rsrc.protocol.lower(),
+                      source_address_prefix=self.rsrc.source_address_prefix,
+                      source_port_range=self.rsrc.source_port_range,
+                      priority=self.rsrc.priority)
+        self.rsrc.set_azure_obj(kwargs)
+
+        # sr = SecurityRule(name=self.rsrc.get_display_name(),
+        #                   access=(SecurityRuleAccess.allow
+        #                           if self.rsrc.access.lower() == "allow"
+        #                           else SecurityRuleAccess.deny),
+        #                   description=self.rsrc.description,
+        #                   destination_address_prefix="*",
+        #                   destination_port_range=self.rsrc.destination_port_range,
+        #                   direction=(SecurityRuleDirection.inbound
+        #                              if self.rsrc.direction.lower() == "inbound"
+        #                              else SecurityRuleDirection.outbound),
+        #                   protocol=(SecurityRuleProtocol.tcp
+        #                             if self.rsrc.protocol.lower() == "tcp"
+        #                             else SecurityRuleProtocol.udp),
+        #                   source_address_prefix=self.rsrc.source_address_prefix,
+        #                   source_port_range=self.rsrc.source_port_range,
+        #                   priority=self.rsrc.priority)
+        # self.rsrc.set_azure_obj(sr)
 
 
 @capture_mapping(_azure_domain, AzSecurityGroup)
@@ -279,11 +294,34 @@ class AzSecurityGroupTask(ProvisioningTask):
     #                             self.rsrc.get_display_name())
     #     async_op.wait()
 
+    @staticmethod
+    def update_access(val):
+        return (SecurityRuleAccess.allow
+                if val == "allow"
+                else SecurityRuleAccess.deny)
+
+    @staticmethod
+    def update_direction(val):
+        return (SecurityRuleDirection.inbound
+                if val == "inbound"
+                else SecurityRuleDirection.outbound)
+
+    @staticmethod
+    def update_protocol(val):
+        return (SecurityRuleProtocol.tcp
+                if val == "tcp"
+                else SecurityRuleProtocol.udp)
+
     def _perform(self, proxy):
         self.rsrc._refix_arguments()
         run_context = proxy.get_context()
         net_secops = run_context.network.network_security_groups
-        rules = [rule.get_azure_obj() for rule in self.rsrc.rules]
+        rules_args = [rule.get_azure_obj() for rule in self.rsrc.rules]
+        for args in rules_args:
+            args["access"] = self.update_access(args["access"])
+            args["direction"] = self.update_direction(args["direction"])
+            args["protocol"] = self.update_protocol(args["protocol"])
+        rules = [SecurityRule(**kwargs) for kwargs in rules_args]
         nsg = NetworkSecurityGroup(location=self.rsrc.rsrc_grp.location,
                                    security_rules=rules)
         async_create = net_secops.create_or_update(self.rsrc.rsrc_grp.get_display_name(),
