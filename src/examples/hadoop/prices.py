@@ -31,10 +31,12 @@ CORES1_MEM1_STO200 = u'1C-1GB-200GB'
 CORES2_MEM4_STO50 = u'2C-4GB-50GB'
 
 # clouds we can price against
-CITYCLOUD = "citycloud"
-RACKSPACE = "rackspace"
-VSPHERE = 'vsphere'
-AWS = "aws"
+CITYCLOUD = "Citycloud"
+RACKSPACE = "Rackspace"
+VSPHERE = 'VSphere'
+AWS = "AWS"
+AZURE = "Azure"
+OPENSTACK = "OpenStack"
 
 #
 # CityCloud pricing
@@ -198,7 +200,7 @@ azure_hourly_pricing_table = {"Standard_DS1_v2": 0.07,
 
 def get_azure_prices(im):
     assert isinstance(im, InfraModel)
-    servers = [c for c in im.components() if isinstance(AzServer)]
+    servers = [c for c in im.components() if isinstance(c, AzServer)]
     total_server = 0.0
     for s in servers:
         assert isinstance(s, AzServer)
@@ -280,10 +282,14 @@ def create_vsphere_price_table(im):
                                                                24 * 30 * (cc+mc+sc+ic)))
     return "\n".join(result)
 
+
 #
 price_calculators = {CITYCLOUD: create_citycloud_price_table,
                      RACKSPACE: create_rackspace_price_table,
-                     VSPHERE: create_vsphere_price_table}
+                     VSPHERE: create_vsphere_price_table,
+                     AWS: create_aws_price_table,
+                     AZURE: create_azure_price_table,
+                     OPENSTACK: create_citycloud_price_table}
 
 
 def create_price_table(im, for_cloud=CITYCLOUD):

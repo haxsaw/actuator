@@ -8,6 +8,8 @@ from actuator.utils import find_file
 from hevent import TaskEventManager
 from hadoop import HadoopNamespace, HadoopConfig
 from actuator.reporting import security_check
+from hcommon import DemoPlatform
+from prices import AWS
 
 
 class AWSBase(InfraModel):
@@ -81,6 +83,8 @@ class AWSTrialInfra(AWSBase):
                                       50071, 50071,
                                       "tcp")
 
+    # add some rules to the base SG
+
     slaves = MultiResourceGroup("slaves",
                                 ni=NetworkInterface("slave-ni",
                                                     ctxt.model.sn,
@@ -109,6 +113,27 @@ class AWSTrialInfra(AWSBase):
     name_node_fip = PublicIP("name_node_fip",
                              domain="vpc",
                              network_interface=ctxt.model.ni)
+
+
+class AWSDemo(DemoPlatform):
+    def get_infra_instance(self, inst_name):
+        return AWSTrialInfra(inst_name)
+
+    def get_platform_proxy(self):
+        key, secret = open("awscreds.txt", "r").read().strip().split("|")
+        aws_proxy = AWSProvisionerProxy("hadoopproxy", default_region="eu-west-2",
+                                        aws_access_key=key, aws_secret_access_key=secret)
+        return aws_proxy
+
+    def get_supplemental_vars(self):
+        return [Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
+                Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False)]
+
+    def get_infra_class(self):
+        return AWSTrialInfra
+
+    def platform_name(self):
+        return AWS
 
 
 def doit():

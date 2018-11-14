@@ -20,7 +20,8 @@
 # SOFTWARE.
 
 import time
-from actuator.provisioners.core import ProvisioningTask
+from collections import Iterable
+from actuator.provisioners.core import ProvisioningTask, ProvisionerException
 from actuator.provisioners.aws.resources import *
 from actuator.utils import capture_mapping
 from botocore.exceptions import ClientError
@@ -89,6 +90,12 @@ class KeyPairTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, SecurityGroup)
 class SecurityGroupTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(SecurityGroupTask, self).depends_on_list()
+        if isinstance(self.rsrc.vpc, VPC):
+            depson.append(self.rsrc.vpc)
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -110,6 +117,12 @@ class SecurityGroupTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, SecurityGroupRule)
 class SecurityGroupRuleTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(SecurityGroupRuleTask, self).depends_on_list()
+        if isinstance(self.rsrc.security_group, SecurityGroup):
+            depson.append(self.rsrc.security_group)
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -133,6 +146,12 @@ class SecurityGroupRuleTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, Subnet)
 class SubnetTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(SubnetTask, self).depends_on_list()
+        if isinstance(self.rsrc.vpc, VPC):
+            depson.append(self.rsrc.vpc)
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -157,6 +176,12 @@ class SubnetTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, InternetGateway)
 class InternetGatewayTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(InternetGatewayTask, self).depends_on_list()
+        if isinstance(self.rsrc.vpc, VPC):
+            depson.append(self.rsrc.vpc)
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -166,7 +191,7 @@ class InternetGatewayTask(ProvisioningTask):
             gw = ec2.create_internet_gateway()
             rsrc.aws_id = gw.internet_gateway_id
         vpc = ec2.Vpc(rsrc.vpc.aws_id)
-        vpc.attach_internet_gateway(InternetGatewayId=rsrc.aws_id )
+        vpc.attach_internet_gateway(InternetGatewayId=rsrc.aws_id)
 
     def _reverse(self, proxy):
         run_context = proxy.get_context()
@@ -181,14 +206,24 @@ class InternetGatewayTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, RouteTable)
 class RouteTableTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(RouteTableTask, self).depends_on_list()
+        if isinstance(self.rsrc.vpc, VPC):
+            depson.append(self.rsrc.vpc)
+        if isinstance(self.rsrc.subnet, Subnet):
+            depson.append(self.rsrc.subnet)
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
         assert isinstance(rsrc, RouteTable)
+        ec2 = run_context.ec2(region_name=rsrc.cloud)
         if rsrc.aws_id is None:
-            ec2 = run_context.ec2(region_name=rsrc.cloud)
             rt = ec2.create_route_table(VpcId=rsrc.vpc.aws_id)
             rsrc.aws_id = rt.route_table_id
+        else:
+            rt = ec2.RouteTable(rsrc.aws_id)
         rta = rt.associate_with_subnet(SubnetId=rsrc.subnet.aws_id)
         rsrc.association_id = rta.route_table_association_id
 
@@ -206,6 +241,18 @@ class RouteTableTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, Route)
 class RouteTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(RouteTask, self).depends_on_list()
+        if isinstance(self.rsrc.route_table, RouteTable):
+            depson.append(self.rsrc.route_table)
+        if isinstance(self.rsrc.gateway, InternetGateway):
+            depson.append(self.rsrc.gateway)
+        if isinstance(self.rsrc.network_interface, NetworkInterface):
+            depson.append(self.rsrc.network_interface)
+        # FIXME: need to add egress_only_gateway, nat_instance, nat_gateway, peering_connection
+        # once we know what they are
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -242,6 +289,17 @@ class RouteTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, NetworkInterface)
 class NetworkInterfaceTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(NetworkInterfaceTask, self).depends_on_list()
+        if isinstance(self.rsrc.subnet, Subnet):
+            depson.append(self.rsrc.subnet)
+        if isinstance(self.rsrc.sec_groups, Iterable):
+            for sg in self.rsrc.sec_groups:
+                if isinstance(sg, SecurityGroup):
+                    depson.append(sg)
+        # FIXME may need to check private_ip_address and private_ip_addresses
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -260,7 +318,6 @@ class NetworkInterfaceTask(ProvisioningTask):
             args["Description"] = rsrc.description
         ni = ec2.create_network_interface(**args)
         rsrc.aws_id = ni.network_interface_id
-        client = run_context.ec2_client(region_name=rsrc.cloud)
 
     def _reverse(self, proxy):
         run_context = proxy.get_context()
@@ -273,6 +330,22 @@ class NetworkInterfaceTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, AWSInstance)
 class AWSInstanceTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(AWSInstanceTask, self).depends_on_list()
+        if isinstance(self.rsrc.key_pair, KeyPair):
+            depson.append(self.rsrc.key_pair)
+        if isinstance(self.rsrc.sec_groups, Iterable):
+            for sg in self.rsrc.sec_groups:
+                if isinstance(sg, SecurityGroup):
+                    depson.append(sg)
+        if isinstance(self.rsrc.subnet, Subnet):
+            depson.append(self.rsrc.subnet)
+        if isinstance(self.rsrc.network_interfaces, Iterable):
+            for ni in self.rsrc.network_interfaces:
+                if isinstance(ni, NetworkInterface):
+                    depson.append(ni)
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -333,6 +406,14 @@ class AWSInstanceTask(ProvisioningTask):
 
 @capture_mapping(_aws_domain, PublicIP)
 class PublicIPTask(ProvisioningTask):
+    def depends_on_list(self):
+        depson = super(PublicIPTask, self).depends_on_list()
+        if isinstance(self.rsrc.instance, AWSInstance):
+            depson.append(self.rsrc.instance)
+        if isinstance(self.rsrc.network_interface, NetworkInterface):
+            depson.append(self.rsrc.network_interface)
+        return depson
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
