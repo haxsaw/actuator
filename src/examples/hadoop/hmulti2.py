@@ -6,8 +6,7 @@ from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator import (ctxt, InfraModel, ActuatorOrchestration, with_infra_options,
                       MultiResourceGroup, ResourceGroup)
-from hadoop import make_std_secgroup, HadoopConfig, HadoopNamespace
-
+from openstackhadoop import make_std_secgroup
 
 model = ctxt.model
 parent = ctxt.comp.container

@@ -8,9 +8,9 @@ from actuator.provisioners.openstack.resources import *
 from actuator.provisioners.vsphere.resources import *
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
 from actuator.utils import find_file
-from hadoop import (make_std_secgroup, CORES2_MEM2_STO50, CORES1_MEM0_5_STO20)
-from hadoop_node import (common_vars, pkn, HadoopNodeConfig, CommandTask, ShellTask,
-                         MultiTask, ConfigClassTask)
+from openstackhadoop import (make_std_secgroup, CORES2_MEM2_STO50, CORES1_MEM0_5_STO20)
+from hcommon import (common_vars, pkn, HadoopNodeConfig, CommandTask, ShellTask,
+                     MultiTask, ConfigClassTask)
 from actuator import ActuatorOrchestration
 
 double_cont_name = ctxt.comp.container.container.name

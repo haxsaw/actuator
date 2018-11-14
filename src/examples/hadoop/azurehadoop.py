@@ -6,7 +6,7 @@ from actuator.provisioners.azure.resources import (AzResourceGroup, AzNetwork, A
 from actuator.infra import InfraModel, with_infra_options, MultiResourceGroup
 from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator import ActuatorOrchestration, ctxt, Var
-from hadoop import HadoopNamespace, HadoopConfig
+from hcommon import HadoopNamespace, HadoopConfig
 from prices import AZURE
 from hcommon import DemoPlatform
 

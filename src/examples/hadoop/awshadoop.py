@@ -6,7 +6,7 @@ from actuator.provisioners.aws import AWSProvisionerProxy
 from actuator.provisioners.aws.resources import *
 from actuator.utils import find_file
 from hevent import TaskEventManager
-from hadoop import HadoopNamespace, HadoopConfig
+from hcommon import HadoopNamespace, HadoopConfig
 from actuator.reporting import security_check
 from hcommon import DemoPlatform
 from prices import AWS
