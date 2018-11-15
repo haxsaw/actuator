@@ -173,13 +173,21 @@ class AzServerTask(ProvisioningTask):
         compute = run_context.compute
         # create the big swinging dict
         name = self.vm_name()
+        os_profile = {"computer_name": name,
+                      "admin_username": self.rsrc.admin_user,
+                      "admin_password": self.rsrc.admin_password}
+        if self.rsrc.pub_key_file:
+            key_data = open(self.rsrc.pub_key_file, "r").read()
+            linux_config = {"disable_password_authentication": True,
+                            "ssh": {"public_keys": [{"path": "/home/%s/.ssh/authorized_keys" % self.rsrc.admin_user,
+                                                     "key_data": key_data}
+                                                    ]
+                                    }
+                            }
+            os_profile["linux_configuration"] = linux_config
         bsd = {
             "location": self.rsrc.location,
-            "os_profile": {
-                "computer_name": name,
-                "admin_username": self.rsrc.admin_user,
-                "admin_password": self.rsrc.admin_password,
-            },
+            "os_profile": os_profile,
             "hardware_profile": {
                 "vm_size": self.rsrc.vm_size
             },
@@ -255,24 +263,6 @@ class AzSecurityRuleTask(ProvisioningTask):
                       source_port_range=self.rsrc.source_port_range,
                       priority=self.rsrc.priority)
         self.rsrc.set_azure_obj(kwargs)
-
-        # sr = SecurityRule(name=self.rsrc.get_display_name(),
-        #                   access=(SecurityRuleAccess.allow
-        #                           if self.rsrc.access.lower() == "allow"
-        #                           else SecurityRuleAccess.deny),
-        #                   description=self.rsrc.description,
-        #                   destination_address_prefix="*",
-        #                   destination_port_range=self.rsrc.destination_port_range,
-        #                   direction=(SecurityRuleDirection.inbound
-        #                              if self.rsrc.direction.lower() == "inbound"
-        #                              else SecurityRuleDirection.outbound),
-        #                   protocol=(SecurityRuleProtocol.tcp
-        #                             if self.rsrc.protocol.lower() == "tcp"
-        #                             else SecurityRuleProtocol.udp),
-        #                   source_address_prefix=self.rsrc.source_address_prefix,
-        #                   source_port_range=self.rsrc.source_port_range,
-        #                   priority=self.rsrc.priority)
-        # self.rsrc.set_azure_obj(sr)
 
 
 @capture_mapping(_azure_domain, AzSecurityGroup)

@@ -184,7 +184,7 @@ class AzNIC(AzureProvisionableInfraResource):
 class AzServer(AzureProvisionableInfraResource, IPAddressable):
     def __init__(self, name, rsrc_grp, nics, publisher=None, offer=None, sku=None, version=None,
                  vm_size=None, admin_user=None, admin_password=None, location=None,
-                 pub_key_data=None, **kwargs):
+                 pub_key_file=None, **kwargs):
         super(AzServer, self).__init__(name, **kwargs)
         self._rsrc_grp = rsrc_grp
         self.rsrc_grp = None
@@ -206,8 +206,8 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
         self.admin_password = None
         self._location = location
         self.location = None
-        self._pub_key_data = pub_key_data
-        self.pub_key_data = None
+        self._pub_key_file = pub_key_file
+        self.pub_key_file = None
         # pulled back from Azure
         self.ip = None
 
@@ -232,7 +232,7 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
                   "admin_user": self.admin_user,
                   "admin_password": self.admin_password,
                   "location": self.location,
-                  "pub_key_data": self.pub_key_data,
+                  "pub_key_file": self.pub_key_file,
                   "ip": self.ip})
         return d
 
@@ -254,7 +254,7 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
         self.location = self._get_arg_value(self._location)
         if self.location is None:
             self.location = self.rsrc_grp.location
-        self.pub_key_data = self._get_arg_value(self._pub_key_data)
+        self.pub_key_file = self._get_arg_value(self._pub_key_file)
 
     def get_init_args(self):
         args, kwargs = super(AzServer, self).get_init_args()
@@ -267,7 +267,7 @@ class AzServer(AzureProvisionableInfraResource, IPAddressable):
                        "admin_user": self._admin_user,
                        "admin_password": self._admin_password,
                        "location": self._location,
-                       "pub_key_data": self._pub_key_data})
+                       "pub_key_file": self._pub_key_file})
         return args, kwargs
 
 

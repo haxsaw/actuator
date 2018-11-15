@@ -6,6 +6,7 @@ from actuator.provisioners.azure.resources import (AzResourceGroup, AzNetwork, A
 from actuator.infra import InfraModel, with_infra_options, MultiResourceGroup
 from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator import ActuatorOrchestration, ctxt, Var
+from actuator.utils import find_file
 from hcommon import HadoopNamespace, HadoopConfig
 from prices import AZURE
 from hcommon import DemoPlatform
@@ -22,7 +23,8 @@ common_server_args = dict(publisher="Canonical",
                           # vm_size='Standard_DS1_v2',
                           vm_size='Standard_B1S',
                           admin_user="ubuntu",
-                          admin_password=rempass)
+                          admin_password=rempass,
+                          pub_key_file=find_file("actuator-dev-key.pub"))
 
 
 class AzureExample(InfraModel):
@@ -93,8 +95,8 @@ class AzureDemo(DemoPlatform):
     def platform_name(self):
         return AZURE
 
-    def get_config_kwargs(self):
-        return dict(pkf=None, rempass=rempass)
+    # def get_config_kwargs(self):
+    #     return dict(pkf=None, rempass=rempass)
 
 
 if __name__ == "__main__":

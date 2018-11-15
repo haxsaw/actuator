@@ -242,7 +242,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         ao.teardown_system()
     except Exception as e:
-        import traceback, sys
+        import traceback
+        import sys
         print("Faild with %s" % str(e))
         print(">>>>Traceback:")
         traceback.print_exception(*sys.exc_info())
