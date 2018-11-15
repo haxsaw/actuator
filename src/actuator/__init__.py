@@ -49,6 +49,7 @@ from .exec_agents.core import ExecutionAgent, ExecutionException
 from .exec_agents.paramiko.agent import ParamikoExecutionAgent, ParamikoServiceExecutionAgent
 from .config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                            CopyFileTask, ProcessCopyFileTask)
+from .execute import ExecuteModel
 from .utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
                     root_logger, adb, _Persistable, process_modifiers)
 from actuator.service import ServiceModel
@@ -135,8 +136,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
     DEPROV_COMPLETE = 10
 
     def __init__(self, infra_model_inst=None, provisioner_proxies=(), namespace_model_inst=None,
-                 config_model_inst=None, service=None, log_level=LOG_INFO, no_delay=False, num_threads=5,
-                 post_prov_pause=60, client_keys=None, event_handler=None):
+                 config_model_inst=None, execute_model_inst=None, service=None, log_level=LOG_INFO,
+                 no_delay=False, num_threads=5, post_prov_pause=60, client_keys=None, event_handler=None):
         """
         Create an instance of the orchestrator to operate on the supplied models/provisioner
         
@@ -161,6 +162,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
             L{actuator.config.ConfigModel}. If absent, no configuration will be carried
             out, but the namespace can be interrogated after orchestration to
             determine values from any provisioned infra
+        @keyword excute_model_inst: Optional; an instance of a subclass of L{actuator.execute.ExecuteModel}.
+            This is required to actually run any software.
         @keyword service: Optional; an instance of a subclass of L{actuator.ServiceModel}.
             If provided, this service will be what the orchestrator stands up. The
             service argument and the infra_model_inst/namespace_model_inst/config_model_inst
@@ -212,7 +215,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         """
         if service is not None and (infra_model_inst is not None or
                                     config_model_inst is not None or
-                                    namespace_model_inst is not None):
+                                    namespace_model_inst is not None or
+                                    execute_model_inst is not None):
             raise ExecutionException("You can only supply either a service or some combination of "
                                      "infra/config/namespace models, but not both")
         if service is not None and not isinstance(service, ServiceModel):
@@ -237,6 +241,10 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
             raise ExecutionException("config_model_inst is not an instance of ConfigModel")
         self.config_model_inst = config_model_inst
 
+        if not (execute_model_inst is None or isinstance(execute_model_inst, ExecuteModel)):
+            raise ExecutionException("execute_model_inst is not an instance of ExecuteModel")
+        self.execute_model_inst = execute_model_inst
+
         self.log_level = log_level
         root_logger.setLevel(log_level)
         self.logger = root_logger.getChild("orchestrator")
@@ -255,6 +263,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
             self.infra_model_inst.set_event_handler(self)
         if self.config_model_inst:
             self.config_model_inst.set_event_handler(self)
+        if self.execute_model_inst:
+            self.execute_model_inst.set_event_handler(self)
         if self.service:
             for svc in self.service.all_services():
                 svc.set_event_handler(self)
@@ -264,12 +274,19 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                                            num_threads=self.num_threads,
                                                            no_delay=no_delay,
                                                            log_level=self.log_level)
-        elif self.config_model_inst is not None:
-            self.config_ea = ParamikoExecutionAgent(config_model_instance=self.config_model_inst,
-                                                    namespace_model_instance=self.namespace_model_inst,
-                                                    num_threads=self.num_threads,
-                                                    no_delay=no_delay,
-                                                    log_level=log_level)
+        else:
+            if self.config_model_inst is not None:
+                self.config_ea = ParamikoExecutionAgent(task_model_instance=self.config_model_inst,
+                                                        namespace_model_instance=self.namespace_model_inst,
+                                                        num_threads=self.num_threads,
+                                                        no_delay=no_delay,
+                                                        log_level=log_level)
+            if self.execute_model_inst is not None:
+                self.execute_ea = ParamikoExecutionAgent(task_model_instance=self.execute_model_inst,
+                                                         namespace_model_instance=self.namespace_model_inst,
+                                                         num_threads=self.num_threads,
+                                                         no_delay=no_delay,
+                                                         log_level=log_level)
 
     def set_provisioner_proxies(self, proxies):
         if any([not isinstance(pp, BaseProvisionerProxy) for pp in proxies]):

@@ -26,8 +26,9 @@ Created on 13 Jul 2014
 from errator import set_default_options, reset_all_narrations
 import six
 from actuator import *
-from actuator.config import _Dependency, ConfigTask, StructuralTask,\
+from actuator.config import ConfigTask, StructuralTask,\
     with_config_options
+from actuator.remote_task import _Dependency
 from actuator.utils import IPAddressable
 
 MyConfig = None
@@ -386,7 +387,9 @@ class Capture(object):
         self.performed.append((name, task))
         
     def pos(self, name, task):
-        return self.performed.index((name, task))
+        return self.performed.index((name, task
+                                           if not isinstance(task, ModelReference)
+                                           else task.value()))
         
     
 class ReportingTask(ConfigTask, StructuralTask):
@@ -433,7 +436,7 @@ def test27():
         ping_task = ReportingTask("ping", target=PingNamespace.ping_target, report=cap)
         
     cfg = PingConfig("cm")
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert cap.performed
@@ -453,7 +456,7 @@ def test28():
         with_dependencies(t1 | t2 | t3)
     
     cfg = PingConfig("cm")
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     try:
         ea.perform_config()
@@ -489,13 +492,13 @@ def test29():
                           t5 | t3)
     
     cfg = PingConfig("cm")
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert (cap.pos("ping_target", PingConfig.t1.name) <
             cap.pos("ping_target", PingConfig.t2.name) <
             cap.pos("ping_target", PingConfig.t3.name) and
-            cap.performed[-1] == ("ping_target", PingConfig.t3.name) and
+            cap.performed[-1] == ("ping_target", PingConfig.t3.name.value()) and
             cap.pos("ping_target", PingConfig.t4.name) <
             cap.pos("ping_target", PingConfig.t2.name))
 
@@ -517,7 +520,7 @@ def test30():
         _ = ns.ping_targets[i]
          
     cfg = ElasticConfig("cm")
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert (len(ns.ping_targets) == 5 and
@@ -549,7 +552,7 @@ def test31():
         
     ns = SimpleNS("ns")
     cfg = SimpleCfg("cm")
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert (cfg.comp_task.vars["ID"] == "right!" and
@@ -582,7 +585,7 @@ def test32():
         
     ns = SimpleNS("ns")
     cfg = SimpleCfg("cm")
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert (cfg.comp_task.vars["ID"] == "wrong" and
@@ -717,7 +720,7 @@ def test39():
     for i in range(5):
         _ = ns.grid[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
@@ -742,7 +745,7 @@ def test40():
     for i in range(3):
         _ = ns.grid[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     try:
         ea.perform_config()
@@ -779,7 +782,7 @@ def test41():
     for i in range(5):
         _ = ns.grid[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
@@ -803,7 +806,7 @@ def test42():
     for i in range(3):
         _ = ns.grid2[i]
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     ea.perform_config()
     assert len(cfg.grid_prep.instances) == 8 and len(cap.performed) == 8
@@ -909,7 +912,7 @@ def test45():
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
@@ -952,7 +955,7 @@ def test46():
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
@@ -1012,7 +1015,7 @@ def test47():
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
@@ -1063,7 +1066,7 @@ def test48():
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
@@ -1117,7 +1120,7 @@ def test49():
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
@@ -1184,7 +1187,7 @@ def test50():
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
     
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns,
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
         ea.perform_config()
@@ -1234,7 +1237,7 @@ def test52():
     ns = NS("ns")
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
-    ea = ExecutionAgent(config_model_instance=cfg, namespace_model_instance=ns)
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns)
     ea.perform_config()
 
 

@@ -190,7 +190,7 @@ if __name__ == "__main__":
     
     cfg = HadoopNodeConfig(remote_user="ubuntu", default_task_role=ns.s,
                            private_key_file=pkn)
-    ea = ParamikoExecutionAgent(config_model_instance=cfg,
+    ea = ParamikoExecutionAgent(task_model_instance=cfg,
                                 namespace_model_instance=ns)
     try:
         ea.perform_config()

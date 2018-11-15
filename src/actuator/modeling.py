@@ -207,9 +207,9 @@ class CallContext(object):
         'thing[1]', the name will be the key used, here '1'. If comp is None
         then this will likewise be None.
     @ivar nexus: an object that provides access to other models in the model
-        set: nexus.inf is the infra model, nexus.ns the namespace model, and
-        nexus.cfg is the config model. This allows logical navigation to other
-        models in context expressions.
+        set: nexus.inf is the infra model, nexus.ns the namespace model,
+        nexus.cfg is the config model, and nexus.exe is the execution model.
+        This allows logical navigation to other models in context expressions.
     """
 
     def __init__(self, model_inst, component):
@@ -1670,7 +1670,8 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
         return ref if ref != self else None
 
     def _fix_arguments(self):
-        return
+        for c in self.components():
+            c.fix_arguments()
 
     def __getattribute__(self, attrname):
         ga = super(ModelBase, self).__getattribute__

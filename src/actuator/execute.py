@@ -19,11 +19,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""
+Support for creating Actuator execution models.
+"""
+
 import six
+
 from actuator.modeling import _Nexus
 from actuator.remote_task import (RemoteTask, RemoteTaskException, RemoteTaskModel,
                                   RemoteTaskModelMeta, RemoteTaskClass, with_remote_options,
-                                  with_dependencies, MultiTask)
+                                  with_dependencies, MultiRemoteTask)
 
 with_execute_options = with_remote_options
 
@@ -49,21 +54,14 @@ class ExecuteModel(six.with_metaclass(ExecuteModelMeta, RemoteTaskModel)):
     pass
 
 
-class ExecuteTaskClass(RemoteTaskClass):
+class ExecuteClassTask(RemoteTaskClass, ExecuteTask):
+    def __init__(self, name, exe_class, init_args=None, **kwargs):
+        super(ExecuteClassTask, self).__init__(name, exe_class, init_args=init_args, **kwargs)
+
+
+class MultiTask(MultiRemoteTask, ExecuteTask):
     pass
 
 
-class SimpleCommandTask(ExecuteTask):
-    def __init__(self, name, role, command, **kwargs):
-        super(SimpleCommandTask, self).__init__(name, **kwargs)
-        self.role = role
-        self.commmand = command
-
-    def get_init_args(self):
-        args, kwargs = super(SimpleCommandTask, self).get_init_args()
-        args += (self.role, self.commmand)
-        return args, kwargs
-
-
 __all__ = ["ExecuteModel", "with_dependencies", "with_execute_options", "ExecuteException",
-           "ExecuteTaskClass", "SimpleCommandTask", "RemoteTaskException", "MultiTask"]
+           "ExecuteClassTask", "RemoteTaskException", "MultiTask", "ExecuteTask"]

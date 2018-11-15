@@ -116,15 +116,15 @@ class ExecutionAgent(TaskEngine):
     exception_class = ExecutionException
     exec_agent = "exec_agent"
 
-    def __init__(self, exec_model_instance=None, config_model_instance=None,
+    def __init__(self, exec_model_instance=None, task_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
                  num_threads=5, do_log=False, no_delay=False, log_level=LOG_INFO):
         """
         Make a new ExecutionAgent
         
         @keyword exec_model_instance: Reserved for latter use
-        @keyword config_model_instance: an instance of a derived class of
-            ConfigModel
+        @keyword task_model_instance: an instance of a derived class of
+            ConfigModel or ExecuteModel
         @keyword namespace_model_instance: an instance of a derived class of
             NamespaceModel
         @keyword infra_model_instance: UNUSED; an instance of a derived class of
@@ -144,22 +144,22 @@ class ExecutionAgent(TaskEngine):
         """
         # @TODO: need to add a test for the type of the exec_model_instance
         self.exec_mi = exec_model_instance
-        if config_model_instance is not None and not isinstance(config_model_instance, ConfigModel):
+        if task_model_instance is not None and not isinstance(task_model_instance, ConfigModel):
             raise ExecutionException("config_model_instance argument isn't an instance of ConfigModel")
-        self.config_mi = config_model_instance
+        self.task_mi = task_model_instance
         
         if namespace_model_instance is not None and not isinstance(namespace_model_instance, NamespaceModel):
             raise ExecutionException("namespace_model_instance isn't an instance of NamespaceModel")
         self.namespace_mi = namespace_model_instance
         
-        if self.config_mi is not None:
-            self.config_mi.set_namespace(self.namespace_mi)
+        if self.task_mi is not None:
+            self.task_mi.set_namespace(self.namespace_mi)
         
         if infra_model_instance is not None and not isinstance(infra_model_instance, InfraModel):
             raise ExecutionException("infra_model_instance isn't an instance of InfraModel")
         self.infra_mi = infra_model_instance
         
-        super(ExecutionAgent, self).__init__("NO_NAME", self.config_mi,
+        super(ExecutionAgent, self).__init__("NO_NAME", self.task_mi,
                                              num_threads=num_threads,
                                              do_log=do_log,
                                              no_delay=no_delay,
@@ -302,7 +302,7 @@ class ExecutionAgent(TaskEngine):
             except Queue.Empty as _:
                 pass
 
-    @narrate("...which started the performance of all configuration tasks")
+    @narrate("...which started the performance of all tasks")
     def perform_config(self, completion_record=None):
         """
         Start the agent working on the configuration tasks. This is the method
@@ -313,8 +313,8 @@ class ExecutionAgent(TaskEngine):
         """
         logger = root_logger.getChild(self.exec_agent)
         logger.info("Agent starting task processing")
-        if self.namespace_mi and self.config_mi:
-            self.config_mi.update_nexus(self.namespace_mi.nexus)
+        if self.namespace_mi and self.task_mi:
+            self.task_mi.update_nexus(self.namespace_mi.nexus)
             self.perform_tasks(completion_record=completion_record)
         else:
             # currently unreachable as is either is missing the object can't be created
@@ -336,8 +336,8 @@ class ExecutionAgent(TaskEngine):
         """
         logger = root_logger.getChild(self.exec_agent)
         logger.info("Agent starting reverse processing of tasks")
-        if self.namespace_mi and self.config_mi:
-            graph = self.config_mi.get_graph(with_fix=False)
+        if self.namespace_mi and self.task_mi:
+            graph = self.task_mi.get_graph(with_fix=False)
             self.num_tasks_to_perform = len(graph.nodes())
             for n in graph.nodes():
                 graph.node[n]["outs_traversed"] = 0
