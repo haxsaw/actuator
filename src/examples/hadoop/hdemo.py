@@ -49,15 +49,13 @@ def do_it(infra_class, proxy,
     """
     Stands up a hadoop infra and configures it
     """
-    # inf = infra_class("hadoop-infra", cloud=cloud_name)
     inf = infra_class("hadoop-infra")
     namespace = HadoopNamespace("hadoop-ns")
     namespace.add_override(*overrides)
     namespace.create_slaves(num_slaves)
-    # conf = HadoopConfig("hadoop-conf", remote_user="ubuntu",
-    #                     private_key_file=pkf,
-    #                     remote_pass=rempass)
-    conf = None
+    conf = HadoopConfig("hadoop-conf", remote_user="ubuntu",
+                        private_key_file=pkf,
+                        remote_pass=rempass)
 
     orch = ActuatorOrchestration(infra_model_inst=inf,
                                  provisioner_proxies=[proxy],

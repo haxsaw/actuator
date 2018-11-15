@@ -27,12 +27,11 @@ from itertools import chain
 from actuator import ctxt, ActuatorOrchestration
 from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.namespace import Role, Var, NamespaceModel, MultiRole
-from actuator.task import TaskGroup
-from actuator.config import (Task, ConfigTask, ConfigModel, MultiTask,
+from actuator.task import TaskGroup, Task
+from actuator.config import (ConfigTask, ConfigModel, MultiTask,
                              with_dependencies, ConfigClassTask)
 from actuator.infra import InfraModel, MultiResource, StaticServer
-from actuator.provisioners.openstack.resources import (Network, Server, Router, RouterGateway, RouterInterface,
-                                                       SecGroup, SecGroupRule, KeyPair)
+from actuator.provisioners.openstack.resources import (Network, Server, SecGroup, SecGroupRule)
 from actuator.task import _Dependency
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.vsphere import VSphereProvisionerProxy

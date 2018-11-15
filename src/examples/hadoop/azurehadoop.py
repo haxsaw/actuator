@@ -95,9 +95,6 @@ class AzureDemo(DemoPlatform):
     def platform_name(self):
         return AZURE
 
-    # def get_config_kwargs(self):
-    #     return dict(pkf=None, rempass=rempass)
-
 
 if __name__ == "__main__":
     from hevent import TaskEventManager
