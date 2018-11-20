@@ -1082,10 +1082,10 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         that there may be few dependencies than in an instance as there won't
         be a namespace yet to influence the number of tasks to perform.
         """
-        if hasattr(cls, _dependencies):
-            deps = list(itertools.chain(*[d.unpack() for d in getattr(cls, _dependencies)]))
-        else:
-            deps = []
+        deps = []
+        for base in reversed(cls.__mro__[:-1]):
+            if hasattr(base, _dependencies):
+                deps.extend(list(itertools.chain(*[d.unpack() for d in getattr(base, _dependencies)])))
         return deps
 
     @narrate(lambda s: "...which required getting the remote tasks from the %s model" %

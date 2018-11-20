@@ -6,7 +6,7 @@ from actuator import (ServiceModel, ctxt, MultiResource, ActuatorException, Actu
                       ExecutionException)
 from actuator.namespace import with_variables, Var, NamespaceModel, Role
 from actuator.infra import InfraModel, StaticServer
-from actuator.config import ConfigModel, NullTask
+from actuator.config import ConfigModel, NullTask, with_dependencies
 from actuator.config_tasks import WaitForTaskTask
 from actuator.modeling import ModelReference, ModelInstanceReference, channel, CallContext
 from actuator.utils import persist_to_dict, reanimate_from_dict, adb
@@ -1902,6 +1902,24 @@ def test075():
     assert result
     _ = svc.inner.config.get_dependencies()
     _ = 1
+
+
+def test076():
+    """
+    test076: derive a config model from another model
+    """
+    class BaseConfig(ConfigModel):
+        t1 = NullTask("task1")
+        t2 = NullTask("task2")
+        with_dependencies(t1 | t2)
+
+    class DerivedConfig(BaseConfig):
+        pass
+
+
+##############
+# FIXME: INHERITANCE NOT WORKING FOR NAMESPACES OR CONFIGS
+##############
 
 
 def do_all():

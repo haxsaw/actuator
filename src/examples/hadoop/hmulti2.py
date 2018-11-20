@@ -1,33 +1,37 @@
+#
+# Copyright (c) 2018 Tom Carroll
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 import sys
 import traceback
+from actuator import *
 from actuator.provisioners.azure.resources import *
 from actuator.provisioners.azure import AzureProvisionerProxy
-from actuator.provisioners.openstack.resources import *
-from actuator.provisioners.openstack import OpenStackProvisionerProxy
-from actuator import (ctxt, InfraModel, ActuatorOrchestration, with_infra_options,
-                      MultiResourceGroup, ResourceGroup)
-from openstackhadoop import make_std_secgroup
+from actuator.provisioners.aws import AWSProvisionerProxy
+from actuator.infra import *
+from actuator.utils import find_file
+from hcommon import HadoopNamespace, HadoopNodeConfig, common_vars, host_list
+from awshadoop import AWSTrialInfra
+
 
 model = ctxt.model
 parent = ctxt.comp.container
-
-
-external_connection = ResourceGroup("route_out",
-                                    net=Network("ro_net"),
-                                    subnet=Subnet("ro_subnet",
-                                                  parent.net,
-                                                  u"192.168.23.0/24",
-                                                  dns_nameservers=[u'8.8.8.8']),
-                                    router=Router("ro_router"),
-                                    gateway=RouterGateway("ro_gateway",
-                                                          parent.router,
-                                                          "ext-net"),
-                                    interface=RouterInterface("ro_inter",
-                                                              parent.router,
-                                                              parent.subnet))
-
-
-rempass = "C0rnD0ggi3"
 
 common_server_args = dict(publisher="Canonical",
                           offer="UbuntuServer",
@@ -35,16 +39,14 @@ common_server_args = dict(publisher="Canonical",
                           version="latest",
                           vm_size='Standard_DS1_v2',
                           admin_user="ubuntu",
-                          admin_password=rempass)
+                          pub_key_file=find_file("actuator-dev-key.pub"))
 
 
-class AzureOS(InfraModel):
+class AzureAWSInfra(AWSTrialInfra):
     with_infra_options(long_names=True)
-
-    # The Azure part
-    rg = AzResourceGroup("hm2-rg", "westus")
-    network = AzNetwork("hm2-network", model.rg, ["10.0.0.0/16"])
-    subnet = AzSubnet("hm2-subnet", model.rg, model.network, "10.0.0.0/24")
+    rg = AzResourceGroup("hm3-rg", "westus")
+    network = AzNetwork("hm3-network", model.rg, ["10.0.0.0/16"])
+    subnet = AzSubnet("hm3-subnet", model.rg, model.network, "10.0.0.0/24")
     az_slaves = MultiResourceGroup(
         "slave",
         slave_fip=AzPublicIP("pub-server", model.rg),
@@ -58,26 +60,47 @@ class AzureOS(InfraModel):
                              source_address_prefix=model.name_node_fip.get_cidr4)
     azsg = AzSecurityGroup("secgroup", model.rg, [model.sshrule, model.nn_rule])
 
-    # The OpenStack part
-    gateway = external_connection
-    std_sg = make_std_secgroup("std-sg", desc="for hadoop")
-    nn_sg = SecGroup("nn-access-sg", description="allows namenode to access slaves")
-    nn_sgr = SecGroupRule("nn-to-slave", secgroup=model.nn_sg, ip_protocol="tcp",
-                          from_port=50031, to_port=50031,
-                          cidr=model.name_node_fip.get_cidr4)
-    os_slaves = MultiResourceGroup(
-        "slave",
-        slave=Server("slave", "Ubuntu 14.04 - LTS - Trusty Tahr", u"2C-2GB-50GB",
-                     nics=[model.gateway.net],
-                     security_groups=[model.std_sg.group,
-                                      model.nn_sg]),
-        slave_fip=FloatingIP("slave-fip", parent.slave, parent.slave.iface0.addr0, pool="ext-net")
-    )
-    name_node = Server("namenode", "Ubuntu 14.04 - LTS - Trusty Tahr", u"2C-2GB-50GB",
-                       nics=[model.gateway.net],
-                       security_groups=[model.std_sg.group])
-    name_node_fip = FloatingIP("name_node_fip", model.name_node, model.name_node.iface0.addr0,
-                               pool="ext-net")
+
+class AzureAWSNamespace(HadoopNamespace):
+    with_variables(*common_vars)
+    with_variables(Var("SLAVE_IPS", host_list(ctxt.model.az_slaves, ctxt.model.slaves)),
+                   Var("NAMENODE_IP", ctxt.nexus.inf.name_node_fip.get_ip))
+    with_variables(Var("JAVA_HOME", "/usr/lib/jvm/java-8-openjdk-amd64"),
+                   Var("JAVA_VER", "openjdk-8-jre-headless", in_env=False))
+
+    az_slaves = MultiRole(Role("az-slave",
+                               host_ref=ctxt.nexus.inf.az_slaves[ctxt.name].slave_fip,
+                               variables=[Var("COMP_NAME", "slave_!{COMP_KEY}"),
+                                          Var("COMP_KEY", ctxt.name)]))
+
+    def create_az_slaves(self, count):
+        return [self.az_slaves[i] for i in range(count)]
+
+
+class AzureAWSHadoopConfig(ConfigModel):
+    namenode_setup = ConfigClassTask("nn_suite", HadoopNodeConfig, init_args=("namenode-setup",),
+                                     task_role=AzureAWSNamespace.name_node)
+
+    az_slaves_setup = MultiTask("az_slaves_setup",
+                                ConfigClassTask("setup_suite", HadoopNodeConfig, init_args=("az-slave-setup",)),
+                                AzureAWSNamespace.q.az_slaves.all())
+
+    aws_slaves_setup = MultiTask("aws_slaves_setup",
+                                 ConfigClassTask("setup_suite", HadoopNodeConfig, init_args=("slave-setup",)),
+                                 AzureAWSNamespace.q.slaves.all())
+
+    slave_ips = ShellTask("slave_ips",
+                          "for i in localhost !{SLAVE_IPS}; do echo $i; done"
+                          " > !{HADOOP_CONF_DIR}/slaves",
+                          task_role=AzureAWSNamespace.name_node)
+
+    format_hdfs = CommandTask("format_hdfs",
+                              "bin/hadoop namenode -format -nonInteractive -force",
+                              chdir="!{HADOOP_HOME}", repeat_count=3,
+                              task_role=AzureAWSNamespace.name_node)
+
+    with_dependencies(namenode_setup | format_hdfs)
+    with_dependencies((namenode_setup & az_slaves_setup & aws_slaves_setup) | slave_ips)
 
 
 if __name__ == "__main__":
@@ -92,19 +115,26 @@ if __name__ == "__main__":
                                   secret=sec,
                                   tenant=ten)
 
-    city = OpenStackProvisionerProxy("citycloud")
+    key, secret = open("awscreds.txt", "r").read().strip().split("|")
+    aws_proxy = AWSProvisionerProxy("hadoopproxy", default_region="eu-west-2",
+                                    aws_access_key=key, aws_secret_access_key=secret)
 
-    inf = AzureOS("multi2", event_handler=ehandler)
-    numslaves = 5
-    for i in range(numslaves):
-        _ = inf.az_slaves[i]
-        _ = inf.os_slaves[i]
+    inf = AzureAWSInfra("multi3")
+    numslaves = 4
+    ns = AzureAWSNamespace("az-aws-ns")
+    ns.create_slaves(numslaves)
+    ns.create_az_slaves(numslaves+1)
+    cfg = AzureAWSHadoopConfig("az-aws-cfg", remote_user="ubuntu",
+                               private_key_file=find_file("actuator-dev-key"))
 
     ao = ActuatorOrchestration(infra_model_inst=inf,
-                               provisioner_proxies=[city, azure],
+                               namespace_model_inst=ns,
+                               config_model_inst=cfg,
+                               provisioner_proxies=[aws_proxy, azure],
                                num_threads=2*numslaves*3 + 3,
                                post_prov_pause=10,
-                               no_delay=True)
+                               no_delay=True,
+                               event_handler=ehandler)
     try:
         ao.initiate_system()
     except Exception as e:

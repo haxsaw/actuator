@@ -346,6 +346,39 @@ class AWSInstanceTask(ProvisioningTask):
                     depson.append(ni)
         return depson
 
+    def await_status(self, cli, rsrc, expected_status, extract_func, max_ticks=300):
+        """
+        checks for the required status on the supplied resource
+        :param cli: a boto3 EC2 client
+        :param rsrc: an AWSInstance resource
+        :param expected_status: string status value that we are waiting for
+        :param extract_func: a callable that returns the appropriate status (or state or whatever) value
+            for the instance from the return of the cli.describe_instance_status() boto3 call. this will
+            be compared to the expected_status value and return when they match
+        :param max_ticks: int, optional. number of ticks (secs) that we'll wait in here for this status
+        :return:
+        """
+        assert isinstance(rsrc, AWSInstance)
+        ticks = 0
+        while ticks < max_ticks:
+            time.sleep(1)
+            if not (ticks % 15):
+                status = cli.describe_instance_status(InstanceIds=[rsrc.aws_id])
+                if len(status["InstanceStatuses"]) == 0:
+                    break  # there's nothing to check!
+                status_value = extract_func(status)
+                if status_value == expected_status:
+                    break
+                elif status_value in ("impaired", "insufficient-data"):
+                    details = status["InstanceStatuses"][0]["InstanceStatus"]["Details"]["Status"]
+                    raise ProvisionerException("Instance {} startup failed; status:{}, details:{}".format(
+                        rsrc.name, status_value, details
+                    ))
+            ticks += 1
+        else:
+            raise ProvisionerException("Timed out waiting for instance {} to reach status {}".format(rsrc.name,
+                                                                                                     expected_status))
+
     def _perform(self, proxy):
         run_context = proxy.get_context()
         rsrc = self.rsrc
@@ -378,22 +411,7 @@ class AWSInstanceTask(ProvisioningTask):
             rsrc.aws_id = inst.instance_id
         # now delay finishing until the instance's status is 'ok'
         cli = run_context.ec2_client(region_name=rsrc.cloud)
-        ticks = 0
-        while ticks < 300:
-            time.sleep(1)
-            if not (ticks % 15):
-                status = cli.describe_instance_status(InstanceIds=[rsrc.aws_id])
-                status_value = status["InstanceStatuses"][0]["InstanceStatus"]["Status"]
-                if status_value == "ok":
-                    break
-                elif status_value in ("impaired", "insufficient-data"):
-                    details = status["InstanceStatuses"][0]["InstanceStatus"]["Details"]["Status"]
-                    raise ProvisionerException("Instance {} startup failed; status:{}, details:{}".format(
-                        rsrc.name, status_value, details
-                    ))
-            ticks += 1
-        else:
-            raise ProvisionerException("Timed out waiting for instance {} to come ready".format(rsrc.name))
+        self.await_status(cli, rsrc, "ok", lambda status: status["InstanceStatuses"][0]["InstanceStatus"]["Status"])
 
     def _reverse(self, proxy):
         run_context = proxy.get_context()
@@ -402,6 +420,9 @@ class AWSInstanceTask(ProvisioningTask):
         ec2 = run_context.ec2(region_name=rsrc.cloud)
         inst = ec2.Instance(rsrc.aws_id)
         inst.terminate()
+        cli = run_context.ec2_client(region_name=rsrc.cloud)
+        self.await_status(cli, rsrc, "terminated",
+                          lambda status: status["InstanceStatuses"][0]["InstanceState"]["Name"])
 
 
 @capture_mapping(_aws_domain, PublicIP)

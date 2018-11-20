@@ -66,10 +66,10 @@ common_vars = [Var("USER", "ubuntu"),
                Var("JOBTRACKER_PORT", "50031"),
                Var("JOBTRACKER_WEBUI_PORT", "50030"),
                Var("PRIV_KEY_NAME", pkn),
-               Var("ZABBIX_SERVER", os.environ.get("ZABBIX_SERVER"), in_env=False)]
+               Var("ZABBIX_SERVER", os.environ.get("ZABBIX_SERVER") or "", in_env=False)]
 
 
-def host_list(ctx_exp, sep_char=" "):
+def host_list(*ctx_exps, sep_char=" "):
     """
     This returns a callable that computes a list of ip addresses separated by
     the indicated character. This is one approach to constructing
@@ -82,9 +82,12 @@ def host_list(ctx_exp, sep_char=" "):
     """
 
     def host_list_inner(ctx):
-        return sep_char.join([role.host_ref.get_ip()
-                              for role in ctx_exp(ctx).values()
-                              if role is not None])
+        iplist = []
+        for ctx_exp in ctx_exps:
+            iplist.extend([role.host_ref.get_ip()
+                           for role in ctx_exp(ctx).values()
+                           if role is not None])
+        return sep_char.join(iplist)
 
     return host_list_inner
 
@@ -253,6 +256,7 @@ class HadoopNodeConfig(ConfigModel):
 
 
 class HadoopConfig(ConfigModel):
+
     namenode_setup = ConfigClassTask("nn_suite", HadoopNodeConfig, init_args=("namenode-setup",),
                                      task_role=HadoopNamespace.name_node)
 
