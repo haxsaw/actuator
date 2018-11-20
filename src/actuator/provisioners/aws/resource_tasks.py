@@ -346,7 +346,8 @@ class AWSInstanceTask(ProvisioningTask):
                     depson.append(ni)
         return depson
 
-    def await_status(self, cli, rsrc, expected_status, extract_func, max_ticks=300):
+    @staticmethod
+    def await_status(cli, rsrc, expected_status, extract_func, max_ticks=300):
         """
         checks for the required status on the supplied resource
         :param cli: a boto3 EC2 client
