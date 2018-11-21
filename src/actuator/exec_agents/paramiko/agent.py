@@ -40,12 +40,13 @@ from paramiko import (SSHClient, SSHException, BadHostKeyException, Authenticati
 
 from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
+from actuator.remote_task import RemoteTask
 from actuator.utils import capture_mapping, LOG_INFO
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
                                    LocalCommandTask, LocalShellCommandTask)
-from actuator.execute_tasks import (ExecuteTask, RemoteExecTask, RemoteShellExecTask, LocalExecTask,
-                                    LocalShellExecTask, WaitForExecTaskTask)
+from actuator.execute_tasks import (ExecuteTask, RemoteExecTask, RemoteShellExecTask, RemoteScriptExecTask,
+                                    LocalExecTask, LocalShellExecTask, LocalScriptExecTask, WaitForExecTaskTask)
 from actuator.namespace import _ComputableValue
 from actuator.service import ServiceModel
 from errator import narrate, narrate_cm
@@ -101,7 +102,7 @@ class PTaskProcessor(AbstractTaskProcessor):
                 dirty (always False)
             Other key/values may exist that are relevant to the specific task processor
         """
-        assert isinstance(task, (ExecuteTask, ConfigTask))
+        assert isinstance(task, RemoteTask)
         user = task.get_remote_user()
         if not user:
             raise ExecutionException("Unable to determine a remote user for task %s; can't continue" %
@@ -114,6 +115,7 @@ class PTaskProcessor(AbstractTaskProcessor):
                       "priv_key_file": task.get_private_key_file(),
                       "timeout": 20,
                       "priv_key": None,
+                      # FIXME 'dirty' isn't needed
                       "dirty": False}
         with narrate_cm("...and then the collection of the task-specific arguments started"):
             kwargs.update(self._make_args(task))
@@ -214,8 +216,8 @@ class PingProcessor(PTaskProcessor):
         sh.close()
         result = _Result(True, 0, "", "")
         return result
-    
-    
+
+
 @capture_mapping(_paramiko_domain, ScriptTask)
 class ScriptProcessor(PTaskProcessor):
     @narrate(lambda s, t: "...which required getting the remaining arguments for "
@@ -331,7 +333,6 @@ class ScriptProcessor(PTaskProcessor):
         
 
 @capture_mapping(_paramiko_domain, CommandTask)
-@capture_mapping(_paramiko_domain, RemoteExecTask)
 class CommandProcessor(ScriptProcessor):
     @narrate(lambda s, t: "...which required getting the remaining arguments for "
                           "command processing task {}".format(t.name))
@@ -395,7 +396,6 @@ class CommandProcessor(ScriptProcessor):
     
     
 @capture_mapping(_paramiko_domain, ShellTask)
-@capture_mapping(_paramiko_domain, RemoteShellExecTask)
 class ShellProcessor(CommandProcessor):
     def _format_command(self, command):
         return command
@@ -821,3 +821,68 @@ class ParamikoServiceExecutionAgent(object):
                 continue
             for t, et, ev, tb, story in pea.get_aborted_tasks():
                 yield t, et, ev, tb, story
+
+
+class ExecProcessorBase(PTaskProcessor):
+    def _make_args(self, task):
+        args = {"free_form": task.free_form,
+                "chdir": task.chdir}
+        return args
+
+    def _start_shell(self, client):
+        sh = self._get_shell(client)
+        _ = self._drain(sh)
+        return sh
+
+    @narrate(lambda s, c: "...at which point we needed to perform final formatting on command '{}'".format(c))
+    def _format_command(self, command):
+        parts = shlex.split(command)
+        formatted = [parts[0]]
+        for p in parts[1:]:
+            formatted.append('"%s"' % p)
+        return ' '.join(formatted)
+
+    @narrate(lambda s, c, t, **kw: "...which starts processing the script task {}".format(t.name))
+    def _process_task(self, client, task, free_form=None, chdir=None):
+        output = []
+        sh = self._start_shell(client)
+        if free_form is None:
+            raise ExecutionException("There is execution command to run")
+        if chdir is not None:
+            sh.sendall("cd {}\n".format(chdir))
+            output.append("".join(self._drain(sh)))
+            success, ecode = self._was_success(sh)
+            if not success:
+                raise ExecutionException("Unable to change to directory '{}': {}".format(
+                    chdir, "".join(output)
+                ))
+        self._populate_environment(sh, task)
+        ff_formated = self._format_command(free_form)
+        sh.sendall("{}\n".format(ff_formated))
+        time.sleep(0.2)
+        output.append("".join(self._drain(sh)))
+        success, ecode = self._was_success(sh)
+        result = _Result(success, ecode, "".join(output), "")
+        return result
+
+
+@capture_mapping(_paramiko_domain, RemoteExecTask)
+class RemoteExecTaskProcessor(ExecProcessorBase):
+    pass
+
+
+@capture_mapping(_paramiko_domain, RemoteShellExecTask)
+class RemoteShellExecTaskProcessor(ExecProcessorBase):
+    def _format_command(self, command):
+        return command
+
+
+class RemoteScriptExecTaskProcessor(ExecProcessorBase):
+    def _make_args(self, task):
+        args = super(RemoteScriptExecTaskProcessor, self)._make_args(task)
+        args["executable"] = task.executable
+        return args
+
+    def _process_task(self, client, task, free_form=None, chdir=None, executable=None):
+        output = []
+        sh = self._start_shell(client)

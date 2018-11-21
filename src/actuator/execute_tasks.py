@@ -30,27 +30,55 @@ from actuator.execute import ExecuteTask
 
 
 class RemoteExecTask(ExecuteTask):
-    def __init__(self, name, command, **kwargs):
+    def __init__(self, name, free_form, chdir=None, **kwargs):
         super(RemoteExecTask, self).__init__(name, **kwargs)
-        self.command = None
-        self._commmand = command
+        self.free_form = None
+        self._free_form = command
+        self.chdir = None
+        self._chdir = chdir
 
     @narrate(lambda s: "...so we asked {} task {} for its init args".format(s.__class__.__name__,
                                                                             s.name))
     def get_init_args(self):
         args, kwargs = super(RemoteExecTask, self).get_init_args()
-        args += (self._commmand,)
+        args += (self._free_form,)
+        kwargs["chdir"] = self._chdir
         return args, kwargs
 
     @narrate(lambda s: "...so we asked {} task {} to fix its arguments".format(s.__class__.__name__,
                                                                                s.name))
     def _fix_arguments(self):
         super(RemoteExecTask, self)._fix_arguments()
-        self.command = self._get_arg_value(self._commmand)
+        self.free_form = self._get_arg_value(self._free_form)
+        self.chdir = self._get_arg_value(self._chdir)
 
 
 class RemoteShellExecTask(RemoteExecTask):
     pass
+
+
+class RemoteScriptExecTask(RemoteExecTask):
+    def __init__(self, name, free_form, chdir=None, proc_ns=True, executable=None, **kwargs):
+        super(RemoteScriptExecTask, self).__init__(name, free_form, chdir=chdir, **kwargs)
+        self.proc_ns = None
+        self._proc_ns = proc_ns
+        self.executable = None
+        self._executable = executable
+
+    @narrate(lambda s: "...so we asked {} task {} for its init args".format(s.__class__.__name__,
+                                                                            s.name))
+    def get_init_args(self):
+        args, kwargs = super(RemoteScriptExecTask, self).get_init_args()
+        kwargs["proc_ns"] = self._proc_ns
+        kwargs["executable"] = self._executable
+        return args, kwargs
+
+    @narrate(lambda s: "...so we asked {} task {} to fix its arguments".format(s.__class__.__name__,
+                                                                               s.name))
+    def _fix_arguments(self):
+        super(RemoteScriptExecTask, self)._fix_arguments()
+        self.proc_ns = self._get_arg_value(self._proc_ns)
+        self.executable = self._get_arg_value(self._executable)
 
 
 class LocalExecTask(ExecuteTask):
@@ -59,27 +87,51 @@ class LocalExecTask(ExecuteTask):
     invoked so shell metachars are NOT expanded (use L{LocalShell} if metachar
     support is required).
     """
-    def __init__(self, name, command=None, **kwargs):
+    def __init__(self, name, free_form, chdir=None, **kwargs):
         super(LocalExecTask, self).__init__(name, **kwargs)
-        self._command = command
-        self.command = None
+        self.free_form = None
+        self._free_form = free_form
+        self.chdir = None
+        self._chdir = chdir
 
     @narrate(lambda s: "...so we asked {} task {} for its init "
                        "args".format(s.__class__.__name__, s.name))
     def get_init_args(self):
         args, kwargs = super(LocalExecTask, self).get_init_args()
-        kwargs["command"] = self._command
+        args += (self._free_form,)
+        kwargs["chdir"] = self._chdir
         return args, kwargs
 
     @narrate(lambda s: "...so we asked {} task {} to fix "
                        "its arguments".format(s.__class__.__name__, s.name))
     def _fix_arguments(self):
         super(LocalExecTask, self)._fix_arguments()
-        self.command = self._get_arg_value(self._command)
+        self.free_form = self._get_arg_value(self._free_form)
+        self.chdir = self._get_arg_value(self._chdir)
 
 
 class LocalShellExecTask(LocalExecTask):
     pass
+
+
+class LocalScriptExecTask(LocalExecTask):
+    def __init__(self, name, free_form, chdir=None, proc_ns=True, **kwargs):
+        super(LocalScriptExecTask, self).__init__(name, free_form, chdir=chdir, **kwargs)
+        self.proc_ns = None
+        self._proc_ns = proc_ns
+
+    @narrate(lambda s: "...so we asked {} task {} for its init args".format(s.__class__.__name__,
+                                                                            s.name))
+    def get_init_args(self):
+        args, kwargs = super(LocalScriptExecTask, self).get_init_args()
+        kwargs["proc_ns"] = self._proc_ns
+        return args, kwargs
+
+    @narrate(lambda s: "...so we asked {} task {} to fix its arguments".format(s.__class__.__name__,
+                                                                               s.name))
+    def _fix_arguments(self):
+        super(LocalScriptExecTask, self)._fix_arguments()
+        self.proc_ns = self._get_arg_value(self._proc_ns)
 
 
 class WaitForExecTaskTask(ExecuteTask):
@@ -104,4 +156,4 @@ class WaitForExecTaskTask(ExecuteTask):
 
 
 __all__ = ["WaitForExecTaskTask", "LocalShellExecTask", "LocalExecTask", "RemoteShellExecTask",
-           "RemoteExecTask"]
+           "RemoteExecTask", "LocalScriptExecTask", "RemoteScriptExecTask"]
