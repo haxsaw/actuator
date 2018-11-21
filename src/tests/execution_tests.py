@@ -28,6 +28,8 @@ from actuator.execute_tasks import (RemoteExecTask, WaitForExecTaskTask, RemoteS
                                     LocalExecTask, LocalShellExecTask)
 from actuator.config import with_dependencies
 from actuator import ctxt, Var, with_variables
+from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
+from actuator.utils import find_file
 
 
 def setup_module():
@@ -210,7 +212,29 @@ def test010():
     assert ex.t2.command.value() == "t1's command", "comand is " + ex.t2.command.value()
 
 
+def test011():
+    """
+    test011: try running an execution agent directly to perform an exec model
+    """
+    class NS11(NamespaceModel):
+        r = Role("r11", host_ref="127.0.0.1")
+
+    class EM11(ExecuteModel):
+        t = RemoteShellExecTask("t11", "echo bingo > /tmp/test11.txt", task_role=ctxt.nexus.ns.r)
+
+    ns = NS11("ns11")
+    ns.fix_arguments()
+    ex = EM11("ex11", remote_user="lxle1", private_key_file=find_file("lxle1-dev-key"))
+    ex.set_namespace(ns)
+    ex.fix_arguments()
+    pea = ParamikoExecutionAgent(task_model_instance=ex,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+    pea.start_performing_tasks()
+
+
 def do_all():
+    test011()
     for k, v in sorted(globals().items()):
         if callable(v) and k.startswith("test"):
             try:

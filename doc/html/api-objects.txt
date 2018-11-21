@@ -600,7 +600,7 @@ actuator.exec_agents.ansible.agent.AnsibleExecutionAgent._get_run_host	actuator.
 actuator.exec_agents.core.ExecutionAgent.exception_class	actuator.exec_agents.core.ExecutionException-class.html
 actuator.exec_agents.core.ExecutionAgent.perform_task	actuator.exec_agents.core.ExecutionAgent-class.html#perform_task
 actuator.exec_agents.core.ExecutionAgent.has_aborted_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#has_aborted_tasks
-actuator.exec_agents.core.ExecutionAgent.perform_config	actuator.exec_agents.core.ExecutionAgent-class.html#perform_config
+actuator.exec_agents.core.ExecutionAgent.start_performing_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#start_performing_tasks
 actuator.exec_agents.core.ExecutionAgent.process_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#process_tasks
 actuator.exec_agents.core.ExecutionAgent.abort_process_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#abort_process_tasks
 actuator.exec_agents.core.ExecutionAgent.get_aborted_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#get_aborted_tasks
@@ -651,7 +651,7 @@ actuator.exec_agents.core.ExecutionAgent.__init__	actuator.exec_agents.core.Exec
 actuator.exec_agents.core.ExecutionAgent.exception_class	actuator.exec_agents.core.ExecutionException-class.html
 actuator.exec_agents.core.ExecutionAgent.perform_task	actuator.exec_agents.core.ExecutionAgent-class.html#perform_task
 actuator.exec_agents.core.ExecutionAgent.has_aborted_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#has_aborted_tasks
-actuator.exec_agents.core.ExecutionAgent.perform_config	actuator.exec_agents.core.ExecutionAgent-class.html#perform_config
+actuator.exec_agents.core.ExecutionAgent.start_performing_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#start_performing_tasks
 actuator.exec_agents.core.ExecutionAgent.process_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#process_tasks
 actuator.exec_agents.core.ExecutionAgent.abort_process_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#abort_process_tasks
 actuator.exec_agents.core.ExecutionAgent.get_aborted_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#get_aborted_tasks
@@ -1787,7 +1787,7 @@ actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.except
 actuator.exec_agents.core.ExecutionAgent.perform_task	actuator.exec_agents.core.ExecutionAgent-class.html#perform_task
 actuator.exec_agents.core.ExecutionAgent.has_aborted_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#has_aborted_tasks
 actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.get_context	actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent-class.html#get_context
-actuator.exec_agents.core.ExecutionAgent.perform_config	actuator.exec_agents.core.ExecutionAgent-class.html#perform_config
+actuator.exec_agents.core.ExecutionAgent.start_performing_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#start_performing_tasks
 actuator.exec_agents.core.ExecutionAgent.process_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#process_tasks
 actuator.exec_agents.core.ExecutionAgent.abort_process_tasks	actuator.exec_agents.core.ExecutionAgent-class.html#abort_process_tasks
 actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent.get_graph	actuator.provisioners.openstack.resource_tasks.ResourceTaskSequencerAgent-class.html#get_graph

@@ -839,7 +839,7 @@ from actuator.exec_agents.paramiko.agent import ParamikoExecutionAgent
 cfg = SimpleConfig()
 ea = ParamikoExecutionAgent(config_model_instance=cfg,
                            namespace_model_instance=ns)
-ea.perform_config()
+ea.start_performing_tasks()
 ```
 
 If all ssh keys have been set up properly, Actuator will be able to execute these tasks on the host of the role named with SimpleNamespace.copy_target. However, this isn't enough to get proper results, which will be discussed next.

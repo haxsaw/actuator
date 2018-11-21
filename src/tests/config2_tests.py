@@ -150,7 +150,7 @@ def test001():
                                 num_threads=1,
                                 no_delay=True, log_level=LOG_DEBUG)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except Exception as e:
         six.print_("Config failed with %s; details below" % str(e))
         for t, et, ev, tb, _ in ea.get_aborted_tasks():

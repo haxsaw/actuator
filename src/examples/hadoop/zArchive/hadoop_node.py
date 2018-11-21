@@ -193,7 +193,7 @@ if __name__ == "__main__":
     ea = ParamikoExecutionAgent(task_model_instance=cfg,
                                 namespace_model_instance=ns)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
         six.print_( "\n...all done!")
     except ExecutionException as e:
         six.print_()

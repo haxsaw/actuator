@@ -177,7 +177,7 @@ class SingleRoleNS(NamespaceModel):
     
 def perform_and_complain(pea):
     try:
-        pea.perform_config()
+        pea.start_performing_tasks()
     except Exception as e:
         if not len(pea.get_aborted_tasks()):
             six.print_("Missing aborted task messages; need to find where they are!!")
@@ -289,7 +289,7 @@ def test10():
                                  no_delay=True)
     
     try:
-        pea.perform_config()
+        pea.start_performing_tasks()
     except Exception as _:
         assert True
     else:

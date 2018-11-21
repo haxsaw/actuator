@@ -75,7 +75,7 @@ def find_ip():
 
 def perform_and_complain(pea):
     try:
-        pea.perform_config()
+        pea.start_performing_tasks()
     except Exception as e:
         print("Perform failed with %s" % str(e))
         if not len(pea.get_aborted_tasks()):
@@ -181,7 +181,7 @@ def test005():
 
 
 def test006():
-    """test006 should raise an exception during perform_config() because
+    """test006 should raise an exception during start_performing_tasks() because
     /bin/wibble doesn't exist"""
     class SimpleNamespace(NamespaceModel):
         with_variables(Var("CMD_TARGET", find_ip()))

@@ -45,11 +45,11 @@ from .config import (ConfigModel, with_searchpath, with_dependencies,
                      ConfigClassTask, with_config_options, ConfigModelMeta)
 from .provisioners.core import (ProvisionerException, ProvisioningTaskEngine, ServiceProvisioningTaskEngine,
                                 BaseProvisionerProxy)
+from .execute import ExecuteModel
 from .exec_agents.core import ExecutionAgent, ExecutionException
 from .exec_agents.paramiko.agent import ParamikoExecutionAgent, ParamikoServiceExecutionAgent
 from .config_tasks import (PingTask, CommandTask, ScriptTask, ShellTask,
                            CopyFileTask, ProcessCopyFileTask)
-from .execute import ExecuteModel
 from .utils import (LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, LOG_WARN,
                     root_logger, adb, _Persistable, process_modifiers)
 from actuator.service import ServiceModel
@@ -269,6 +269,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
             for svc in self.service.all_services():
                 svc.set_event_handler(self)
 
+        self.config_ea = self.execute_ea = None
         if self.service:
             self.config_ea = ParamikoServiceExecutionAgent(self.service,
                                                            num_threads=self.num_threads,
@@ -353,6 +354,22 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 self.event_handler.configuration_finished(self, success)
             except Exception as e:
                 self.logger.warning("External event handler failed on configuration_finished() with {}".
+                                    format(str(e)))
+
+    def execution_starting(self, orchestrator):
+        if self.event_handler:
+            try:
+                self.event_handler.execution_starting(self)
+            except Exception as e:
+                self.logger.warning("External event handler failed on execution_starting() with {}".
+                                    format(str(e)))
+
+    def execution_finished(self, orchestrator, success):
+        if self.event_handler:
+            try:
+                self.event_handler.execution_finished(self, success)
+            except Exception as e:
+                self.logger.warning("External event handler failed on execution_finished() with {}".
                                     format(str(e)))
 
     def engine_starting(self, model, graph):
@@ -510,10 +527,10 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 self.status = self.PERFORMING_CONFIG
                 self.logger.info("Starting config phase")
                 self.configuration_starting(self)
-                self.config_ea.perform_config()
+                self.config_ea.start_performing_tasks()
                 self.configuration_finished(self, True)
                 self.logger.info("Config phase complete")
-            except ExecutionException as e:
+            except Exception as e:
                 self.status = self.ABORT_CONFIG
                 self.logger.critical(">>> Config exec agent failed with '%s'; "
                                      "failed tasks shown below" % str(e))
@@ -529,6 +546,35 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 self.logger.critical("Aborting orchestration")
                 self.initiate_end_time = str(datetime.datetime.utcnow())
                 self.configuration_finished(self, False)
+                self.orchestration_finished(self, self.status)
+                return False
+
+        if ((self.execute_model_inst is not None and self.namespace_model_inst is not None) or
+                # FIXME: this test's logic isn't right; need to consider actions with a service
+                (self.service is not None and self.execute_ea is not None)):
+            try:
+                self.status = self.PERFORMING_EXEC
+                self.logger.info("Starting exec phase")
+                self.execution_starting(self)
+                self.execute_ea.start_performing_tasks()
+                self.execution_finished(self, True)
+                self.logger.info("Execution phasd complete")
+            except Exception as e:
+                self.status = self.ABORT_EXEC
+                self.logger.critical(">>> Execution exec agent failed with '%s'; "
+                                     "failed tasks shown below" % str(e))
+                for t, et, ev, tb, story in self.execute_ea.get_aborted_tasks():
+                    self.logger.critical("Task %s named %s id %s" %
+                                         (t.__class__.__name__, t.name, str(t._id)),
+                                         exc_info=(et, ev, tb))
+                    self.logger.critical("Response: %s" % ev.response
+                                         if hasattr(ev, "response")
+                                         else "NO RESPONSE")
+                    self.logger.critical("Its story was:{}".format("\n".join(story)))
+                    self.logger.critical("")
+                self.logger.critical("Aborting orchestration")
+                self.initiate_end_time = str(datetime.datetime.utcnow())
+                self.execution_finished(self, False)
                 self.orchestration_finished(self, self.status)
                 return False
 

@@ -31,7 +31,7 @@ import time
 import json
 
 from errator import narrate
-from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException
+from actuator import ConfigModel, NamespaceModel, InfraModel, ActuatorException, ExecuteModel
 from actuator.utils import LOG_INFO, root_logger
 from actuator.task import TaskEngine
 from actuator.utils import get_mapper
@@ -116,13 +116,12 @@ class ExecutionAgent(TaskEngine):
     exception_class = ExecutionException
     exec_agent = "exec_agent"
 
-    def __init__(self, exec_model_instance=None, task_model_instance=None,
+    def __init__(self, task_model_instance=None,
                  namespace_model_instance=None, infra_model_instance=None,
                  num_threads=5, do_log=False, no_delay=False, log_level=LOG_INFO):
         """
         Make a new ExecutionAgent
         
-        @keyword exec_model_instance: Reserved for latter use
         @keyword task_model_instance: an instance of a derived class of
             ConfigModel or ExecuteModel
         @keyword namespace_model_instance: an instance of a derived class of
@@ -142,10 +141,9 @@ class ExecutionAgent(TaskEngine):
         @keyword log_level: Any of the symbolic log levels in the actuator root
             package, LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, or LOG_WARN
         """
-        # @TODO: need to add a test for the type of the exec_model_instance
-        self.exec_mi = exec_model_instance
-        if task_model_instance is not None and not isinstance(task_model_instance, ConfigModel):
-            raise ExecutionException("config_model_instance argument isn't an instance of ConfigModel")
+        if task_model_instance is not None and not isinstance(task_model_instance, (ExecuteModel, ConfigModel)):
+            raise ExecutionException("task_model_instance argument isn't an instance of ConfigModel "
+                                     "or ExecuteModel")
         self.task_mi = task_model_instance
         
         if namespace_model_instance is not None and not isinstance(namespace_model_instance, NamespaceModel):
@@ -170,7 +168,7 @@ class ExecutionAgent(TaskEngine):
         self.stop = False
         self.aborted_tasks = []
         self.num_tasks_to_perform = None
-        self.config_record = None
+        self.task_record = None
         self.graph = None
 
     def _logger_name(self):
@@ -219,7 +217,7 @@ class ExecutionAgent(TaskEngine):
         Does the actual call into the specific execution system for the supplied task with args acquired from
         the make_args() method of the task processor
         
-        @param task: Some kind of config task object appropriate for the specific exec agent
+        @param task: Some kind of task object appropriate for the specific exec agent
         @param args: A sequence of positional arguments to pass through to the underlying execution system
         @param kwargs: A dict that can serve as keyword arguments to the underlying execution system
         @return: an opaque object that describes whether the execution was successful or not
@@ -303,7 +301,7 @@ class ExecutionAgent(TaskEngine):
                 pass
 
     @narrate("...which started the performance of all tasks")
-    def perform_config(self, completion_record=None):
+    def start_performing_tasks(self, completion_record=None):
         """
         Start the agent working on the configuration tasks. This is the method
         the outside world calls when it wants the agent to start the config
@@ -320,7 +318,7 @@ class ExecutionAgent(TaskEngine):
             # currently unreachable as is either is missing the object can't be created
             raise ExecutionException("either namespace_model_instance or config_model_instance weren't specified")
 
-    @narrate("...which started reverse processing of all configuration tasks")
+    @narrate("...which started reverse processing of all tasks")
     def perform_reverses(self, completion_record=None):
         """
         Traverses the graph in reverse to "unperform" the tasks.

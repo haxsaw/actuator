@@ -438,7 +438,7 @@ def test27():
     cfg = PingConfig("cm")
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert cap.performed
 
 
@@ -459,7 +459,7 @@ def test28():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except Exception as e:
         six.print_("Unexpected performance failure with: %s" % str(e))
         six.print_("problems:")
@@ -494,7 +494,7 @@ def test29():
     cfg = PingConfig("cm")
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert (cap.pos("ping_target", PingConfig.t1.name) <
             cap.pos("ping_target", PingConfig.t2.name) <
             cap.pos("ping_target", PingConfig.t3.name) and
@@ -522,7 +522,7 @@ def test30():
     cfg = ElasticConfig("cm")
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert (len(ns.ping_targets) == 5 and
             ({"0", "1", "2", "3", "4"} == set(ns.ping_targets.keys())) and
             len(ns.pong_targets) == 0)
@@ -554,7 +554,7 @@ def test31():
     cfg = SimpleCfg("cm")
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert (cfg.comp_task.vars["ID"] == "right!" and
             cfg.comp_task.vars["THREE"] == "drei" and
             cfg.comp_task.vars["ONE"] == "1" and
@@ -587,7 +587,7 @@ def test32():
     cfg = SimpleCfg("cm")
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert (cfg.comp_task.vars["ID"] == "wrong" and
             cfg.comp_task.vars["THREE"] == "3" and
             cfg.comp_task.vars["ONE"] == "1" and
@@ -722,7 +722,7 @@ def test39():
     
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
 
@@ -748,7 +748,7 @@ def test40():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except Exception as e:
         six.print_("Unexpected exception: %s" % str(e))
         six.print_("Aborted tasks:")
@@ -784,7 +784,7 @@ def test41():
     
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
 
@@ -808,7 +808,7 @@ def test42():
     
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         no_delay=True)
-    ea.perform_config()
+    ea.start_performing_tasks()
     assert len(cfg.grid_prep.instances) == 8 and len(cap.performed) == 8
 
 
@@ -915,7 +915,7 @@ def test45():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
@@ -958,7 +958,7 @@ def test46():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
@@ -1018,7 +1018,7 @@ def test47():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
@@ -1069,7 +1069,7 @@ def test48():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
@@ -1123,7 +1123,7 @@ def test49():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
@@ -1190,7 +1190,7 @@ def test50():
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
                         infra_model_instance=infra, no_delay=True)
     try:
-        ea.perform_config()
+        ea.start_performing_tasks()
     except ExecutionException as e:
         import traceback
         for task, etype, value, tb, _ in ea.get_aborted_tasks():
@@ -1238,7 +1238,7 @@ def test52():
     cfg = OuterCfg("cm")
     cfg.set_namespace(ns)
     ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns)
-    ea.perform_config()
+    ea.start_performing_tasks()
 
 
 class DelegatedInfra(InfraModel):

@@ -518,7 +518,7 @@ class TaskEventHandler(object):
         Called to signal that an overall orchestration is starting.
         :param orchestrator: an instance of L{actuator.ActuatorOrchestration}
         """
-        pass
+        return
 
     def orchestration_finished(self, orchestrator, result):
         """
@@ -526,14 +526,14 @@ class TaskEventHandler(object):
         :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
         :param result: integer; one of the numeric status codes defined in L{actuator.ActuatorOrchestration}
         """
-        pass
+        return
 
     def provisioning_starting(self, orchestrator):
         """
         Called to signal that the provisioning phase of orchestration is starting
         :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
         """
-        pass
+        return
 
     def provisioning_finished(self, orchetrator, success):
         """
@@ -542,14 +542,14 @@ class TaskEventHandler(object):
         :param success: boolean; indicates if the provisioning completed successfully.
             If false, the orchestrator can be interrogated for details.
         """
-        pass
+        return
 
     def configuration_starting(self, orchestrator):
         """
         Called to signal that the configuration phase of orchestration has started.
         :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
         """
-        pass
+        return
 
     def configuration_finished(self, orchestrator, success):
         """
@@ -558,7 +558,23 @@ class TaskEventHandler(object):
         :param success: boolean; indicates if the configuration completed successfully.
             If False, then the orchestrator can be interrogated for details
         """
-        pass
+        return
+
+    def execution_starting(self, orchestrator):
+        """
+        Called to signal that the execution phase of orchestration has started.
+        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+        """
+        return
+
+    def execution_finished(self, orchestrator, success):
+        """
+        Called to signal that the execution phase of orchestration has concluded.
+        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+        :param success: boolean; indicates if the execution completed successfully.
+            If False, then the orchestrator can be interrogated for details
+        """
+        return
 
     def engine_starting(self, model, graph):
         """
@@ -661,7 +677,7 @@ class TaskEngine(object):
         self.name = name
         self.num_threads = num_threads
         self.node_lock = threading.Lock()
-        self.config_record = None
+        self.task_record = None
         self.do_log = do_log
         self.no_delay = no_delay
         self.graph = None

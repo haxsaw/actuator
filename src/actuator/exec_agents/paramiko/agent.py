@@ -44,7 +44,7 @@ from actuator.utils import capture_mapping, LOG_INFO
 from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
                                    LocalCommandTask, LocalShellCommandTask)
-from actuator.execute_tasks import (RemoteExecTask, RemoteShellExecTask, LocalExecTask,
+from actuator.execute_tasks import (ExecuteTask, RemoteExecTask, RemoteShellExecTask, LocalExecTask,
                                     LocalShellExecTask, WaitForExecTaskTask)
 from actuator.namespace import _ComputableValue
 from actuator.service import ServiceModel
@@ -101,7 +101,7 @@ class PTaskProcessor(AbstractTaskProcessor):
                 dirty (always False)
             Other key/values may exist that are relevant to the specific task processor
         """
-        assert isinstance(task, ConfigTask)
+        assert isinstance(task, (ExecuteTask, ConfigTask))
         user = task.get_remote_user()
         if not user:
             raise ExecutionException("Unable to determine a remote user for task %s; can't continue" %
@@ -786,14 +786,14 @@ class ParamikoServiceExecutionAgent(object):
         self.ptes = {}
         self.results = {}
 
-    def _process_config_model(self, pea):
+    def _process_task_model(self, pea):
         try:
-            pea.perform_config()
+            pea.start_performing_tasks()
             self.results[pea] = None
         except ExecutionException as e:
             self.results[pea] = e
 
-    def perform_config(self):
+    def start_performing_tasks(self):
         services = self.service.all_services()
         num_threads = int(self.num_threads / len(services)) + 1
         exec_threads = []
@@ -806,7 +806,7 @@ class ParamikoServiceExecutionAgent(object):
                                                         no_delay=self.no_delay,
                                                         log_level=self.log_level
                                                         )
-            t = threading.Thread(target=self._process_config_model,
+            t = threading.Thread(target=self._process_task_model,
                                  args=(self.ptes[service],),
                                  name=service.name)
             exec_threads.append(t)
