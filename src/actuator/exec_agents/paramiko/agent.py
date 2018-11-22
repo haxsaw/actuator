@@ -175,13 +175,13 @@ class PTaskProcessor(AbstractTaskProcessor):
     @narrate("...requiring the acquistion of a Paramiko shell")
     def _get_shell(self, client, width=200):
         sh = client.invoke_shell(width=width)
-        sh.send("PS1='%s'\n" % self.prompt)
+        sh.sendall("PS1='%s'\n" % self.prompt)
         time.sleep(0.2)
         return sh
 
     @narrate("...and then required checking if the task was successful")
     def _was_success(self, channel):
-        channel.send("echo $?\n")
+        channel.sendall("echo $?\n")
         result = self._drain(channel)
         sio = StringIO("".join(result))
         _ = sio.readline().strip()
@@ -282,7 +282,7 @@ class ScriptProcessor(PTaskProcessor):
             script_path, sfile = os.path.split(script)
             tmp_script = "/tmp/%s" % sfile
             # make sure we can create the script
-            sh.send("touch %s\n" % tmp_script)
+            sh.sendall("touch %s\n" % tmp_script)
             self.output.append("".join(self._drain(sh)))
             success, ecode = self._was_success(sh)
             if not success:
@@ -290,7 +290,7 @@ class ScriptProcessor(PTaskProcessor):
                                          % (tmp_script, "error code %s" % ecode))
                 
             # now transmit the script
-            sh.send("cat > %s\n" % tmp_script)
+            sh.sendall("cat > %s\n" % tmp_script)
             task_role = task.get_task_role()
             for l in f:
                 if proc_ns:  # if true, do replace pattern expansions before sending
@@ -844,25 +844,24 @@ class ExecProcessorBase(PTaskProcessor):
 
     @narrate(lambda s, c, t, **kw: "...which starts processing the script task {}".format(t.name))
     def _process_task(self, client, task, free_form=None, chdir=None):
-        output = []
         sh = self._start_shell(client)
         if free_form is None:
             raise ExecutionException("There is execution command to run")
         if chdir is not None:
             sh.sendall("cd {}\n".format(chdir))
-            output.append("".join(self._drain(sh)))
+            self.output.append("".join(self._drain(sh)))
             success, ecode = self._was_success(sh)
             if not success:
                 raise ExecutionException("Unable to change to directory '{}': {}".format(
-                    chdir, "".join(output)
+                    chdir, "".join(self.output)
                 ))
         self._populate_environment(sh, task)
         ff_formated = self._format_command(free_form)
         sh.sendall("{}\n".format(ff_formated))
         time.sleep(0.2)
-        output.append("".join(self._drain(sh)))
+        self.output.append("".join(self._drain(sh)))
         success, ecode = self._was_success(sh)
-        result = _Result(success, ecode, "".join(output), "")
+        result = _Result(success, ecode, "".join(self.output), "")
         return result
 
 
@@ -877,12 +876,99 @@ class RemoteShellExecTaskProcessor(ExecProcessorBase):
         return command
 
 
+@capture_mapping(_paramiko_domain, RemoteScriptExecTask)
 class RemoteScriptExecTaskProcessor(ExecProcessorBase):
     def _make_args(self, task):
         args = super(RemoteScriptExecTaskProcessor, self)._make_args(task)
         args["executable"] = task.executable
+        args["proc_ns"] = task.proc_ns
         return args
 
-    def _process_task(self, client, task, free_form=None, chdir=None, executable=None):
-        output = []
+    @narrate(lambda s, c, t, **kw: "...which starts processing the script task {}".format(t.name))
+    def _process_task(self, client, task, free_form=None, chdir=None, executable=None, proc_ns=None):
         sh = self._start_shell(client)
+        if free_form is None:
+            raise ExecutionException("There is execution command to run")
+
+        # if an executable was specified, make sure it is actually executable
+        if executable is not None:
+            sh.sendall("test -x %s\n" % executable)
+            self.output.append("".join(self._drain(sh)))
+            success, ecode = self._was_success(sh)
+            if not success:
+                raise ExecutionException("Executable '%s' either can't be found or isn't executable"
+                                         % executable)
+
+        # check for the local script and open it if it is found
+        parts = shlex.split(free_form)
+        script = parts[0]
+        script_path, sfile = os.path.split(script)
+        if not os.path.exists(script) or not os.path.isfile(script):
+            raise ExecutionException("Can't find the script '%s' on the local system" % script)
+        try:
+            f = open(script, "rb")
+        except Exception as e:
+            raise ExecutionException("Can't open the script '%s' to copy it to the remote system:%s"
+                                     % (str(e), script))
+
+        # set up the remote file to hold the script
+        tmp_dir = "/tmp/{}".format(id(self))
+        tmp_script = "/tmp/{}/{}".format(tmp_dir, sfile)
+        sh.sendall("mkdir {}\n".format(tmp_dir))
+        self.output.append("".join(self._drain(sh)))
+        success, ecode = self._was_success(sh)
+        if not success:
+            raise ExecutionException("Unable to create the tmp dir {} for exec script "
+                                     "task {}: {}".format(tmp_dir, task.name, str(ecode)))
+        sh.sendall("touch {}\n".format(tmp_script))
+        self.output.append("".join(self._drain(sh)))
+        success, ecode = self._was_success(sh)
+        if not success:
+            raise ExecutionException("Unable to create the tmp script file {} for "
+                                     "exec script task {}: {}".format(tmp_script, task.name,
+                                                                      str(ecode)))
+
+        # send the script over
+        sh.sendall("cat > {}\n".format(tmp_script))
+        task_role = task.get_task_role()
+        for l in f:
+            if proc_ns:
+                cv = _ComputableValue(l)
+                l = cv.expand(task_role, raise_on_unexpanded=True)
+            sh.sendall(l)
+        f.close()
+        sh.sendall("\n")
+        sh.sendall(self.ctrl_d)
+        self.output.append("".join(self._drain(sh)))
+
+        # run the durn thing
+        if chdir is not None:
+            sh.sendall("cd {}\n".format(chdir))
+            self.output.append("".join(self._drain(sh)))
+            success, ecode = self._was_success(sh)
+            if not success:
+                raise ExecutionException("Unable to change to directory '{}': {}".format(
+                    chdir, "".join(self.output)
+                ))
+        self._populate_environment(sh, task)
+        if executable is None:
+            sh.sendall("chmod 755 {}\n".format(tmp_script))
+            self.output.append("".join(self._drain(sh)))
+            success, ecode = self._was_success(sh)
+            if not success:
+                raise ExecutionException("Could not make the remote exec script {} "
+                                         "for task {} runnable: {}".format(tmp_script,
+                                                                           task.name,
+                                                                           str(ecode)))
+            final_command = "{} {}".format(tmp_script, " ".join(parts[1:]))
+        else:
+            final_command = "{} {} {}".format(executable, tmp_script, " ".join(parts[1:]))
+        sh.sendall("{}\n".format(final_command))
+        self.output.append("".join(self._drain(sh)))
+        success, ecode = self._was_success(sh)
+
+        # remove the script, but ignore any errors from the remove
+        sh.sendall("rm {}\n".format(tmp_script))
+        self.output.append("".join(self._drain(sh)))
+
+        return _Result(success, ecode, "".join(self.output), "")

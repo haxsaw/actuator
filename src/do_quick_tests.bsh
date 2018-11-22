@@ -6,7 +6,7 @@ echo due to ssh connection setup and encrypt/decrypt
 if /usr/bin/test -d tests; then
     export PYTHONPATH=`pwd`
     rm -f .coverage
-    nosetests  -v --cover-package=actuator --with-coverage --cover-erase `ls tests/*tests.py|egrep -v "(ansible|paramiko)"`
+    nosetests  -v --cover-package=actuator --with-coverage --cover-erase `ls tests/*tests.py|egrep -v "(ansible|paramiko|execution)"`
 else
     echo "THIS MUST BE RUN IN THE DIRECTORY THAT CONTAINS THE 'tests' DIRECTORY"
 fi

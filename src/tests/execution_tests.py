@@ -22,6 +22,7 @@
 import traceback
 import sys
 from errator import reset_all_narrations, set_default_options
+from actuator.exec_agents.core import ExecutionException
 from actuator.namespace import NamespaceModel, Role, MultiRole
 from actuator.execute import ExecuteModel, MultiTask
 from actuator.execute_tasks import (RemoteExecTask, WaitForExecTaskTask, RemoteShellExecTask,
@@ -143,7 +144,7 @@ def test007():
     ex.set_namespace(ns)
     ex.t.fix_arguments()
 
-    assert ex.t.command.value() == "wibble my wobble", "value was " + ex.t.command.value()
+    assert ex.t.free_form.value() == "wibble my wobble", "value was " + ex.t.free_form.value()
 
 
 def test008():
@@ -162,7 +163,7 @@ def test008():
     ex.set_namespace(ns)
     ex.fix_arguments()
 
-    assert ex.t.command.value() == "nope! my wobble", "value was " + ex.t.command.value()
+    assert ex.t.free_form.value() == "nope! my wobble", "value was " + ex.t.free_form.value()
 
 
 def test009():
@@ -185,10 +186,10 @@ def test009():
     ex.set_namespace(ns)
     ex.fix_arguments()
 
-    assert ex.t1.command.value() == "nope! my wobble"
-    assert ex.t2.command.value() == "nope! my wobble"
-    assert ex.t3.command.value() == "nope! my wobble"
-    assert ex.t4.command.value() == "nope! my wobble"
+    assert ex.t1.free_form.value() == "nope! my wobble"
+    assert ex.t2.free_form.value() == "nope! my wobble"
+    assert ex.t3.free_form.value() == "nope! my wobble"
+    assert ex.t4.free_form.value() == "nope! my wobble"
 
 
 def test010():
@@ -197,7 +198,7 @@ def test010():
     """
     class Ex010(ExecuteModel):
         t1 = RemoteShellExecTask("t1", "t1's command", task_role=CommonTestNS.role)
-        t2 = RemoteShellExecTask("t2", ctxt.nexus.exe.t1.command, task_role=CommonTestNS.role)
+        t2 = RemoteShellExecTask("t2", ctxt.nexus.exe.t1.free_form, task_role=CommonTestNS.role)
     ex = Ex010("ex10")
     ex.set_namespace(CommonTestNS("ns"))
     ex.t1.fix_arguments()
@@ -209,7 +210,7 @@ def test010():
     # the nexus
     # ex.fix_arguments()
 
-    assert ex.t2.command.value() == "t1's command", "comand is " + ex.t2.command.value()
+    assert ex.t2.free_form.value() == "t1's command", "comand is " + ex.t2.free_form.value()
 
 
 def test011():
@@ -220,7 +221,9 @@ def test011():
         r = Role("r11", host_ref="127.0.0.1")
 
     class EM11(ExecuteModel):
+        t0 = RemoteShellExecTask("t11-0", "/bin/rm -rf /tmp/test11.txt", task_role=ctxt.nexus.ns.r)
         t = RemoteShellExecTask("t11", "echo bingo > /tmp/test11.txt", task_role=ctxt.nexus.ns.r)
+        with_dependencies(t0 | t)
 
     ns = NS11("ns11")
     ns.fix_arguments()
@@ -233,8 +236,35 @@ def test011():
     pea.start_performing_tasks()
 
 
+def test012():
+    """
+    test012: Try to run an execution agent using command tasks
+    """
+    class NS12(NamespaceModel):
+        r = Role("r12", host_ref="127.0.0.1")
+
+    class EM12(ExecuteModel):
+        t0 = RemoteExecTask("cleanup", "/bin/rm -rf /tmp/test12.txt", task_role=ctxt.nexus.ns.r)
+        t1 = RemoteExecTask("clean-check", "test ! -e /tmp/test12.txt", task_role=ctxt.nexus.ns.r)
+        t2 = RemoteExecTask("create", "touch /tmp/test12.txt", task_role=ctxt.nexus.ns.r)
+        t3 = RemoteExecTask("create-check", "test -e /tmp/test12.txt",
+                            task_role=ctxt.nexus.ns.r)
+        with_dependencies(t0 | t1 | t2 | t3)
+
+    ns = NS12("ns12")
+    ns.fix_arguments()
+    ex = EM12("ex12", remote_user="lxle1", private_key_file=find_file("lxle1-dev-key"))
+    ex.set_namespace(ns)
+    ex.fix_arguments()
+    pea = ParamikoExecutionAgent(task_model_instance=ex,
+                                 namespace_model_instance=ns,
+                                 no_delay=True)
+
+    # nothing to assert; the method below will raise with messages if there's an error
+    pea.start_performing_tasks()
+
+
 def do_all():
-    test011()
     for k, v in sorted(globals().items()):
         if callable(v) and k.startswith("test"):
             try:
