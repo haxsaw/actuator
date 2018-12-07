@@ -35,17 +35,16 @@ except ImportError:
     import subprocess as subprocess32
 import tempfile
 
-from paramiko import (SSHClient, SSHException, BadHostKeyException, AuthenticationException,
-                      AutoAddPolicy, RSAKey, SFTPClient, SFTPAttributes)
+import paramiko as par
 
 from actuator.exec_agents.core import (ExecutionAgent, ExecutionException,
                                        AbstractTaskProcessor)
 from actuator.remote_task import RemoteTask
 from actuator.utils import capture_mapping, LOG_INFO
-from actuator.config_tasks import (ConfigTask, PingTask, ScriptTask,
+from actuator.config_tasks import (PingTask, ScriptTask,
                                    CommandTask, ShellTask, CopyFileTask, ProcessCopyFileTask,
                                    LocalCommandTask, LocalShellCommandTask)
-from actuator.execute_tasks import (ExecuteTask, RemoteExecTask, RemoteShellExecTask, RemoteScriptExecTask,
+from actuator.execute_tasks import (RemoteExecTask, RemoteShellExecTask, RemoteScriptExecTask,
                                     LocalExecTask, LocalShellExecTask, LocalScriptExecTask, WaitForExecTaskTask)
 from actuator.namespace import _ComputableValue
 from actuator.service import ServiceModel
@@ -68,7 +67,7 @@ class _Result(object):
 
 
 class PTaskProcessor(AbstractTaskProcessor):
-    
+
     ctrl_d = chr(4)
     
     def __init__(self, *args, **kwargs):
@@ -252,7 +251,6 @@ class ScriptProcessor(PTaskProcessor):
     @narrate(lambda s, c, t, **kw: "...which starts processing the script task {}".format(t.name))
     def _process_task(self, client, task, free_form=None, creates=None, removes=None,
                       proc_ns=False):
-        assert isinstance(client, SSHClient)
         sh = self._start_shell(client)
         skip = False
         
@@ -463,8 +461,7 @@ class CopyFileProcessor(PTaskProcessor):
     def _put_file(self, task, sftp, rem_path, abs_local_file=None, content=None, flo=None,
                   mode=None, owner=None, group=None):
         # flo is a "file-like object" from which we get content and send it to the remote
-        assert isinstance(sftp, SFTPClient)
-        
+
         if content is not None:
             f = sftp.open(rem_path, mode="w")
             f.write(content)
@@ -491,7 +488,6 @@ class CopyFileProcessor(PTaskProcessor):
             
         if owner is not None or group is not None:
             stat = sftp.stat(rem_path)
-            assert isinstance(stat, SFTPAttributes)
             owner = owner if owner is not None else stat.st_uid
             group = group if group is not None else stat.st_gid
             sftp.chown(rem_path, owner, group)
@@ -522,7 +518,6 @@ class CopyFileProcessor(PTaskProcessor):
     @staticmethod
     @narrate(lambda s, rp: "...leading to create the remote path {}".format(rp))
     def _make_dir(sftp, rem_path):
-        assert isinstance(sftp, SFTPClient)
         sftp.mkdir(rem_path)
         
         return True, ""
@@ -667,22 +662,22 @@ class ParamikoExecutionAgent(ExecutionAgent):
         self.logger.debug("Entering get_connection")
 
         try:
-            conn = SSHClient()
+            conn = par.SSHClient()
             if platform.system().lower() == "windows":
                 devnull = "NUL"
             else:
                 devnull = "/dev/null"
             conn.load_system_host_keys(devnull)
-            conn.set_missing_host_key_policy(AutoAddPolicy())
+            conn.set_missing_host_key_policy(par.AutoAddPolicy())
             if priv_key:
                 sio = StringIO(priv_key)
-                priv_key = RSAKey.from_private_key(sio)
+                priv_key = par.RSAKey.from_private_key(sio)
             conn.connect(hostname=host, username=user, timeout=timeout,
                          pkey=priv_key, key_filename=priv_key_file,
                          password=password)
-        except (BadHostKeyException, AuthenticationException) as e:
+        except (par.BadHostKeyException, par.AuthenticationException) as e:
             raise ExecutionException("Encountered authentication problem: %s" % str(e))
-        except SSHException as e:
+        except par.SSHException as e:
             raise ExecutionException("Encountered non-authentication SSH problem: %s" % str(e))
         except socket.error as e:
             raise ExecutionException("Encountered socket error when trying to "
@@ -710,19 +705,19 @@ class ParamikoExecutionAgent(ExecutionAgent):
 #                 ipc.release()
 #                 continue
 #             elif not conn:
-#                 conn = SSHClient()
-#                 conn.set_missing_host_key_policy(AutoAddPolicy())
+#                 conn = par.SSHClient()
+#                 conn.set_missing_host_key_policy(par.AutoAddPolicy())
 #                 try:
 #                     try:
 #                         if priv_key:
 #                             sio = StringIO(priv_key)
-#                             priv_key = RSAKey.from_private_key(sio)
+#                             priv_key = par.RSAKey.from_private_key(sio)
 #                         conn.connect(hostname=host, username=user, timeout=timeout,
 #                                  pkey=priv_key, key_filename=priv_key_file,
 #                                  password=password)
-#                     except (BadHostKeyException, AuthenticationException) as e:
+#                     except (par.BadHostKeyException, par.AuthenticationException) as e:
 #                         raise ExecutionException("Encountered authentication problem: %s" % str(e))
-#                     except SSHException as e:
+#                     except par.SSHException as e:
 #                         raise ExecutionException("Encountered non-authentication SSH problem: %s" % str(e))
 #                     except socket.error as e:
 #                         raise ExecutionException("Encountered socket error when trying to "
@@ -752,11 +747,9 @@ class ParamikoExecutionAgent(ExecutionAgent):
         # @FIXME once Paramiko can properly handle more than one
         # channel on a client then we can use the code below
         self.logger.debug("Entering return_connection")
-        assert isinstance(conn, SSHClient)
         conn.close()
         self.logger.debug("Exiting return_connection")
         return
-#         assert isinstance(conn, SSHClient)
 #         if dirty:
 #             with self.cache_lock:
 #                 del self.connection_cache[(host, user)]

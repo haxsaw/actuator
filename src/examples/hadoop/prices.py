@@ -239,7 +239,7 @@ vs_disk_price = 1.51 / hours_per_30_days
 vs_pubip_price = 15.61 / hours_per_30_days
 vsphere_hourly_pricing_table = {"ActuatorBase3": (1, 1, 16, 1),
                                 "ActuatorBase5": (1, 1, 16, 1),
-                                "ActuatorBase6": (1, 1, 16, 1)}
+                                "ActuatorBase8": (1, 1, 16, 1)}
 
 
 def get_vsphere_houly_cost_of_servers(im):

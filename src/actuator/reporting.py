@@ -178,7 +178,8 @@ def make_az_resource_group(rsrc_grp):
 
 
 def make_aws_secgroup_entry(aws_sg):
-    sge = {"Desc": aws_sg.description,
+    sge = {"AWS Security Group Name": aws_sg.name,
+           "Desc": aws_sg.description,
            "Rules": []}
     return sge
 
@@ -245,7 +246,7 @@ def security_check(inf_inst):
                 server_details = {"Groupholder name": c.get_display_name(),
                                   "Groupholder type": ("AWS instance"
                                                        if isinstance(c, AWSInstance)
-                                                       else "NetworkInterface"),
+                                                       else "AWS NetworkInterface"),
                                   "Region": c.cloud,
                                   "Security groups": security_groups}
                 if isinstance(c, AWSInstance) and isinstance(c.network_interfaces, Iterable):

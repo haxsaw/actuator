@@ -127,6 +127,9 @@ class SecurityGroupRuleTask(ProvisioningTask):
         run_context = proxy.get_context()
         rsrc = self.rsrc
         assert isinstance(rsrc, SecurityGroupRule)
+        # FIXME this should be done somewhere else
+        rsrc.fixed = False
+        rsrc.fix_arguments()
         ec2 = run_context.ec2(region_name=rsrc.cloud)
         sg = ec2.SecurityGroup(rsrc.security_group.aws_id)
         if rsrc.kind == "ingress":

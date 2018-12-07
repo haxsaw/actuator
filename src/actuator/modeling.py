@@ -690,6 +690,9 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         self.namesep = namesep
         self.refs_for_components()
 
+    def _comp_source(self):
+        return dict(self._instances)
+
     @narrate(lambda s: "...at which point multicomponent {} began to finalize its "
                        "reanimation".format(s.name))
     def finalize_reanimate(self):
