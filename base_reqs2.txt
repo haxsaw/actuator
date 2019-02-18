@@ -12,3 +12,4 @@ pyvmomi>=6.5.0.2017.5.post1
 subprocess32>=3.2.7
 azure
 haikunator
+requests-testadapter>=0.3.0

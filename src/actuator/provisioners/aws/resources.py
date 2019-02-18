@@ -27,14 +27,53 @@ from actuator.provisioners.core import Provisionable, ProvisionerException
 
 
 class AWSProvisionableInfraResource(Provisionable):
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, *args, raise_if_missing=False, raise_if_present=False,
+                 force_delete=False, **kwargs):
+        """
+        Base class for all AWS provisionable resources
+
+        NOTE: Normal behaviour of all AWS resources is to use what you find and leave things
+            as you find them. This means:
+                1) that if the resource defined by self already exists in AWS then use that
+                   resource and don't create a new instance of the resource.
+                2) that if the model finds a previously existing resource, don't deprovision
+                   it when tearing down the infrastructure; leave things as you find them.
+        There are optional parameters to turn this behaviour during both provisioning and
+        deprovisioning.
+        :param name: Actuator name for the resource
+        :param args: other positional args
+        :param raise_if_missing: bool, optional, default False. If True, when the provisioning
+            task for self runs, if self doesn't already exist in AWS then raise an exception
+        :param raise_if_present: bool, optional default False. If True, when the provisioning
+            task for self runs, if self already exists in AWS then raise an exception
+        :param force_delete: bool, optional, default False. If True, then whether a resource
+            previously existed in AWS or now, attempt to delete it during deprovision.
+        :param kwargs: base class keyword args
+
+        @FIXME: may want to make aws_id a keyword arg to name a specific resource to use
+        """
         super(AWSProvisionableInfraResource, self).__init__(name, *args, **kwargs)
         self.aws_id = None
+        self.was_created = None
+        self.raise_if_missing = raise_if_missing
+        self.raise_if_present = raise_if_present
+        self.force_delete = force_delete
 
     def _get_attrs_dict(self):
         d = super(AWSProvisionableInfraResource, self)._get_attrs_dict()
-        d["aws_id"] = self.aws_id
+        d.update({"aws_id": self.aws_id,
+                  "was_created": self.was_created,
+                  "raise_if_missing": self.raise_if_missing,
+                  "raise_if_present": self.raise_if_present,
+                  "force_delete": self.force_delete})
         return d
+
+    def get_init_args(self):
+        args, kwargs = super(AWSProvisionableInfraResource, self).get_init_args()
+        kwargs.update({"raise_if_missing": self.raise_if_missing,
+                       "raise_if_present": self.raise_if_present,
+                       "force_delete": self.force_delete})
+        return args, kwargs
 
 
 class VPC(AWSProvisionableInfraResource):
@@ -621,6 +660,133 @@ class AWSInstance(AWSProvisionableInfraResource, IPAddressable):
         return "{}/32".format(self.ip_address)
 
 
+class Lambda(AWSProvisionableInfraResource):
+    def __init__(self, name, lambda_name, runtime, aws_role, handler, *args,
+                 code=None, description="", timeout=None, memory_size=None, publish=False,
+                 vpc_config=None, dead_letter=None, environment=None, tags=None, layers=None,
+                 **kwargs):
+        """
+        Define a function that you want to create or update in AWS Lambda.
+
+        :param name: string; Actuator name of the lambda function
+        :param lambda_name: string; AWS name to use for the lambda function
+        :param runtime: string; name of an accepted AWS Lambda runtime system. These include:
+            nodejs8.10, nodejs6.10, python3.6, python3.7, python2.7, ruby2.5, java-1.8.0-openjdk,
+            go1.x, dotnetcore2.1, dotnetcore2.0, dotnetcore1.0
+        :param aws_role: string; ARN of an AWS IAM role
+        :param handler: string; the name of the method/function within your code that Lambda calls
+            to run your function. For Python this is modulename.funcname. For other languages check
+            the AWS Lambda doc for how to identify your handler.
+        :param code: dict, optional. Must be present for a new function, but for a function whose config
+            is only to be changed this may be unspecified. If providing new or updated code, then this
+            dict should contain either:
+                key: ZipFile, value: URI; to the resource to upload to AWS
+                -or-  (CURRENTLY UNSUPPORTED)
+                key: S3Bucket, value: string; S3 bucket in the same region as the function
+                key: S3Key, value: string; the S3 key of the deployment package
+                key: S3ObjectVersion, value: string (optional item): for versioned items, the version to use
+        :param description: string, optional. descriptive string for the function
+        :param timeout: integer, optional. number of seconds before Lambda times the function
+            out. Default 3, max 900
+        :param memory_size: integer, optional. Amount of memory, in multiples of 64MB, you
+            function has access to. Increased memory increases CPU as well. Default of 128MB
+        :param publish: boolean, optional. Whether to publish the function as a version after
+            uploading/updating. Default False (?)
+        :param vpc_config: dict, optional. For connectivity to resources in a VPC, the sec groups
+            and subnets that should be applied. Items are:
+                key: Subnets, value: list of AWSSubnet references
+                key: SecurityGroups, value: list of AWSSecurityGroup references
+        :param dead_letter: dict, optional. The ARN of a SNS topic or SQS queue to send
+            async events when they fail processing
+        :param environment: dict, optional. Contains a dict whose key is 'Variables' and
+            whose value is a dict of key-value pairs that will be used as environment
+            variables.
+        :param tags: dict, optional. Key-value pairs that the function will be tagged with.
+        :param layers: list, optional. A list of ARNs for function layers to add to this
+            function's execution environment.
+        """
+        super(Lambda, self).__init__(name, *args, **kwargs)
+        self.lambda_name = None
+        self._lambda_name = lambda_name
+        self.runtime = None
+        self._runtime = runtime
+        self.aws_role = None
+        self._aws_role = aws_role
+        self.handler = None
+        self._handler = handler
+        self.code = None
+        self._code = code
+        self.description = None
+        self._description = description
+        self.timeout = None
+        self._timeout = timeout
+        self.memory_size = None
+        self._memory_size = memory_size
+        self.publish = None
+        self._publish = publish
+        self.vpc_config = None
+        self._vpc_config = vpc_config
+        self.dead_letter = None
+        self._dead_letter = dead_letter
+        self.environment = None
+        self._environment = environment
+        self.tags = None
+        self._tags = tags
+        self.layers = None
+        self._layers = layers
+
+    def get_init_args(self):
+        args, kwargs = super(Lambda, self).get_init_args()
+        args += self._lambda_name, self._runtime, self._aws_role, self._handler
+        kwargs.update({"code": self._code,
+                       "description": self._description,
+                       "timeout": self._timeout,
+                       "memory_size": self._memory_size,
+                       "publish": self._publish,
+                       "vpc_config": self._vpc_config,
+                       "dead_letter": self._dead_letter,
+                       "environment": self._environment,
+                       "tags": self._tags,
+                       "layers": self._layers})
+        return args, kwargs
+
+    def _get_attrs_dict(self):
+        d = super(Lambda, self)._get_attrs_dict()
+        d.update({"lambda_name": self.lambda_name,
+                  "runtime": self.runtime,
+                  "aws_role": self.aws_role,
+                  "handler": self.handler,
+                  "code": self.code,
+                  "description": self.description,
+                  "timeout": self.timeout,
+                  "memory_size": self.memory_size,
+                  "publish": self.publish,
+                  "vpc_config": self.vpc_config,
+                  "dead_letter": self.dead_letter,
+                  "environment": self.environment,
+                  "tags": self.tags,
+                  "layers": self.layers})
+        return d
+
+    def _fix_arguments(self):
+        super(Lambda, self)._fix_arguments()
+        self.lambda_name = self._get_arg_value(self._lambda_name)
+        self.runtime = self._get_arg_value(self._runtime)
+        # note that the aws_role arg may turn into a reference
+        self.aws_role = self._get_arg_value(self._aws_role)
+        self.handler = self._get_arg_value(self._handler)
+        self.code = self._get_arg_value(self._code)
+        self.description = self._get_arg_value(self._description)
+        self.timeout = int(self._get_arg_value(self._timeout))
+        self.memory_size = int(self._get_arg_value(self._memory_size))
+        self.publish = bool(self._get_arg_value(self._publish))
+        self.vpc_config = self._get_arg_value(self._vpc_config)
+        self.dead_letter = self._get_arg_value(self._dead_letter)
+        self.environment = self._get_arg_value(self._environment)
+        self.tags = self._get_arg_value(self._tags)
+        self.layers = self._get_arg_value(self._layers)
+
+
 __all__ =["VPC", "KeyPair", "SecurityGroupRule", "SecurityGroup", "Subnet",
           "InternetGateway", "RouteTable", "Route", "NetworkInterface",
-          "AWSInstance", "PublicIP", "AWSProvisionableInfraResource"]
+          "AWSInstance", "PublicIP", "AWSProvisionableInfraResource", "Lambda"]

@@ -101,7 +101,7 @@ def test003():
 
 def test003a():
     """
-    test003a: ccheck that multiple calls with different params yield different clients
+    test003a: check that multiple calls with different params yield different clients
     """
     c1 = get_client(EC2, region_name="eu-west-2")
     c2 = get_client(EC2, region_name="eu-east-2")

@@ -12,3 +12,4 @@ pyvim>=0.0.21
 pyvmomi>=6.7.0
 azure
 haikunator
+requests-testadapter>=0.3.0

@@ -19,14 +19,34 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os.path
 import time
 from collections import Iterable
+import requests
+from requests_testadapter import Resp
 from actuator.provisioners.core import ProvisioningTask, ProvisionerException
 from actuator.provisioners.aws.resources import *
 from actuator.utils import capture_mapping
 from botocore.exceptions import ClientError
 
 _aws_domain = "AWS_DOMAIN"
+
+
+class LocalFileAdapter(requests.adapters.HTTPAdapter):
+    def build_response_from_file(self, request):
+        file_path = request.url[7:]
+        with open(file_path, 'rb') as file:
+            buff = bytearray(os.path.getsize(file_path))
+            file.readinto(buff)
+            resp = Resp(buff)
+            r = self.build_response(request, resp)
+
+            return r
+
+    def send(self, request, stream=False, timeout=None,
+             verify=True, cert=None, proxies=None):
+
+        return self.build_response_from_file(request)
 
 
 @capture_mapping(_aws_domain, VPC)
@@ -484,3 +504,43 @@ class PublicIPTask(ProvisioningTask):
         if rsrc.domain == "standard":
             args["PublicIp"] = rsrc.ip_address
         cli.release_address(**args)
+
+
+@capture_mapping(_aws_domain, Lambda)
+class LambdaTask(ProvisioningTask):
+    def _perform(self, proxy):
+        run_context = proxy.get_context()
+        rsrc = self.rsrc
+        assert isinstance(rsrc, Lambda)
+        cli = run_context.lambda_(region_name=rsrc.cloud)
+        # ok, so for these we need to do things differently if the lambda
+        # exists already or not. so the first thing is to look it up
+        func_desc = None
+        try:
+            func_desc = cli.get_function(FunctionName=rsrc.lambda_name)
+        except Exception as e:
+            if "ResourceNotFoundException" != e.__class__.__name__:
+                raise
+        # we need the code in just about every case, so grab it here
+        if "ZipFile" in rsrc.code:
+            session = requests.session()
+            session.mount("file://", LocalFileAdapter())
+            r = session.get(rsrc.code["ZipFile"])
+            code = r.text
+        else:
+            raise ProvisionerException("Only ZipFile's named with a URI are supported currently")
+
+        if func_desc is None:
+            # then we build from scratch
+            func_desc = cli.create_function(FunctionName=rsrc.lambda_name,
+                                            Runtime=rsrc.runtime,
+                                            Role=rsrc.aws_role,
+                                            Handler=rsrc.handler,
+                                            Code=code)
+            if rsrc.raise_if_present:
+                raise ProvisionerException("Resource {}'s function {} already exists".format(
+                    rsrc.name, rsrc.lambda_name
+                ))
+        else:
+            # the arn is in func_desc["Configuration"]["FunctionArn"]
+            pass

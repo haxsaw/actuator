@@ -45,6 +45,7 @@ SQS = 'sqs'
 SNS = 'sns'
 OPSWORKS = 'opsworks'
 IAM = 'iam'
+LAMBDA = 'lambda'
 GLACIER = 'glacier'
 DYNAMODB = 'dynamodb'
 CLOUDWATCH = 'cloudwatch'
@@ -94,6 +95,14 @@ class AWSRunContext(AbstractRunContext):
 
     def ec2(self, region_name=None):
         return get_resource(EC2, self.default_creds.region if region_name is None else region_name,
+                            self.default_creds.aws_access_key, self.default_creds.aws_secret_key)
+
+    def lambda_(self, region_name=None):
+        return get_client(LAMBDA, self.default_creds.region if region_name is None else region_name,
+                            self.default_creds.aws_access_key, self.default_creds.aws_secret_key)
+
+    def iam(self, region_name=None):
+        return get_resource(IAM, self.default_creds.region if region_name is None else region_name,
                             self.default_creds.aws_access_key, self.default_creds.aws_secret_key)
 
     def ec2_client(self, region_name=None):

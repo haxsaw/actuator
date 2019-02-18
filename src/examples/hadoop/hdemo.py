@@ -329,7 +329,7 @@ if __name__ == "__main__":
                     za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
                     za.deregister_servers(zabbix_host_ids)
                     six.print_("...done")
-                demo.success = demo.ao = demo.ns = demo.conf = demo.infra = demo.json_file = None
+                # demo.success = demo.ao = demo.ns = demo.conf = demo.infra = demo.json_file = None
                 six.print_("\n...done! Your system has been de-commissioned")
             else:
                 six.print_("Teardown failed; see the log for errors")
@@ -423,4 +423,3 @@ if __name__ == "__main__":
                     demo.populate_from_orchestrator()
                     demo.ao.set_event_handler(handler)
                     six.print_("Orchestrator reanimated!")
-
