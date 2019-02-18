@@ -20,7 +20,10 @@
 # SOFTWARE.
 
 import threading
-from pyVim import connect
+try:
+    from pyVim import connect
+except ImportError:
+    from pyvim import connect
 from errator import narrate
 from actuator.provisioners.core import (AbstractRunContext, BaseProvisionerProxy,
                                         ProvisionerException)
