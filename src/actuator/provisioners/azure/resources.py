@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 """
-This module contains resource classes for provisioning Openstack resources.
+This module contains resource classes for provisioning Azure resources.
 """
 import collections
 from actuator.infra import Provisionable
