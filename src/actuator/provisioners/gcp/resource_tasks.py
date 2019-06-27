@@ -102,3 +102,33 @@ class GCPIPAddressTask(ProvisioningTask):
         else:
             ip = None
         rsrc.set_ip(ip)
+
+
+@capture_mapping(_gcp_domain, GCPSSHPublicKey)
+class GCPSSHPublicKeyTask(ProvisioningTask):
+    def _peform(self, proxy):
+        rsrc = self.rsrc
+        assert isinstance(rsrc, GCPSSHPublicKey)
+        # FIXME: the oslogin might be something to get from a different credentials set
+        oslogin = proxy.oslogin
+        creds = proxy.creds
+        if rsrc.public_key_data is not None:
+            key_data = rsrc.public_key_data
+        else:
+            try:
+                key_data = open(rsrc.public_key_fileame, 'r').read().strip()
+            except IOError as e:
+                raise ProvisionerException("Couldn't open the public_key_filename %s; %s" %
+                                           (rsrc.public_key_fileame, str(e)))
+        profile = oslogin.users().getLoginProfile(name="users/" + creds.service_account_email).execute()
+
+        # look through the existing keys; if you find this one already then you're done
+        if not any(key_data in v['key'] for v in profile['sshPublicKeys'].values()):
+            body = {'key': key_data,
+                    'expirationTimeUsec': time.time() + 1000000 * rsrc.expirationTimeInSecs}
+            result = oslogin.users().importSshPublicKey(parent='users/' + creds.service_account_email,
+                                                        body=body).execute()
+            # FIXME need a check for failure here...
+
+    def _reverse(self, proxy):
+        pass

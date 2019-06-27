@@ -68,8 +68,8 @@ common_vars = [Var("USER", "ubuntu"),
                Var("PRIV_KEY_NAME", pkn),
                Var("ZABBIX_SERVER", os.environ.get("ZABBIX_SERVER") or "", in_env=False)]
 
-
-def host_list(*ctx_exps, sep_char=" "):
+sep_char = " "
+def host_list(*ctx_exps):
     """
     This returns a callable that computes a list of ip addresses separated by
     the indicated character. This is one approach to constructing

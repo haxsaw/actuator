@@ -61,8 +61,8 @@ class GCPProvisionableInfraResource(Provisionable):
 
 
 class GCPServer(GCPProvisionableInfraResource, IPAddressable):
-    def __init__(self, name, disk_image, machine_type, *args, description=None, **kwargs):
-        super(GCPServer, self).__init__(name, *args, **kwargs)
+    def __init__(self, name, disk_image, machine_type, description=None, **kwargs):
+        super(GCPServer, self).__init__(name, **kwargs)
         self.disk_image = None
         self._disk_image = disk_image
         self.machine_type = None
@@ -142,8 +142,87 @@ class GCPIPAddress(GCPProvisionableInfraResource, IPAddressable):
 
 
 class GCPSSHPublicKey(GCPProvisionableInfraResource):
-    def __init__(self, name, public_key_filename, expirationTimeInUSecs, delete_on_depro=False):
-        pass
+    def __init__(self, name, public_key_filename=None, public_key_data=None,
+                 expirationTimeInSecs=60*60, delete_on_depro=False,
+                 alternate_credentials_file=None, **kwargs):
+        """
+        import a publio key to allow ssh'ing into instances
+
+        Specify a public key to import into GCP to facilitate ssh access to a machine. By default,
+        the key will be for the user whose credentials are used to access GCP, but an alternate
+        credentials file can be supplied so that the key will be set up for a different user.
+
+        During initiation processing, Actuator will check the available public keys and if the same
+        key can be found already present in GCP, no further action is taken.
+
+        @param name: string; the Actuator name to give the resource
+        @param public_key_filename: string; the path to a readable public key file whose data will be loaded
+            into GCP. One of public_key_filename or public_key_data must be specified during
+            creation. Failure to supply one or the other will result in a ProvisionerException
+        @param public_key_data: string; the actual contents of a public key; the data will be sent to
+            GCP with no further interpretation. One of public_key_data or public_key_filename must
+            be specified during creation. Failure to supply one or the other will result in a
+            ProvisionerException.
+        @param expirationTImeInSecs: integer, default 1 hour. The number of seconds from now in which
+            the public key should expire. THe default is to expire in 1 hour.
+        @param delete_on_depro: bool, default False. If True, then when tearing down a system delete
+            the public key. Default is False-- leave the public key in GCP when doing a teardown.
+        @param alternate_credentials_file: string, default None. If supplied, must be the path
+            to a GCP credentials JSON file that is to be the target of the public key import. Normally,
+            the public key is imported into the account used for the orchestration of system
+            standup. Supply this value to specifiy a different project/user target for importing the
+            key.
+        """
+        super(GCPSSHPublicKey, self).__init__(name, **kwargs)
+        if public_key_data is None and public_key_filename is None:
+            raise ProvisionerException("Can create the GCPSSHPublicKey instance; you must supply one "
+                                       "of public_key_filename or public_key_data when creating this "
+                                       "resource. These may be context expressions for values in the "
+                                       "namespace model.")
+        self._public_key_filename = public_key_filename
+        self.public_key_fileame = None
+        self._public_key_data = public_key_data
+        self.public_key_data = None
+        self._expirationTimeInSecs = expirationTimeInSecs
+        self.expirationTimeInSecs = None
+        self._delete_on_depro = delete_on_depro
+        self.delete_on_depro = None
+        self._alternate_credentials_file = alternate_credentials_file
+        self.alternate_credentials_file = None
+
+    def get_init_args(self):
+        args, kwargs = super(GCPSSHPublicKey, self).get_init_args()
+        kwargs.update({"public_key_filename": self._public_key_filename,
+                       "public_key_data": self._public_key_data,
+                       "expirationTimeInSecs": self._expirationTimeInSecs,
+                       "delete_on_depro": self._delete_on_depro,
+                       "alternate_credentials_file": self._alternate_credentials_file})
+        return args, kwargs
+
+    def _get_attrs_dict(self):
+        d = super(GCPSSHPublicKey, self)._get_attrs_dict()
+        d.update({'public_key_filename': self.public_key_fileame,
+                  'public_key_data': self.public_key_data,
+                  'expirationTimeInSecs': self.expirationTimeInSecs,
+                  'delete_on_depro': self.delete_on_depro,
+                  'alternate_credentials_file': self.alternate_credentials_file})
+        return d
+
+    def _fix_arguments(self, _=None):
+        super(GCPSSHPublicKey, self)._fix_arguments()
+        self.public_key_data = self._get_arg_value(self._public_key_data)
+        self.public_key_fileame = self._get_arg_value(self._public_key_filename)
+        try:
+            self.expirationTimeInSecs = int(self._get_arg_value(self._expirationTimeInSecs))
+        except ValueError as e:
+            raise ProvisionerException("Couldn't convert expirationTimeInSecs to an int; %s"
+                                       % str(e))
+        try:
+            self.delete_on_depro = bool(self._get_arg_value(self._delete_on_depro))
+        except ValueError as e:
+            raise ProvisionerException("Couldn't convert delete_on_depro to a bool; %s"
+                                       % str(3))
+        self.alternate_credentials_file = self._get_arg_value(self._alternate_credentials_file)
 
 
-__all__ = ["GCPServer", "GCPIPAddress"]
+__all__ = ["GCPServer", "GCPIPAddress", "GCPSSHPublicKey"]
