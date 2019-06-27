@@ -535,7 +535,7 @@ class TaskEventHandler(object):
         """
         return
 
-    def provisioning_finished(self, orchetrator, success):
+    def provisioning_finished(self, orchestrator, success):
         """
         Called to signal that the provisioning phase of orchestration has concluded.
         :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}

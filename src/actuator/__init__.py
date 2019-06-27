@@ -26,7 +26,7 @@ Contains most of the imported symbols from sub-packages and the orchestrator.
 """
 
 import datetime
-
+import uuid
 import time
 from errator import narrate
 
@@ -213,6 +213,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 
         @return: initialized orchestrator instance
         """
+        self._id = str(uuid.uuid4())
         if service is not None and (infra_model_inst is not None or
                                     config_model_inst is not None or
                                     namespace_model_inst is not None or
@@ -414,7 +415,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                   "provisioner_proxies": (),
                   "num_threads": self.num_threads,
                   "pte": None,
-                  "event_handler": None})
+                  "event_handler": None,
+                  "_id": self._id})
         return d
 
     def _find_persistables(self):

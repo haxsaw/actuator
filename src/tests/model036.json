@@ -1,0 +1,39 @@
+{
+  "infra":  {
+      "kind": "json",
+      "classname": "Infra036",
+      "module_name": "model036saved",
+      "details": {
+                    "content": null
+                 },
+      "setup":   {"init": {
+                              "positional": ["infra036"],
+                              "keyword": {}
+                          }
+                 }
+  },
+  "namespace": {
+      "kind": "json",
+      "classname": "Namespace036",
+      "module_name": "model036saved",
+      "details": {
+                    "content": null
+                 },
+      "setup":  {"init": {
+                              "positional": ["namespace036"],
+                              "keyword": {}
+                         },
+                 "methods": [
+                             ["make_dudes",
+                              {
+                                "positional": [5],
+                                "keyword": {}
+                              }]
+                            ],
+                 "keys": [
+                   {"path": ["non_multi_role"],
+                    "keys": [1, 2, 3]}
+                 ]
+                }
+  }
+}
