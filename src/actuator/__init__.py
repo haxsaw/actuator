@@ -214,6 +214,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         @return: initialized orchestrator instance
         """
         self._id = str(uuid.uuid4())
+        self.quit = False
         if service is not None and (infra_model_inst is not None or
                                     config_model_inst is not None or
                                     namespace_model_inst is not None or
@@ -416,7 +417,8 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                   "num_threads": self.num_threads,
                   "pte": None,
                   "event_handler": None,
-                  "_id": self._id})
+                  "_id": self._id,
+                  "quit": self.quit})
         return d
 
     def _find_persistables(self):
@@ -468,6 +470,15 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
     #             errors = self.config_ea.get_aborted_tasks()
     #     return errors
 
+    def quit_processing(self):
+        self.quit = True
+        if self.pte:
+            self.pte.abort_process_tasks()
+        if self.config_ea:
+            self.config_ea.abort_process_tasks()
+        if self.execute_ea:
+            self.execute_ea.abort_process_tasks()
+
     @narrate("The orchestrator was asked to initiate the system")
     def initiate_system(self):
         """
@@ -491,7 +502,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
             else:
                 prepper = ModelsProvisioningPrep(self)
             self.pte = prepper.provision_prep()
-        if self.pte:
+        if self.pte and not self.quit:
             try:
                 self.logger.info("Starting provisioning phase")
                 self.provisioning_starting(self)
@@ -515,6 +526,9 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 self.provisioning_finished(self, False)
                 self.orchestration_finished(self, self.status)
                 return False
+
+        if self.quit:
+            return False
 
         if ((self.config_model_inst is not None and self.namespace_model_inst is not None) or
                 self.service is not None):
@@ -551,6 +565,9 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 self.orchestration_finished(self, self.status)
                 return False
 
+        if self.quit:
+            return False
+
         if ((self.execute_model_inst is not None and self.namespace_model_inst is not None) or
                 # FIXME: this test's logic isn't right; need to consider actions with a service
                 (self.service is not None and self.execute_ea is not None)):
@@ -584,7 +601,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         self.status = self.COMPLETE
         self.initiate_end_time = str(datetime.datetime.utcnow())
         self.orchestration_finished(self, self.status)
-        return True
+        return True if not self.quit else False
 
     def teardown_system(self):
         self.logger.info("Teardown orchestration starting")

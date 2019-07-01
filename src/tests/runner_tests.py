@@ -10,14 +10,15 @@ from actuator.provisioners.aws import AWSProvisionerProxy
 from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator.provisioners.azure import azure_class_factory
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
+from actuator.runner_utils.utils import (OrchestrationEventPayload, EngineEventPayload,
+                                         TaskEventPayload, ActuatorEvent)
 
 here, f = os.path.split(__file__)
 runner_dir = os.path.join(here, "..", "scripts")
 sys.path.append(runner_dir)
 del f
 
-from runner import (process_vars, OrchestrationEventPayload, ActuatorEvent, EngineEventPayload,
-                    TaskEventPayload, process_proxies, process_models, ModelProcessor,
+from runner import (process_vars, process_proxies, process_models, ModelProcessor,
                     RunnerEventManager)
 
 
@@ -727,7 +728,30 @@ def test037():
         print(str(e))
 
 
-# test non-existent method name
+def test038():
+    """
+    test038: test getting a non-existent method to call (json indicates make_duds, not make_dudes
+    """
+    jstr = open(os.path.join(here, 'model038.json'), 'r').read()
+    d = json.loads(jstr)
+    model_str = open(os.path.join(here, 'model038.py'), 'r').read()
+    d['infra']['details']['content'] = model_str
+    d['namespace']['details']['content'] = model_str
+    models = process_models(d, module_dir=dynamic_module_dir)
+    nm = models['namespace']
+    try:
+        ni = nm.get_model_instance()
+        assert False, "this should have raised an exception"
+    except ActuatorException as e:
+        print(str(e))
+
+
+def test039():
+    """
+    test039: test the overall processing of a
+    :return:
+    """
+
 
 if __name__ == "__main__":
     setup_module()

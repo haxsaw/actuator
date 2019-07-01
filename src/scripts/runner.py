@@ -119,25 +119,36 @@ Supplemental information
              "error": # error URL
              "logconfig": # some kind of log capture path
             },
+ "orchestrator":  # details about how to run the orchestrator; all are optional, as is this key
+            {
+                "no_delay": True|False,  # default False
+                "num_threads": integer,  # default 5
+                "post_prov_pause": integer,  # default 60; time to wait before starting config
+                "client_keys": dict  # arbitrary JSON-able key-value pairs
+            }
 }
 """
 import os
 import os.path
 import sys
-import time
 import importlib
 import collections
 import json
 import io
 import traceback
+import threading
+import time
+import signal
+import logging
 from actuator import (Var, NamespaceModel, MultiComponent, ActuatorException, ModelBase,
                       ActuatorOrchestration)
-from actuator.task import Task, TaskExecControl
 from actuator.task import TaskEventHandler
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator.provisioners.aws import AWSProvisionerProxy
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
+from actuator.runner_utils.utils import (OrchestrationEventPayload, EngineEventPayload,
+                                         TaskEventPayload, ActuatorEvent, setup_json_logging)
 # from actuator.provisioners.gcp import ?
 
 _proxies = {"os": OpenStackProvisionerProxy,
@@ -145,194 +156,6 @@ _proxies = {"os": OpenStackProvisionerProxy,
             'aws': AWSProvisionerProxy,
             'vmw': VSphereProvisionerProxy,
             'gcp': None}
-
-#
-# general form of event JSON messages:
-#
-# {
-#   "version": 1,
-#   "event_class": "ORCH_EVENT|ENGINE_EVENT|TASK_EVENT",
-#   "event_type": # one of:
-#
-#                 ## ORCHESTRATION EVENTS
-#                 "O_START|O_FINISH|O_PROV_START|O_PROV_FINISH|O_CONFIG_START|"
-#                 "O_CONFIG_FINISH|O_EXEC_START|O_EXEC_FINISH"
-#
-#                 ## ENGINE EVENTS
-#                 "E_START|E_FINISH"
-#
-#                 ## TASK EVENTS
-#                 "T_START|T_FINISH|T_FAIL_FINAL|T_FAIL_RETRY",
-#   "event": {  # one of:
-#
-#               # orch events
-#               "orchestrator_id": idvalue,
-#
-#               # engine events
-#               "model": {"name": name, "id": id},
-#               "graph": {"nodes": [{"task_name": name,
-#                                    "task_type": type,
-#                                    "task_id": taskid,
-#                                    "task_status": status},
-#                                   ...],
-#                         "edges": [[task1_id, task2_id],
-#                                   [task2_id, task4_id],
-#                                   ...]
-#                        },
-#
-#               # task events
-#               "task_id": taskid,
-#               "model_id": modelid,
-#               "task_time": timestamp,
-#               "task_action": action,
-#               "errtext": [list of error strings]
-#           }
-# }
-#
-
-
-class EventPayload(dict):
-    pass
-
-
-class OrchestrationEventPayload(EventPayload):
-    def __init__(self, orch_id, success=None):
-        self["orchestration_id"] = orch_id
-        self["success"] = success
-
-    def orchestration_id(self):
-        return self["orchestration_id"]
-
-    def success(self):
-        return self["success"]
-
-
-class EngineEventPayload(EventPayload):
-    def __init__(self, model_name, model_id):
-        self["model"] = {"name": model_name, "id": str(model_id)}
-        self["graph"] = {"nodes": [], "edges": []}
-
-    def add_task_node(self, task):
-        if isinstance(task, TaskExecControl):
-            node = task.task
-            status = task.status
-        else:
-            node = task
-            if isinstance(task, Task):
-                status = task.performance_status
-            else:
-                status = TaskExecControl.FAIL_FINAL
-        self["graph"]["nodes"].append({"task_name": node.name,
-                                       "task_type": str(type(node)),
-                                       "task_id": str(node._id),
-                                       "task_status": status})
-
-    def add_task_edge(self, from_task, to_task):
-        from_id = (str(from_task.task._id)
-                   if isinstance(from_task, TaskExecControl)
-                   else str(from_task._id))
-        to_id = (str(to_task.task._id)
-                 if isinstance(to_task, TaskExecControl)
-                 else str(to_task._id))
-        self["graph"]["edges"].append([from_id, to_id])
-
-    def model_name(self):
-        return self["model"]["name"]
-
-    def model_id(self):
-        return self["model"]["id"]
-
-    def graph_nodes(self):
-        return self["graph"]["nodes"]
-
-    def graph_edges(self):
-        return self["graph"]["edges"]
-
-
-class TaskEventPayload(EventPayload):
-    def __init__(self, model_id, task, errtext=None):
-        if isinstance(task, TaskExecControl):
-            status = task.status
-            task = task.task
-        else:
-            status = task.performance_status
-
-        self["task_id"] = str(task._id)
-        self["model_id"] = str(model_id)
-        self["task_time"] = time.time()
-        self["task_action"] = status
-        self["errtext"] = errtext if errtext is not None else []
-
-    def task_id(self):
-        return self["task_id"]
-
-    def model_id(self):
-        return self["model_id"]
-
-    def task_time(self):
-        return self["task_time"]
-
-    def task_action(self):
-        return self["task_action"]
-
-    def errtext(self):
-        return self["errtext"]
-
-
-class ActuatorEvent(dict):
-    # event classes
-    orch_event = "ORCH_EVENT"
-    eng_event = "ENGINE_EVENT"
-    task_event = "TASK_EVENT"
-    e_classes = frozenset((orch_event, eng_event, task_event))
-    class_payload_map = {orch_event: OrchestrationEventPayload,
-                         eng_event: EngineEventPayload,
-                         task_event: TaskEventPayload
-                        }
-    # event types
-    O_START = "O_START"  # orchestration start
-    O_FINISH = "O_FINISH"  # orchestration finish
-    O_PROV_START = "O_PROV_START"  # orchestrator starting provisioning
-    O_PROV_FINISH = "O_PROV_FINISH"  # orchestrator finish provisioning
-    O_CONFIG_START = "O_CONFIG_START"  # orchestrator start configuration
-    O_CONFIG_FINISH = "O_CONFIG_FINISH"  # orchestrator finish configuration
-    O_EXEC_START = "O_EXEC_START"  # orchestrator start execution
-    O_EXEC_FINISH = "O_EXEC_FINISH"  # orchestrator finish execution
-    E_START = "E_START"  # engine start model
-    E_FINISH = "E_FINISH"  # engine finish model
-    T_START = "T_START"  # task starting
-    T_FINISH = "T_FINISH"  # task successfully finish
-    T_FAIL_FINAL = "T_FAIL_FINAL"  # task failed after last retry; no more retries
-    T_FAIL_RETRY = "T_FAIL_RETRY"  # task failed but will be retried
-    _version = 1
-
-    def __init__(self, event_class, event_id, payload):
-        self["version"] = self._version
-        self["event_class"] = event_class
-        self["event_id"] = event_id
-        self["event"] = payload
-
-    def to_json(self):
-        return json.dumps(self)
-
-    @classmethod
-    def from_json(cls, jstr):
-        d = json.loads(jstr)
-        ep = EventPayload(d["event"])
-        ep.__class__ = cls.class_payload_map[d["event_class"]]
-        return ActuatorEvent(d["event_class"], d["event_id"], ep)
-
-    def version(self):
-        return self["version"]
-
-    def event_class(self):
-        return self["event_class"]
-
-    def event_id(self):
-        return self["event_id"]
-
-    def event(self):
-        return self["event"]
 
 
 class RunnerEventManager(TaskEventHandler):
@@ -774,9 +597,15 @@ def process_models(model_dict, module_dir="./dmodules"):
     return models
 
 
-class OrchestrationRequest(object):
+class DefaultEventReporter(object):
+
+    def write(self, msg):
+        sys.stderr.write("%s\n%s\n" % (msg, "--END--"))
+
+
+class JsonMessageProcessor(object):
     """
-    Processes the overall JSON message for requesting orchestration.
+    Processes the overall JSON message for a variety of subsequent purposes.
     """
     def __init__(self, json_str):
         """
@@ -784,13 +613,14 @@ class OrchestrationRequest(object):
         :param json: string; a JSON message describing what to orchestrate. Required keys are:
                 models
                 proxies
-                monitor
             Optional keys are:
                 handler (defaults to stdout)
                 vars
+                monitor
         """
+        logger = logging.getLogger()
         req_dict = json.loads(json_str.decode() if hasattr(json_str, 'decode') else json_str)
-        missing = [k for k in ('models', 'proxies', 'monitor')
+        missing = [k for k in ('models', 'proxies')
                    if k not in req_dict]
         if missing:
             raise ActuatorException("The request is missing the required keys {}".format(str(missing)))
@@ -808,6 +638,32 @@ class OrchestrationRequest(object):
         if vars is not None and self.models["namespace"] is not None:
             process_vars(self.models["namespace"], vars)
 
+        # TODO: monitoring and handler
+
+        # now orchestrator args
+        self.orch_args = req_dict.get("orchestrator", {})
+        if self.orch_args:
+            allowed_keys = {"post_prov_pause", "num_threads", "no_delay", "client_keys"}
+            for k in list(self.orch_args.keys()):
+                if k not in allowed_keys:
+                    logger.warning("Unrecognized orchestrator key '{}'; ignoring".format(k))
+                    del self.orch_args[k]
+
+    def infra_model(self):
+        return self.models["infra"]
+
+    def namespace_model(self):
+        return self.models["namespace"]
+
+    def config_model(self):
+        return self.models["config"]
+
+    def exec_model(self):
+        return self.models["exec"]
+
+    def get_proxies(self):
+        return self.proxies
+
 
 def process_handler(handler_dict):
     """
@@ -819,3 +675,100 @@ def process_handler(handler_dict):
         }
     :return:
     """
+    pass
+
+
+def get_processor_from_file(jfile):
+    jstr = jfile.read()
+    jstr = jstr.decode() if hasattr(jstr, "decode") else jstr
+    processor = JsonMessageProcessor(jstr)
+    return processor
+
+
+class OrchRunner(object):
+    def __init__(self, orch):
+        self.orch = orch
+        self.is_running = False
+        self.completion_status = None
+
+    def run(self):
+        self.is_running = True
+        try:
+            self.completion_status = self.orch.initiate_system()
+        except Exception as _:
+            logger = logging.getLogger()
+            logger.exception("The orchestrator raised and exception while standing up a system")
+        self.is_running = False
+
+    def quit_running(self):
+        self.orch.quit_processing()
+
+
+def do_it(json_file, input, output):
+    try:
+        f = open(json_file, 'r')
+        processor = get_processor_from_file(f)
+        f.close()
+    except Exception as _:
+        logger.exception("Received an error trying to process the JSON file {}".format(json_file))
+        logger.critical("Unable to continue; exiting")
+        sys.exit(1)
+
+    assert isinstance(processor, JsonMessageProcessor)
+
+    orch = infra = ns = config = exe = proxies = orch_runner = evhandler = None
+    ready_prompt = "READY:\n"
+    # we don't put the usual guards around the interactive code as humans won't be
+    # the party driving this, only another program
+    output.write(ready_prompt)
+    output.flush()
+    command = None
+
+    while command.lower() != 'q':
+        command = input.readline().strip()
+        if command == 'q':  # quit immediately; killing the orchestration if needed
+            output.write("quitting\n")
+            output.flush()
+            continue
+        elif command == 'r':  # run or re-run an orchestration
+            if orch_runner is None:
+                infra = processor.infra_model()
+                config = processor.config_model()
+                ns = processor.namespace_model()
+                exe = processor.exec_model()
+                proxies = processor.get_proxies()
+                evhandler = RunnerEventManager(DefaultEventReporter())
+                orch = ActuatorOrchestration(infra_model_inst=infra, provisioner_proxies=proxies,
+                                             namespace_model_inst=ns, config_model_inst=config,
+                                             execute_model_inst=exe, event_handler=evhandler,
+                                             **processor.orch_args)
+                orch_runner = OrchRunner(orch)
+            if not orch_runner.is_running:
+                try:
+                    t = threading.Thread(target=orch_runner.run, args=())
+                    t.start()
+                except Exception as _:
+                    logger.exception("Received an error during system initiation")
+            output.write("running\n")
+            output.flush()
+
+    if orch_runner:
+        orch_runner.quit_running()
+    time.sleep(5)
+    if orch_runner.is_running:
+        os.kill(os.getpid(), signal.SIGKILL)
+    else:
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    """
+    The path to the json file is supplied as the argument to the script.
+    """
+    logger = logging.getLogger()
+    del logger.handlers[:]
+    setup_json_logging()
+    if len(sys.argv) < 2:
+        logger.critical("No JSON file specified; unable to continue")
+        sys.exit(1)
+    do_it(sys.argv[1], sys.stdin, sys.stdout)
