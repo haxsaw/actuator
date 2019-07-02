@@ -723,7 +723,7 @@ def do_it(json_file, input, output):
 
     assert isinstance(processor, JsonMessageProcessor)
 
-    orch = infra = ns = config = exe = proxies = orch_runner = evhandler = None
+    t = orch = infra = ns = config = exe = proxies = orch_runner = evhandler = None
     ready_prompt = "READY:\n"
     # we don't put the usual guards around the interactive code as humans won't be
     # the party driving this, only another program
@@ -757,12 +757,19 @@ def do_it(json_file, input, output):
                     logger.exception("Received an error during system initiation")
             output.write("running\n")
             output.flush()
+        output.write("READY:\n")
+        output.flush()
         command = input.readline().strip()
 
+    thread_alive = False
     if orch_runner:
         orch_runner.quit_running()
-        time.sleep(5)
-    return orch_runner.is_running if orch_runner is not None else False
+        if t:
+            t.join()
+            if t.is_alive():
+                thread_alive = True
+    return (orch_runner.completion_status if orch_runner is not None else None,
+            ((orch_runner.is_running and thread_alive) if orch_runner is not None else False))
 
 
 if __name__ == "__main__":
@@ -775,7 +782,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         logger.critical("No JSON file specified; unable to continue")
         sys.exit(1)
-    is_running = do_it(sys.argv[1], sys.stdin, sys.stdout)
+    success, is_running = do_it(sys.argv[1], sys.stdin, sys.stdout)
     if is_running:
         os.kill(os.getpid(), signal.SIGKILL)
     else:

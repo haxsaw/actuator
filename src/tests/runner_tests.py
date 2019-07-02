@@ -1,8 +1,11 @@
+import fcntl
+import json
+import logging
+import select
 import sys
 import os.path
 import time
 import random
-import json
 import threading
 from actuator import (Role, MultiRole, with_variables, NamespaceModel, Var, ActuatorException,
                       InfraModel)
@@ -760,10 +763,11 @@ def test039():
 class DoItRunner(object):
     def __init__(self):
         self.is_running = None
+        self.success = None
 
     def run_do_it(self, jfile, input, output):
         self.is_running = True
-        self.is_running = do_it(jfile, input, output)
+        self.success, self.is_running = do_it(jfile, input, output)
 
 
 def test040():
@@ -788,39 +792,105 @@ def test040():
     assert not di.is_running
 
 
+class FileEventDrain(object):
+    """
+    This class is made to read lines of JSON pumped out of a file (usually stderr);
+    each line is separated by '--END--'
+    """
+    def __init__(self, reader):
+        self.quit = False
+        self.reader = reader
+        self.this_line = None
+        self.previous_line = None
+
+    def stop_reading(self):
+        self.quit = True
+
+    def drain_until_event(self, event_id):
+        self.quit = False
+        # first, drain any lines that may be buffered in the file object
+        self.this_line = self.reader.readline().strip()
+        while len(self.this_line) and not self.quit:  # this will return '' if it would have otherwise blocked
+            if '--END--' in self.this_line:
+                d = json.loads(self.previous_line)
+                if event_id == d.get("event_id", None):
+                    self.quit = True
+            if not self.quit:
+                self.previous_line = self.this_line
+                self.this_line = self.reader.readline().strip()
+        # now go to the file descriptor for new data
+        while not self.quit:
+            rr, wr, er = select.select([self.reader], [], [], 0.1)
+            if rr:
+                self.this_line = self.reader.readline().strip()
+                while len(self.this_line) and not self.quit:  # this will return '' if it would have otherwise blocked
+                    if '--END--' in self.this_line:
+                        d = json.loads(self.previous_line)
+                        if event_id == d.get("event_id", None):
+                            self.quit = True
+                    if not self.quit:
+                        self.previous_line = self.this_line
+                        self.this_line = self.reader.readline().strip()
+        return
+
+
 def test041():
     """
     test041: test actually running processor's model then quit
     """
     jfile_path = os.path.join(here, "model041.json")
+    # command/control pipes and files
     do_it_input, write_to_do_it = os.pipe()
-    read_from_do_id, do_it_output = os.pipe()
-    input = os.fdopen(do_it_input, "r")
-    output = os.fdopen(do_it_output, "w")
-    to_do_it = os.fdopen(write_to_do_it, "w")
-    from_do_it = os.fdopen(read_from_do_id, "r")
-    to_do_it.write("r\n")
-    to_do_it.flush()
-    # import logging
-    # logger = logging.getLogger()
-    # del logger.handlers[:]
-    # setup_json_logging()
-    di = DoItRunner()
+    read_from_do_it, do_it_output = os.pipe()
+    input = os.fdopen(do_it_input, "r", 1)
+    output = os.fdopen(do_it_output, "w", 1)
+    to_do_it = os.fdopen(write_to_do_it, "w", 1)
+    from_do_it = os.fdopen(read_from_do_it, "r", 1)
+    # stderr capture pipes and files
+    old_stderr = sys.stderr
+    stderr_read, stderr_write = os.pipe()
+    flags = fcntl.fcntl(stderr_read, fcntl.F_GETFD)
+    fcntl.fcntl(stderr_read, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+    stderr_input = os.fdopen(stderr_read, "r", 1)
+    stderr_ouput = os.fdopen(stderr_write, "w", 1)
+    sys.stderr = stderr_ouput
+    fed = FileEventDrain(stderr_input)
+    # remember the old logging handler
+    logger = logging.getLogger()
+    old_handler = logger.handlers[0]
 
+    di = DoItRunner()
     t = threading.Thread(target=di.run_do_it, args=(jfile_path, input, output))
-    t.start()
-    time.sleep(3)
-    to_do_it.write("q\n")
-    to_do_it.flush()
-    t.join(timeout=2)
-    # assert "READY:" in from_do_it.readline()
-    assert not di.is_running
+    try:
+        del logger.handlers[:]
+        setup_json_logging()
+        t.start()
+        time.sleep(0.1)
+        assert "READY:" in from_do_it.readline().strip()
+
+        to_do_it.write("r\n")
+        to_do_it.flush()
+
+        fed.drain_until_event(ActuatorEvent.O_FINISH)
+        to_do_it.write("q\n")
+        to_do_it.flush()
+        t.join(timeout=2)
+
+        assert di.success, "success is {}".format(di.success)
+
+    finally:
+        to_do_it.write("q\n")
+        to_do_it.flush()
+        t.join(timeout=2)
+        sys.stderr = old_stderr
+        logger.handlers.append(old_handler)
+        time.sleep(0.1)
+        assert not di.is_running
 
 
 if __name__ == "__main__":
     setup_module()
     passed = failed = 0
-    test035()
     for k, v in sorted(globals().items()):
         if k.startswith("test"):
             try:
