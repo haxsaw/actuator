@@ -1,0 +1,33 @@
+{
+  "models": {
+    "infra": {
+      "kind": "json",
+      "classname": "Infra039",
+      "module_name": "model039saved",
+      "details": {
+        "content": "from actuator import InfraModel\rclass Infra039(InfraModel):\r    pass\r"
+      },
+      "setup": {
+        "init": {
+          "positional": [
+            "test039"
+          ],
+          "keyword": {}
+        }
+      }
+    }
+  },
+  "proxies": [{"kind": "aws",
+               "args": {
+                 "positional": [
+                   "test039"
+                 ],
+                 "keyword": {
+                   "default_region": "reg1",
+                   "aws_access_key": "the key",
+                   "aws_secret_access_key": "the secret key"
+                 }
+               }
+              }],
+  "orchestrator": {"post_prov_pause": 1}
+ }

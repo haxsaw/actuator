@@ -1005,7 +1005,7 @@ class TaskEngine(object):
 
         if self.event_handler:
             try:
-                self.event_handler.engine_starting(self.model, self.graph)
+                self.event_handler.engine_starting(self.infra_model, self.graph)
             except Exception as e:
                 logger.error("event_handler raised an exception in engine_starting: %s. Processing continuing" % str(e))
 
@@ -1038,7 +1038,7 @@ class TaskEngine(object):
         logger.info(fmtmsg("Agent task processing complete"))
         if self.event_handler:
             try:
-                self.event_handler.engine_finished(self.model)
+                self.event_handler.engine_finished(self.infra_model)
             except Exception as _:
                 pass
         if self.aborted_tasks:

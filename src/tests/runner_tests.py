@@ -3,6 +3,7 @@ import os.path
 import time
 import random
 import json
+import threading
 from actuator import (Role, MultiRole, with_variables, NamespaceModel, Var, ActuatorException,
                       InfraModel)
 from actuator.task import Task, TaskExecControl
@@ -11,7 +12,7 @@ from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator.provisioners.azure import azure_class_factory
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.runner_utils.utils import (OrchestrationEventPayload, EngineEventPayload,
-                                         TaskEventPayload, ActuatorEvent)
+                                         TaskEventPayload, ActuatorEvent, setup_json_logging)
 
 here, f = os.path.split(__file__)
 runner_dir = os.path.join(here, "..", "scripts")
@@ -19,7 +20,7 @@ sys.path.append(runner_dir)
 del f
 
 from runner import (process_vars, process_proxies, process_models, ModelProcessor,
-                    RunnerEventManager)
+                    RunnerEventManager, do_it, get_processor_from_file, JsonMessageProcessor)
 
 
 def mock_azure_creds_factory(subscription_id=None, client_id=None, secret=None, tenant=None):
@@ -748,9 +749,72 @@ def test038():
 
 def test039():
     """
-    test039: test the overall processing of a
-    :return:
+    test039: test the overall processing of a complete JSON message
     """
+    jfile_path = os.path.join(here, "model039.json")
+    jfile = open(jfile_path, "r")
+    processor = get_processor_from_file(jfile)
+    assert isinstance(processor, JsonMessageProcessor)
+
+
+class DoItRunner(object):
+    def __init__(self):
+        self.is_running = None
+
+    def run_do_it(self, jfile, input, output):
+        self.is_running = True
+        self.is_running = do_it(jfile, input, output)
+
+
+def test040():
+    """
+    test040: test do_it to make the processor and quit
+    """
+    jfile_path = os.path.join(here, "model040.json")
+    do_it_input, write_to_do_it = os.pipe()
+    read_from_do_id, do_it_output = os.pipe()
+    input = os.fdopen(do_it_input, "r")
+    output = os.fdopen(do_it_output, "w")
+    to_do_it = os.fdopen(write_to_do_it, "w")
+    from_do_it = os.fdopen(read_from_do_id, "r")
+    to_do_it.write("q\n")
+    to_do_it.flush()
+    di = DoItRunner()
+
+    t = threading.Thread(target=di.run_do_it, args=(jfile_path, input, output))
+    t.start()
+    t.join(timeout=5)
+    assert "READY:" in from_do_it.readline()
+    assert not di.is_running
+
+
+def test041():
+    """
+    test041: test actually running processor's model then quit
+    """
+    jfile_path = os.path.join(here, "model041.json")
+    do_it_input, write_to_do_it = os.pipe()
+    read_from_do_id, do_it_output = os.pipe()
+    input = os.fdopen(do_it_input, "r")
+    output = os.fdopen(do_it_output, "w")
+    to_do_it = os.fdopen(write_to_do_it, "w")
+    from_do_it = os.fdopen(read_from_do_id, "r")
+    to_do_it.write("r\n")
+    to_do_it.flush()
+    # import logging
+    # logger = logging.getLogger()
+    # del logger.handlers[:]
+    # setup_json_logging()
+    di = DoItRunner()
+
+    t = threading.Thread(target=di.run_do_it, args=(jfile_path, input, output))
+    t.start()
+    time.sleep(3)
+    to_do_it.write("q\n")
+    to_do_it.flush()
+    t.join(timeout=2)
+    # assert "READY:" in from_do_it.readline()
+    assert not di.is_running
 
 
 if __name__ == "__main__":

@@ -628,7 +628,7 @@ class JsonMessageProcessor(object):
         self.monitoring = None   # @FIXME needs some kind of handling
         self.model_processors = process_models(req_dict["models"])
         self.proxies = process_proxies(req_dict["proxies"])
-        self.models = {k: mp.get_model_instance() for k, mp in self.model_processors.items()}
+        self.models = {k: (mp.get_model_instance() if mp else None) for k, mp in self.model_processors.items()}
 
         # optional processing; first vars
         if req_dict.get("vars") and self.models["namespace"] is None:
@@ -705,6 +705,13 @@ class OrchRunner(object):
 
 
 def do_it(json_file, input, output):
+    """
+    @param json_file: file object containing a runner json message
+    @param input: file object where commands are read from
+    @param output: file object where responses are written to
+    @return: Returns the value of orchestrator.is_running
+    """
+    logger = logging.getLogger()
     try:
         f = open(json_file, 'r')
         processor = get_processor_from_file(f)
@@ -722,10 +729,9 @@ def do_it(json_file, input, output):
     # the party driving this, only another program
     output.write(ready_prompt)
     output.flush()
-    command = None
 
+    command = input.readline().strip()
     while command.lower() != 'q':
-        command = input.readline().strip()
         if command == 'q':  # quit immediately; killing the orchestration if needed
             output.write("quitting\n")
             output.flush()
@@ -751,14 +757,12 @@ def do_it(json_file, input, output):
                     logger.exception("Received an error during system initiation")
             output.write("running\n")
             output.flush()
+        command = input.readline().strip()
 
     if orch_runner:
         orch_runner.quit_running()
-    time.sleep(5)
-    if orch_runner.is_running:
-        os.kill(os.getpid(), signal.SIGKILL)
-    else:
-        sys.exit(0)
+        time.sleep(5)
+    return orch_runner.is_running if orch_runner is not None else False
 
 
 if __name__ == "__main__":
@@ -771,4 +775,8 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         logger.critical("No JSON file specified; unable to continue")
         sys.exit(1)
-    do_it(sys.argv[1], sys.stdin, sys.stdout)
+    is_running = do_it(sys.argv[1], sys.stdin, sys.stdout)
+    if is_running:
+        os.kill(os.getpid(), signal.SIGKILL)
+    else:
+        sys.exit(0)

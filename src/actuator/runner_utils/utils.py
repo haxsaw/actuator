@@ -1,5 +1,5 @@
-import time
 import json
+import datetime
 from actuator.task import TaskExecControl, Task
 import logging
 from pythonjsonlogger import jsonlogger
@@ -135,7 +135,6 @@ class TaskEventPayload(EventPayload):
 
         self["task_id"] = str(task._id)
         self["model_id"] = str(model_id)
-        self["task_time"] = time.time()
         self["task_action"] = status
         self["errtext"] = errtext if errtext is not None else []
 
@@ -187,6 +186,7 @@ class ActuatorEvent(dict):
         self["event_class"] = event_class
         self["event_id"] = event_id
         self["event"] = payload
+        self["timestamp"] = datetime.datetime.now().isoformat()
 
     def to_json(self):
         return json.dumps(self)
