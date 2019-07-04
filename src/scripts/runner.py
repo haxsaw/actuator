@@ -73,6 +73,21 @@ Supplemental information
                                                         ...
                                                         }
                                         },
+                                #
+                                # NEW approach
+                                "methods": [{"method": "method1",
+                                             "args":     {
+                                                            "positional": [positional args],
+                                                            "keyword": {"arg1": "value1",
+                                                                        "arg2": "value2",
+                                                                        ...
+                                                                       }
+                                                         },
+                                            },
+                                            ...  # another method
+                                           ],
+                                #
+                                # OLD approach
                                 "methods": [["method1",
                                              {
                                                 "positional": [positional args],

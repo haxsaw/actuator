@@ -15,7 +15,10 @@ from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator.provisioners.azure import azure_class_factory
 from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.runner_utils.utils import (OrchestrationEventPayload, EngineEventPayload,
-                                         TaskEventPayload, ActuatorEvent, setup_json_logging)
+                                         TaskEventPayload, ActuatorEvent, setup_json_logging,
+                                         RunnerJSONMessage, OrchestratorArgs, Proxy, RunVar,
+                                         ModelSet, ModelDescriptor, ModelSetup, Keyset, Method,
+                                         Arguments, ModuleDescriptor, JSONModuleDetails, JSONableDict)
 
 here, f = os.path.split(__file__)
 runner_dir = os.path.join(here, "..", "scripts")
@@ -886,6 +889,203 @@ def test041():
         logger.handlers.append(old_handler)
         time.sleep(0.1)
         assert not di.is_running
+
+
+def test042():
+    """
+    test042: Check that JSONModuleDetails goes to/from JSON properly
+    """
+    content = open(__file__, "r").read()
+    jmd1 = JSONModuleDetails(content)
+    j1 = jmd1.to_json()
+    jmd1p = JSONableDict.from_json(j1)
+    assert isinstance(jmd1p, JSONModuleDetails)
+    assert content == jmd1p.content
+
+    jmd2 = JSONModuleDetails(source_file=__file__)
+    j2 = jmd2.to_json()
+    jmd2p = JSONableDict.from_json(j2)
+    assert isinstance(jmd2p, JSONModuleDetails)
+    assert content == jmd2p.content
+
+
+def test043():
+    """
+    test043: Check that ModuleDescriptors go to/from JSON
+    """
+    jmd = JSONModuleDetails(content=open(__file__, "r").read())
+    md = ModuleDescriptor("json", module_name="wibble", module_details=jmd)
+    j = md.to_json()
+    mdp = JSONableDict.from_json(j)
+    assert isinstance(mdp, ModuleDescriptor)
+    assert mdp.module_name == md.module_name
+    assert mdp.kind == md.kind
+    assert isinstance(mdp.details, JSONModuleDetails)
+    assert md.details.content == mdp.details.content
+
+
+def test044():
+    """
+    test044: Check that Arguments go to/from JSON
+    """
+    a1 = Arguments(1, 2, x=1, y=4)
+    j = a1.to_json()
+    a1p = JSONableDict.from_json(j)
+    assert isinstance(a1p, Arguments)
+    assert list(a1.positional) == a1p.positional
+    assert a1.keyword == a1p.keyword
+
+    a2 = Arguments(x=1, y=2)
+    j = a2.to_json()
+    a2p = JSONableDict.from_json(j)
+    assert isinstance(a2p, Arguments)
+    assert a2.keyword == a2p.keyword
+
+    a3 = Arguments( *(1, 2), **{'x': 6, 'b': 7})
+    j = a3.to_json()
+    a3p = JSONableDict.from_json(j)
+    assert isinstance(a3p, Arguments)
+    assert a3.keyword == a3p.keyword
+    assert list(a3.positional) == a3p.positional
+
+
+def test045():
+    """
+    test045: Check that Methods go to/from JSON
+    """
+    args = Arguments(1, 2, 3, x=1, b=3)
+    m = Method("wibble", args)
+    j = m.to_json()
+    mp = JSONableDict.from_json(j)
+    assert isinstance(mp, Method)
+    assert mp.method == m.method, "m.method={}, mp.method={}".format(m.method, mp.method)
+    assert mp.arguments.positional == list(m.arguments.positional)
+    assert mp.arguments.keyword == m.arguments.keyword
+
+
+def test046():
+    """
+    test046: Check that Keyset goes to/from JSON
+    """
+    ks = Keyset(['a', 'b', 'c'], [1,2,3,4,5])
+    j = ks.to_json()
+    ksp = JSONableDict.from_json(j)
+    assert isinstance(ksp, Keyset)
+    assert ks.keys == ksp.keys
+    assert ks.path == ksp.path
+
+
+def test047():
+    """
+    test047: Check that a ModelSetup goes to/from JSON
+    """
+    args = Arguments(1, 'a', 5, x=9, y='wibble')
+    keys = Keyset(['cluster', 'slaves'], [1, 2, 3, 4, 5])
+    method = Method("wibblemeth", Arguments(1, 2))
+    ms = ModelSetup(args, [method], [keys])
+    j = ms.to_json()
+    msp = JSONableDict.from_json(j)
+    assert isinstance(msp, ModelSetup)
+    assert isinstance(msp.keys[0], Keyset)
+    assert isinstance(msp.methods[0], Method)
+    assert list(ms.methods[0].arguments.positional) == msp.methods[0].arguments.positional
+    assert ms.keys[0].path == msp.keys[0].path
+
+
+def test048():
+    """
+    test048: Check that a ModelDescriptor goes to/from JSON
+    """
+    deets = JSONModuleDetails(source_file=__file__)
+    keys = Keyset(['cluster', 'slaves'], [1, 2, 3, 4, 5])
+    setup = ModelSetup(Arguments(1, 2, 3), keys=[keys])
+    desc = ModelDescriptor("json", "wibble", deets, "Wibble", setup)
+    j = desc.to_json()
+    d2 = JSONableDict.from_json(j)
+    assert isinstance(d2, ModelDescriptor)
+    assert desc.kind == d2.kind
+    assert desc.classname == d2.classname
+    assert desc.module_name == d2.module_name
+    assert desc.details.content == d2.details.content
+    assert list(desc.setup.init.positional) == d2.setup.init.positional
+
+
+def test049():
+    """
+    test049: Check that a ModelSet goes to/from JSON
+    """
+    ms1 = ModelSet()
+    j = ms1.to_json()
+    ms1p = JSONableDict.from_json(j)
+    assert isinstance(ms1p, ModelSet)
+
+    deets = JSONModuleDetails(source_file=__file__)
+    keys = Keyset(['cluster', 'slaves'], [1, 2, 3, 4, 5])
+    setup = ModelSetup(Arguments(1, 2, 3), keys=[keys])
+    desc = ModelDescriptor("json", "wibble", deets, "Wibble", setup)
+    ms2 = ModelSet(infra=desc, namespace=desc)
+    j = ms2.to_json()
+    ms2p = JSONableDict.from_json(j)
+    assert isinstance(ms2p, ModelSet)
+    assert isinstance(ms2p.infra, ModelDescriptor)
+
+
+def test050():
+    """
+    test050: Check that RunVar goes to/from JSON
+    """
+    rv = RunVar(["a", 'b'], "WIBBLE", "wobble")
+    j = rv.to_json()
+    rvp = JSONableDict.from_json(j)
+    assert isinstance(rvp, RunVar)
+    assert rv.varpath == rvp.varpath
+    assert rv.name == rvp.name
+    assert rv.isoverride == rvp.isoverride
+    assert rv.value == rvp.value
+
+
+def test051():
+    """
+    test051: Check that Proxy goes to/from JSON
+    """
+    p = Proxy("aws", Arguments(1, 2,3,4))
+    j = p.to_json()
+    pp = JSONableDict.from_json(j)
+    assert isinstance(pp, Proxy)
+    assert isinstance(pp.args, Arguments)
+    assert p.kind == pp.kind
+
+
+def test052():
+    """
+    test052: Check that OrchestratorArgs goes to/from JSON
+    """
+    oa = OrchestratorArgs(no_delay=True, post_prov_pause=5, num_threads=20)
+    j = oa.to_json()
+    oap = JSONableDict.from_json(j)
+    assert isinstance(oap, OrchestratorArgs)
+    assert oa.no_delay == oap.no_delay
+    assert oa.post_prov_pause == oap.post_prov_pause
+    assert oa.num_threads == oap.num_threads
+    assert oa.client_keys == oap.client_keys
+
+
+def test053():
+    """
+    test053: Check that RunnerJSONMessage goes to/from JSON
+    """
+    deets = JSONModuleDetails(source_file=__file__)
+    keys = Keyset(['cluster', 'slaves'], [1, 2, 3, 4, 5])
+    setup = ModelSetup(Arguments(1, 2, 3), keys=[keys])
+    desc = ModelDescriptor("json", "wibble", deets, "Wibble", setup)
+    ms2 = ModelSet(infra=desc, namespace=desc)
+    rv = RunVar(["a", 'b'], "WIBBLE", "wobble")
+    p = Proxy("aws", Arguments(1, 2,3,4))
+    oa = OrchestratorArgs(no_delay=True, post_prov_pause=5, num_threads=20)
+    msg = RunnerJSONMessage(ms2, vars=[rv], proxies=[p], orchestrator_args=oa)
+    j = msg.to_json()
+    msgp = JSONableDict.from_json(j)
+    assert isinstance(msgp, RunnerJSONMessage), "msgp is a {}".format(type(msgp))
 
 
 if __name__ == "__main__":
