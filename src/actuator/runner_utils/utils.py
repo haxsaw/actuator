@@ -1,5 +1,6 @@
 import json
 import datetime
+from actuator import ActuatorException
 from actuator.task import TaskExecControl, Task
 import logging
 from pythonjsonlogger import jsonlogger
@@ -209,3 +210,147 @@ class ActuatorEvent(dict):
 
     def event(self):
         return self["event"]
+
+
+class JSONableDictMeta(type):
+    signature_map = {}
+
+    def __new__(mcs, name, bases, attr_dict):
+        newbie = super(JSONableDictMeta, mcs).__new__(mcs, name, bases, attr_dict)
+        mcs.signature_map["name"] = newbie
+        return newbie
+
+
+class JSONableDict(dict, metaclass=JSONableDictMeta):
+    signature = None
+
+    def __init__(self, src_dict=None):
+        if src_dict is None:
+            super(JSONableDict, self).__init__()
+            self["signature"] = self.signature
+        else:
+            super(JSONableDict, self).__init__(src_dict)
+
+    def to_json(self):
+        return json.dumps(self)
+
+    def patch_class(self, d):
+        jd = JSONableDict(d)
+        jd.__class__ = JSONableDictMeta.signature_map[jd["signature"]]
+
+    @classmethod
+    def from_json(cls, json_str):
+        d = json.loads(json_str)
+        jd = JSONableDict(d)
+        jd.__class__ = JSONableDictMeta.signature_map[jd["signature"]]
+
+
+class JSONModuleDetails(JSONableDict):
+    signature = "JSONModuleDetails"
+
+    def __init__(self, content=None, source_file=None):
+        super(JSONModuleDetails, self).__init__()
+        if content is None and source_file is None:
+            raise ActuatorException("You must specify at least one of content or source_file")
+
+        if content is not None and source_file is not None:
+            raise ActuatorException("You must specify only one of content or source_file")
+
+        if content:
+            self["content"] = content
+        else:
+            try:
+                self["content"] = open(source_file, 'r').read()
+            except Exception as e:
+                raise ActuatorException("Couldn't open or read the file {} with module contents: {}"
+                                        .format(source_file, str(e)))
+
+    @property
+    def content(self):
+        return self["content"]
+
+
+_kind_details_map = {"json": JSONModuleDetails}
+
+
+class ModuleDescriptor(JSONableDict):
+    signature = "ModuleDescriptor"
+
+    def __init__(self, kind, module_name, module_details):
+        super(ModuleDescriptor, self).__init__()
+        self["module_name"] = module_name
+        if kind not in {"json"}:
+            raise ActuatorException("Unrecognised value for 'kind': {} in module {}"
+                                    .format(kind, module_name))
+        self["kind"] = kind
+
+        if not isinstance(module_details, _kind_details_map[kind]):
+            raise ActuatorException("Wrong type of details object for kind '{}': {}".format(kind,
+                                                                                    module_details.__class__.__name__))
+        self["details"] = module_details
+
+    @property
+    def module_name(self):
+        return self["module_name"]
+
+    @property
+    def kind(self):
+        return self["kind"]
+
+    @property
+    def details(self):
+        return self["details"]
+
+
+class ModelModuleDescriptor(ModuleDescriptor):
+    signature = "ModelModuleDescriptor"
+
+    def __init__(self, kind, module_name, module_details, classname):
+        super(ModelModuleDescriptor, self).__init__(kind, module_name, module_details)
+        self["classname"] = classname
+
+    @property
+    def classname(self):
+        return self["classname"]
+
+
+class Arguments(JSONableDict):
+
+    signature = "Arguments"
+
+    def __init__(self, *positional, **keyword):
+        """
+        Holds the positional and keyword arguments used for invoking a function or method
+        @param positional: a sequence of postional args for the func/meth
+        @param keyword: a dict of keyword args for the func/meth
+
+        As always, you can use the *args **kwargs calling notation for this, or list each
+        positional and keyword argument separately.
+        """
+        super(Arguments, self).__init__()
+        self["positional"] = positional
+        self["keyword"] = keyword
+        x = y = z = 0
+        if 1 == x == y == z:
+            pass
+
+
+class ModelSetup(JSONableDict):
+    signature = "ModelSetup"
+
+    def __init__(self, init_args, methods=None, keys=None):
+        """
+        Create the object that describes how to set up the model class
+        @param init_args: an instance of Arguments
+        @param methods:
+        @param keys:
+        """
+        if not isinstance(init_args, Arguments):
+            raise ActuatorException("ModelSetup requires an Arguments instance in init_args")
+
+
+class JSONModelProcessor(JSONableDict):
+    signature = "JSONModelProcessor"
+
+    def __init__(self, model_mod_desc, support=None):
+        pass

@@ -137,7 +137,6 @@ import json
 import io
 import traceback
 import threading
-import time
 import signal
 import logging
 from actuator import (Var, NamespaceModel, MultiComponent, ActuatorException, ModelBase,
@@ -309,7 +308,7 @@ class ModuleDescriptor(object):
         open(module_path, "w").write(self.details["content"])
 
 
-class ModelDescriptor(ModuleDescriptor):
+class ModelModuleDescriptor(ModuleDescriptor):
     def __init__(self, descriptor_dict, dmodule_dir="./dmodules"):
         """
         Specialises the ModuleDescriptor to process a python module containing an Acutator model
@@ -322,7 +321,7 @@ class ModelDescriptor(ModuleDescriptor):
         The __init__ method only sets up the instance and checks the descriptor_dict for correctness;
         the actual mechanics of importing the model are dealt with elsewhere.
         """
-        super(ModelDescriptor, self).__init__(descriptor_dict, dmodule_dir=dmodule_dir)
+        super(ModelModuleDescriptor, self).__init__(descriptor_dict, dmodule_dir=dmodule_dir)
         if 'classname' not in descriptor_dict:
             raise ActuatorException("Can't create a module descriptor; there is no 'classname'")
 
@@ -359,7 +358,7 @@ class ModelProcessor(object):
         if "setup" not in model_json_dict:
             raise ActuatorException("There's no 'setup' key in the JSON telling us how to create a model instance")
         if "init" not in model_json_dict["setup"]:
-            raise ActuatorException("There's not 'init' key in the 'setup' section of the JSON")
+            raise ActuatorException("There's no 'init' key in the 'setup' section of the JSON")
         missing = [key for key in ('positional', 'keyword')
                    if key not in model_json_dict['setup']['init']]
         if missing:
@@ -367,7 +366,7 @@ class ModelProcessor(object):
 
         # it all looks kosher; capture what we need
         self.setup = model_json_dict['setup']
-        self.model_descriptor = ModelDescriptor(model_json_dict, dmodule_dir=dmodule_dir)
+        self.model_descriptor = ModelModuleDescriptor(model_json_dict, dmodule_dir=dmodule_dir)
         for sm in model_json_dict.get("support", []):
             md = ModuleDescriptor(sm, dmodule_dir=dmodule_dir)
             md.setup_module_file()
