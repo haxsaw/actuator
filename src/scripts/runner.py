@@ -73,30 +73,15 @@ Supplemental information
                                                         ...
                                                         }
                                         },
-                                #
-                                # NEW approach
                                 "methods": [{"method": "method1",
-                                             "args":     {
+                                             "arguments": {
                                                             "positional": [positional args],
                                                             "keyword": {"arg1": "value1",
                                                                         "arg2": "value2",
                                                                         ...
                                                                        }
-                                                         },
+                                                          },
                                             },
-                                            ...  # another method
-                                           ],
-                                #
-                                # OLD approach
-                                "methods": [["method1",
-                                             {
-                                                "positional": [positional args],
-                                                "keyword": {"arg1": "value1",
-                                                            "arg2": "value2",
-                                                            ...
-                                                           }
-                                             },
-                                            ],
                                             ...  # another method
                                            ],
                                 "keys": [{"path": [list of strings naming a path to a Multi*],
@@ -148,7 +133,6 @@ import os.path
 import sys
 import importlib
 import collections
-import json
 import io
 import traceback
 import threading
@@ -162,7 +146,8 @@ from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator.provisioners.aws import AWSProvisionerProxy
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
 from actuator.runner_utils.utils import (OrchestrationEventPayload, EngineEventPayload,
-                                         TaskEventPayload, ActuatorEvent, setup_json_logging)
+                                         TaskEventPayload, ActuatorEvent, setup_json_logging,
+                                         JSONableDict)
 # from actuator.provisioners.gcp import ?
 
 _proxies = {"os": OpenStackProvisionerProxy,
@@ -409,7 +394,9 @@ class ModelProcessor(object):
         # invoke any methods supplied
         if "methods" in self.setup:
             # call all the methods named
-            for method_name, args in self.setup["methods"]:
+            for meth_dict in self.setup["methods"]:
+                method_name = meth_dict["method"]
+                args = meth_dict["arguments"]
                 pargs = args.get('positional', ())
                 kw = args.get('keyword', {})
                 m = getattr(model_instance, method_name, None)
@@ -633,7 +620,7 @@ class JsonMessageProcessor(object):
                 monitor
         """
         logger = logging.getLogger()
-        req_dict = json.loads(json_str.decode() if hasattr(json_str, 'decode') else json_str)
+        req_dict = JSONableDict.from_json(json_str.decode() if hasattr(json_str, 'decode') else json_str)
         missing = [k for k in ('models', 'proxies')
                    if k not in req_dict]
         if missing:

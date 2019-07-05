@@ -418,8 +418,8 @@ class ModelSetup(JSONableDict):
             raise ActuatorException("Not all objects in 'keys' are Keyset intsances")
 
         self["init"] = init_args
-        self["methods"] = methods
-        self["keys"] = keys
+        self["methods"] = methods if methods is not None else []
+        self["keys"] = keys if keys is not None else []
 
     @property
     def init(self):
@@ -444,7 +444,7 @@ class ModelDescriptor(ModuleDescriptor):
         if not isinstance(setup, ModelSetup):
             raise ActuatorException("the setup argument isn't an instance of ModelSetup")
         self["classname"] = classname
-        self["support"] = support
+        self["support"] = support if support is not None else []
         self["setup"] = setup
 
     @property
@@ -557,7 +557,7 @@ class OrchestratorArgs(JSONableDict):
         self["no_delay"] = no_delay
         self["num_threads"] = num_threads
         self["post_prov_pause"] = post_prov_pause
-        self["client_keys"] = client_keys
+        self["client_keys"] = client_keys if client_keys is not None else {}
 
     @property
     def no_delay(self):
@@ -593,8 +593,8 @@ class RunnerJSONMessage(JSONableDict):
         if not isinstance(orchestrator_args, OrchestratorArgs):
             raise ActuatorException("The param 'orchestrator_args' isn't a instance of OrchestratorArgs")
         self["models"] = models
-        self["vars"] = vars
-        self["proxies"] = proxies
+        self["vars"] = vars if vars is not None else []
+        self["proxies"] = proxies if proxies is not None else []
         self["orchestrator"] = orchestrator_args
 
     @property

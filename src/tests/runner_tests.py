@@ -7,6 +7,7 @@ import os.path
 import time
 import random
 import threading
+import io
 from actuator import (Role, MultiRole, with_variables, NamespaceModel, Var, ActuatorException,
                       InfraModel)
 from actuator.task import Task, TaskExecControl
@@ -70,16 +71,10 @@ def test001():
 
     ns = NS("wibble")
     ns.mr[1]
-    process_vars(ns, [{"varpath": [],
-                       "name": "OUTER",
-                       "value": "nope"},
-                      {"varpath": ["r"],
-                       "name": "INNER",
-                       "value": "wibble",
-                       "isoverride": True},
-                      {"varpath": ["mr", "1"],
-                       "name": "SLAVE_VAR",
-                       "value": "blah"}])
+    rv = [RunVar([], "OUTER", "nope"),
+          RunVar(["r"], "INNER", "wibble", True),
+          RunVar(["mr", "1"], "SLAVE_VAR", "blah")]
+    process_vars(ns, rv)
     assert ns.var_value("OUTER") == "nope", "OUTER IS '{}'".format(ns.var_value("OUTER"))
     assert ns.r.var_value("INNER") == "wibble", "INNER IS '{}'".format(ns.r.var_value("INNER"))
     assert ns.mr[1].var_value("SLAVE_VAR") == "blah", "SLAVE_VAR is '{}'".format(ns.mr[1].var_value("SLAVE_VAR"))
@@ -213,14 +208,8 @@ def test010():
     """
     test010: check that AWS proxies are created properly
     """
-    d = {"kind": "aws",
-         "args": {
-            "positional": ("test010",),
-             "keyword": {'default_region': "reg1",
-                         'aws_access_key': "the key",
-                         'aws_secret_access_key': "the secret key"}
-            }
-        }
+    d = Proxy("aws", Arguments("test010", default_region="reg1", aws_access_key="the key",
+                               aws_secret_access_key="the secret key"))
     pl = process_proxies([d])
     assert len(pl) == 1
     assert type(pl[0]) == AWSProvisionerProxy
@@ -230,17 +219,8 @@ def test011():
     """
     test011: check that Azure proxies are created properly
     """
-    d = {"kind": "az",
-         "args": {
-             "positional": ["test011"],
-             "keyword": {
-                 "subscription_id": "subid",
-                 "client_id": "cliid",
-                 "secret": "the secret",
-                 "tenant": "tenant"
-             }
-         }
-        }
+    d = Proxy("az", Arguments("test011", subscription_id="subid", client_id="cliid",
+                              secret="the secret", tenant="tenant"))
     pl = process_proxies([d])
     assert len(pl) == 1
     assert type(pl[0]) == AzureProvisionerProxy
@@ -250,14 +230,7 @@ def test012():
     """
     test012: create that openstack proxies are created properly.
     """
-    d = {"kind": "os",
-         "args": {
-             "positional": ["test012"],
-             "keyword": {
-                 "config_files": ["file1"]
-             }
-          }
-         }
+    d = Proxy("os", Arguments("test012", config_files="file1"))
     pl = process_proxies([d])
     assert len(pl) == 1
     assert type(pl[0]) == OpenStackProvisionerProxy
@@ -267,33 +240,11 @@ def test013():
     """
     test013: check that a set of different proxies can be created
     """
-    aws = {"kind": "aws",
-           "args": {
-                "positional": ("test010",),
-                "keyword": {'default_region': "reg1",
-                            'aws_access_key': "the key",
-                            'aws_secret_access_key': "the secret key"}
-            }
-           }
-    az = {"kind": "az",
-          "args": {
-              "positional": ["test011"],
-              "keyword": {
-                  "subscription_id": "subid",
-                  "client_id": "cliid",
-                  "secret": "the secret",
-                  "tenant": "tenant"
-              }
-           }
-          }
-    op = {"kind": "os",
-          "args": {
-              "positional": ["test012"],
-              "keyword": {
-                  "config_files": ["file1"]
-              }
-           }
-          }
+    aws = Proxy("aws", Arguments("test010", default_region="reg1", aws_access_key="the key",
+                                 aws_secret_access_key="the secret key"))
+    az = Proxy("az", Arguments("test011", subscription_id="subid", client_id="cliid",
+                               secret="the secret", tenant="tenant"))
+    op = Proxy("os", Arguments("test012", config_files="file1"))
     pl = process_proxies([aws, az, op])
     assert len(pl) == 3
     assert type(pl[0]) == AWSProvisionerProxy
@@ -305,10 +256,11 @@ def test014():
     """
     test014: simple infra model test of ModelProcessor
     """
-    jstr = open(os.path.join(here, "model014.json"), "r").read()
-    d = json.loads(jstr)
     model_str = open(os.path.join(here, "model014.py"), "r").read()
-    d["details"]["content"] = model_str
+    jmd = JSONModuleDetails(content=model_str)
+    setup = ModelSetup(Arguments("test014"))
+    d = ModelDescriptor("json", "model014saved", jmd, "Infra014", setup)
+
     mp = ModelProcessor(d, dmodule_dir=dynamic_module_dir)
     assert mp
     inst = mp.get_model_instance()
@@ -319,11 +271,14 @@ def test015():
     """
     test015: load module with infra and namespace in the same module
     """
-    jstr = open(os.path.join(here, "model015.json"), "r").read()
-    d = json.loads(jstr)
     model_str = open(os.path.join(here, "model015.py"), "r").read()
-    d["infra"]["details"]["content"] = model_str
-    d["namespace"]["details"]["content"] = model_str
+    jmd = JSONModuleDetails(content=model_str)
+    infra_setup = ModelSetup(Arguments("infra015"))
+    ns_setup = ModelSetup(Arguments("namespace015"))
+    imd = ModelDescriptor("json", "model015saved", jmd, "Infra015", infra_setup)
+    nsmd = ModelDescriptor("json", "model015saved", jmd, "Namespace015", ns_setup)
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     im = models["infra"]
     nm = models["namespace"]
@@ -337,11 +292,15 @@ def test016():
     """
     test016: put a multirole into the namespace and make a bunch of roles
     """
-    jstr = open(os.path.join(here, "model016.json"), "r").read()
-    d = json.loads(jstr)
     model_str = open(os.path.join(here, "model016.py"), "r").read()
-    d["infra"]["details"]["content"] = model_str
-    d["namespace"]["details"]["content"] = model_str
+    jmd = JSONModuleDetails(content=model_str)
+    infra_setup = ModelSetup(Arguments("infra016"))
+    ns_keys = Keyset(["dudes"], [1, 2, 3, 4, 0])
+    ns_setup = ModelSetup(Arguments("namespace016"), keys=[ns_keys])
+    imd = ModelDescriptor("json", "model016saved", jmd, "Infra016", infra_setup)
+    nsmd = ModelDescriptor("json", "model016saved", jmd, "Namespace016", ns_setup)
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models["namespace"]
     ni = nm.get_model_instance()
@@ -353,11 +312,15 @@ def test017():
     """
     test017: test putting a call to a method into the setup of a model
     """
-    jstr = open(os.path.join(here, 'model017.json'), 'r').read()
-    d = json.loads(jstr)
     model_str = open(os.path.join(here, 'model017.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    jmd = JSONModuleDetails(content=model_str)
+    infra_setup = ModelSetup(Arguments("infra017"))
+    meth = Method("make_dudes", Arguments(5))
+    ns_setup = ModelSetup(Arguments("namespace017"), methods=[meth])
+    imd = ModelDescriptor("json", "model017saved", jmd, "Infra017", infra_setup)
+    nsmd = ModelDescriptor("json", "model017saved", jmd, "Namespace017", ns_setup)
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     ni = nm.get_model_instance()
@@ -369,13 +332,22 @@ def test018():
     """
     test018: test including a support module that is imported by a model module
     """
-    jstr = open(os.path.join(here, 'model018.json'), 'r').read()
-    d = json.loads(jstr)
-    model_str = open(os.path.join(here, 'model018.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    # all the infra stuff first this time
+    jmd = JSONModuleDetails(source_file=os.path.join(here, 'model018.py'))
     support_str = open(os.path.join(here, "support018.py"), "r").read()
-    d["infra"]["support"][0]["details"]["content"] = support_str
+    smd = JSONModuleDetails(content=support_str)
+    infra_support = ModuleDescriptor("json", "support018saved", smd)
+    infra_setup = ModelSetup(Arguments("infra018"))
+    imd = ModelDescriptor("json", "model018saved", jmd, "Infra018", infra_setup,
+                          support=[infra_support])
+
+    # now the namespace bits
+    meth = Method("make_dudes", Arguments(5))
+    ns_setup = ModelSetup(Arguments("namespace018"), methods=[meth])
+    nsmd = ModelDescriptor("json", "model018saved", jmd, "Namespace018", ns_setup)
+
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     ni = nm.get_model_instance()
@@ -387,11 +359,16 @@ def test019():
     """
     test019: test a model with a syntax error
     """
-    jstr = open(os.path.join(here, 'model019.json'), 'r').read()
-    d = json.loads(jstr)
-    model_str = open(os.path.join(here, 'model019.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    jmd = JSONModuleDetails(source_file=os.path.join(here, 'model019.py'))
+    infra_setup = ModelSetup(Arguments("infra019"))
+    imd = ModelDescriptor("json", "model019saved", jmd, "Infra019", infra_setup)
+
+    meth = Method("make_dudes", Arguments(5))
+    ns_setup = ModelSetup(Arguments("namespace019"), methods=[meth])
+    nsmd = ModelDescriptor("json", "model019saved", jmd, "Namespace019", ns_setup)
+
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     try:
@@ -667,11 +644,16 @@ def test034():
     """
     test034: test handling an error during instance creation
     """
-    jstr = open(os.path.join(here, 'model034.json'), 'r').read()
-    d = json.loads(jstr)
-    model_str = open(os.path.join(here, 'model034.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    jmd = JSONModuleDetails(source_file=os.path.join(here, 'model034.py'))
+    infra_setup = ModelSetup(Arguments("infra034"))
+    imd = ModelDescriptor("json", "model034saved", jmd, "Infra034", infra_setup)
+
+    meth = Method("make_dudes", Arguments(5))
+    ns_setup = ModelSetup(Arguments("namespace034"), methods=[meth])
+    nsmd = ModelDescriptor("json", "model034saved", jmd, "Namespace034", ns_setup)
+
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     try:
@@ -685,11 +667,16 @@ def test035():
     """
     test035: test handling an error during calling a method in model instance setup
     """
-    jstr = open(os.path.join(here, 'model035.json'), 'r').read()
-    d = json.loads(jstr)
-    model_str = open(os.path.join(here, 'model035.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    jmd = JSONModuleDetails(source_file=os.path.join(here, 'model035.py'))
+    infra_setup = ModelSetup(Arguments("infra035"))
+    imd = ModelDescriptor("json", "model035saved", jmd, "Infra035", infra_setup)
+
+    meth = Method("make_dudes", Arguments(5))
+    ns_setup = ModelSetup(Arguments("namespace035"), methods=[meth])
+    nsmd = ModelDescriptor("json", "model035saved", jmd, "Namespace035", ns_setup)
+
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     try:
@@ -703,11 +690,17 @@ def test036():
     """
     test036: test handling an error while applying keys to a multicomponent
     """
-    jstr = open(os.path.join(here, 'model036.json'), 'r').read()
-    d = json.loads(jstr)
-    model_str = open(os.path.join(here, 'model036.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    jmd = JSONModuleDetails(source_file=os.path.join(here, 'model036.py'))
+    infra_setup = ModelSetup(Arguments("infra036"))
+    imd = ModelDescriptor("json", "model036saved", jmd, "Infra036", infra_setup)
+
+    meth = Method("make_dudes", Arguments(5))
+    ks = Keyset(["non_multi_role"], [1, 2, 3])
+    ns_setup = ModelSetup(Arguments("namespace036"), methods=[meth], keys=[ks])
+    nsmd = ModelDescriptor("json", "model036saved", jmd, "Namespace036", ns_setup)
+
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     try:
@@ -721,11 +714,16 @@ def test037():
     """
     test037: test handling an incorrect path for a setup key
     """
-    jstr = open(os.path.join(here, 'model037.json'), 'r').read()
-    d = json.loads(jstr)
-    model_str = open(os.path.join(here, 'model037.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    jmd = JSONModuleDetails(source_file=os.path.join(here, 'model037.py'))
+    infra_setup = ModelSetup(Arguments("infra037"))
+    imd = ModelDescriptor("json", "model037saved", jmd, "Infra037", infra_setup)
+
+    ks = Keyset(["dudes", "wibble", "wobble"], [1, 2, 3])
+    ns_setup = ModelSetup(Arguments("namespace037"), keys=[ks])
+    nsmd = ModelDescriptor("json", "model037saved", jmd, "Namespace037", ns_setup)
+
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     try:
@@ -739,11 +737,17 @@ def test038():
     """
     test038: test getting a non-existent method to call (json indicates make_duds, not make_dudes
     """
-    jstr = open(os.path.join(here, 'model038.json'), 'r').read()
-    d = json.loads(jstr)
-    model_str = open(os.path.join(here, 'model038.py'), 'r').read()
-    d['infra']['details']['content'] = model_str
-    d['namespace']['details']['content'] = model_str
+    jmd = JSONModuleDetails(source_file=os.path.join(here, 'model038.py'))
+    infra_setup = ModelSetup(Arguments("infra038"))
+    imd = ModelDescriptor("json", "model038saved", jmd, "Infra038", infra_setup)
+
+    meth = Method("make_duds", Arguments(5))
+    ks = Keyset(["non_multi_role"], [1, 2, 3])
+    ns_setup = ModelSetup(Arguments("namespace038"), methods=[meth], keys=[ks])
+    nsmd = ModelDescriptor("json", "model038saved", jmd, "Namespace038", ns_setup)
+
+    d = ModelSet(infra=imd, namespace=nsmd)
+
     models = process_models(d, module_dir=dynamic_module_dir)
     nm = models['namespace']
     try:
@@ -757,8 +761,17 @@ def test039():
     """
     test039: test the overall processing of a complete JSON message
     """
-    jfile_path = os.path.join(here, "model039.json")
-    jfile = open(jfile_path, "r")
+    jmd = JSONModuleDetails(content="from actuator import InfraModel\rclass Infra039(InfraModel):\r    pass\r")
+    infra_setup = ModelSetup(Arguments("test039"))
+    imd = ModelDescriptor("json", "model039saved", jmd, "Infra039", infra_setup)
+
+    p = Proxy("aws", Arguments("test039", default_region="reg1", aws_access_key="the key",
+                               aws_secret_access_key="the secret key"))
+    o = OrchestratorArgs(post_prov_pause=1)
+    ms = ModelSet(infra=imd)
+    msg = RunnerJSONMessage(ms, proxies=[p], orchestrator_args=o)
+    jfile = io.StringIO(msg.to_json())
+
     processor = get_processor_from_file(jfile)
     assert isinstance(processor, JsonMessageProcessor)
 
@@ -777,7 +790,20 @@ def test040():
     """
     test040: test do_it to make the processor and quit
     """
-    jfile_path = os.path.join(here, "model040.json")
+    jmd = JSONModuleDetails(content="from actuator import InfraModel\rclass Infra040(InfraModel):\r    pass\r")
+    infra_setup = ModelSetup(Arguments("test040"))
+    imd = ModelDescriptor("json", "model040saved", jmd, "Infra040", infra_setup)
+
+    p = Proxy("aws", Arguments("test040", default_region="reg1", aws_access_key="the key",
+                               aws_secret_access_key="the secret key"))
+    o = OrchestratorArgs(post_prov_pause=1)
+    ms = ModelSet(infra=imd)
+    msg = RunnerJSONMessage(ms, proxies=[p], orchestrator_args=o)
+    jfile_path = os.path.join(here, "model040new.json")
+    f = open(jfile_path, "w")
+    f.write(msg.to_json())
+    f.close()
+
     do_it_input, write_to_do_it = os.pipe()
     read_from_do_id, do_it_output = os.pipe()
     input = os.fdopen(do_it_input, "r")
@@ -841,7 +867,20 @@ def test041():
     """
     test041: test actually running processor's model then quit
     """
-    jfile_path = os.path.join(here, "model041.json")
+    jmd = JSONModuleDetails(content="from actuator import InfraModel\rclass Infra041(InfraModel):\r    pass\r")
+    infra_setup = ModelSetup(Arguments("test041"))
+    imd = ModelDescriptor("json", "model041saved", jmd, "Infra041", infra_setup)
+
+    p = Proxy("aws", Arguments("test041", default_region="reg1", aws_access_key="the key",
+                               aws_secret_access_key="the secret key"))
+    o = OrchestratorArgs(post_prov_pause=1)
+    ms = ModelSet(infra=imd)
+    msg = RunnerJSONMessage(ms, proxies=[p], orchestrator_args=o)
+    jfile_path = os.path.join(here, "model041new.json")
+    f = open(jfile_path, "w")
+    f.write(msg.to_json())
+    f.close()
+    
     # command/control pipes and files
     do_it_input, write_to_do_it = os.pipe()
     read_from_do_it, do_it_output = os.pipe()
