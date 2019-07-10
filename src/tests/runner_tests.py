@@ -573,7 +573,9 @@ def test030():
     test030: test generating a task starting JSON event
     """
     class MockInfra(InfraModel):
-        pass
+        def get_model(self):
+            return self
+
     model = MockInfra("mockInfra")
     t = Task("task030")
     t.performance_status = TaskExecControl.PERFORMING
@@ -591,7 +593,9 @@ def test031():
     test031: test generating a task finishing JSON event
     """
     class MockInfra(InfraModel):
-        pass
+        def get_model(self):
+            return self
+
     model = MockInfra("mockInfra")
     t = Task("task031")
     t.performance_status = TaskExecControl.PERFORMING
@@ -609,7 +613,9 @@ def test032():
     test032: test generating a task failed JSON event
     """
     class MockInfra(InfraModel):
-        pass
+        def get_model(self):
+            return self
+
     model = MockInfra("mockInfra")
     t = Task("task032")
     t.performance_status = TaskExecControl.PERFORMING
@@ -627,7 +633,9 @@ def test033():
     test033: test generating a task fail/retry JSON event
     """
     class MockInfra(InfraModel):
-        pass
+        def get_model(self):
+            return self
+
     model = MockInfra("mockInfra")
     t = Task("task033")
     t.performance_status = TaskExecControl.PERFORMING
@@ -772,7 +780,7 @@ def test039():
     msg = RunnerJSONMessage(ms, proxies=[p], orchestrator_args=o)
     jfile = io.StringIO(msg.to_json())
 
-    processor = get_processor_from_file(jfile)
+    processor = get_processor_from_file(jfile, module_dir=dynamic_module_dir)
     assert isinstance(processor, JsonMessageProcessor)
 
 
@@ -783,7 +791,7 @@ class DoItRunner(object):
 
     def run_do_it(self, jfile, input, output):
         self.is_running = True
-        self.success, self.is_running = do_it(jfile, input, output)
+        self.success, self.is_running = do_it(jfile, input, output, module_dir=dynamic_module_dir)
 
 
 def test040():
@@ -925,6 +933,7 @@ def test041():
         to_do_it.flush()
         t.join(timeout=2)
         sys.stderr = old_stderr
+        del logger.handlers[:]
         logger.handlers.append(old_handler)
         time.sleep(0.1)
         assert not di.is_running

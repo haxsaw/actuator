@@ -692,6 +692,9 @@ class TaskEngine(object):
         self.logger.setLevel(self.log_level)
         self.event_handler = model.get_event_handler()
 
+    def get_model(self):
+        return self.model
+
     def _logger_name(self):
         return "TaskEngine"
         
@@ -847,7 +850,7 @@ class TaskEngine(object):
                 tec.status = TaskExecControl.PERFORMING
                 if self.event_handler:
                     try:
-                        self.event_handler.task_starting(self.model, tec)
+                        self.event_handler.task_starting(self.get_model(), tec)
                     except Exception as e:
                         logger.error("event_handler.task_starting method raised %s; "
                                      "continuing task processing" % str(e))
@@ -857,7 +860,7 @@ class TaskEngine(object):
             tec.status = TaskExecControl.SUCCESS
             if self.event_handler:
                 try:
-                    self.event_handler.task_finished(self.model, tec)
+                    self.event_handler.task_finished(self.get_model(), tec)
                 except Exception as e:
                     logger.error("event_handler.task_finished method raised %s: continuing task processing" % str(e))
             logger.info(fmtmsg("task successfully %s-ed" % direction))
@@ -883,7 +886,7 @@ class TaskEngine(object):
                     traceback.print_exception(type(e), e, tb, file=logfile)
                 if self.event_handler:
                     try:
-                        self.event_handler.task_retry(self.model, tec, story)
+                        self.event_handler.task_retry(self.get_model(), tec, story)
                     except Exception as e:
                         logger.error("event_handler.task_retry raised %s; continuing task processing" % str(e))
             else:
@@ -893,7 +896,7 @@ class TaskEngine(object):
                 self.record_aborted_task(task, type(e), e, tb, story)
                 if self.event_handler:
                     try:
-                        self.event_handler.task_failed(self.model, tec, story)
+                        self.event_handler.task_failed(self.get_model(), tec, story)
                     except Exception as e:
                         logger.error("event_handler.task_failed raised %s; continuing task processing" % str(e))
                 self.abort_process_tasks()
@@ -1005,7 +1008,7 @@ class TaskEngine(object):
 
         if self.event_handler:
             try:
-                self.event_handler.engine_starting(self.infra_model, self.graph)
+                self.event_handler.engine_starting(self.get_model(), self.graph)
             except Exception as e:
                 logger.error("event_handler raised an exception in engine_starting: %s. Processing continuing" % str(e))
 
@@ -1069,7 +1072,7 @@ class TaskEngine(object):
 
         if self.event_handler:
             try:
-                self.event_handler.engine_starting(self.model, self.graph)
+                self.event_handler.engine_starting(self.get_model(), self.graph)
             except Exception as e:
                 logger.error("event_handler raised an exception in engine_starting: %s. Processing continuing" % str(e))
 

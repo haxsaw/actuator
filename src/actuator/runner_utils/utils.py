@@ -224,7 +224,7 @@ class JSONableDictMeta(type):
 
 class JSONableDict(dict, metaclass=JSONableDictMeta):
     signature = "JSONableDict"
-    SIGKEY = "__SIG__"
+    SIGKEY = "__RUNNERSIG__"
 
     def __init__(self, src_dict=None):
         if src_dict is None:
@@ -579,7 +579,16 @@ class OrchestratorArgs(JSONableDict):
 class RunnerJSONMessage(JSONableDict):
     signature = "RunnerJSONMessage"
 
-    def __init__(self, models, vars=None, proxies=None, orchestrator_args=None):
+    def __init__(self, models, vars=None, proxies=None, orchestrator_args=None, previous=None):
+        """
+        Create the overall message to send about a set of models
+        :param models: instance of ModelSet
+        :param vars: optional; list of RunVar instances
+        :param proxies: optional; list of Proxy instances
+        :param orchestrator_args: optional; instance of OrchestratorArgs
+        :param previous: optional; if present, should be a dictionary of an ActuatorOrchestration
+            instance created with actuator.utils.persist_to_dict
+        """
         super(RunnerJSONMessage, self).__init__()
         if not isinstance(models, ModelSet):
             raise ActuatorException("The model_set argument isn't a ModelSet instance")
@@ -590,12 +599,17 @@ class RunnerJSONMessage(JSONableDict):
         if proxies and any(not isinstance(p, Proxy) for p in proxies):
             raise ActuatorException("There is an object in the proxies arg that isn't a Proxy instance")
 
-        if not isinstance(orchestrator_args, OrchestratorArgs):
+        if not isinstance(orchestrator_args, (type(None), OrchestratorArgs)):
             raise ActuatorException("The param 'orchestrator_args' isn't a instance of OrchestratorArgs")
+
+        if not isinstance(previous, (type(None), dict)):
+            raise ActuatorException("The 'previous' parameter isn't a dict")
+
         self["models"] = models
         self["vars"] = vars if vars is not None else []
         self["proxies"] = proxies if proxies is not None else []
         self["orchestrator"] = orchestrator_args
+        self["previous"] = previous
 
     @property
     def models(self):
@@ -612,3 +626,8 @@ class RunnerJSONMessage(JSONableDict):
     @property
     def orchestrator(self):
         return self["orchestrator"]
+
+    @property
+    def previous(self):
+        return self["previous"]
+

@@ -11,4 +11,6 @@ ipaddress>=1.0.19
 pyvmomi>=6.5.0.2017.5.post1
 subprocess32>=3.2.7
 azure
-haikunator
+jsonschema<3.0.0
+python-json-logger
+boto3

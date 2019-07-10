@@ -301,6 +301,9 @@ class ProvisioningTaskEngine(BaseProvisioningTaskEngine):
                                                      log_level=log_level,
                                                      no_delay=no_delay)
 
+    def get_model(self):
+        return self.infra_model
+
     def get_event_handler(self):
         """
         Return the event handler object (if any) used to flag

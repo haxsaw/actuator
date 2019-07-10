@@ -95,6 +95,12 @@ Supplemental information
           "config":    # same as infra,
           "exec":      # same as infra,
          },
+ "previous": {  # a whole orchestrator previously persisted with persist_to_dict and saved to JSON
+                # if this optional key is present, new instances of the infra/namespace/etc, aren't created
+                # but rather are reanimated from this form. The modules and so forth are still created as
+                # they will be needed to reanimate this object. If this key is provided and an orchestrator
+                # can be re-created, the 'vars' and 'orchestrator' keys are ignored.
+             },
  "vars": [{"varpath": # path to namespace component that holds the var
            "name": # name of the var
            "value": # value for the var
@@ -138,6 +144,8 @@ import traceback
 import threading
 import signal
 import logging
+import warnings
+import json
 from actuator import (Var, NamespaceModel, MultiComponent, ActuatorException, ModelBase,
                       ActuatorOrchestration)
 from actuator.task import TaskEventHandler
@@ -145,9 +153,10 @@ from actuator.provisioners.openstack import OpenStackProvisionerProxy
 from actuator.provisioners.azure import AzureProvisionerProxy
 from actuator.provisioners.aws import AWSProvisionerProxy
 from actuator.provisioners.vsphere import VSphereProvisionerProxy
+from actuator.utils import persist_to_dict, reanimate_from_dict
 from actuator.runner_utils.utils import (OrchestrationEventPayload, EngineEventPayload,
                                          TaskEventPayload, ActuatorEvent, setup_json_logging,
-                                         JSONableDict)
+                                         JSONableDict, RunnerJSONMessage)
 # from actuator.provisioners.gcp import ?
 
 _proxies = {"os": OpenStackProvisionerProxy,
@@ -365,11 +374,13 @@ class ModelProcessor(object):
             raise ActuatorException("Missing the key(s) '{}' in the module's setup/init section".format(str(missing)))
 
         # it all looks kosher; capture what we need
-        self.setup = model_json_dict['setup']
-        self.model_descriptor = ModelModuleDescriptor(model_json_dict, dmodule_dir=dmodule_dir)
+        # set up the support modules first
         for sm in model_json_dict.get("support", []):
             md = ModuleDescriptor(sm, dmodule_dir=dmodule_dir)
             md.setup_module_file()
+        self.setup = model_json_dict['setup']
+        self.model_descriptor = ModelModuleDescriptor(model_json_dict, dmodule_dir=dmodule_dir)
+        self.model_descriptor.setup_module_file()
 
     def get_model_instance(self):
         """
@@ -608,7 +619,7 @@ class JsonMessageProcessor(object):
     """
     Processes the overall JSON message for a variety of subsequent purposes.
     """
-    def __init__(self, json_str):
+    def __init__(self, json_str, module_dir="./default_module_dir"):
         """
         set everything up from the supplied JSON message
         :param json: string; a JSON message describing what to orchestrate. Required keys are:
@@ -621,34 +632,52 @@ class JsonMessageProcessor(object):
         """
         logger = logging.getLogger()
         req_dict = JSONableDict.from_json(json_str.decode() if hasattr(json_str, 'decode') else json_str)
+        assert isinstance(req_dict, RunnerJSONMessage)
         missing = [k for k in ('models', 'proxies')
                    if k not in req_dict]
         if missing:
             raise ActuatorException("The request is missing the required keys {}".format(str(missing)))
 
         self.monitoring = None   # @FIXME needs some kind of handling
-        self.model_processors = process_models(req_dict["models"])
+        self.model_processors = process_models(req_dict["models"], module_dir=module_dir)
         self.proxies = process_proxies(req_dict["proxies"])
-        self.models = {k: (mp.get_model_instance() if mp else None) for k, mp in self.model_processors.items()}
+        if req_dict.previous:
+            # reanimate an orchestrator and models from the dict in the message
+            previous_orchestrator = reanimate_from_dict(req_dict.previous)
+            assert isinstance(previous_orchestrator, ActuatorOrchestration)
+            self.models = {"infra": previous_orchestrator.infra_model_inst,
+                           "namespace": previous_orchestrator.namespace_model_inst,
+                           "config": previous_orchestrator.config_model_inst,
+                           "exec": previous_orchestrator.execute_model_inst}
+            previous_orchestrator.set_provisioner_proxies(self.proxies)
+            self.previous_orchestrator = previous_orchestrator
+            self.orch_args = {}
+        else:
+            self.models = {k: (mp.get_model_instance() if mp else None) for k, mp in self.model_processors.items()}
+            self.previous_orchestrator = None
 
-        # optional processing; first vars
-        if req_dict.get("vars") and self.models["namespace"] is None:
-            raise ActuatorException("Namespace vars have been supplied but there is no namespace model "
-                                    "to apply them to")
-        vars = req_dict.get("vars")
-        if vars is not None and self.models["namespace"] is not None:
-            process_vars(self.models["namespace"], vars)
+            # optional processing; first vars
+            if req_dict.get("vars") and self.models["namespace"] is None:
+                raise ActuatorException("Namespace vars have been supplied but there is no namespace model "
+                                        "to apply them to")
+            vars = req_dict.get("vars")
+            if vars is not None and self.models["namespace"] is not None:
+                process_vars(self.models["namespace"], vars)
+
+            # now orchestrator args
+            self.orch_args = dict(req_dict.get("orchestrator", {}))
+            if self.orch_args:
+                allowed_keys = {"post_prov_pause", "num_threads", "no_delay", "client_keys"}
+                try:
+                    del self.orch_args[JSONableDict.SIGKEY]
+                except KeyError:
+                    pass
+                for k in list(self.orch_args.keys()):
+                    if k not in allowed_keys:
+                        logger.warning("Unrecognized orchestrator key '{}'; ignoring".format(k))
+                        del self.orch_args[k]
 
         # TODO: monitoring and handler
-
-        # now orchestrator args
-        self.orch_args = req_dict.get("orchestrator", {})
-        if self.orch_args:
-            allowed_keys = {"post_prov_pause", "num_threads", "no_delay", "client_keys"}
-            for k in list(self.orch_args.keys()):
-                if k not in allowed_keys:
-                    logger.warning("Unrecognized orchestrator key '{}'; ignoring".format(k))
-                    del self.orch_args[k]
 
     def infra_model(self):
         return self.models["infra"]
@@ -665,6 +694,9 @@ class JsonMessageProcessor(object):
     def get_proxies(self):
         return self.proxies
 
+    def get_previous_orchestrator(self):
+        return self.previous_orchestrator
+
 
 def process_handler(handler_dict):
     """
@@ -679,10 +711,10 @@ def process_handler(handler_dict):
     pass
 
 
-def get_processor_from_file(jfile):
+def get_processor_from_file(jfile, module_dir="./default_module_dir"):
     jstr = jfile.read()
     jstr = jstr.decode() if hasattr(jstr, "decode") else jstr
-    processor = JsonMessageProcessor(jstr)
+    processor = JsonMessageProcessor(jstr, module_dir=module_dir)
     return processor
 
 
@@ -695,17 +727,30 @@ class OrchRunner(object):
     def run(self):
         self.is_running = True
         try:
-            self.completion_status = self.orch.initiate_system()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.completion_status = self.orch.initiate_system()
         except Exception as _:
             logger = logging.getLogger()
-            logger.exception("The orchestrator raised and exception while standing up a system")
+            logger.exception("The orchestrator raised an exception while standing up a system")
+        self.is_running = False
+
+    def teardown(self):
+        self.is_running = True
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.completion_status = self.orch.teardown_system()
+        except Exception as _:
+            logger = logging.getLogger()
+            logger.exception("The orchestrator raised an exception while tearing down a system")
         self.is_running = False
 
     def quit_running(self):
         self.orch.quit_processing()
 
 
-def do_it(json_file, input, output):
+def do_it(json_file, input, output, module_dir="./default_module_dir"):
     """
     @param json_file: file object containing a runner json message
     @param input: file object where commands are read from
@@ -715,7 +760,7 @@ def do_it(json_file, input, output):
     logger = logging.getLogger()
     try:
         f = open(json_file, 'r')
-        processor = get_processor_from_file(f)
+        processor = get_processor_from_file(f, module_dir=module_dir)
         f.close()
     except Exception as _:
         logger.exception("Received an error trying to process the JSON file {}".format(json_file))
@@ -724,31 +769,32 @@ def do_it(json_file, input, output):
 
     assert isinstance(processor, JsonMessageProcessor)
 
-    t = orch = infra = ns = config = exe = proxies = orch_runner = evhandler = None
+    t = infra = ns = config = exe = proxies = orch_runner = evhandler = None
+    orch = processor.get_previous_orchestrator()
+    if orch:
+        orch.set_event_handler(RunnerEventManager(DefaultEventReporter()))
     ready_prompt = "READY:\n"
     # we don't put the usual guards around the interactive code as humans won't be
     # the party driving this, only another program
     output.write(ready_prompt)
     output.flush()
 
-    command = input.readline().strip()
-    while command.lower() != 'q':
-        if command == 'q':  # quit immediately; killing the orchestration if needed
-            output.write("quitting\n")
-            output.flush()
-            continue
-        elif command == 'r':  # run or re-run an orchestration
+    command = input.readline().strip().lower()
+    while command != 'q':
+        if command == 'r':  # run or re-run an orchestration
             if orch_runner is None:
-                infra = processor.infra_model()
-                config = processor.config_model()
-                ns = processor.namespace_model()
-                exe = processor.exec_model()
-                proxies = processor.get_proxies()
-                evhandler = RunnerEventManager(DefaultEventReporter())
-                orch = ActuatorOrchestration(infra_model_inst=infra, provisioner_proxies=proxies,
-                                             namespace_model_inst=ns, config_model_inst=config,
-                                             execute_model_inst=exe, event_handler=evhandler,
-                                             **processor.orch_args)
+                orch = processor.get_previous_orchestrator()
+                if orch is None:
+                    infra = processor.infra_model()
+                    config = processor.config_model()
+                    ns = processor.namespace_model()
+                    exe = processor.exec_model()
+                    proxies = processor.get_proxies()
+                    evhandler = RunnerEventManager(DefaultEventReporter())
+                    orch = ActuatorOrchestration(infra_model_inst=infra, provisioner_proxies=proxies,
+                                                 namespace_model_inst=ns, config_model_inst=config,
+                                                 execute_model_inst=exe, event_handler=evhandler,
+                                                 **processor.orch_args)
                 orch_runner = OrchRunner(orch)
             if not orch_runner.is_running:
                 try:
@@ -756,17 +802,37 @@ def do_it(json_file, input, output):
                     t.start()
                 except Exception as _:
                     logger.exception("Received an error during system initiation")
-            output.write("running\n")
-            output.flush()
+                else:
+                    logger.info("Started orchestrator stand up")
+        elif command == "t":
+            if orch_runner is None:
+                if orch is None:
+                    logger.error("runner told to tear down a system but has not orchestrator")
+                else:
+                    orch_runner = OrchRunner(orch)
+            if not orch_runner.is_running:
+                try:
+                    t = threading.Thread(target=orch_runner.teardown, args=())
+                    t.start()
+                except Exception as _:
+                    logger.exception("Received an error during system teardown")
+                else:
+                    logger.info("Started orchestrator tear down")
         output.write("READY:\n")
         output.flush()
-        command = input.readline().strip()
+        command = input.readline().strip().lower()
+    else:
+        if orch and orch is not processor.get_previous_orchestrator():
+            d = persist_to_dict(orch)
+            output.write(json.dumps(d))
+            output.flush()
 
     thread_alive = False
-    if orch_runner:
+    if orch_runner and orch_runner.is_running:
         orch_runner.quit_running()
         if t:
-            t.join()
+            t.join(60)
+            logger.info("waiting up to 60 seconds for running orchestrator to exit")
             if t.is_alive():
                 thread_alive = True
     return (orch_runner.completion_status if orch_runner is not None else None,

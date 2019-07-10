@@ -408,6 +408,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                   "infra_model_inst": self.infra_model_inst,
                   "namespace_model_inst": self.namespace_model_inst,
                   "config_model_inst": self.config_model_inst,
+                  "execute_model_inst": self.execute_model_inst,
                   "service": self.service,
                   "logger": None,
                   "provisioner": None,
@@ -423,7 +424,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
 
     def _find_persistables(self):
         for p in [self.infra_model_inst, self.config_model_inst,
-                  self.namespace_model_inst, self.service]:
+                  self.namespace_model_inst, self.service, self.execute_model_inst]:
             if p:
                 for q in p.find_persistables():
                     yield q
@@ -607,18 +608,21 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         self.logger.info("Teardown orchestration starting")
         did_teardown = False
         # if self.infra_model_inst is not None and self.pte is not None:
+        self.orchestration_starting(self)
         if self.infra_model_inst is not None:
             if self.pte is None:
                 self.pte = ProvisioningTaskEngine(self.infra_model_inst, self.provisioner_proxies,
                                                   num_threads=self.num_threads)
             try:
                 self.status = self.PERFORMING_DEPROV
+                self.provisioning_starting(self)
                 self.logger.info("Starting de-provisioning phase")
                 if self.namespace_model_inst:
                     self.namespace_model_inst.set_infra_model(self.infra_model_inst)
                     self.namespace_model_inst.compute_provisioning_for_environ(self.infra_model_inst)
                 _ = self.infra_model_inst.refs_for_components()
                 self.pte.perform_reverses()
+                self.provisioning_finished(self, True)
                 self.logger.info("De-provisioning phase complete")
                 did_teardown = True
             except ProvisionerException as e:
@@ -633,8 +637,10 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                 else:
                     self.logger.critical("No further information")
                 self.logger.critical("Aborting deprovisioning orchestration")
+                self.provisioning_finished(self, False)
                 return False
         else:
             self.logger.info("No infra model or provisioner; skipping de-provisioning step")
             did_teardown = True
+        self.orchestration_finished(self, True)
         return did_teardown
