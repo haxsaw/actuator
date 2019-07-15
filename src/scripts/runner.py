@@ -174,6 +174,7 @@ class RunnerEventManager(TaskEventHandler):
     def __init__(self, destination):
         """
         create an Actuator event handler
+
         :param destination: some object with a write() method that takes a string
             to send on to a consumer
         """
@@ -292,12 +293,22 @@ class ModuleDescriptor(object):
         self.dmodule_dir = dmodule_dir
 
     def setup_module_file(self):
+        """
+        Takes the details from the constructor and creates a module in the indicated directory
+
+        This method idempotently creates the file that contains the desired module, as well as the
+        directory where the module is to live if it doesn't exist
+        """
         if os.path.exists(self.dmodule_dir):
             if not os.path.isdir(self.dmodule_dir):
                 raise ActuatorException("The dynamic module directory {} already exists as a plain file"
                                         .format(self.dmodule_dir))
         else:
-            os.makedirs(self.dmodule_dir)
+            try:
+                os.makedirs(self.dmodule_dir)
+            except Exception as e:
+                raise ActuatorException("Unable to create directory {} for module {}: {}"
+                                        .format(self.dmodule_dir, self.module_name + ".py", str(e)))
 
         if self.dmodule_dir not in sys.path:
             sys.path.append(self.dmodule_dir)
@@ -310,11 +321,20 @@ class ModuleDescriptor(object):
                                         .format(self.kind, self.module_name))
 
     def setup_file_from_json(self):
+        """
+        Creates a module file from the content of the JSON message
+
+        This method is to be used for the json 'kind' of module details object. It takes the content of
+        the new module directly from JSON message itself and writes it to the file indicated.
+        """
         if "content" not in self.details:
             raise ActuatorException("There is no 'content' key in the details for module {}"
                                     .format(self.module_name))
         module_path = os.path.join(self.dmodule_dir, self.module_name + ".py")
-        open(module_path, "w").write(self.details["content"])
+        try:
+            open(module_path, "w").write(self.details["content"])
+        except Exception as e:
+            raise ActuatorException("Failed to create {}; {}".format(module_path, str(e)))
 
 
 class ModelModuleDescriptor(ModuleDescriptor):
@@ -339,6 +359,11 @@ class ModelModuleDescriptor(ModuleDescriptor):
         self.model_module = None
 
     def fetch_model_class(self):
+        """
+        This method returns the model class object from the model module. To do this, it must
+        first import the module into the running interpreter and then fetch the class attribute.
+        :return: A Python class object as identified in the JSON message.
+        """
         if not self.model_class:
             self.setup_module_file()
             importlib.invalidate_caches()
@@ -385,7 +410,7 @@ class ModelProcessor(object):
     def get_model_instance(self):
         """
         returns an instance of the model with all keys and methods applied
-        :return:
+        :return: and instance of some Actuator model
         """
         try:
             self.model_descriptor.setup_module_file()
@@ -610,7 +635,9 @@ def process_models(model_dict, module_dir="./dmodules"):
 
 
 class DefaultEventReporter(object):
-
+    """
+    A simple event reporting object that writes the event message to stderr.
+    """
     def write(self, msg):
         sys.stderr.write("%s\n%s\n" % (msg, "--END--"))
 
@@ -680,21 +707,56 @@ class JsonMessageProcessor(object):
         # TODO: monitoring and handler
 
     def infra_model(self):
+        """
+        return the infra model
+
+        :return: instance of an InfraModel subclass
+        """
         return self.models["infra"]
 
     def namespace_model(self):
+        """
+        return the namespace model instance
+
+        :return: an instance of a NamespaceModel subclass
+        """
         return self.models["namespace"]
 
     def config_model(self):
+        """
+        return the config model instance
+
+        :return: an instance of a ConfigModel subclass
+        """
         return self.models["config"]
 
     def exec_model(self):
+        """
+        return the execution model instance
+
+        :return: an instance of an ExecuteModel subclass
+        """
         return self.models["exec"]
 
     def get_proxies(self):
+        """
+        get the provisioning proxies that were specified to use
+
+        :return: list of provisioning proxies
+        """
         return self.proxies
 
     def get_previous_orchestrator(self):
+        """
+        returns a previously recreated instance of the orchestrator and its models
+
+        If the 'previous' key in the request JSON was present, then the models described here were
+        previously instantiated, run, and persisted. In this case, instead of making a new instance
+        of the orchestrator, this previous instance is available if desired.
+
+        :return: an instance of ActuatorOrchestration, minus the event handler and proxies, as these
+            can't be persisted with the other data.
+        """
         return self.previous_orchestrator
 
 
@@ -711,20 +773,61 @@ def process_handler(handler_dict):
     pass
 
 
+def get_processor_from_filename(filename, module_dir="./default_module_dir"):
+    try:
+        f = open(filename, "r")
+    except Exception as _:
+        logger = logging.getLogger()
+        logger.exception("Unable to open the JSON file name {}".format(filename))
+        raise ActuatorException("Unable to open the JSON file named {}".format(filename))
+    else:
+        processor = get_processor_from_file(f, module_dir=module_dir)
+    return processor
+
+
 def get_processor_from_file(jfile, module_dir="./default_module_dir"):
+    """
+    Creates a JsonMessageProcessor instance from the JSON contents of a specified file
+
+    :param jfile: a file containing JSON representing a RunnerJSONMessage
+    :param module_dir: directory to use for creating Python modules on the fly.
+    :return: an instance of JsonMessageProcessor
+    """
     jstr = jfile.read()
+    return get_processor_from_string(jstr, module_dir=module_dir)
+
+
+def get_processor_from_string(jstr, module_dir="./default_module_dir"):
+    """
+    Creates a JsonMessageProcessor instance form the JSON in the supplied string
+    :param jstr: string full o' JSON
+    :param module_dir: directory where any dynamically created modules are placed
+    :return: an instance of JsonMessageProcessor
+    """
     jstr = jstr.decode() if hasattr(jstr, "decode") else jstr
     processor = JsonMessageProcessor(jstr, module_dir=module_dir)
     return processor
 
 
 class OrchRunner(object):
+    """
+    This class provides a target for an independent thread to use so that driving orchestration
+    won't block the main control flow of the code wishing to run the orchestrator.
+    """
     def __init__(self, orch):
+        """
+        Create the runner
+        :param orch: an instance of ActuatorOrchestration. this is the object that well be driven
+            by the runner.
+        """
         self.orch = orch
         self.is_running = False
         self.completion_status = None
 
     def run(self):
+        """
+        Runs the orchestrator's initiate_system() method
+        """
         self.is_running = True
         try:
             with warnings.catch_warnings():
@@ -736,6 +839,9 @@ class OrchRunner(object):
         self.is_running = False
 
     def teardown(self):
+        """
+        Runs the orchestrator's teardown_system() method
+        """
         self.is_running = True
         try:
             with warnings.catch_warnings():
@@ -755,6 +861,8 @@ def do_it(json_file, input, output, module_dir="./default_module_dir"):
     @param json_file: file object containing a runner json message
     @param input: file object where commands are read from
     @param output: file object where responses are written to
+    @param module_dir: string; path where new modules should be stored; will be created if necessary,
+        so both the parent directory(s) and the final directory must be writeable
     @return: Returns the value of orchestrator.is_running
     """
     logger = logging.getLogger()
@@ -807,7 +915,7 @@ def do_it(json_file, input, output, module_dir="./default_module_dir"):
         elif command == "t":
             if orch_runner is None:
                 if orch is None:
-                    logger.error("runner told to tear down a system but has not orchestrator")
+                    logger.error("runner told to tear down a system but has no orchestrator")
                 else:
                     orch_runner = OrchRunner(orch)
             if not orch_runner.is_running:
