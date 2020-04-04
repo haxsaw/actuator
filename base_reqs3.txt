@@ -14,3 +14,4 @@ azure
 jsonschema<3.0.0
 python-json-logger
 boto3
+Faker

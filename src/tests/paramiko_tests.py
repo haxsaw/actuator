@@ -710,7 +710,7 @@ def test24():
                           mode=fmode,
                           task_role=SingleRoleNS.target)
         check2 = LocalCommandTask("check mode",
-                                  "/usr/bin/python -c 'import sys,os;s=os.stat(\"%s\");sys.exit(0 if (s.st_mode&0777)==int(sys.argv[1]) else 1)' %d"
+                                  "/usr/bin/python3 -c 'import sys,os;s=os.stat(\"%s\");sys.exit(0 if (s.st_mode&0o777)==int(sys.argv[1]) else 1)' %d"
                                   % (dest, fmode),
                                   task_role=SingleRoleNS.target)
         rm = CommandTask("rm", "rm %s" % dest, task_role=SingleRoleNS.target)
@@ -742,7 +742,7 @@ def test25():
                           src=here, directory_mode=fmode,
                           task_role=SingleRoleNS.target)
         check2 = LocalCommandTask("check dir mode",
-                                  "/usr/bin/python -c 'import sys,os;s=os.stat(\"%s\");sys.exit(0 if (s.st_mode&0777)==int(sys.argv[1]) else 1)' %d"
+                                  "/usr/bin/python3 -c 'import sys,os;s=os.stat(\"%s\");sys.exit(0 if (s.st_mode&0o777)==int(sys.argv[1]) else 1)' %d"
                                   % (to_check, fmode),
                                   task_role=SingleRoleNS.target)
         rm = CommandTask("rm", "rm -rf %s" % to_check,
