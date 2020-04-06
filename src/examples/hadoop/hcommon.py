@@ -123,10 +123,12 @@ zabbix_conf_template = os.path.join(here, "zabbix-templates", "zabbix_agentd.con
 class ZabbixConfig(ConfigModel):
     fetch_metadata = CommandTask("fetch_zabbix_pkg_metadata",
                                  "wget http://repo.zabbix.com/zabbix/3.0/ubuntu/pool/main/z/zabbix-release/"
-                                 "zabbix-release_3.0-1+trusty_all.deb",
+                                 "zabbix-release_3.0-2+bionic_all.deb",
+                                 # "zabbix-release_3.0-1+trusty_all.deb",
                                  repeat_count=4, chdir="/tmp")
     add_repo_task = CommandTask("add_zabbix_repo",
-                                "/usr/bin/sudo dpkg -i zabbix-release_3.0-1+trusty_all.deb",
+                                "/usr/bin/sudo dpkg -i zabbix-release_3.0-2+bionic_all.deb",
+                                # "/usr/bin/sudo dpkg -i zabbix-release_3.0-1+trusty_all.deb",
                                 repeat_count=3, chdir="/tmp")
     update_apt_task = CommandTask("update_repos",
                                   "/usr/bin/sudo apt-get -y update",

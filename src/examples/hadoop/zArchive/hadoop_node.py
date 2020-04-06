@@ -24,7 +24,7 @@ import os
 import six
 from actuator import *
 from actuator.utils import find_file
-from zabbix_agent import ZabbixConfig
+from zArchive.zabbix_agent import ZabbixConfig
 
 hadoop_ver = "hadoop-1.2.1"
 

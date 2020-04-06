@@ -275,8 +275,8 @@ if __name__ == "__main__":
                     from zabint import Zabact
                     try:
                         za = Zabact(os.environ.get("ZABBIX_PRIVATE"), "Admin", "zabbix")
-                        zabbix_host_ids = za.register_servers_in_group("Linux servers", [infra.name_node_fip.value()] +
-                                                                       [s.slave_fip.value() for s in infra.slaves.values()],
+                        zabbix_host_ids = za.register_servers_in_group("Linux servers", [demo.infra.name_node_fip.value()] +
+                                                                       [s.slave_fip.value() for s in demo.infra.slaves.values()],
                                                                        templates=template_list)
                         six.print_("...done")
                     except Exception as e:
