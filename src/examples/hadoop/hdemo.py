@@ -303,7 +303,7 @@ if __name__ == "__main__":
                 for s in demo.infra.slaves.values():
                     six.print_("\t%s" % s.slave_fip.get_ip())
                 six.print_("\nExecution prices for this infra:\n")
-                six.print_(create_price_table(demo.infra))
+                six.print_(create_price_table(demo.infra, dp.platform_name()))
             else:
                 six.print_("Standup failed; see the log for details")
 
