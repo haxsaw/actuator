@@ -193,7 +193,7 @@ if __name__ == "__main__":
         from event_sender import TaskEventForwarder
         context = zmq.Context()
         socket = context.socket(zmq.PUB)
-        socket.connect("tcp://127.0.0.1:5000")
+        socket.connect("tcp://127.0.0.1:5001")
         time.sleep(0.1)
         handler = TaskEventForwarder(socket)
         six.print_("Visualisation activated")
