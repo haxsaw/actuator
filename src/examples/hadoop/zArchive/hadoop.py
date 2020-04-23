@@ -22,7 +22,7 @@
 from actuator import *  # @UnusedWildImport
 from actuator.provisioners.openstack.resources import *  # @UnusedWildImport
 from hcommon import common_vars, HadoopNodeConfig, pkn
-from zabbix_agent import zabbix_agent_secgroup
+from zArchive.zabbix_agent import zabbix_agent_secgroup
 from actuator.utils import find_file
 from prices import (CORES1_MEM0_5_STO20, CORES2_MEM2_STO50)
 

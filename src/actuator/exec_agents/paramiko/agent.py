@@ -425,7 +425,7 @@ class LocalCommandProcessor(PTaskProcessor):
             output.append(l)
         sp.wait()
         success = sp.returncode == 0
-        return _Result(success, sp.returncode, "".join(output), "")
+        return _Result(success, sp.returncode, "".join(s.decode() for s in output if hasattr(s, 'decode')), "")
 
 
 @capture_mapping(_paramiko_domain, LocalShellCommandTask)

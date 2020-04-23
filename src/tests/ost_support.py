@@ -26,8 +26,8 @@ import random
 import uuid
 
 from faker import Faker
+Faker.seed(22)
 fake = Faker()
-fake.seed(22)
 
 
 class FakeOSServer(object):

@@ -338,7 +338,7 @@ class ExecutionAgent(TaskEngine):
             graph = self.task_mi.get_graph(with_fix=False)
             self.num_tasks_to_perform = len(graph.nodes())
             for n in graph.nodes():
-                graph.node[n]["outs_traversed"] = 0
+                graph.nodes[n]["outs_traversed"] = 0
             self.stop = False
             # start the workers
             logger.info("Starting workers...")

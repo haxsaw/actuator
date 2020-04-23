@@ -947,8 +947,8 @@ class TaskEngine(object):
                                 for successor in (graph.successors_iter(task)  # for networkx 1/2 compatibility
                                                   if hasattr(graph, "successors_iter")
                                                   else graph.successors(task)):
-                                    graph.node[successor]["ins_traversed"] += 1
-                                    if graph.in_degree(successor) == graph.node[successor]["ins_traversed"]:
+                                    graph.nodes[successor]["ins_traversed"] += 1
+                                    if graph.in_degree(successor) == graph.nodes[successor]["ins_traversed"]:
                                         logger.debug("queueing up %s for performance" % successor.name)
                                         self.task_queue.put((graph, TaskExecControl(successor)))
             except Queue.Empty as _:
@@ -985,8 +985,8 @@ class TaskEngine(object):
                                 for predecessor in (graph.predecessors_iter(task)  # networkx 1/2 compatibility
                                                     if hasattr(graph, "predecessors_iter")
                                                     else graph.predecessors(task)):
-                                    graph.node[predecessor]["outs_traversed"] += 1
-                                    if graph.out_degree(predecessor) == graph.node[predecessor]["outs_traversed"]:
+                                    graph.nodes[predecessor]["outs_traversed"] += 1
+                                    if graph.out_degree(predecessor) == graph.nodes[predecessor]["outs_traversed"]:
                                         logger.debug("queuing up %s for performance" %
                                                      predecessor.name)
                                         self.task_queue.put((graph, TaskExecControl(predecessor)))
@@ -1014,7 +1014,7 @@ class TaskEngine(object):
 
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
-            self.graph.node[n]["ins_traversed"] = 0
+            self.graph.nodes[n]["ins_traversed"] = 0
         # start the workers
         logger.info(fmtmsg("Starting workers..."))
         for _ in range(self.num_threads):
@@ -1078,7 +1078,7 @@ class TaskEngine(object):
 
         self.num_tasks_to_perform = len(self.graph.nodes())
         for n in self.graph.nodes():
-            self.graph.node[n]["outs_traversed"] = 0
+            self.graph.nodes[n]["outs_traversed"] = 0
         # start the workers
         logger.info(fmtmsg("Starting workers..."))
         for _ in range(self.num_threads):

@@ -86,7 +86,10 @@ def running_servers_by_app_instance(app_name):
                                                                                 "Server"]},
                                                                            {"$eq": [
                                                                                 "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
-                                                                                "TemplatedServer"]}
+                                                                                "TemplatedServer"]},
+                                                                           {"$eq": [
+                                                                                "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
+                                                                                "AWSInstance"]}
                                                                          ]
                                                                          },
                                                                         {"$eq": [
@@ -117,6 +120,10 @@ def servers_in_terminated_apps(app_name):
                                                               {"$eq": [
                                                                   "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
                                                                   "TemplatedServer"
+                                                              ]},
+                                                              {"$eq": [
+                                                                  "$orchestrator.CATALOG.__VALUE__._ATTR_DICT_.__CLASS__",
+                                                                  "AWSInstance"
                                                               ]}
                                                         ]},
                                                         {"$eq": [   # must be reversed to termination

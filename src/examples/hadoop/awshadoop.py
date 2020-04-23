@@ -92,7 +92,7 @@ class AWSTrialInfra(AWSBase):
                                                     sec_groups=[ctxt.model.base_sg,
                                                                 ctxt.model.namenode_sg]),
                                 slave=AWSInstance("slave",
-                                                  "ami-0f27df5f159bccfba",
+                                                  "ami-09393cef16d65b519",
                                                   instance_type='t3.nano',
                                                   key_pair=ctxt.model.kp,
                                                   network_interfaces=[ctxt.comp.container.ni]),
@@ -106,7 +106,7 @@ class AWSTrialInfra(AWSBase):
                           sec_groups=[ctxt.model.base_sg,
                                       ctxt.model.namenode_sg])
     name_node = AWSInstance("name_node",
-                            "ami-0f27df5f159bccfba",
+                            "ami-09393cef16d65b519",
                             instance_type='t3.nano',
                             key_pair=ctxt.model.kp,
                             network_interfaces=[ctxt.model.ni])
