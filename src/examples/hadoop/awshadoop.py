@@ -88,7 +88,7 @@ class AWSTrialInfra(AWSBase):
     slaves = MultiResourceGroup("slaves",
                                 ni=NetworkInterface("slave-ni",
                                                     ctxt.model.sn,
-                                                    description="something pith",
+                                                    description="something pithy",
                                                     sec_groups=[ctxt.model.base_sg,
                                                                 ctxt.model.namenode_sg]),
                                 slave=AWSInstance("slave",
