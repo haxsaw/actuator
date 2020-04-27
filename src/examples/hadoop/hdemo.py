@@ -188,9 +188,15 @@ if __name__ == "__main__":
         six.print_("Ensure that mongod is running")
 
     if with_viz:
-        from hevent import TaskEventManager
+        import time
+        import zmq
+        from event_sender import TaskEventForwarder
+        context = zmq.Context()
+        socket = context.socket(zmq.PUB)
+        socket.connect("tcp://127.0.0.1:5001")
+        time.sleep(0.1)
+        handler = TaskEventForwarder(socket)
         six.print_("Visualisation activated")
-        handler = TaskEventManager()
     else:
         handler = None
 
@@ -423,4 +429,6 @@ if __name__ == "__main__":
                     demo.populate_from_orchestrator()
                     demo.ao.set_event_handler(handler)
                     six.print_("Orchestrator reanimated!")
+    if with_viz:
+        socket.send('quit')
 

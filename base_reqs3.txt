@@ -10,7 +10,11 @@ os-client-config>=1.29.0
 ipaddress>=1.0.22
 pyvim>=0.0.21
 pyvmomi>=6.7.0
-azure
+# azure
+azure-common==1.1.25
+azure-mgmt-compute==12.0.0
+azure-mgmt-network==10.1.0
+azure-mgmt-resource==9.0.0
 jsonschema<3.0.0
 python-json-logger
 boto3
