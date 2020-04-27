@@ -1,9 +1,0 @@
-clouds:
-    citycloud:
-        profile: citycloud
-        auth:
-            username: <YOUR USER NAME>
-            password: <PASSEWORD>
-            project_name: <PROJECT>
-            domain_id: <ACCOUNT DOMAINID>
-        region_name: Lon1  # or Sto2, Kna1, etc
