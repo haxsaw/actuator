@@ -5,35 +5,35 @@ Actuator allows you to use Python to declaratively describe system infra, config
 
 1. [Intro](#intro)
 2. [Overview](#overview) (as close to a tl;dr that's still meaningful)
-  1. [Infra Model](#ov_inframodel)
-  2. [Namespace Model](#ov_namespacemodel)
-  3. [Configuration Model](#ov_configmodel)
-  4. [Execution Model](#ov_execmodel)
+   1. [Infra Model](#ov_inframodel)
+   2. [Namespace Model](#ov_namespacemodel)
+   3. [Configuration Model](#ov_configmodel)
+   4. [Execution Model](#ov_execmodel)
 3. [Configuring for OpenStack](#os_config)
 4. [Infra models](#inframodels)
-  1. [A simple Openstack example](#simple_openstack_example)
-  2. [Multiple Resources](#multi_resources)
-  3. [Resource Groups](#resource_groups)
-  4. [Model References, Context Expressions, and the Nexus](#modrefs_ctxtexprs)
+   1. [A simple Openstack example](#simple_openstack_example)
+   2. [Multiple Resources](#multi_resources)
+   3. [Resource Groups](#resource_groups)
+   4. [Model References, Context Expressions, and the Nexus](#modrefs_ctxtexprs)
 5. [Namespace models](#nsmodels)
-  1. [An example](#simplensexample)
-  2. [Dynamic Namespaces](#dynamicns)
-  3. [Var objects](#varobjs)
-  4. [Variable setting and overrides](#overrides)
-  5. [Variable references](#varrefs)
+   1. [An example](#simplensexample)
+   2. [Dynamic Namespaces](#dynamicns)
+   3. [Var objects](#varobjs)
+   4. [Variable setting and overrides](#overrides)
+   5. [Variable references](#varrefs)
 6. [Configuration models](#configmodels)
-  1. [Declaring tasks](#taskdec)
-  2. [Declaring dependencies](#taskdeps)
-  3. [Dependency expressions](#depexp)
-  4. [Auto-scaling tasks](#taskscaling)
-  5. [Config classes as tasks](#classtasks)
-  6. [Reference selection expressions](#refselect)
+   1. [Declaring tasks](#taskdec)
+   2. [Declaring dependencies](#taskdeps)
+   3. [Dependency expressions](#depexp)
+   4. [Auto-scaling tasks](#taskscaling)
+   5. [Config classes as tasks](#classtasks)
+   6. [Reference selection expressions](#refselect)
 7. Execution Models (yet to come)
 8. [Orchestration](#orchestration)-- putting it all together
-  1. Initiating a system
-  2. Tearing a system down
-  3. Inspecting errors
-  4. Persisting models of initiated systems
+   1. Initiating a system
+   2. Tearing a system down
+   3. Inspecting errors
+   4. Persisting models of initiated systems
 
 ## <a name="intro">Intro</a>
 
