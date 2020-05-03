@@ -19,7 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# from haikunator import haikunator
 from actuator.provisioners.core import ProvisioningTask
 from actuator.provisioners.azure.resources import *
 from actuator.utils import capture_mapping

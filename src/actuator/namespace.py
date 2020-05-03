@@ -1044,3 +1044,82 @@ class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableC
             self._roles[k] = clone
             self.__dict__[k] = clone
         return self
+
+
+class _MultiCompStringBuilder(object):
+    lastmile_cache = {}
+
+    def __init__(self, str_func, *ctxt_exprs, sep_str=" "):
+        # descriptor for making multi-component string builder
+        # str_func: method that takes a component and returns a formatted string
+        # *ctxt_exprs: sequence of context expressions each of which yields a single component or else
+        #   has a value() method that returns a sequence of components
+        # sep_str: string to use as a separator to join up each individual returned string from str_func
+        self.str_func = str_func
+        self.ctxt_exprs = ctxt_exprs
+        self.sep_str = sep_str
+
+    def __get__(self, instance, owner):
+        lm = self.lastmile_cache.get(instance)
+        if lm is None:
+            self.lastmile_cache[instance] = lm = _LastMile(self.str_func, instance, *self.ctxt_exprs,
+                                                           sep_str=self.sep_str)
+        return lm
+
+
+class _LastMile(object):
+    def __init__(self, str_func, instance, *ctxt_exprs, sep_str=" "):
+        # callable for making multi-component string builder
+        # str_func: method that takes a component and returns a formatted string
+        # instance: instance of the the model to use as self when invoking str_func
+        # *ctxt_exprs: sequence of context expressions each of which yields a single component or else
+        #   has a value() method that returns a sequence of components
+        # sep_str: string to use as a separator to join up each individual returned string from str_func
+        self.str_func = str_func
+        self.instance = instance
+        self.ctxt_exprs = ctxt_exprs
+        self.sep_string = sep_str
+
+    @narrate(lambda s, c: "...which started the format method {} for the Var".format(s.str_func.__name__))
+    def __call__(self, context):
+        # invoked for the value of a context expression
+        str_list = []
+        for ctxt_expr in self.ctxt_exprs:
+            with narrate_cm(lambda ce:
+                            "  -and we started processing the context expression {}".format(".".join(reversed(ce._path))),
+                            ctxt_expr):
+                context_result = ctxt_expr(context)
+                str_list.extend([self.str_func(self.instance, c.value() if hasattr(c, 'value') else c)
+                                 for c in (context_result.values()
+                                           if hasattr(context_result, "values")
+                                           else (context_result,))
+                                 if c is not None])
+        return self.sep_string.join(str_list)
+
+
+def multicomp_string_builder(*ctxt_exprs, sep_str=" "):
+    """
+    Method decorator to build up a series of string values into a single string for use as the value of a Var
+
+    Sometimes you need a string built from values from a list of components, such as a list of IP addresses
+    or multiple lines in a config file. This class can take a function that returns a formatted string for a component
+    and a sequence of context expressions that may each yield a sequence of components and applies that
+    function to each component, collecting the returned strings and returning a single string joined by the
+    supplied separator character.
+
+    NOTE: this is meant to be applied to a method of a model, most likely a namespace model. The user will then provide
+    a context expression to the decorated method as the value of a Var. This will ensure that
+
+    The caller is responsible for ensuring that each component is returned from the context expressions
+    are of the same type, or else the str_func they provide does that checking.
+
+    :param ctxt_exprs: a sequence of context expressions, each of which returns either a sequence of Actuator
+        components (or an iterator) in response to the value() method, or a single value
+    :param sep_str: string to use to join together the various string results from the application of
+        str_func to all components
+    :return: string
+    """
+    def string_builder_inner(f):
+        return _MultiCompStringBuilder(f, *ctxt_exprs, sep_str=sep_str)
+
+    return string_builder_inner

@@ -28,8 +28,9 @@ import six
 from actuator import (Var, NamespaceModel, with_variables, NamespaceException,
                       Role, with_roles, MultiResource,
                       MultiResourceGroup, ctxt, ActuatorException,
-                      StaticServer)
-from actuator.namespace import RoleGroup, MultiRole, MultiRoleGroup
+                      StaticServer, ctxt)
+from actuator.namespace import (RoleGroup, MultiRole, MultiRoleGroup,
+                                multicomp_string_builder)
 from actuator.infra import InfraModel
 from actuator.modeling import AbstractModelReference
 from actuator.provisioners.example_resources import Server
@@ -1010,7 +1011,7 @@ def test079():
     assert inf.s.mem.value() == "16GB"
 
 
-def test80():
+def test080():
     """
     test80: check that having a bad path in a context expr yields a helpful message
     """
@@ -1029,7 +1030,47 @@ def test80():
         assert False, "this should have raised"
     except Exception as e:
         assert "nexus.ns.norole" in str(e)
-     
+
+
+def test081():
+    """
+    test081: test basic use of multicomp_string_builder
+    """
+
+    class MultiStatic(InfraModel):
+        servers = MultiResource(StaticServer('server', '192.168.1.1'))
+
+    class MultiNS(NamespaceModel):
+        srvr_roles = MultiRole(Role('sroles',
+                                    host_ref=ctxt.nexus.inf.servers[ctxt.name]))
+
+        def make_roles(self, i):
+            for x in range(i):
+                _ = self.srvr_roles[x]
+
+        with_variables(Var("ALL_IPS", ctxt.model.format_server))
+
+        @multicomp_string_builder(ctxt.model.srvr_roles, ctxt.model.srvr_roles[0],
+                                  sep_str="\n")
+        def format_server(self, r):
+            return "server {} summat {}".format(r.host_ref.get_ip(), r.host_ref.value().name)
+
+    inf = MultiStatic("i81")
+    ns = MultiNS("ns81")
+    ns.set_infra_model(inf)
+    ns.make_roles(2)
+    for c in ns.components():
+        c.fix_arguments()
+    for c in inf.components():
+        c.fix_arguments()
+
+    inf.servers[1].value().hostname_or_ip = '192.168.1.2'
+    lines = ns.var_value("ALL_IPS").split('\n')
+    assert len(lines) == 3, "there should be 3 lines, not {}".format(len(lines))
+    assert lines[0].split(' ')[1][-1] == '1', lines[0]
+    assert lines[1].split(' ')[1][-1] == '2', lines[1]
+    assert lines[2].split(' ')[1][-1] == '1', lines[2]
+
 
 def do_all():
     setup_module()

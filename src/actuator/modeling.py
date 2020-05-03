@@ -183,9 +183,9 @@ class ContextExpr(_Persistable):
 ctxt = ContextExpr()
 # standard shortcuts
 ccomp = ctxt.comp
-cparent = ctxt.comp.parent
-cmodel = ctxt.model
-cnexus = ctxt.nexus
+cparent = ccont = cpar = ctxt.comp.container
+cmodel = cmod = ctxt.model
+cnexus = cnex = ctxt.nexus
 
 
 class CallContext(object):
@@ -1408,8 +1408,8 @@ class _Nexus(_Persistable):
     """
     Internal to Actuator
     
-    A nexus is where, for a given instance of a system, models and their
-    instances can be recorded and then looked up by other components. In
+    A nexus is where, for a given instance of a system, related model instances
+    in a model group can be recorded and then looked up by other components. In
     particular, model instances can be looked up by either the class of the
     instance, or by a base class of the instance. This way, one model instance can
     find another instance by way of the instance class or base class. This can
