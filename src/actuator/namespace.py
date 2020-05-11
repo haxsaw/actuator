@@ -771,7 +771,7 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
         for c in self.components():
             modelrefs |= c._get_model_refs()
         return modelrefs
-    
+
 
 @capture_mapping(_namespace_mapper_domain, MultiComponent)
 class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):

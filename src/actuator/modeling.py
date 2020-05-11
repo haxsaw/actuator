@@ -183,7 +183,7 @@ class ContextExpr(_Persistable):
 ctxt = ContextExpr()
 # standard shortcuts
 ccomp = ctxt.comp
-cparent = ccont = cpar = ctxt.comp.container
+cparent = ccont = cpar = sibling = ctxt.comp.container
 cmodel = cmod = ctxt.model
 cnexus = cnex = ctxt.nexus
 

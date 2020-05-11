@@ -30,6 +30,7 @@ import datetime
 import collections
 import threading
 import types
+import json
 import six
 from errator import narrate
 
@@ -711,14 +712,48 @@ class _Catalog(_SignatureDict):
 
 @narrate("...which caused a persisted object to be reanimated from a dict")
 def reanimate_from_dict(d):
+    """
+    Returns an Actuator object (and related objects) from a previous persistence
+    :param d: a dict containing a previously persisted Actuator object
+    :return: An Actuator object. If object is only suitable for inspection and tearing
+        down a system
+    """
     catalog = _Catalog()
     catalog.from_list(d["CATALOG"])
     root = catalog.find_entry(_PersistableRef().from_dict(d["ROOT_OBJ"]).id)
     return root.get_reanimated()
-    
+
+
+@narrate("The process to reanimate an Actuator object from a file was started")
+def reanimate_from_file(f):
+    """
+    Returns an Actuator object (and related objects) from a previous persistence
+    :param f: a file-like object open for reading from which the JSON representation of an
+        previously persisted Actuator object.
+    :return: An Actuator object. The object is only suitable for inspection and tearing
+        down a system
+    """
+    d = json.load(f)
+    return reanimate_from_dict(d)
+
 
 @narrate("This started an object's persistence to a dict")
 def persist_to_dict(o, name=None):
+    """
+    Returns a dict representation of any Actuator Persistable object
+
+    :param o: some Actuator object that implements the internal _Persistable interface. this is not a model
+        reference of any sort, but the actual underlying object (acquired from a reference with the value() method)
+    :param name: The name that you'd like to put in the dictionary for the persisted object
+    :return: a dict that contains a representation of the supplied object and any related objects; the structure is:
+        PERSIST_TIMESTAMP: String version of the datetime.utcnow()
+        NAME: value of the name keyword parameter if supplied, or None
+        SYS_PATH: the value of sys.path in operation at the time of persistence
+        VERSION: version of the external representation
+        CATALOG: the persisted form of the Actuator objects reachable from 'o'; this is a flattened list of objects
+        ROOT_OBJ: The 'starting point' of persistence; a reference to the entry in the catalog for 'o', the original
+            object that was requested to be persisted
+    """
     if not isinstance(o, _Persistable):
         raise TypeError("the parameter must be a kind of _Persistable")
     catalog = _Catalog()
@@ -732,6 +767,23 @@ def persist_to_dict(o, name=None):
     d["CATALOG"] = catalog.to_list()
     d["ROOT_OBJ"] = _PersistableRef(o)
     return d
+
+
+@narrate("The process to persist an Actuator object to file was started")
+def persist_to_file(o, f, name=None):
+    """
+    Persists the supplied Actuator object to the supplied open file
+
+    :param o: some Actuator object that implements the internal _Persistable interface. this is not a model
+        reference of any sort, but the actual underlying object (acquired from a reference with the value() method)
+    :param f: a file-like object, open for writing
+    :param name: The name that you'd like to put in the dictionary for the persisted object
+    :return: None. However, upon return a dict as returned by persist_to_dict() is converted to JSON and written to
+        the supplied file
+    """
+    d = persist_to_dict(o, name=name)
+    f.write(json.dumps(d))
+    return
 
 
 class IPAddressable(object):
