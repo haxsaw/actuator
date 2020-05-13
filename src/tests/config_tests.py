@@ -26,10 +26,10 @@ Created on 13 Jul 2014
 from errator import set_default_options, reset_all_narrations
 import six
 from actuator import *
-from actuator.config import ConfigTask, StructuralTask,\
-    with_config_options
+from actuator.config import ConfigTask, StructuralTask, with_config_options
 from actuator.remote_task import _Dependency
 from actuator.utils import IPAddressable
+from unittest import SkipTest
 
 MyConfig = None
 search_path = ["p1", "p2", "p3"]
@@ -788,6 +788,59 @@ def test41():
     assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
 
 
+def test41a():
+    """
+    Variation of test41 to see if we can use ctxt expressions
+    """
+    raise SkipTest("currently you can't use context expressions to tell a MultiTask"
+                   " what roles it should run on")
+    cap = Capture()
+
+    class NS(NamespaceModel):
+        grid = MultiRole(Role("grid", host_ref="127.0.0.1"))
+
+    ns = NS("ns")
+
+    class Cfg41a(ConfigModel):
+        grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
+                              ctxt.nexus.ns.q.grid)
+
+    cfg = Cfg41a("cm")
+    cfg.set_namespace(ns)
+
+    for i in range(5):
+        _ = ns.grid[i]
+
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
+    ea.start_performing_tasks()
+    assert len(cfg.grid_prep.instances) == 5 and len(cap.performed) == 5
+
+
+def test41b():
+    """
+    test that you can use a list of refs to find places to run a task
+    """
+    cap = Capture()
+
+    class NS(NamespaceModel):
+        r1 = Role('r1', host_ref='127.0.0.1')
+        r2 = Role('r2', host_ref='127.0.0.1')
+
+    ns = NS("ns")
+
+    class Cfg(ConfigModel):
+        grid_prep = MultiTask("grid_prep", ReportingTask("rt", report=cap),
+                              (NS.r1, NS.r2))
+
+    cfg = Cfg("cm")
+
+    ea = ExecutionAgent(task_model_instance=cfg, namespace_model_instance=ns,
+                        no_delay=True)
+    ea.start_performing_tasks()
+    assert len(cfg.grid_prep.instances) == 2 and len(cap.performed) == 2
+
+
 def test42():
     cap = Capture()
              
@@ -1030,7 +1083,7 @@ def test47():
     try:
         cap.performed.sort(lambda x,y: cmp(x[0], y[0]))
     except TypeError:
-        cap.performed.sort(key=lambda x: [0])
+        cap.performed.sort(key=lambda x: x[0])
     assert len(cap.performed) == 9
 
 

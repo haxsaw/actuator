@@ -929,7 +929,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     _as_is = (frozenset(["__getattribute__", "__class__", "value", "_name", "_obj",
                          "_parent", "get_path", "_get_item_ref_obj",
                          "get_containing_component",
-                         "get_containing_component_ref"])
+                         "get_containing_component_ref", "key", "_get_key"])
               .union(frozenset(dir(_Persistable)).difference(frozenset(dir(_Dummy)))))
 
     def __init__(self, name, obj=None, parent=None):
@@ -989,6 +989,16 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
                 AbstractModelReference._inv_cache[target] = inst
 
         return inst
+
+    def _get_key(self):
+        """
+        returns the key that is used to access this item. Here, 'key' may be an attribute name
+        or a actual key if this is some kind of MultiComponent
+        :return: string key value
+        """
+        return self._name
+
+    key = property(fget=_get_key, doc=str(_get_key.__doc__))
 
     @classmethod
     def _cache_key(cls, name, obj, parent):

@@ -664,9 +664,9 @@ def test052():
     class NS(NamespaceModel):
         with_variables(Var("MYSTERY", "WRONG!"))
         grid = MultiRoleGroup("pod", foreman=Role("foreman",
-                                                  host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
+                                                  host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.key].foreman),
                               worker=Role("grid-node",
-                                          host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
+                                          host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.key].worker)).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra1("mcg")
     ns = NS("ns52")
     for i in range(5):
@@ -685,9 +685,9 @@ def test053():
         with_variables(Var("MYSTERY", "WRONG!"))
         grid = MultiRoleGroup("pod",
                               foreman=Role("foreman",
-                                           host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
+                                           host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.key].foreman),
                               workers=MultiRole(Role("grid-node",
-                                                     host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
+                                                     host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container.key].workers[ctxt.name]))).add_variable(Var("MYSTERY", "RIGHT!"))
     infra = Infra1("mcg")
     ns = NS("ns53")
     for i in [2, 4]:
@@ -963,9 +963,9 @@ def test077():
                        Var("FROM", "ABOVE"))
         grid = MultiRoleGroup("pod",
                               foreman=Role("foreman",
-                                           host_ref=ctxt.nexus.inf.grid[ctxt.comp.container._name].foreman),
+                                           host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.key].foreman),
                               workers=MultiRole(Role("grid-node",
-                                                     host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container._name].workers[ctxt.name],
+                                                     host_ref=ctxt.nexus.inf.grid[ctxt.comp.container.container.key].workers[ctxt.name],
                                                      variables=[Var("MYSTERY", "RIGHT!")])))
     infra = Infra1("mcg")
     ns = NS("test")
