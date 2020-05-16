@@ -38,6 +38,11 @@ class ConfigException(RemoteTaskException):
 
 
 class ConfigTask(RemoteTask):
+    """
+    .. note:: ConfigTask is derived from :py:class:`actuator.remote_task.RemoteTask`; see the documentation
+        for that class for details. This class is just a veneer over that class.
+
+    """
     pass
 
 
@@ -51,15 +56,27 @@ class ConfigModelMeta(RemoteTaskModelMeta):
 
 
 class ConfigModel(six.with_metaclass(ConfigModelMeta, RemoteTaskModel)):
+    """
+    .. note:: ConfigModel is derived from :py:class:`actuator.remote_task.RemoteTaskModel`; see
+        the documentation for that class for details. This class is just a veneer over that class.
+    """
     pass
 
 
 class ConfigClassTask(RemoteTaskClass, ConfigTask):
-    def __init__(self, name, cfg_class, init_args=None, **kwargs):
-        super(ConfigClassTask, self).__init__(name, cfg_class, init_args=init_args, **kwargs)
+    """
+    .. note:: ConfigClassTask is derived from :py:class:`actuator.remote_task.RemoteTaskClass`; see the documentation
+        for that class for details. This class is just a veneer over that class
+    """
+    pass
 
 
 class MultiTask(MultiRemoteTask, ConfigTask):
+    """
+    .. note:: MultiTask is derived from :py:class:`actuator.remote_Task.MultiRemoteTask`; see the documentation
+        for that class for details. This class is just a veneer over that class.
+
+    """
     pass
 
 

@@ -27,7 +27,16 @@ from actuator.provisioners.core import Provisionable, ProvisionerException
 
 
 class AWSProvisionableInfraResource(Provisionable):
+    """
+    Base class for all AWS resources
+    """
     def __init__(self, name, *args, **kwargs):
+        """
+        :param name: logical name of the resource
+
+        :Common attrs:
+            *   **aws_id** string containing the AWS id of a provisioned item
+        """
         super(AWSProvisionableInfraResource, self).__init__(name, *args, **kwargs)
         self.aws_id = None
 
@@ -38,18 +47,25 @@ class AWSProvisionableInfraResource(Provisionable):
 
 
 class VPC(AWSProvisionableInfraResource):
+    """
+    AWS Virtual Private Cloud
+    """
     def __init__(self, name, cidr_block, *args, amazon_provided_ipv6_cidr_block=False,
                  instance_tenancy="default", **kwargs):
         """
         Create an AWS VPC
+
         :param name: string; name to use for the vpc in the model
         :param cidr_block: string; an IPv4 CIDR string that specifies the network address range for the vpc
-        :param amazon_provided_ipv6_cidr_block: optional boolean, default False. If True, requests Amazon supply a
-            /56 IPv6 CIDR block.
-        :param instance_tenancy: optional string, default 'default'. If 'default', indicates are launched as
-            shared tenancy by default, but may have any tenancy specified for a specific instance.
-            May also be 'dedicated', instances are launched as dedicated by default, and only dedicated
-            instances may run in a dedicated vpc
+
+        :Keyword args:
+            *   **amazon_provided_ipv6_cidr_block** optional boolean, default False. If True, requests Amazon supply a
+                /56 IPv6 CIDR block.
+            *   **instance_tenancy** optional string, default 'default'. If 'default', indicates are launched as
+                shared tenancy by default, but may have any tenancy specified for a specific instance.
+                May also be 'dedicated', instances are launched as dedicated by default, and only dedicated
+                instances may run in a dedicated vpc
+            *   **cloud** string, optional. Name of AWS region to use
         """
         super(VPC, self).__init__(name, *args, **kwargs)
         self.cidr_block = None
@@ -81,7 +97,20 @@ class VPC(AWSProvisionableInfraResource):
 
 
 class SecurityGroup(AWSProvisionableInfraResource):
+    """
+    AWS Security Group
+    """
     def __init__(self, name, description, vpc, *args, **kwargs):
+        """
+        Create a new Security Group
+
+        :param name: string; logical group name
+        :param description: string; description
+        :param vpc: reference to a VPC; usually a context expression
+
+        :Keyword args:
+            *   **cloud**: optional string; Name of the AWS region to use
+        """
         super(SecurityGroup, self).__init__(name, *args, **kwargs)
         self.description = None
         self._description = description
@@ -106,16 +135,19 @@ class SecurityGroup(AWSProvisionableInfraResource):
 
 
 class KeyPair(AWSProvisionableInfraResource):
+    """
+    AWS Keypair
+    """
     def __init__(self, name, *args, ensure_unique=False, public_key_file=None,
                  retain_on_reverse=False, **kwargs):
         """
         makes a KeyPair resource that can either refer to an existing key pair or define a new one
 
         A KeyPair can:
-        - name an existing key pair on AWS for which the private key is already held
-        - name a new key pair to be created on AWS for which the private key will be created and downloaded
-        - use an existing public/private key pair, uploading the public key to AWS and using the private
-          key already held
+            - name an existing key pair on AWS for which the private key is already held
+            - name a new key pair to be created on AWS for which the private key will be created and downloaded
+            - use an existing public/private key pair, uploading the public key to AWS and using the private
+              key already held
 
         Additionally, a key pair on AWS can be created such that it won't be deleted upon reversal, so that
         the pair can be left while the other resources are deleted/released
@@ -129,15 +161,18 @@ class KeyPair(AWSProvisionableInfraResource):
         to remotely run commands on hosts that use this key.
 
         :param name: both model name for the key pair and the AWS name
-        :param ensure_unique: bool, optional. If True, append a random suffix to the name to ensure
-            uniqueness at AWS, and hence force the creation of a key pair there.
-        :param public_key_file: string, optional. Path to a file containing the public key for the
-            AWS key with the name 'name'. You can't supply a public_key_file if the key already exists;
-            this will raise an error during provisioning (standup).
-        :param retain_on_reverse: bool, optional. Default False. If True, the key pair is left behind
-            on AWS when the resource is deprovisioned. NOTE: this will be set to True internally in
-            the case that the key already exists on AWS-- pre-existing keys will not be be deleted on
-            system teardown.
+
+        :Keyword args:
+            *   **ensure_unique** bool, optional. If True, append a random suffix to the name to ensure
+                uniqueness at AWS, and hence force the creation of a key pair there.
+            *   **public_key_file** string, optional. Path to a file containing the public key for the
+                AWS key with the name 'name'. You can't supply a public_key_file if the key already exists;
+                this will raise an error during provisioning (standup).
+            *   **retain_on_reverse** bool, optional. Default False. If True, the key pair is left behind
+                on AWS when the resource is deprovisioned. NOTE: this will be set to True internally in
+                the case that the key already exists on AWS-- pre-existing keys will not be be deleted on
+                system teardown.
+            *   **cloud**: optional string; Name of the AWS region to use
         """
         super(KeyPair, self).__init__(name, *args, **kwargs)
         self.ensure_unique = None
@@ -178,9 +213,13 @@ class KeyPair(AWSProvisionableInfraResource):
 
 
 class SecurityGroupRule(AWSProvisionableInfraResource):
+    """
+    AWS SecurityGroupRule
+    """
     def __init__(self, name, security_group, kind, cidrip, from_port, to_port, ip_protocol, *args, **kwargs):
         """
         Create a rule on the named security group
+
         :param name: string; name of the group. The final name will be the full model path to the rule
         :param security_group: a SecurityGroup, a model reference to a security group, or a context expression that
             refers to a SecurityGroup
@@ -190,6 +229,9 @@ class SecurityGroupRule(AWSProvisionableInfraResource):
         :param to_port: ending port in a range to applye rule; if only one port, then from_port and to_port
             should be the same
         :param ip_protocol: string; one of tcp|udp|icmp|58|-1. Use -1 to specify all protocols
+
+        :Keyword args:
+            *   **cloud**: optional string; Name of the AWS region to use
         """
         super(SecurityGroupRule, self).__init__(name, *args, **kwargs)
         if kind not in ('ingress', 'egress'):
@@ -231,6 +273,9 @@ class SecurityGroupRule(AWSProvisionableInfraResource):
 
 
 class Subnet(AWSProvisionableInfraResource):
+    """
+    AWS Subnet
+    """
     def __init__(self, name, cidr_block, vpc, *args, availability_zone="", ipv6_cidr_block="", **kwargs):
         """
         Create a new subnet on a vpc.
@@ -241,9 +286,12 @@ class Subnet(AWSProvisionableInfraResource):
             overlap
         :param vpc: either a VPC instance, a model reference to a VPC, or a context expression that leads to
             a VPC.
-        :param availability_zone: string, optional. If not specified, AWS will assign an availability zone,
-            ottherwise it will use the specified availability zone
-        :param ipv6_cidr_block: string, optional. Can be supplied if the VPC was set up as IPv6.
+
+        :Keyword args:
+            *   **availability_zone** string, optional. If not specified, AWS will assign an availability zone,
+                ottherwise it will use the specified availability zone
+            *   **ipv6_cidr_block** string, optional. Can be supplied if the VPC was set up as IPv6.
+            *   **cloud**: optional string; Name of the AWS region to use
         """
         super(Subnet, self).__init__(name, *args, **kwargs)
         self.cidr_block = None
@@ -279,11 +327,18 @@ class Subnet(AWSProvisionableInfraResource):
 
 
 class InternetGateway(AWSProvisionableInfraResource):
+    """
+    AWS InternetGateway
+    """
     def __init__(self, name, vpc, *args, **kwargs):
         """
         Create a new internet gateway to be used for a particular VPC
+
         :param name: model name of the gateway
         :param vpc: the VPC to attach the gatweway to
+
+        :Keyword args:
+            *   **cloud**: optional string; Name of the AWS region to use
         """
         super(InternetGateway, self).__init__(name, *args, **kwargs)
         self.vpc = None
@@ -305,6 +360,9 @@ class InternetGateway(AWSProvisionableInfraResource):
 
 
 class Route(AWSProvisionableInfraResource):
+    """
+    AWS Route
+    """
     def __init__(self, name, route_table, *args, dest_cidr_block=None, dest_ipv6_cidr_block=None, gateway=None,
                  egress_only_gateway=None, nat_instance=None, nat_gateway=None, network_interface=None,
                  peering_connection=None, **kwargs):
@@ -314,17 +372,20 @@ class Route(AWSProvisionableInfraResource):
         :param name: model name for the route
         :param route_table: the L{RouteTable} the rule is to be applied to. This can be an actual instance
             of a L{RouteTable}, or a model reference or context expression that leads to a L{RouteTable}
-        :param dest_cidr_block: string, optional. IPv4 destination CIDR
-        :param dest_ipv6_cidr_block: string, optional. IPv6 destination CIDR
-        :param gateway: optional InternetGateway. Can be an actual instance, a model reference, or a context
-            expression that leads to an InternetGateway
-        :param egress_only_gateway: optional egress-only L{InternetGateway}; IPv6 traffic only. Can be an actual instance,
-            a model reference, or a context expression that leads to an L{InternetGateway}
-        :param nat_instance: optional; a NAT instance in the VPC
-        :param nat_gateway: a NAT gateway
-        :param network_interface: optional; a NetworkInterface. Can be an actual instance, model reference, or
-            context expression that leads to a L{NetworkInterface}
-        :param peering_connection: unused
+
+        :Keyword args:
+            *   **dest_cidr_block** string, optional. IPv4 destination CIDR
+            *   **dest_ipv6_cidr_block** string, optional. IPv6 destination CIDR
+            *   **gateway** optional InternetGateway. Can be an actual instance, a model reference, or a context
+                expression that leads to an InternetGateway
+            *   **egress_only_gateway** optional egress-only :py:class:`InternetGateway`; IPv6 traffic only. Can be an actual instance,
+                a model reference, or a context expression that leads to an :py:class:`InternetGateway`
+            *   **nat_instance** optional; a NAT instance in the VPC
+            *   **nat_gateway** a NAT gateway
+            *   **network_interface** optional; a NetworkInterface. Can be an actual instance, model reference, or
+                context expression that leads to a L{NetworkInterface}
+            *   **peering_connection** unused
+            *   **cloud**: optional string; Name of the AWS region to use
         """
         super(Route, self).__init__(name, *args, **kwargs)
         self.route_table = None
@@ -386,12 +447,19 @@ class Route(AWSProvisionableInfraResource):
 
 
 class RouteTable(AWSProvisionableInfraResource):
+    """
+    AWS RouteTable
+    """
     def __init__(self, name, vpc, subnet, *args, **kwargs):
         """
         Create a routing table with the identified routes
+
         :param name: model name for the table
         :param vpc: the VPC the table is to be associated with
         :param subnet: the subnet the table is to be associated with
+
+        :Keyword args:
+            *   **cloud**: optional string; Name of the AWS region to use
         """
         super(RouteTable, self).__init__(name, *args, **kwargs)
         self.vpc = None
@@ -419,8 +487,31 @@ class RouteTable(AWSProvisionableInfraResource):
 
 
 class NetworkInterface(AWSProvisionableInfraResource):
+    """
+    AWS NetworkInterface
+    """
     def __init__(self, name, subnet, *args, description="", sec_groups=None, private_ip_address=None,
                  private_ip_addresses=None, **kwargs):
+        """
+        Create a network interface for a host
+
+        :param name: string; logical name for the interface
+        :param subnet: reference context expression to the :py:class:`Subnet` to attach the interface to
+
+        :Keyword args:
+            *   **description** string, optional; description to include for the interface
+            *   **sec_groups** list, optional; list of references or context expressions to
+                :py:class:`SecurityGroups<SecurityGroup>` to assign to the interface
+            *   **private_ip_address** optional string. IPv4 IP address to use as the private address for
+                the interface. If you don't specify this, AWS will simply generate one for you that is compatible
+                with the Subnet, which will then be available to you in your model.
+            *   **private_ip_addresses** optional list. This is a very elaborate list of nested dicts
+                describing multiple pre-existing Elastic IP (IPv4) addresses. Actuator currently doesn't
+                provide any modeling support for these, though it may in the future. In the meantime, you can
+                supply the properly structured list of dicts as documented
+                `here <https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2.html#EC2.NetworkInterface.private_ip_addresses>`_
+            *   **cloud** optional string; Name of the AWS region to use
+        """
         super(NetworkInterface, self).__init__(name, *args, **kwargs)
         self.subnet = None
         self._subnet = subnet
@@ -470,19 +561,21 @@ class PublicIP(AWSProvisionableInfraResource, IPAddressable):
         create a new publicly available elastic IP that can be associated with a private IP
 
         :param name: model name of the elastic ip
-        :param domain: string, optional. One of 'standard' or 'vpc'. Default is 'vpc'
-        :param public_ipv4_pool: string, optional id of an address pool owned by the caller.
-            EC2 will select an address from the pool.
-        :param address: string, optional. allows the caller to specify a particular public ip.
-            can't be used with public_ipv4_pool
-        :param instance: L{AWSInstance}, optional. Either an actual L{AWSInstance}, or a model
-            reference or context expression that leads to an AWSInstance. One of instance,
-            network_interface, or private_ip_address must be provided.
-        :param network_interface: L{NetworkInterface}, optional. Either an L{NetworkInterface},
-            or a model reference or context expression that leads to a NetworkInterface. One of
-            instance, network_interface, or private_ip_address must be provided.
-        :param private_ip_address: string, optional. private IP to associate the public ip with.
-            One of instance, network_interface, or private_ip_address must be provided.
+
+        :Keyword args:
+            *   **domain** string, optional. One of 'standard' or 'vpc'. Default is 'vpc'
+            *   **public_ipv4_pool** string, optional id of an address pool owned by the caller.
+                EC2 will select an address from the pool.
+            *   **address** string, optional. allows the caller to specify a particular public ip.
+                can't be used with public_ipv4_pool
+            *   **instance** :py:class:`AWSInstance` reference or context expression, optional. One of the instance,
+                network_interface, or private_ip_address arguments must be provided.
+            *   **network_interface** :py:class:`NetworkInterface` reference or context expression, optional.
+                One of the instance, network_interface, or private_ip_address arguments must be provided.
+            *   **private_ip_address** string, optional. private IP to associate the public ip with.
+                One of the instance, network_interface, or private_ip_address arguments must be provided.
+            *   **cloud** optional string; Name of the AWS region to use
+
         """
         super(PublicIP, self).__init__(name, *args, **kwargs)
         if sum([instance is not None and 1,
@@ -552,16 +645,21 @@ class AWSInstance(AWSProvisionableInfraResource, IPAddressable):
         create a new server instance
         :param name: model name of the server; may wind up in the machine too
         :param image_id: string; AMI id of a machine image to start
-        :param instance_type: string, optional. defines the type of instance on wihch to run
-            the image. The default is 'm1.small'
-        :param key_pair: string, optional. the name of a keypair to use to allow access. If not supplied,
-            some other remote access arrangements must be available in the image
-        :param sec_groups: list; optional. List of SecurityGroups; list elements must either be instances,
-            model references, or context expressions that lead to a SecurityGroup
-        :param subnet: optional; a L{Subnet} instance, model reference, or context expression for a Subnet
-        :param network_interfaces: list, optional. List of NetworkInterfaces to connect to the machine. List
-            elements can be NetworkInterface instances, model references, or context expressions that refer
-            to a NetworkInterface
+
+        :Keyword args:
+            *   **instance_type** string, optional. defines the type of instance on wihch to run
+                the image. The default is 'm1.small'
+            *   **key_pair** string, optional. reference or context expression for a :py:class:`KeyPair` to use to allow
+                access. If not supplied,
+                some other remote access arrangements must be available in the image
+            *   **sec_groups** list; optional. List of references of context expressions to
+                :py:class:`SecurityGroups`; list elements must be model references or context expressions that
+                lead to a SecurityGroup
+            *   **subnet** optional; a :py:class:`Subnet` model reference or context expression.
+            *   **network_interfaces** list, optional. List of :py:class:`NetworkInterfaces<NetworkInterface>` to connect to the machine. List
+                elements can be model references or context expressions that refer
+                to a NetworkInterface
+            *   **cloud** optional string; Name of the AWS region to use
         """
         super(AWSInstance, self).__init__(name, *args, **kwargs)
         self.image_id = None

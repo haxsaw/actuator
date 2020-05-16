@@ -38,6 +38,10 @@ _default_model_args = (("_UNNAMED_",), {})
 
 
 class ServiceModel(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, VariableContainer)):
+    """
+    Allows for modeling a full service, which can encompass infra, namespace, config, and execute models,
+    and provides a way to use sub-services and connect services together.
+    """
     ref_class = ModelInstanceReference
     infra = InfraModel
     namespace = NamespaceModel
@@ -49,31 +53,37 @@ class ServiceModel(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Va
                  event_handler=None, **kwargs):
         """
         Creates a new instance of a service model
+
         :param name: string; name of the service model
-        :param infra: optional; if specified, an instance of some kind of InfraModel. Takes precedence
-            over infra_args.
-        :param infra_args: optional; if specified, a sequence of a sequence and a dict, to be
-            used to create a new instance of the infra model like ModelClass(*infra_args[0], **infra_args[1]).
-            Ignored in the 'infra' parameter has been supplied. If used, self.infra must be a subclass
-            of InfraModel.
-        :param namespace: optional; if specified, and instance of some kind of NamespaceModel. Takes
-            precedence over namespace_args
-        :param namespace_args: optional; if specified, a sequence of a sequence and a dict, to be used
-            to create a new instance of the namespace model like ModelClass(*namespace_args[0], **namespace_args[1]).
-            Ignored if the namespace parameter is specified. If used, self.namespace must be a subclass
-            of NamespaceModel.
-        :param config: optional; if specified, an instance of a ConfigModel. Takes precedence over config_args.
-        :param config_args: optional; if specified, a sequence of a sequence and a dict, to be used
-            to create a new instance of the config model like ModelClass(*config_args[0], **config_args[1]).
-            Ignored if the config parameter is specified. If used, self.config must be a subvlass
-            of ConfigModel.
-        :param services: optional; a dict whose keys are names of services and whose values can
-            be one of two things: they can be a ServiceModel instance, or they can be a sequence of
-            [(), {}] parameters that can be used to instantiate a service. In this latter
-            case, the ServiceModel that is "self" must have an attribute of the same name that is
-            a ServiceModel model class to which these parameters will be applied to create a service
-            instance. The new instance will be added as a new attribute of self with the name
-            of the key in the services dict.
+
+        :Keyword args:
+            *   **infra** optional; if specified, an instance of some kind of
+                :py:class:`InfraModel<actuator.infra.InfraModel>`. Takes precedence
+                over infra_args.
+            *   **infra_args** optional; if specified, a sequence of a sequence and a dict, to be
+                used to create a new instance of the infra model like ModelClass(\*infra_args[0], \*\*infra_args[1]).
+                Ignored in the 'infra' parameter has been supplied. If used, self.infra must be a subclass
+                of InfraModel.
+            *   **namespace** optional; if specified, and instance of some kind of
+                :py:class:`NamespaceModel<actuator.namespace.NamespaceModel>`. Takes
+                precedence over namespace_args
+            *   **namespace_args** optional; if specified, a sequence of a sequence and a dict, to be used
+                to create a new instance of the namespace model like ModelClass(\*namespace_args[0], \*\*namespace_args[1]).
+                Ignored if the namespace parameter is specified. If used, self.namespace must be a subclass
+                of NamespaceModel.
+            *   **config** optional; if specified, an instance of a
+                :py:class:`ConfigModel<actuator.config.ConfigModel>`. Takes precedence over config_args.
+            *   **config_args** optional; if specified, a sequence of a sequence and a dict, to be used
+                to create a new instance of the config model like ModelClass(\*config_args[0], \*\*config_args[1]).
+                Ignored if the config parameter is specified. If used, self.config must be a subvlass
+                of ConfigModel.
+            *   **services** optional; a dict whose keys are names of services and whose values can
+                be one of two things: they can be a ServiceModel instance, or they can be a sequence of
+                [(), {}] parameters that can be used to instantiate a service. In this latter
+                case, the ServiceModel that is "self" must have an attribute of the same name that is
+                a ServiceModel model class to which these parameters will be applied to create a service
+                instance. The new instance will be added as a new attribute of self with the name
+                of the key in the services dict.
         """
         super(ServiceModel, self).__init__(name, **kwargs)
 
@@ -223,6 +233,7 @@ class ServiceModel(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Va
         """
         returns a list of all services, starting with self, including all directly owned
         services, and all recursively owned services
+
         :return: set of services
         """
         result = set([self])
@@ -246,6 +257,7 @@ class ServiceModel(six.with_metaclass(ServiceMeta, ModelComponent, ModelBase, Va
                  "services": self.services})
 
     def finalize_reanimate(self):
+        """"""
         self.service_names = set(self.service_names)
 
     def _fix_arguments(self):

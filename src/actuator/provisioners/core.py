@@ -36,6 +36,7 @@ from actuator.utils import (root_logger, LOG_INFO, get_mapper, capture_mapping)
 
 _base_provisioner_map = "base_provisioner_map"
 
+
 class ProvisionerException(Exception):
     def __init__(self, msg, record=None):
         super(ProvisionerException, self).__init__(msg)
@@ -169,6 +170,7 @@ class BaseProvisionerProxy(object):
         """
         fetch a run context specific to this kind of provisioner proxy. if this
         thread has already created a context return that
+
         :return: a derived class of AbstractRunContext
         """
         context = self.run_contexts.get(threading.current_thread())
@@ -181,6 +183,7 @@ class BaseProvisionerProxy(object):
         """
         Creates a new instance of the appropriate AbstractRunContext derived class
         must be overridden by the derived class in order to return the proper object
+
         :return: an instance of a derived class of AbstractRunContext
         """
         raise TypeError("Derived class must implement")
@@ -281,6 +284,7 @@ class ProvisioningTaskEngine(BaseProvisioningTaskEngine):
                  log_level=LOG_INFO, no_delay=True):
         """
         Creates a new provisioning task engine
+
         :param infra_model: the InfraModel that contains all of the resources to provision
         :param provisioner_proxies: a sequence of BaseProvisionerProxy objects that are able
             to provide the assistance needed for each resource to be provisioned

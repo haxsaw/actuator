@@ -50,20 +50,22 @@ class UtilsException(Exception):
 
 
 class KeyAsAttr(str):
+    """"""
     pass
 
 
 class ClassMapper(dict):
-    """
-    Internal; used to map a class, and its derived classes, to some other object.
-    Really just a kind of dict that has some more interesting properties.
-    """
+    # """
+    # Internal; used to map a class, and its derived classes, to some other object.
+    # Really just a kind of dict that has some more interesting properties.
+    # """
+    """"""
     @narrate(lambda s, i: "...which resulted in a class mapper looking for the "
                           "class associated with {}".format(i))
     def __getitem__(self, item):
         """
         This method differs from normal __getitem__ in that since item is expected to be
-        a class, if a mapping can't be found directly for item, then a mapping for one
+        a class, if a mapping can't be found directly for iteFm, then a mapping for one
         of the bases on the __mro__ is subsequently searched for. Only if all of these
         searches are exhausted with no results do we raise a KeyError.
         """
@@ -86,12 +88,12 @@ _all_mappers = {}
 
 
 def capture_mapping(domain, from_class):
-    """
-    Internal; a decorator that maps one class to another relative to a specific
-    usage domain. Typically used to map a class to another, such that the second
-    has some understanding of how to process the first. Often used to map
-    data objects (and their derived classes) to handler classes.
-    """
+    # """
+    # Internal; a decorator that maps one class to another relative to a specific
+    # usage domain. Typically used to map a class to another, such that the second
+    # has some understanding of how to process the first. Often used to map
+    # data objects (and their derived classes) to handler classes.
+    # """
     def capmap(to_class):
         themap = _all_mappers.get(domain)
         if not themap:
@@ -109,12 +111,12 @@ MODIFIERS = "__actuator_modifiers__"
 
 
 class ClassModifier(object):
-    """
-    This is the mechanism to create functions that modify the content of
-    of a class (with_dependencies, with_variables, etc). This class is a
-    decorator for another function that processes the so-called "class modifiers"
-    later on, usually in the metaclass __new__ for the class.
-    """
+    # """
+    # This is the mechanism to create functions that modify the content of
+    # of a class (with_dependencies, with_variables, etc). This class is a
+    # decorator for another function that processes the so-called "class modifiers"
+    # later on, usually in the metaclass __new__ for the class.
+    # """
     def __init__(self, func):
         self.func = func
         self.__doc__ = func.__doc__
@@ -129,9 +131,9 @@ class ClassModifier(object):
 
 
 def process_modifiers(obj):
-    """
-    Processes the modifiers against the class they were meant to modify.
-    """
+    # """
+    # Processes the modifiers against the class they were meant to modify.
+    # """
     modifiers = getattr(obj, MODIFIERS, [])
     for modifier, args, kwargs in modifiers:
         modifier.process(obj, *args, **kwargs)
@@ -141,11 +143,14 @@ def find_file(filename, start_path=None):
     """
     Helpful utility that finds a file relative to some starting point.
     
-    @param filename: The name of the file to find.
-    @keyword start_path: A path prefix to use as the place to start looking
-        for the file; if unspecified, will use the current value of
-        os.getcwd() to determine the starting point.
-    @return: the full path to the file, or None if it can't be found.
+    :param filename: The name of the file to find.
+
+    :Keyword args:
+        *   **start_path** A path prefix to use as the place to start looking
+            for the file; if unspecified, will use the current value of
+            os.getcwd() to determine the starting point.
+
+    :return: the full path to the file, or None if it can't be found.
     """
     test_file_path = None
     if start_path is None:
@@ -184,11 +189,13 @@ def adb(arg, brk=True):
     If not, then a line is provided where the user can set a breakpoint in
     PyDev.
     
-    @param arg: Any argument to a modeling component (besides the 'name'
+    :param arg: Any argument to a modeling component (besides the 'name'
         argument).
-    @keyword brk: Optional, default is True. Flag to indicate whether to actually
-        break or not; this allows actual debug breaking to be turned on and off
-        by changing the value of brk. If True, then actually break.
+
+    :Keyword args:
+        *   **brk** Optional, default is True. Flag to indicate whether to actually
+            break or not; this allows actual debug breaking to be turned on and off
+            by changing the value of brk. If True, then actually break.
     """
 
     def inner_adb(context):
@@ -365,12 +372,12 @@ class _Persistable(object):
         wise should just call super(DerivedClassName, self).recover_attr_value(k, v)
         and return that value for everything else.
         
-        @param k: The name of the attribute to set on 'self'
-        @param v: The value as retrieved from persistence. If nothing needs to
+        :param k: The name of the attribute to set on 'self'
+        :param v: The value as retrieved from persistence. If nothing needs to
             be done with this value simply return it, otherwise return the 
             properly re-animated value instead (may entail a call to
             _reanimator()).
-        @param catalog: an instance of L{_Catalog}, a flat dictionary of all
+        :param catalog: an instance of L{_Catalog}, a flat dictionary of all
             _Persistables currently being processed. If a _PersistableRef is
             re-created, the actual _Persistable can be located using the
             catalog
@@ -448,8 +455,8 @@ class _Persistable(object):
         types or _Persistables, and lists and tuples of the simple types or
         _Persistables.
         
-        @param k: string; name of the attribute in the containing object
-        @param v: object: the value of the attribute named 'k'
+        :param k: string; name of the attribute in the containing object
+        :param v: object: the value of the attribute named 'k'
         @return: a JSON-safe encoding of the attribute
         """
         retval = v
@@ -714,6 +721,7 @@ class _Catalog(_SignatureDict):
 def reanimate_from_dict(d):
     """
     Returns an Actuator object (and related objects) from a previous persistence
+
     :param d: a dict containing a previously persisted Actuator object
     :return: An Actuator object. If object is only suitable for inspection and tearing
         down a system
@@ -728,6 +736,7 @@ def reanimate_from_dict(d):
 def reanimate_from_file(f):
     """
     Returns an Actuator object (and related objects) from a previous persistence
+
     :param f: a file-like object open for reading from which the JSON representation of an
         previously persisted Actuator object.
     :return: An Actuator object. The object is only suitable for inspection and tearing
@@ -744,7 +753,10 @@ def persist_to_dict(o, name=None):
 
     :param o: some Actuator object that implements the internal _Persistable interface. this is not a model
         reference of any sort, but the actual underlying object (acquired from a reference with the value() method)
-    :param name: The name that you'd like to put in the dictionary for the persisted object
+
+    :Keyword args:
+        *   **name** The name that you'd like to put in the dictionary for the persisted object
+
     :return: a dict that contains a representation of the supplied object and any related objects; the structure is:
         PERSIST_TIMESTAMP: String version of the datetime.utcnow()
         NAME: value of the name keyword parameter if supplied, or None
@@ -777,7 +789,10 @@ def persist_to_file(o, f, name=None):
     :param o: some Actuator object that implements the internal _Persistable interface. this is not a model
         reference of any sort, but the actual underlying object (acquired from a reference with the value() method)
     :param f: a file-like object, open for writing
-    :param name: The name that you'd like to put in the dictionary for the persisted object
+
+    :Keyword args:
+        *   **name** The name that you'd like to put in the dictionary for the persisted object
+
     :return: None. However, upon return a dict as returned by persist_to_dict() is converted to JSON and written to
         the supplied file
     """
@@ -789,7 +804,7 @@ def persist_to_file(o, f, name=None):
 class IPAddressable(object):
     """
     This is a protocol for any object that can acquire and be addressed with
-    an IP adddress. Other classes derive from this to allow them to be used
+    an IP address. Other classes derive from this to allow them to be used
     as references for other components.
     """
     def get_ip(self, context=None):
@@ -797,9 +812,10 @@ class IPAddressable(object):
         Return the IP address for self as a string. Derived classes are
         responsible for implementing this.
 
-        @keyword context: Ignored; this param exists to allow this method to be
-            used where callable params are allowed so that a L{CallContext} object
-            can be passed in.
+        :Keyword args:
+            *   **context** Ignored; this param exists to allow this method to be
+                used where callable params are allowed so that a L{CallContext} object
+                can be passed in.
         """
         raise TypeError("Not implemented")
 

@@ -104,19 +104,21 @@ class Task(Orable, ModelComponent, _Performable):
         """
         Create a new Task
         
-        @param name: String. Logical name for the task.
-        @param repeat_til_success: Optional. Boolean, default True. Indicates if
-            the task should only be run once, or repeated until it succeeds.
-        @param repeat_count: Optional. Integer, default 1. If the task is to
-            be repeated until it finally succeeds, this is the upper bound on how
-            many times to repeat it. Exceeding this value causes the task to abort,
-            as it is considered to possible to be successful.
-        @param repeat_interval: Optional. Integer, default 15. This is the number of
-            seconds to wait between attempts to perform the task. This value is
-            multiplied by the attempt count, so that longer and longer pauses
-            between attempts occur, giving the surrounding conditions time to
-            stabilize or corrective measures to be taken before the maximum number
-            of attempts are made.
+        :param name: String. Logical name for the task.
+
+        :Keyword args:
+            *   **repeat_til_success** Optional. Boolean, default True. Indicates if
+                the task should only be run once, or repeated until it succeeds.
+            *   **repeat_count** Optional. Integer, default 1. If the task is to
+                be repeated until it finally succeeds, this is the upper bound on how
+                many times to repeat it. Exceeding this value causes the task to abort,
+                as it is considered to possible to be successful.
+            *   **repeat_interval** Optional. Integer, default 15. This is the number of
+                seconds to wait between attempts to perform the task. This value is
+                multiplied by the attempt count, so that longer and longer pauses
+                between attempts occur, giving the surrounding conditions time to
+                stabilize or corrective measures to be taken before the maximum number
+                of attempts are made.
         """
         self.name = name
         super(Task, self).__init__(name)
@@ -140,6 +142,7 @@ class Task(Orable, ModelComponent, _Performable):
         """
         Derived class should override; returns a string that should contain some info about
         the task within parenthesis ()
+
         :return: string containing parenthesized info about the task
         """
         return "()"
@@ -148,10 +151,10 @@ class Task(Orable, ModelComponent, _Performable):
         """
         Perform the task.
 
-        Do no override this method! Instead, override
-        L{Task._perform); this is the method for specializing functionality.
+        .. warning:: Do no override this method! Instead, override :py:meth:`Task._perform`; that is the method
+            for specializing functionality.
 
-        @param engine: an instance of a L{TaskEngine}; this will get passed as the
+        :param engine: an instance of a :py:class:`TaskEngine`; this will get passed as the
             sole argument to self._perform()
         """
         if self.get_performance_status() == self.UNSTARTED:
@@ -163,11 +166,11 @@ class Task(Orable, ModelComponent, _Performable):
         Does the actual work in performing the task.
 
         Specific task classes must override this method (and not call super())
-        and in their implemention perform the work needed for the task.
+        and in their implementation perform the work needed for the task.
 
         The default implementation just raises TypeError
 
-        @raise TypeError: Raised by the default implementation; method must
+        :raise TypeError: Raised by the default implementation; method must
             be overridden.
         """
         raise TypeError("Derived class must implement")
@@ -178,16 +181,16 @@ class Task(Orable, ModelComponent, _Performable):
 
         This allows the task author to provide a means to undo the work that
         was done during perform. This is so that when a system is being
-        de-provisioned/decomissioned, any cleanup or wrap-up tasks can be
+        de-provisioned/decommissioned, any cleanup or wrap-up tasks can be
         performed before the system goes away. It also can provide the means to
         define tasks that only do work during wrap-up; by not defining any
         activity in perform, but defining work in wrap-up, a model can then
         contain nodes that only do meaningful work during the deco lifecycle
         phase of a system.
 
-        Don't override this method; instead, override L{Task._reverse}
+        .. warning:: Don't override this method; instead, override :py:meth:`Task._reverse`
 
-        @param engine: an instance of L{TaskEngine}. this will passed as the sole
+        :param engine: an instance of :py:class:`TaskEngine`. this will passed as the sole
             argument to self._reverse()
         """
         if self.get_performance_status() == self.PERFORMED:
@@ -224,15 +227,11 @@ class Task(Orable, ModelComponent, _Performable):
         return _Dependency
     
     def entry_nodes(self):
-        """
-        Internal
-        """
+        # Internal
         return [self]
     
     def exit_nodes(self):
-        """
-        Internal
-        """
+        # Internal
         return [self]
     
         
@@ -240,7 +239,7 @@ class TaskGroup(Orable, _Cloneable, _Unpackable, _Persistable):
     """
     This class supplies an alternative to the use of the '&' operator when
     defining dependencies. It allows an arbitrary number of tasks to be noted
-    to be run in parallel in the L{with_dependencies} function.
+    to be run in parallel in the :py:func:`with_dependencies<actuator.remote_task.with_dependencies>` function.
     
     This is an alternative to the use of '&' to indicate tasks that can be
     executed in parallel. For example, suppose we have tasks t1, t2, t3, and t4.
@@ -257,7 +256,7 @@ class TaskGroup(Orable, _Cloneable, _Unpackable, _Persistable):
         """
         Create a new TaskGroup with the indicated tasks or dependency expressions.
         
-        @param *args: Any number of Tasks or dependency expressions (such as
+        :param args: Any number of Tasks or dependency expressions (such as
             t1 | t2) that can be run in parallel.
         """
         for arg in args:
@@ -278,14 +277,12 @@ class TaskGroup(Orable, _Cloneable, _Unpackable, _Persistable):
                 yield p
         
     def clone(self, clone_dict):
-        """
-        Internal; create a copy of this TaskGroup. If any of the tasks in the
-
-        @param clone_dict: dict of already cloned tasks; so instead of making
-            new copies of the in the group, re-use the copies in the dict. The
-            dict has some kind of Orable as a key and the associated clone of
-            that Orable as the value.
-        """
+        # Internal; create a copy of this TaskGroup. If any of the tasks in the
+        #
+        # :param clone_dict: dict of already cloned tasks; so instead of making
+        #     new copies of the in the group, re-use the copies in the dict. The
+        #     dict has some kind of Orable as a key and the associated clone of
+        #     that Orable as the value.
         new_args = []
         for arg in self.args:
             if arg in clone_dict:
@@ -302,27 +299,22 @@ class TaskGroup(Orable, _Cloneable, _Unpackable, _Persistable):
         return _Dependency
 
     def unpack(self):
-        """
-        Returns a flattened list of dependencies in this TaskGroup
-        """
+        # Returns a flattened list of dependencies in this TaskGroup
+        """"""
         return list(itertools.chain(*[arg.unpack()
                                       for arg in self.args
                                       if isinstance(arg, _Unpackable)]))
     
     def entry_nodes(self):
-        """
-        Returns a list of nodes that have no predecessors in the TaskGroup;
-        these are the nodes that represent "entering" the group from a 
-        dependency graph perspective.
-        """
+        # Returns a list of nodes that have no predecessors in the TaskGroup;
+        # these are the nodes that represent "entering" the group from a
+        # dependency graph perspective.
         return list(itertools.chain(*[arg.entry_nodes() for arg in self.args]))
     
     def exit_nodes(self):
-        """
-        Returns a list of nodes that have no successors in the TaskGroup;
-        these are the nodes that represent "exiting" from the group
-        from a dependency graph perspective.
-        """
+        # Returns a list of nodes that have no successors in the TaskGroup;
+        # these are the nodes that represent "exiting" from the group
+        # from a dependency graph perspective.
         return list(itertools.chain(*[arg.exit_nodes() for arg in self.args]))
     
 
@@ -408,13 +400,14 @@ class GraphableModelMixin(object):
         """
         returns and instance of task.TaskEventHandler. derived class should override
         to return an actual instance
+
         :return: None; derived class should return an actual instance
         """
         return None
 
     def get_graph(self, with_fix=False):
         """
-        Returns a NetworkX DiiGraph object consisting of the tasks that are
+        Returns a NetworkX DiGraph object consisting of the tasks that are
         in the model.
         
         The graph returned is a clean instance of the graph that governs the
@@ -423,10 +416,11 @@ class GraphableModelMixin(object):
         system, such as what nodes have been performed or not. This method simply
         provides a means to acquire the graph for visualization or other
         information purposes.
-        
-        @keyword with_fix: boolean; default False. Indicates whether or not
-            the nodes in the graph should have fix_arguments called on them
-            prior to asking for their dependencies.
+
+        :Keyword args:
+            *   **with_fix** boolean; default False. Indicates whether or not
+                the nodes in the graph should have fix_arguments called on them
+                prior to asking for their dependencies.
         """
         nodes = self.get_tasks()
         if with_fix:
@@ -442,11 +436,12 @@ class GraphableModelMixin(object):
         """
         Returns an iterable of Task objects that will be nodes in the graph
         
-        This method should return an iterable of Tasks (derived classes fine)
+        This method should return an iterable of derived classes of
+        :py:class:`Task`
         that will be the nodes in the graph. Classes that use this mixin need
         to provide their own implementation; the default raises a TypeError.
         
-        @raise TypeError: Derived class must override this method
+        :raise TypeError: Derived class must override this method
         """
         raise TypeError("Derived class must implement get_tasks()")
     
@@ -490,6 +485,8 @@ class TaskEventHandler(object):
     various events generated by the task engine and task performance. It provides a way for a
     derived class to know:
 
+    - when orchestration is starting and stopping
+    - when the various stages of `initiation` are starting and stopping
     - when a task engine is staring graph processing for a particular model instance
     - when a task starts
     - when a task ends
@@ -516,29 +513,35 @@ class TaskEventHandler(object):
     def orchestration_starting(self, orchestrator):
         """
         Called to signal that an overall orchestration is starting.
-        :param orchestrator: an instance of L{actuator.ActuatorOrchestration}
+
+        :param orchestrator: an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         """
         return
 
     def orchestration_finished(self, orchestrator, result):
         """
         Called to signal that an overall orchestration has finished.
-        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
-        :param result: integer; one of the numeric status codes defined in L{actuator.ActuatorOrchestration}
+
+        :param orchestrator:  an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
+
+        :param result: integer; one of the numeric status codes defined in
+            :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         """
         return
 
     def provisioning_starting(self, orchestrator):
         """
         Called to signal that the provisioning phase of orchestration is starting
-        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+
+        :param orchestrator:  an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         """
         return
 
     def provisioning_finished(self, orchestrator, success):
         """
         Called to signal that the provisioning phase of orchestration has concluded.
-        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+
+        :param orchestrator:  an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         :param success: boolean; indicates if the provisioning completed successfully.
             If false, the orchestrator can be interrogated for details.
         """
@@ -547,14 +550,16 @@ class TaskEventHandler(object):
     def configuration_starting(self, orchestrator):
         """
         Called to signal that the configuration phase of orchestration has started.
-        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+
+        :param orchestrator:  an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         """
         return
 
     def configuration_finished(self, orchestrator, success):
         """
         Called to signal that the configuration phase of orchestration has concluded.
-        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+
+        :param orchestrator:  an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         :param success: boolean; indicates if the configuration completed successfully.
             If False, then the orchestrator can be interrogated for details
         """
@@ -563,14 +568,16 @@ class TaskEventHandler(object):
     def execution_starting(self, orchestrator):
         """
         Called to signal that the execution phase of orchestration has started.
-        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+
+        :param orchestrator:  an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         """
         return
 
     def execution_finished(self, orchestrator, success):
         """
         Called to signal that the execution phase of orchestration has concluded.
-        :param orchestrator:  an instance of L{actuator.ActuatorOrchestration}
+
+        :param orchestrator:  an instance of :py:class:`ActuatorOrchestration<actuator.ActuatorOrchestration>`
         :param success: boolean; indicates if the execution completed successfully.
             If False, then the orchestrator can be interrogated for details
         """
@@ -594,9 +601,9 @@ class TaskEventHandler(object):
         """
         Called to signal the engine is about to attempt to perform a task
 
-        :param model: the model object that the task comes from; derived from both L{modeling.ModelBase}
-            and L{task.GraphableModelMixin}
-        :param tec: a L{TaskExecControl} object
+        :param model: the model object that the task comes from; derived from both
+            :py:class:`ModelBase<actuator.modeling.ModelBase>` and :py:class:`GraphableModelMixin`
+        :param tec: a :py:class:`TaskExecControl` object
         """
         return
 
@@ -604,9 +611,9 @@ class TaskEventHandler(object):
         """
         Called to signal that the engine has successfully performed the task
 
-        :param model: the model object that the task comes from; derived from both L{modeling.ModelBase}
-            and L{task.GraphableModelMixin}
-        :param tec: a TaskExecControl object
+        :param model: the model object that the task comes from; derived from
+            :py:class:`ModelBase<actuator.modeling.ModelBase>` and :py:class:`GraphableModelMixin`
+        :param tec: a :py:class:`TaskExecControl` object
         """
         return
 
@@ -614,9 +621,9 @@ class TaskEventHandler(object):
         """
         Called to signal that the engine fatally failed to successfully perfrom the task
 
-        :param model: the model object that the task comes from; derived from both L{modeling.ModelBase}
-            and L{task.GraphableModelMixin}
-        :param tec: a TaskExecControl object
+        :param model: the model object that the task comes from; derived from
+            :py:class:`ModelBase<actuator.modeling.ModelBase>` and :py:class:`GraphableModelMixin`
+        :param tec: a :py:class:`TaskExecControl` object
         :param errtext: a list of strings that describe the error that occurred
         """
         return
@@ -625,9 +632,9 @@ class TaskEventHandler(object):
         """
         Called to signal that the engine failed to perform a task but will retry it
 
-        :param model: the model object that the task comes from; derived from both L{modeling.ModelBase}
-            and L{task.GraphableModelMixin}
-        :param tec: a TaskExecControl object
+        :param model: the model object that the task comes from; derived from
+            :py:class:`ModelBase<actuator.modeling.ModelBase>` and :py:class:`GraphableModelMixin`
+        :param tec: a :py:class:`TaskExecControl` object
         :param errtext: a list of strings that describe the error that occurred
         """
         return
@@ -642,7 +649,7 @@ class TaskEventHandler(object):
 
 class TaskEngine(object):
     """
-    Base class for execution agents. The mechanics of actually executing a task
+    Base class for execution engines. The mechanics of actually executing a task
     are left to the derived class; this class takes care of all the business of
     managing the task dependency graph and deciding what tasks should be run
     when.
@@ -654,20 +661,24 @@ class TaskEngine(object):
         """
         Make a new TaskEngine
         
-        @param model: some kind of L{actuator.modeling.ModelBase} and
-            L{GraphableModelMixin}
-        @keyword num_threads: Integer, default 5. The number of worker threads
-            to spin up to perform tasks.
-        @keyword do_log: boolean, default False. If True, creates a log file
-            that contains more detailed logs of the activities carried out.
-            Independent of log_level (see below).
-        @keyword no_delay: boolean, default False. The default causes a short
-            pause of up to 2.5 seconds to be taken before a task is started.
-            This keeps a single host from being bombarded with too many ssh
-            requests at the same time in the case where a number of different
-            tasks can all start in parallel on the same Role's host.
-        @keyword log_level: Any of the symbolic log levels in the actuator root
-            package, LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, or LOG_WARN
+        :param model: some kind of L{actuator.modeling.ModelBase} and
+            :py:class:`GraphableModelMixin`
+
+        :Keyword args:
+            *   **num_threads** Integer, default 5. The number of worker threads
+                to spin up to perform tasks.
+            *   **do_log** boolean, default False. If True, creates a log file
+                that contains more detailed logs of the activities carried out.
+                Independent of log_level (see below).
+            *   **no_delay** boolean, default False. The default causes a short
+                pause of up to 2.5 seconds to be taken before a task is started.
+                This keeps a single host from being bombarded with too many ssh
+                requests at the same time in the case where a number of different
+                tasks can all start in parallel on the same Role's host.
+            *   **log_level** Any of the symbolic log levels in the actuator root
+                package, LOG_CRIT, LOG_DEBUG, LOG_ERROR, LOG_INFO, or LOG_WARN
+
+        :raises TaskException: when the model isn't a kind of GraphableModelMixin
         """
         if not isinstance(model, GraphableModelMixin):
             raise TaskException("TaskEngine was not passed a kind of GraphableModelMixin; %s" % str(model))
@@ -723,11 +734,11 @@ class TaskEngine(object):
         Internal; used by a worker thread to report that it is giving up on
         performing a task.
         
-        @param task: The task that is aborting
-        @param etype: The aborting exception type
-        @param value: The exception value
-        @param tb: The exception traceback object, as returned by sys.exc_info()
-        @param story: a list of strings, usually from from get_narration(), that gives the human readable
+        :param task: The task that is aborting
+        :param etype: The aborting exception type
+        :param value: The exception value
+        :param tb: The exception traceback object, as returned by sys.exc_info()
+        :param story: a list of strings, usually from from get_narration(), that gives the human readable
             version of the exception
         """
         self.aborted_tasks.append((task, etype, value, tb, story))
@@ -765,13 +776,15 @@ class TaskEngine(object):
         _reverse_task() to supply the actual mechanics for the underlying
         task execution system.
 
-        @param graph: an NetworkX DiGraph; needed to find the next tasks
+        :param graph: an NetworkX DiGraph; needed to find the next tasks
             to queue when the current one is done
-        @param tec: The TaskExecControl object containing the task to perform
+        :param tec: The :py:class:`TaskExecControl` object containing the task to perform
 
         LOGGING FORMAT:
+
         Some logging in this method embeds a sub-message in the log message. The
         fields in the sub message a separated by '|', and are as follows:
+
         - task type name
         - task name
         - task path in the model (or CAN'T.DETERMINE if a path can't be computed)
@@ -793,13 +806,15 @@ class TaskEngine(object):
         _perform_task() to supply the actual mechanics of for the underlying
         task execution system.
         
-        @param _: an NetworkX DiGraph; needed to find the next tasks
+        :param _: an NetworkX DiGraph; needed to find the next tasks
             to queue when the current one is done
-        @param tec: The L{TaskExecControl} object wrapping the task to perform
+        :param tec: The :py:class:`TaskExecControl` object wrapping the task to perform
         
         LOGGING FORMAT:
+
         Some logging in this method embeds a sub-message in the log message. The
         fields in the sub message a separated by '|', and are as follows:
+
         - task type name
         - task name
         - task path in the model (or CAN'T.DETERMINE if a path can't be computed)
@@ -919,10 +934,10 @@ class TaskEngine(object):
     @narrate(lambda s: "...which started the task engine {} to "
                        "process the perform queue".format(s.name))
     def process_perform_task_queue(self):
-        """
-        Tell the agent to start performing tasks; results in calls to
-        self.perform_task()
-        """
+        # """
+        # Tell the agent to start performing tasks; results in calls to
+        # :py:meth:`perform_task`
+        # """
         logger = root_logger.getChild("%s.process_perform_tasks" % self.exec_agent)
         while not self.stop:
             try:
@@ -957,9 +972,10 @@ class TaskEngine(object):
     @narrate(lambda s: "...and then the task engine {} began to process the "
                        "reverse task queue".format(s.name))
     def process_reverse_task_queue(self):
-        """
-        Tell the agent to start reverse processing tasks; re
-        """
+        # """
+        # Tell the agent to start reverse processing tasks; results in
+        # calls to :py:meth:`reverse_task`
+        # """
         logger = root_logger.getChild("%s.process_reverse_tasks" % self.exec_agent)
         while not self.stop:
             try:
@@ -996,6 +1012,15 @@ class TaskEngine(object):
     @narrate(lambda s, **kw: "...which started the base task engine {} in performing "
                              "tasks".format(s.name))
     def perform_tasks(self, completion_record=None):
+        """
+        Traverses the graph in dependency direction to "perform" the tasks.
+
+        This method traverses the task graph in order, carrying out work as
+        directed.
+
+        :Keyword args:
+            *   completion_record: currently unused
+        """
         self._reset()
 
         def fmtmsg(msg):
@@ -1061,7 +1086,8 @@ class TaskEngine(object):
         Reversing can only be done of something already performed, including
         partial performance.
         
-        @keyword completion_record: currently unused
+        :Keyword args:
+            *   completion_record: currently unused
         """
         self._reset()
         fmtmsg = lambda msg: "Task engine %s: %s" % (self.name, msg)

@@ -102,13 +102,27 @@ class AWSRunContext(AbstractRunContext):
 
 
 class AWSProvisionerProxy(BaseProvisionerProxy):
+    """
+    Proxy to the AWS APIs
+    """
     mapper_domain_name = _aws_domain
 
     def __init__(self, name, default_region=None, aws_access_key=None, aws_secret_access_key=None):
+        """
+        Create a new AWS proxy
+
+        :param name: logical name for the proxy
+
+        :Keyword args:
+            *  **default_region** optional string; and AWS region code
+            *  **aws_access_key** string; AWS account access key
+            *  **aws_secret_access_key** string; the secret key that goes with the above account
+        """
         super(AWSProvisionerProxy, self).__init__(name)
         self.creds = _AWSCredentials(default_region, aws_access_key, aws_secret_access_key)
 
     def run_context_factory(self):
+        """"""
         return AWSRunContext(self.creds)
 
 

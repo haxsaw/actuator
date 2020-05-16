@@ -1282,7 +1282,7 @@ def test52():
         t = NullTask("inner")
 
     class MiddleCfg(ConfigModel):
-        t = ConfigClassTask("middle", cfg_class=InnerCfg, init_args=("mid2inner",))
+        t = ConfigClassTask("middle", InnerCfg, init_args=("mid2inner",))
 
     class OuterCfg(ConfigModel):
         t = MultiTask("outer", ConfigClassTask("wrapper", MiddleCfg, init_args=("outer2middle",)), NS.q.r)

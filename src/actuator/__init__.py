@@ -147,71 +147,84 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         semantics being requested, otherwise the method simply returns an
         orchestrator ready to go.
     
-        @keyword infra_model_inst: Optional; an instance of a subclass of
-            L{actuator.infra.InfraModel}. If absent, all host information must be
-            contained as values for host_refs in the NamespaceModel that resolve to
-            either an IP address or a resolvable host name.
-        @keyword provisioner_proxies: Optional; a sequence of L{actuator.provisioners.core.BaseProvisionerProxy}
-            derived class instances. These are the provisioners that will be used to provision
-            the resources in the infra model. This list can be provided later in order to plug
-            proxies in just before using an orchstrator that has be reanimated from an external store.
-        @keyword namespace_model_inst: Optional; an instance of a subclass of
-            L{actuator.namespace.NamespaceModel}. If absent, then only infra model
-            processing will be possible (if one was supplied).
-        @keyword config_model_inst: Optional; an instance of a subclass of
-            L{actuator.config.ConfigModel}. If absent, no configuration will be carried
-            out, but the namespace can be interrogated after orchestration to
-            determine values from any provisioned infra
-        @keyword excute_model_inst: Optional; an instance of a subclass of L{actuator.execute.ExecuteModel}.
-            This is required to actually run any software.
-        @keyword service: Optional; an instance of a subclass of L{actuator.ServiceModel}.
-            If provided, this service will be what the orchestrator stands up. The
-            service argument and the infra_model_inst/namespace_model_inst/config_model_inst
-            arguments are mutually exclusive; if a service is specified along with any
-            of the other arguments, an exception is raised as their proper relationship
-            can't be determined.
-        @keyword log_level: Optional; default is LOG_INFO. One of the symbolic log
-            constants from the top level actuator package. These are LOG_CRIT,
-            LOG_ERROR, LOG_WARN, LOG_INFO, and LOG_DEBUG. The default supplies
-            progress on each provisioning and configuration task.
-        @keyword no_delay: Optional; boolean, default is False. Flags if a short,
-            random delay of up to 2.5 seconds should be inserted prior to performing
-            a task. May be desirable in cases where many tasks may hit a single
-            host at one time, which spreads out the load of establishing ssh
-            connections, helping to avoid timeouts.
-        @keyword num_threads: Optional; int, default is 5. Each task, whether resource
-            provisioning or configuration, is carried out in a separate thread. The
-            more parallel tasks your model has the higher this number can be to have
-            a positive impact on the overall task completion rate. There is no value
-            in making this larger than the largest number of tasks you may have
-            running in parallel.
-        @keyword post_prov_pause: Optional: int, default is 60. The number of seconds
-            to pause after provision is done before starting on configuration. The
-            reason this is useful is because virtual/cloud systems may complete
-            provisioning, but they may not have all route information propagated
-            for newly provisioned hosts/floating ips right away. This pause gives
-            virtual/cloud systems a chance to stabilize before starting on
-            configuration tasks. If no provisioning was done (a static infra model
-            or simply no infra/provisioner), then the pause is skipped.
-        @keyword client_keys: optional dict. Client-supplied key-value dict, the
-            contents of which will be ignored by Actuator. The dict will be persisted
-            along with all other data in the orchestrator, hence both keys and values
-            must be objects that can be stored to/from JSON
-        @keyword event_handler: optional; instance L{task.TaskEventHandler} derived class. This
-            instance will be installed as the event handler for all infra and config models.
+        :Key word args:
+            *  **infra_model_inst** Optional; an instance of a subclass of
+               :py:class:`InfraModel<actuator.infra.InfraModel>`. If absent, all host information must be
+               contained as values for host_refs in the NamespaceModel that resolve to
+               either an IP address or a resolvable host name.
+            *  **provisioner_proxies** Optional; a sequence of
+               :py:class:`BaseProvisionerProxy<actuator.provisioners.core.BaseProvisionerProxy>`
+               derived class instances. These are the provisioners that will be used to provision
+               the resources in the infra model and are available in each of the different cloud provisionsers
+               sub-packages of Actuator. This list can be provided later in order to plug
+               proxies in just before using an orchestrator that has be reanimated from an external store.
+            *  **namespace_model_inst** Optional; an instance of a subclass of
+               :py:class:`NamespaceModel<actuator.namespace.NamespaceModel>`. If absent, then only infra model
+               processing will be possible (if one was supplied).
+            *  **config_model_inst** Optional; an instance of a subclass of
+               :py:class:`ConfigModel<actuator.config.ConfigModel>`. If absent, no configuration will be carried
+               out.
+            *  **execute_model_inst** Optional; an instance of a subclass of
+               :py:class:`ExecuteModel<actuator.execute.ExecuteModel>`.
+               This is required to actually run any software.
+            *  **service** Optional; an instance of a subclass of
+               :py:class:`ServiceModel<actuator.service.ServiceModel>`.
+               If provided, this service will be what the orchestrator stands up. The
+               service argument and the infra_model_inst/namespace_model_inst/config_model_inst
+               arguments are mutually exclusive; if a service is specified along with any
+               of the other arguments, an exception is raised as their proper relationship
+               can't be determined.
+            *  **log_level** Optional; default is LOG_INFO. One of the symbolic log
+               constants from the top level actuator package. These are LOG_CRIT,
+               LOG_ERROR, LOG_WARN, LOG_INFO, and LOG_DEBUG. The default supplies
+               progress on each provisioning and configuration task.
+            *  **no_delay** Optional; boolean, default is False. Flags if a short,
+               random delay of up to 2.5 seconds should be inserted prior to performing
+               a task. May be desirable in cases where many tasks may hit a single
+               host at one time, which spreads out the load of establishing ssh
+               connections, helping to avoid timeouts.
+            *  **num_threads** Optional; int, default is 5. Each task, whether resource
+               provisioning or configuration, is carried out in a separate thread. The
+               more parallel tasks your model has the higher this number can be to have
+               a positive impact on the overall task completion rate. There is no value
+               in making this larger than the largest number of tasks you may have
+               running in parallel.
+            *  **post_prov_pause** Optional: int, default is 60. The number of seconds
+               to pause after provision is done before starting on configuration. The
+               reason this is useful is because virtual/cloud systems may complete
+               provisioning, but they may not have all route information propagated
+               for newly provisioned hosts/floating ips right away. This pause gives
+               virtual/cloud systems a chance to stabilize before starting on
+               configuration tasks. If no provisioning was done (a static infra model
+               or simply no infra/provisioner), then the pause is skipped.
+            *  **client_keys** optional dict. Client-supplied key-value dict, the
+               contents of which will be ignored by Actuator. The dict will be persisted
+               along with all other data in the orchestrator, hence both keys and values
+               must be objects that can be stored to/from JSON
+            *  **event_handler** Optional; instance :py:class:`TaskEventHandler<actuator.task.TaskEventHandler>`
+               derived class. This
+               instance will be installed as the event handler for all infra, config, and execute models.
 
-        @raise ExecutionException: In the following circumstances this method
-        will raise actuator.ExecutionException:
-            - The value supplied for infra_model_inst is not an instance of
-                L{actuator.infra.InfraModel}
-            - The value supplied for provisioner is not an instance of the
-                L{actuator.provisioners.core.BaseProvisioner} base class
-            - The value supplied for namespace_model_inst is not an instance of
-                L{actuator.namespace.NamespaceModel}
-            - The value supplied for config_model_inst is not an instance of
-                L{actuator.config.ConfigModel}
+        :raise ExecutionException: In the following circumstances this method
+            will raise :py:class:`ExecutionException<actuator.exec_agents.core.ExecutionException>`:
+
+            - A `service` was specified as well as any of `infra_model_inst`, `config_model_inst`,
+              `namespace_model_inst`, or `execute_model_inst`
+            - The value supplied for `service` wasn't a derived class of
+              :py:class:`ServiceModel<actuator.service.ServiceModel>`
+            - The value supplied for `infra_model_inst` is not an instance of
+              :py:class:`InfraModel<actuator.infra.InfraModel>`
+            - The one of the values supplied for `provisioner_proxies` is not an instance of the
+              :py:class:`BaseProvisioner<actuator.provisioners.core.BaseProvisioner>` base class
+            - The value supplied for `namespace_model_inst` is not an instance of
+              :py:class:`NamespaceModel<actuator.namespace.NamespaceModel>`
+            - The value supplied for `config_model_inst` is not an instance of
+              :py:class:`ConfigModel<actuator.config.ConfigModel>`
+            - The value supplied for `execute_model_inst` is not an instance of
+              :py:class:`ExecuteModel<actuator.execute.ExecuteModel>`
+            - The value supplied for `event_handler` is not an instance of
+              :py:class:`TaskEventHandler<actuator.task.TaskEventHandler>`
                 
-        @return: initialized orchestrator instance
         """
         self._id = str(uuid.uuid4())
         self.quit = False
@@ -246,6 +259,9 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         if not (execute_model_inst is None or isinstance(execute_model_inst, ExecuteModel)):
             raise ExecutionException("execute_model_inst is not an instance of ExecuteModel")
         self.execute_model_inst = execute_model_inst
+
+        if event_handler is not None and not isinstance(event_handler, TaskEventHandler):
+            raise ExecutionException("Provided handler is not a kind of TaskEventHandler")
 
         self.log_level = log_level
         root_logger.setLevel(log_level)
@@ -292,12 +308,34 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                                          log_level=log_level)
 
     def set_provisioner_proxies(self, proxies):
+        """
+        Set the provisioner proxies on an already created orchestrator.
+
+        This method allows the caller to supply an orchestrator with a set of provisioner proxies to use with
+        any provisioning/deprovisioning activities it may be asked to carry out. This is required calling on
+        a reanimated orchestrator since proxies are not persisted with orchestrators.
+
+        :param proxies: a sequence of
+            :py:class:`actuator.provisioners.core.BaseProvisionerProxy`
+            derived class instances. These are the provisioners that will be used to provision
+            the resources in the infra model and are available in each of the different cloud provisionsers
+            sub-packages of Actuator.
+        :return: None
+        """
         if any([not isinstance(pp, BaseProvisionerProxy) for pp in proxies]):
             raise ExecutionException("one or more of the proxies is not of a type derived from "
                                      "BaseProvisionerProxy")
         self.provisioner_proxies = proxies
 
     def set_event_handler(self, handler):
+        """
+        Sets an event handler for the orchestrator
+
+        The orchestrator will ensure that any processing events are forwarded on to the supplied
+        event handler.
+        :param handler: An instance of a derived class of :py:class:`actuator.task.TaskEventHandler`
+        :return: None
+        """
         if not isinstance(handler, TaskEventHandler):
             raise ExecutionException("Provided handler is not a kind of TaskEventHandler")
         self.event_handler = handler
@@ -311,6 +349,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
 
     # methods for TaskEventHandler
     def orchestration_starting(self, orchestrator):
+        """"""
         if self.event_handler is not None:
             try:
                 self.event_handler.orchestration_starting(self)
@@ -319,6 +358,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def orchestration_finished(self, orchestration, result):
+        """"""
         if self.event_handler is not None:
             try:
                 self.event_handler.orchestration_finished(self, result)
@@ -327,6 +367,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def provisioning_starting(self, orchestrator):
+        """"""
         if self.event_handler:
             try:
                 self.event_handler.provisioning_starting(self)
@@ -335,6 +376,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def provisioning_finished(self, orchetrator, success):
+        """"""
         if self.event_handler:
             try:
                 self.event_handler.provisioning_finished(self, success)
@@ -343,6 +385,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def configuration_starting(self, orchestrator):
+        """"""
         if self.event_handler:
             try:
                 self.event_handler.configuration_starting(self)
@@ -351,6 +394,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def configuration_finished(self, orchestrator, success):
+        """"""
         if self.event_handler:
             try:
                 self.event_handler.configuration_finished(self, success)
@@ -359,6 +403,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def execution_starting(self, orchestrator):
+        """"""
         if self.event_handler:
             try:
                 self.event_handler.execution_starting(self)
@@ -367,6 +412,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def execution_finished(self, orchestrator, success):
+        """"""
         if self.event_handler:
             try:
                 self.event_handler.execution_finished(self, success)
@@ -375,26 +421,32 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                                     format(str(e)))
 
     def engine_starting(self, model, graph):
+        """"""
         if self.event_handler is not None:
             self.event_handler.engine_starting(model, graph)
 
     def engine_finished(self, model):
+        """"""
         if self.event_handler is not None:
             self.event_handler.engine_finished(model)
 
     def task_starting(self, model, tec):
+        """"""
         if self.event_handler is not None:
             self.event_handler.task_starting(model, tec)
 
     def task_finished(self, model, tec):
+        """"""
         if self.event_handler is not None:
             self.event_handler.task_finished(model, tec)
 
     def task_failed(self, model, tec, errtext):
+        """"""
         if self.event_handler is not None:
             self.event_handler.task_failed(model, tec, errtext)
 
     def task_retry(self, model, tec, errtext):
+        """"""
         if self.event_handler is not None:
             self.event_handler.task_retry(model, tec, errtext)
     # end methods for TaskEventHandler
@@ -430,6 +482,7 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
                     yield q
 
     def finalize_reanimate(self):
+        """"""
         self.logger = root_logger.getChild("orchestrator")
         if not hasattr(self, "provisioner_proxies"):
             self.provisioner_proxies = ()
@@ -472,6 +525,14 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
     #     return errors
 
     def quit_processing(self):
+        """
+        Instructs the orchestrator to stop further processing at the earliest opportunity
+
+        Informs any task engines that are running to stop as soon as possible. Since the
+        :py:meth:`initiate_system` method blocks, this method must be called from another thread.
+
+        :return: None
+        """
         self.quit = True
         if self.pte:
             self.pte.abort_process_tasks()
@@ -488,8 +549,14 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         Starts the process of system initiation. By default, logs progress 
         messages to stdout. If errors are raised, then they will be logged with
         level CRITICAL.
+
+        .. note:: This method blocks until all processing is complete, so if your program requires
+            responsiveness to be maintained, then call it in a separate thread.
+
+        This method may be re-invoked if it previously failed, and it will resume processing where it
+        left off, attempting to finish all required work.
         
-        @return: True if initiation was successful, False otherwise.
+        :return: True if initiation was successful, False otherwise.
         """
         self.initiate_start_time = str(datetime.datetime.utcnow())
         self.logger.info("Orchestration starting")
@@ -605,6 +672,22 @@ class ActuatorOrchestration(_Persistable, TaskEventHandler):
         return True if not self.quit else False
 
     def teardown_system(self):
+        """
+        Tears down a previously initiated system.
+
+        This method de-provisions all resources in the infra model, effectively tearing down the system
+        that was previously started.
+
+        .. note:: This method blocks until all processing is complete, so if your program requires
+            responsiveness to be maintained, then call it in a separate thread.
+
+        This method may be re-invoked if it previously failed, and it will resume processing where it
+        left off, attempting to finish all required work.
+
+        Fatal errors are logged as CRITICAL.
+
+        :return: bool; True if teardown was successful, False otherwise.
+        """
         self.logger.info("Teardown orchestration starting")
         did_teardown = False
         # if self.infra_model_inst is not None and self.pte is not None:

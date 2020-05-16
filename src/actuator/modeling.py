@@ -78,16 +78,15 @@ class KeyItem(_ValueAccessMixin):
 
 
 class ContextExpr(_Persistable):
-    """
-    Creates deferred references to object attrs
-    
-    You should never make one of these yourself; simply access attributes on
-    the global 'ctxt' object and new instances are created for you. This object
-    captures the path to a particular attribute in an object, and can eval
-    that path later against a materialized object when it is available. Use
-    ctxt to generate references into your various models. This supports both
-    attribute access and key access on any Multi* objects
-    """
+    # Creates deferred references to object attrs
+    #
+    # You should never make one of these yourself; simply access attributes on
+    # the global 'ctxt' object and new instances are created for you. This object
+    # captures the path to a particular attribute in an object, and can eval
+    # that path later against a materialized object when it is available. Use
+    # ctxt to generate references into your various models. This supports both
+    # attribute access and key access on any Multi* objects
+    """"""
 
     def __init__(self, *path):
         self._path = path
@@ -192,27 +191,32 @@ class CallContext(object):
     """
     Captures the context in which a callable argument is evaluated, and is passed
     into the callable when it is invoked.
-    
+
     You don't make instances of these; Actuator handles it for you. An instance
     is passed into any callable that has been supplied as an argument in creating
     any AbstractModelingEntity object (components, roles, etc). The attributes of
     the class have the following meaning:
 
-    @ivar comp: the component that the callable is an argument for. This may be
-        None if this is an argument attached to the model itself
-    @ivar model: the instance of the model that the component is a part of
-    @ivar name: the name used to access the component from its parent. If comp
-        if the value of an attribute on another object, then 'name' will be the
-        attribute's name. If comp was accessed using a key, for example:
-        'thing[1]', the name will be the key used, here '1'. If comp is None
-        then this will likewise be None.
-    @ivar nexus: an object that provides access to other models in the model
-        set: nexus.inf is the infra model, nexus.ns the namespace model,
-        nexus.cfg is the config model, and nexus.exe is the execution model.
-        This allows logical navigation to other models in context expressions.
+    :Public attrs:
+        *   **comp** the component that the callable is an argument for. This may be
+            None if this is an argument attached to the model itself
+        *   **model** the instance of the model that the component is a part of
+        *   **name** the name used to access the component from its parent. If comp
+            if the value of an attribute on another object, then 'name' will be the
+            attribute's name. If comp was accessed using a key, for example:
+            'thing[1]', the name will be the key used, here '1'. If comp is None
+            then this will likewise be None.
+        *   **nexus** an object that provides access to other models in the model
+            set: nexus.inf is the infra model, nexus.ns the namespace model,
+            nexus.cfg is the config model, and nexus.exe is the execution model.
+            This allows logical navigation to other models in context expressions.
     """
 
     def __init__(self, model_inst, component):
+        """
+        :param model_inst: An instance of some kind of :py:class:`ModelBase`
+        :param component: The :py:class:`ModelComponent` that is currently being processed.
+        """
         self.model = model_inst
         self.nexus = model_inst.nexus if model_inst is not None else None
         self.comp = component
@@ -225,43 +229,45 @@ class _ArgumentProcessor(object):
 
 
 class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
-    """
-    Base class for all modeling entities
-    """
     # this attribute flags to the clone() method if attrs are to be  cloned;
-    # derived classed can set this to false if they don't want to clone
+    # derived classes can set this to false if they don't want to clone
     # model attrs
     clone_attrs = True
     _inst_map = weakref.WeakValueDictionary()
 
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, *args, model=None, **kwargs):
         """
         Create a new modeling entity
 
-        Set up the basic data for all modeling entities. The attribute
-        @param name: Internal name for the entity. This is not guaranteed to
+        Set up the basic data for all modeling entities.
+
+        :param name: Internal name for the entity. This is not guaranteed to
             unique or unmolested; container components may modify this name to
             suit its purposes, although they are to guarantee that the user supplied
             name will be present in any mangled version.
-        @keyword model_instance: used internally; provides the model this
-            entity is a part of. Users don't have to specify this value, and
-            generally can't anyway
+
+        :Keyword args:
+            *   **model** used internally; provides the model this
+                entity is a part of. Users don't have to specify this value, and
+                generally can't anyway
+
+        :Public attrs:
+            *   **name** public string name for the entity as supplied by the argument. It may become modified depending
+                on the component and its use.
+            *   **fixed** public bool that indicates if all values in the entity have been computed. If True, then
+                no callables are invoked again.
+            *   **_id** public; a uuid.uuid4(); unique id for the entity.
         """
-        model = kwargs.get("model")
-        if "model" in kwargs:
-            kwargs.pop("model")
+        # model = kwargs.get("model")
+        # if "model" in kwargs:
+        #     kwargs.pop("model")
         super(AbstractModelingEntity, self).__init__(*args, **kwargs)
         self.name = name
-        "@ivar: publically available name attr for this entity"
         self._id = uuid.uuid4()
-        """@ivar: public; internally generated unique id for this instance,
-            a uuid.uuid4"""
+        "_id = uuid.uuid4()"
         self._inst_map[self._id] = self  # set up a weak ref to the inst cache
         self._model_instance = model
         self.fixed = False
-        """@ivar: public, read only. Indicates if the value of this entity
-            has had its final computation (all refs resolved, callable args
-            all called). Once fixed, callables won't be called again"""
 
     def index_of(self, other):
         """
@@ -304,6 +310,12 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
     @narrate(lambda s: "...when a {} instance {} was asked to find a model reference to "
                        "itself".format(s.__class__.__name__, s.name))
     def get_ref(self):
+        """
+        Attempt to return the authoritative model reference for this entity. All components must have
+        already been computed for model this entity is part of.
+
+        :return: a :py:class:`ModelInstanceReference` or None
+        """
         return AbstractModelReference.find_ref_for_obj(self)
 
     def _validate_args(self, referenceable):
@@ -346,7 +358,7 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
                        "values of its arguments".format(s.__class__.__name__, s.name))
     def fix_arguments(self):
         """
-        Called internally when it time to fix arguments on the entity
+        Called internally when it is time to fix arguments on the entity.
         
         This method sets up the protocol for all derived entities to fix all
         arguments; this means turning model refs to model instance refs, and
@@ -402,8 +414,8 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         This method returns a model reference to the object that contains
         this object. For instance, if this object is an attribute on a model
         class, this method will return a reference to the model class. OTOH, if
-        this object is an instance inside of some L{ComponentGroup} object, then
-        this method will return the L{ComponentGroup}. Can be applied to the
+        this object is an instance inside of some :py:class:`ComponentGroup` object, then
+        this method will return the :py:class:`ComponentGroup`. Can be applied to the
         return value to get the container's container, etc.
          
         """
@@ -450,14 +462,14 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         return value
 
     def get_init_args(self):
-        """
-        Returns the arguments that were used to create this object
-        
-        This method must return a 2-tuple; the first element is a tuple of
-        positional arguments for this instance, and the second is a dict that
-        contains the kwargs for this instance. Typically used when a copy of
-        this object is to be made
-        """
+        # Returns the arguments that were used to create this object
+        #
+        # This method must return a 2-tuple; the first element is a tuple of
+        # positional arguments for this instance, and the second is a dict that
+        # contains the kwargs for this instance. Typically used when a copy of
+        # this object is to be made.
+        #
+        # .. note:: This does not currently yield useful values on reanimated entities.
         return (self.name,), {"model": self._model_instance}
 
     def get_init_value_for_attr(self, attrname):
@@ -481,12 +493,15 @@ class AbstractModelingEntity(_Persistable, _ArgumentProcessor):
         just the values passed to __init__(). Hence, this method isn't useful in
         making a copy of the current state of this object, but instead is for
         creating a copy that is created the same way as 'self' was.
-        
-        @param clone_into_class: Optional, defaults to None. Allows the caller
-            to determine what class should be instantiated for the clone. Normally
-            the class returned by L{AbstractModelingEntity.get_class} is
-            used.
-        @return: an un-fixed copy of self.
+
+        :Keyword args:
+            *   **clone_into_class** Optional, defaults to None. If supplied, must be some kind of
+                modeling class object. Allows the caller
+                to determine what class should be instantiated for the clone. Normally
+                the class returned by :py:meth:`get_class` is
+                used.
+
+        :return: an un-fixed copy of self.
         """
         args, kwargs = self.get_init_args()
         new_args = [(arg.clone() if self.clone_attrs and isinstance(arg, AbstractModelingEntity) else arg)
@@ -541,10 +556,11 @@ class _ComputeModelComponents(object):
         on the name of all components 'self' thinks it has, relative to the
         the reference to 'self' itself. This will ensure that all references
         to relevant model components will be generated properly.
-        
-        @keyword my_ref: The model reference to self; defaults to None, as this
-            usually starts with the model instance, and there's no reference
-            to that object.
+
+        :Keyword args:
+            *   **my_ref** The model reference to self; defaults to None, as this
+                usually starts with the model instance, and there's no reference
+                to that object.
         """
         all_refs = set()
         for k, v in self._comp_source().items():
@@ -596,13 +612,16 @@ class ComponentGroup(AbstractModelingEntity, _ComputeModelComponents):
         """
         Create a new ComponentGroup
         
-        @param name: string; the logical name to give the component
-        @keyword {any keyword argument}: There are no fixed keyword arguments for
-        this class; all keyword arg keys will be turned into attributes on
-        the instance of this object. The value of each keyword arg must be
-        a derived class of L{AbstractModelingEntity}.
-        @raise TypeError: Raised if a keyword argument isn't an instance of
-            L{AbstractModelingEntity}
+        :param name: string; the logical name to give the component
+
+        :Keyword args:
+            *   `any keyword arguments` There are no fixed keyword arguments for
+                this class; all keyword arg keys will be turned into attributes on
+                the instance of this object. The value of each keyword arg must be
+                a derived class of :py:class:`AbstractModelingEntity`.
+
+        :raises TypeError: Raised if a keyword argument isn't an instance of
+            :py:class:`AbstractModelingEntity`
         """
         super(ComponentGroup, self).__init__(name)
         for k, v in kwargs.items():
@@ -660,26 +679,32 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
     
     This component behaves like a dict, except that whenever a new key is used
     to look up an item, instead of a KeyError, a new copy of a template
-    component is created for  that key. The key also becomes part of the name
-    of the new component. 
+    component is created for that key. The key also becomes part of the name
+    of the new component.
+
+    .. note:: All keys are converted to strings. If you read keys back out and need them to be the
+        original type, you must do the conversion back yourself.
     """
 
     def __init__(self, template_component, namesep="_"):
         """
         Create a new MultiComponent instance
         
-        @param template_component: Any kind of AbstractModelingEntity, including
+        :param template_component: Any kind of AbstractModelingEntity, including
             another MultiComponent or other container. The template will be
             cloned immediately so that it is isolated from any other uses
             elsewhere.
-        @:param namesep: optional string, default '_'. Identifies the string to use
-            to separate parts of the name that is generated for new instances of the
-            component. Normally the generated component name would be the container
-            name, followed by '_', followed by the stringified key. However, you can
-            set this to an empty string and the parent to an empty string in order to
-            get the name to only be the key name.
-        @raise TypeError: raised if the template_component isn't some kind of
-            AbstractModelingEntity
+
+        :Keyword args:
+            *   **namesep** optional string, default '_'. Identifies the string to use
+                to separate parts of the name that is generated for new instances of the
+                component. Normally the generated component name would be the container
+                name, followed by '_', followed by the stringified key. However, you can
+                set this to an empty string and the parent to an empty string in order to
+                get the name to only be the key name.
+
+        :raises TypeError: raised if the template_component isn't some kind of
+            :py:class:`AbstractModelingEntity`
         """
         if not isinstance(template_component, AbstractModelingEntity):
             raise TypeError("The template component %s isn't an "
@@ -806,7 +831,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         """
         Returns True if an instance has been created for the supplied key, False otherwise
         
-        @param key: an immutable key value
+        :param key: an immutable key value
         """
         return KeyAsAttr(key) in self._instances
 
@@ -816,8 +841,10 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         """
         Returns a reference to the instance for key, otherwise returns default
         
-        @param key: immutable key value; coerced to a string
-        @keyword default: defaults to None; value to return if key is not in the container
+        :param key: immutable key value; coerced to a string
+
+        :Keyword args:
+            *   **default** optional, defaults to None; value to return if key is not in the container
         """
         ref = AbstractModelReference.find_ref_for_obj(self)
         result = ref[key] if key in self else default
@@ -834,7 +861,7 @@ class MultiComponent(AbstractModelingEntity, _ComputeModelComponents):
         return the instance previously created for the key. Ohterwise, create
         a new instance and map it to the supplied key.
         
-        @param key: immutable key value; coerced to string
+        :param key: immutable key value; coerced to string
         """
         inst = self._instances.get(key)
         if inst is None:
@@ -874,7 +901,7 @@ class MultiComponentGroup(MultiComponent):
     Allows a group of components to be provisioned as a unit, and creates new
     instances of the grouping whenever a new key is supplied to name another
     instance of the group (in the way that ComponentGroup works). This is really
-    just a shortcut for making a ComponentGroup and then passing that component
+    just a shortcut for making a ComponentGroup and then passing that as the template
     to MultiComponent.
     """
 
@@ -886,9 +913,11 @@ class MultiComponentGroup(MultiComponent):
         kwargs will be come the attributes of instances created by indexing
         the returned object (obj[key]).
         
-        @param name: the logical name to give the grouping
-        @keyword **kwargs: This will become the attributes of each
-        instance of the group that is created with a new key.
+        :param name: the logical name to give the grouping
+
+        :Keyword args:
+            *   **kwargs** This will become the attributes of each
+                instance of the group that is created with a new key.
         """
         namesep = kwargs.pop("namesep", "_")
         group = ComponentGroup(name, **kwargs)
@@ -936,14 +965,16 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         """
         Initialize a new reference object.
         
-        @param name: string; the name of the attribute to fetch from the parent
-        @keyword obj: optional; an object on which the attribute 'name' is defined
-            Hence, an instance of a reference is the data needed to successfully
-            execute "getattr(obj, name)"
-            Not specified in certain internal cases
-        @keyword parent: The parent reference object to this object. In other
-            words, the reference to 'obj'. This allows the reference to compute
-            the full path to the item it refers to
+        :param name: string; the name of the attribute to fetch from the parent
+
+        :Keyword args:
+            *   **obj** optional; an object on which the attribute 'name' is defined
+                Hence, an instance of a reference is the data needed to successfully
+                execute "getattr(obj, name)"
+                Not specified in certain internal cases
+            *   **parent** The parent reference object to this object. In other
+                words, the reference to 'obj'. This allows the reference to compute
+                the full path to the item it refers to
         """
         self._name = name
         self._obj = obj
@@ -956,9 +987,11 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         parameters has been generated previously)
         
         @param name: name of the attribute on the object that the ref is for
-        @keyword obj: object on which 'name' is defined.
-        @keyword parent: parent reference to this reference; in other words, the
-            reference to 'obj'
+
+        :Keyword args:
+            *   **obj** object on which 'name' is defined.
+            *   **parent** parent reference to this reference; in other words, the
+                reference to 'obj'
         """
         key = AbstractModelReference._cache_key(name, obj, parent)
 
@@ -994,6 +1027,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         """
         returns the key that is used to access this item. Here, 'key' may be an attribute name
         or a actual key if this is some kind of MultiComponent
+
         :return: string key value
         """
         return self._name
@@ -1034,29 +1068,33 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
         """
         Inverse lookup; for an object, look for the reference to it. The reference
         has to have been generated previously.
+
+        :param obj: a modeling object you wish to find the reference to
         
-        NOTE: this may not always give you the result you wish. It's possible
-        that the same object has had more than one reference navigate to it,
-        in which case you could get an unexpected reference to the object
-        you provide. It isn't clear that this is a big deal, since at the end
-        of the day the underlying object is the same, but paths to the object
-        may be confused.
+        .. note:: this may not always give you the result you wish. It's possible
+            that the same object has had more than one reference navigate to it,
+            in which case you could get an unexpected reference to the object
+            you provide. It isn't clear that this is a big deal, since at the end
+            of the day the underlying object is the same, but paths to the object
+            may be confused.
         """
         return AbstractModelReference._inv_cache.get(obj)
 
     @narrate(lambda s: "...which required locating {}'s containing component".format(s._name))
     def get_containing_component(self):
         """
-        For a reference's value, return the L{ModelComponent} that contains the
+        For a reference's value, return the :py:class:`ModelComponent` that contains the
         reference.
         
-        This allows discovery of the L{ModelComponent} that contains a reference
+        This allows discovery of the :py:class:`ModelComponent` that contains a reference
         to a more basic data item, such as a string. For instance, if you have
         a reference to a component's string attribute, you may need to find out
         the component that owns that attribute in order to properly compute
         dependencies. This method returns that reference. For example, suppose
         you have:
-        
+
+        .. code:: python
+
             class Thing(ModelComponent):
                 def __init__(self, name):
                     self.field = 1
@@ -1065,11 +1103,13 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
             ref = t.field
         
         To later find the L{ModelComponent} that ref is from, you can say:
-        
-        mc = ref.get_containing_component()
+
+        .. code:: python
+
+            mc = ref.get_containing_component()
         
         If the reference is to a L{ModelComponent} itself, this method returns
-        the L{ModelComponent} itself.
+        the :py:class:`ModelComponent` itself.
         """
         ga = super(AbstractModelReference, self).__getattribute__
         val = self.value()
@@ -1087,8 +1127,8 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     @narrate(lambda s: "...which required locating the containing component of reference {}".format(s._name))
     def get_containing_component_ref(self):
         """
-        Like L{get_containing_component}, but returns the reference for the
-        discovered L{ModelComponent}
+        Like :py:meth:`get_containing_component`, but returns the reference for the
+        discovered :py:class:`ModelComponent`
         """
         comp = self.get_containing_component()
         return AbstractModelReference.find_ref_for_obj(comp)
@@ -1154,7 +1194,7 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
     def value(self, **kwargs):
         """
         Returns the value that underlies the reference. This may or may not
-        return something then None, depending on the reference and where the
+        return something other than None, depending on the reference and where the
         underlying object is in its lifecycle. References on models may never
         yield a value, while references on model instances will yield a value
         if the underlying value has been set.
@@ -1181,12 +1221,12 @@ class AbstractModelReference(_ValueAccessMixin, _Persistable):
 class ModelReference(AbstractModelReference):
     """
     Instances of this class are generated whenever accesses are made to the
-    attributes of a model class. See the doc for L{AbstractModelReference} for
+    attributes of a model class. See the doc for :py:class:`AbstractModelReference` for
     the rest of the interface for this class.
     
-    NOTE: these references are generated when accessing attributes on a model
-    class; you never create them yourself. They are not generated for methods;
-    methods are passed through as ususal.
+    .. note:: these references are generated when accessing attributes on a model
+        class; you never create them yourself. They are not generated for methods;
+        methods are passed through as usual.
     """
 
     def _get_item_ref_obj(self, theobj, key):
@@ -1196,7 +1236,7 @@ class ModelReference(AbstractModelReference):
 class ModelInstanceReference(AbstractModelReference):
     """
     Instances of this class are created when accessing attributes on a model
-    class instance. See the doc for L{AbstractModelReference} for the rest of
+    class `instance`. See the doc for :py:class:`AbstractModelReference` for the rest of
     the interface for this class.
     """
 
@@ -1615,6 +1655,7 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
     """
 
     def __init__(self, *args, **kwargs):
+        """"""
         super(ModelBase, self).__init__(*args, **kwargs)
         setattr(self, Channel._CHANNELS, dict(object.__getattribute__(self, Channel._CHANNELS)))
     #     # @FIXME: something similar should be done with ModelBaseMeta._COMPONENTS, however
@@ -1623,23 +1664,24 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
     #     # and the values from the class itself
 
     def has_channel_descriptor(self, descname):
-        """
-        predicate that returns True if this class has a (potentially unset) descriptor named descname
-        :param descname: string; name of the descriptor to test
-        :return: bool; True if this class implements this descriptor, False otherwise
-        """
+        # predicate that returns True if this class has a (potentially unset) descriptor named descname
+        #
+        # :param descname: string; name of the descriptor to test
+        #
+        # :returns: bool; True if this class implements this descriptor, False otherwise
         c = object.__getattribute__(self, "__class__")
         cd = object.__getattribute__(c, Channel._CHANNELS)
         return descname in cd
 
     def get_channel_cexpr(self, descname):
-        """
-        returns the context expression associated with an Channel descriptor object rather than the
-        value of the __get__ method of the descriptor
-        :param descname: string; name of the descriptor to return
-        :return: the context expression stored in this descriptor, if any. None if no descriptor supplied
-        :raises ActuatorException: if there is no such descriptor
-        """
+        # returns the context expression associated with an Channel descriptor object rather than the
+        # value of the __get__ method of the descriptor
+        #
+        # :param descname: string; name of the descriptor to return
+        #
+        # :return: the context expression stored in this descriptor, if any. None if no descriptor supplied
+        #
+        # :raises ActuatorException: if there is no such descriptor
         if not self.has_channel_descriptor(descname):
             raise ActuatorException("No Channel descriptor named {}".format(descname))
         d = object.__getattribute__(self, Channel._CHANNELS)
@@ -1663,14 +1705,14 @@ class ModelBase(six.with_metaclass(ModelBaseMeta, AbstractModelingEntity, _Nexus
 
     def get_inst_ref(self, model_ref):
         """
-        Take a model ref object and get an associated model instance ref for
+        Take a :py:class:`ModelReference` object and get an associated :py:class:`ModelInstanceReference` for
         this model instance.
         
         Evaluates a model_ref against this instance and returns an instance ref
         that refers to the same logical spot in the model instance. The ref must
         be for this model, otherwise an error will result.
         
-        @param model_ref: 
+        :param model_ref: a :py:class:`ModelReference`
         """
         if isinstance(model_ref, ModelInstanceReference):
             return model_ref

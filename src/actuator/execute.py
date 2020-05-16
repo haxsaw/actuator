@@ -38,6 +38,10 @@ class ExecuteException(RemoteTaskException):
 
 
 class ExecuteTask(RemoteTask):
+    """
+    .. note:: ExecuteTask is derived from :py:class:`actuator.remote_task.RemoteTask`; see the documentation
+        for that class for details. This class is just a veneer over that class.
+    """
     pass
 
 
@@ -51,17 +55,29 @@ class ExecuteModelMeta(RemoteTaskModelMeta):
 
 
 class ExecuteModel(six.with_metaclass(ExecuteModelMeta, RemoteTaskModel)):
+    """
+    .. note:: ExecuteModel is derived from :py:class:`actuator.remote_task.RemoteTaskModel`; see
+        the documentation for that class for details. This class is just a veneer over that class.
+    """
     pass
 
 
 class ExecuteClassTask(RemoteTaskClass, ExecuteTask):
-    def __init__(self, name, exe_class, init_args=None, **kwargs):
-        super(ExecuteClassTask, self).__init__(name, exe_class, init_args=init_args, **kwargs)
+    """
+    .. note:: ExecuteClassTask is derived from :py:class:`actuator.remote_task.RemoteTaskClass`; see the documentation
+        for that class for details. This class is just a veneer over that class
+    """
+    pass
 
 
 class MultiTask(MultiRemoteTask, ExecuteTask):
+    """
+    .. note:: MultiTask is derived from :py:class:`actuator.remote_Task.MultiRemoteTask`; see the documentation
+        for that class for details. This class is just a veneer over that class.
+
+    """
     pass
 
 
 __all__ = ["ExecuteModel", "with_dependencies", "with_execute_options", "ExecuteException",
-           "ExecuteClassTask", "RemoteTaskException", "MultiTask", "ExecuteTask"]
+           "ExecuteClassTask", "MultiTask", "ExecuteTask"]

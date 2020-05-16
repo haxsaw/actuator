@@ -17,9 +17,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""
-Configuration tasks modeled after Ansible modules
-"""
 
 import time
 from errator import narrate
@@ -29,7 +26,7 @@ from actuator.exec_agents.core import ExecutionException
 
 class PingTask(ConfigTask):
     """
-    Checks to see if a remote machine is alive by ssh'ing into it.
+    Checks to see if a remote machine is alive by ssh'ing into it. No other action is taken.
     """
     pass
 
@@ -43,25 +40,27 @@ class ScriptTask(ConfigTask):
     """
     def __init__(self, name, free_form, creates=None, removes=None, proc_ns=False, **kwargs):
         """
-        @param name: logical name for the task
-        @param free_form: A string with the path to the locally available
+        :param name: logical name for the task
+        :param free_form: A string with the path to the locally available
             script followed by optional arguments to the script. This may
             contain Var replacement patterns that will be processed through
             the Vars for the task_role.
-        @keyword creates: String; the name of a file on the remote system that
-            the script will create. If already present, the script will not
-            be run. If not supplied no test for a file to be created will be
-            done.
-        @keyword removes: String; the name of a file on the remote system that
-            the script will remove. If it isn't there, then the script will
-            not be run. If not supplied then no removal test will be performed.
-        @keyword proc_ns: boolean; a flag to indicate if the script should be processed
-            through the namespace prior to being copied to the remote system. This allows
-            for scripts with Actuator Var replacement patterns to have those patterns
-            replaced with the appropriate value in the final script that will be executed.
-            The default is False, so no namespace processing is done. 
-        @keyword **kwargs: the other available keyword arguments for
-            L{ConfigTask}
+
+        :Keyword args:
+            *  **creates** String; the name of a file on the remote system that
+               the script will create. If already present, the script will not
+               be run. If not supplied no test for a file to be created will be
+               done.
+            *  **removes** String; the name of a file on the remote system that
+               the script will remove. If it isn't there, then the script will
+               not be run. If not supplied then no removal test will be performed.
+            *  **proc_ns** boolean; a flag to indicate if the script should be processed
+               through the namespace prior to being copied to the remote system. This allows
+               for scripts with Actuator Var replacement patterns to have those patterns
+               replaced with the appropriate value in the final script that will be executed.
+               The default is False, so no namespace processing is done.
+            *  **kwargs** the other available keyword arguments for
+               :py:class:`ConfigTask<actuator.config.ConfigTask>`
         """
         super(ScriptTask, self).__init__(name, **kwargs)
         self.free_form = None
@@ -103,28 +102,30 @@ class CommandTask(ScriptTask):
     will be processed through the task_role's view of its Vars in the
     namespace.
     
-    If your command needs to use shell metacharacters, use L{ShellTask}
+    If your command needs to use shell metacharacters, use :py:class:`ShellTask`
     instead.
     """
     def __init__(self, name, free_form, chdir=None, creates=None,
                  executable=None, removes=None, warn=None, **kwargs):
         """
-        @param name: logical name for the task
-        @param free_form: A string containing the remote command to run, along
+        :param name: logical name for the task
+        :param free_form: A string containing the remote command to run, along
             with any arguments the command needs
-        @keyword chdir: Directory path to cd to before running the command.
-        @keyword executable: Full path to an alternative shell to run the
-            in
-        @keyword warn: whether or not to warn about this specific command
-        @keyword creates: String; the name of a file on the remote system that
-            the script will create. If already present, the script will not
-            be run. If not supplied no test for a file to be created will be
-            done.
-        @keyword removes: String; the name of a file on the remote system that
-            the script will remove. If it isn't there, then the script will
-            not be run. If not supplied then no removal test will be performed.
-        @keyword **kwargs: the other available keyword arguments for
-            L{ConfigTask}
+
+        :Keyword args:
+            *  **chdir** Directory path to cd to before running the command.
+            *  **executable** Full path to an alternative shell to run the
+               in
+            *  **warn** whether or not to warn about this specific command
+            *  **creates** String; the name of a file on the remote system that
+               the script will create. If already present, the script will not
+               be run. If not supplied no test for a file to be created will be
+               done.
+            *  **removes** String; the name of a file on the remote system that
+               the script will remove. If it isn't there, then the script will
+               not be run. If not supplied then no removal test will be performed.
+            *  **kwargs** the other available keyword arguments for
+               :py:class:`ConfigTask<actuator.config.ConfigTask>`
         """
 
         super(CommandTask, self).__init__(name, free_form, creates=creates,
@@ -156,10 +157,10 @@ class CommandTask(ScriptTask):
 
 class ShellTask(CommandTask):
     """
-    Almost the same as the L{CommandTask}, except that the task is run within
+    Almost the same as the :py:class:`CommandTask`, except that the task is run within
     a shell, and so shell meta-characters (redirection, etc) can be used.
     
-    The arguments for ShellTask are the same as those for L{CommandTask}.
+    The arguments for ShellTask are the same as those for :py:class:`CommandTask`.
     """
     pass
 
@@ -170,9 +171,9 @@ class CopyFileTask(ConfigTask):
     
     The file is copied without impacting its contents. If you want to modify
     a file using Var replacement patterns and for the Vars in the task_role's
-    namespace, use L{ProcessCopyFileTask} instead.
+    namespace, use :py:class:`ProcessCopyFileTask` instead.
     
-    Copy can work on a single file or a directory hierachy of files.
+    Copy can work on a single file or a directory hierarchy of files.
     """
     def __init__(self, name, dest, backup=False, content=None,
                  directory_mode=None, follow=False, force=True, group=None,
@@ -180,49 +181,51 @@ class CopyFileTask(ConfigTask):
                  seuser=None, src=None, validate=None,
                  **kwargs):
         """
-        @param name: logical name for the task
-        @param dest: The full path of where to copy the file. If src is a
+        :param name: logical name for the task
+        :param dest: The full path of where to copy the file. If src is a
             directory this must be a directory as well
-        @keyword backup: boolean; if True, create a backup of any existing
-            file with the same name
-        @keyword content: Content of the file to copy to the remote. If this is
-            used instead of src, then dest must be the path to a file
-        @keyword directory_mode: If the copy is recursive, set the directories
-            to this mode, but only if the directory doesn't already exist.
-        @keyword follow: boolean; flag to indicate that if there are filesystem
-            links, they should be followed. Default no.
-        @keyword force: boolean; default is True. If True, replace the remote
-            file if it already exists. If False, do not replace.
-        @keyword group: name of the group that should own the file/directory,
-            as would be given to chown
-        @keyword mode: string mode that the file/directory should be. Symbolic
-            modes are supported.
-        @keyword owner: name of the user who should own the file/directory,
-            as will be supplied to chown
-        @keyword selevel: Default is 's0'. Level part of the SELinux file
-            context. This is the MLS/MCS attribute, sometimes known as the
-            range. _default feature works as for seuser.
-        @keyword serole: role part of SELinux file context, _default feature
-            works as for seuser.
-        @keyword setype: type part of SELinux file context, _default feature
-            works as for seuser.
-        @keyword seuser: user part of SELinux file context. Will default to
-            system policy, if applicable. If set to _default, it will use the
-            user portion of the policy if available
-        @keyword src: Local path to copy to the remote server; may be absolute
-            or relative. If the path ends in a directory, the directory will
-            be copied recursively. In this case, if the path ends in '/', only
-            the directory content will be copied recursively. If there is no
-            '/' on the end, then the directory and its contents are copied
-            recursively.
-        @keyword validate: The validation command to run before copying into
-            place. The path to the file to validate is passed in via '%s' which
-            must be present as in the visudo example below (or, if in a Var,
-            it can be represented with a replacement pattern). The command is
-            passed securely so shell features like expansion and pipes won't
-            work.
-        @keyword **kwargs: the other available keyword arguments for
-            L{ConfigTask}
+
+        :Keyword args:
+            *   **backup** boolean; if True, create a backup of any existing
+                file with the same name
+            *   **content** Content of the file to copy to the remote. If this is
+                used instead of src, then dest must be the path to a file
+            *   **directory_mode** If the copy is recursive, set the directories
+                to this mode, but only if the directory doesn't already exist.
+            *   **follow** boolean; flag to indicate that if there are filesystem
+                links, they should be followed. Default no.
+            *   **force** boolean; default is True. If True, replace the remote
+                file if it already exists. If False, do not replace.
+            *   **group** name of the group that should own the file/directory,
+                as would be given to chown
+            *   **mode** string mode that the file/directory should be. Symbolic
+                modes are supported.
+            *   **owner** name of the user who should own the file/directory,
+                as will be supplied to chown
+            *   **selevel** Default is 's0'. Level part of the SELinux file
+                context. This is the MLS/MCS attribute, sometimes known as the
+                range. _default feature works as for seuser.
+            *   **serole** role part of SELinux file context, _default feature
+                works as for seuser.
+            *   **setype** type part of SELinux file context, _default feature
+                works as for seuser.
+            *   **seuser** user part of SELinux file context. Will default to
+                system policy, if applicable. If set to _default, it will use the
+                user portion of the policy if available
+            *   **src** Local path to copy to the remote server; may be absolute
+                or relative. If the path ends in a directory, the directory will
+                be copied recursively. In this case, if the path ends in '/', only
+                the directory content will be copied recursively. If there is no
+                '/' on the end, then the directory and its contents are copied
+                recursively.
+            *   **validate** The validation command to run before copying into
+                place. The path to the file to validate is passed in via '%s' which
+                must be present as in the visudo example below (or, if in a Var,
+                it can be represented with a replacement pattern). The command is
+                passed securely so shell features like expansion and pipes won't
+                work.
+            *   **kwargs** the other available keyword arguments for
+                :py:class:`ConfigTask`
         """
         super(CopyFileTask, self).__init__(name, **kwargs)
         if content is None and src is None:
@@ -308,7 +311,7 @@ class CopyFileTask(ConfigTask):
     
 class ProcessCopyFileTask(CopyFileTask):
     """
-    Like L{CopyFileTask}, except for two crucial differences:
+    Like :py:class:`CopyFileTask`, except for two crucial differences:
     
       1. The file to be copied can contain Var replacement patterns that will
          be processed through the task_role's view of the namespace, replacing
@@ -317,11 +320,11 @@ class ProcessCopyFileTask(CopyFileTask):
       2. Given that the file is changed, recursive copies will not result in
          replacement patterns being processed. If you have a directory hierarchy
          to copy that contains some files to replace, the best approach is to
-         use L{CopyFileTask} to copy the whole hierarchy, then use
+         use :py:class:`CopyFileTask` to copy the whole hierarchy, then use
          ProcessCopyFileTask to independently copy just the files that have to
          be processed through the namespace.
          
-    The arguments are otherwise identical to L{CopyFileTask}.
+    The arguments are otherwise identical to :py:class:`CopyFileTask`.
     """
     def __init__(self, *args, **kwargs):
         if "src" not in kwargs and "content" not in kwargs:
@@ -336,10 +339,19 @@ class ProcessCopyFileTask(CopyFileTask):
 class LocalCommandTask(ConfigTask):
     """
     Runs some command on the local host in a subprocess. A shell is not
-    invoked so shell metachars are NOT expanded (use L{LocalShellCommandTask} if metachar
+    invoked so shell metachars are NOT expanded (use :py:class:`LocalShellCommandTask` if metachar
     support is required).
+
+    Var replacement in the command is performed.
     """
     def __init__(self, name, command=None, **kwargs):
+        """
+        :param name: logical name for the task
+        :param command: Command string to run. The string may have Var replacement expressions but must
+            not contain any shell metacharacters.
+        :param kwargs: the other available keyword arguments for
+            :py:class:`ConfigTask`
+        """
         super(LocalCommandTask, self).__init__(name, **kwargs)
         self._command = command
         self.command = None
@@ -360,14 +372,17 @@ class LocalCommandTask(ConfigTask):
 
 class LocalShellCommandTask(LocalCommandTask):
     """
-    Like L{LocalCommandTask} except that the command is run in a shell and hence
-    shell metacharacters are allowed in the command
+    Like :py:class:`LocalCommandTask` except that the command is run in a shell and hence
+    shell metacharacters are allowed in the `command`. See :py:class:`LocalCommandTask` for
+    details.
     """
     pass
 
 
 class WaitForTaskTask(ConfigTask):
+    """"""
     def __init__(self, name, awaited_task, **kwargs):
+        """"""
         super(WaitForTaskTask, self).__init__(name, **kwargs)
         self._awaited_task = awaited_task
         self.awaited_task = None

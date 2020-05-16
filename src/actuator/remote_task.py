@@ -125,24 +125,25 @@ def with_remote_options(cls, *_, **kwargs):
     model. Options are all keyword arguments with an appropriate
     value. Recognized keywords are:
 
-    @keyword default_task_role: Reference to a Role. This can be either a
-        model reference or an instance reference, but it must be a reference
-        to a Role. This is the Role that will be used for tasks if no other
-        explicit role has been identified, and there is no default_run_from
-        Role for the model.
-    @keyword remote_user: String. Provides a default user to utilize when
-        running tasks. Used when no other user has been identified for the task.
-        If no explicit user has been identified then the current user will
-        be used for remote task execution.
-    @keyword private_key_file: String. Path to the private part of an ssh
-        keypair. This will be used with whatever user has been determined in
-        effect for a particular task. If a task doesn't supply a specific
-        private_key_file, then this will be the fallback one used.
-    @keyword default_run_from: Reference to a Role. This value indicates where
-        a task is to be executed from, regardless of the value of task_role.
-        This allows tasks to be run with respect to a particular Role (task_role),
-        but executed from a different Role's host. This allows tasks to run on
-        a host but have access to another Role's Vars.
+    :Keyword args:
+        *   **default_task_role** Reference to a :py:class:`Role<actuator.namespace.Role>`. This can be either a
+            model reference or an instance reference, but it must be a reference
+            to a Role. This is the Role that will be used for tasks if no other
+            explicit role has been identified, and there is no default_run_from
+            Role for the model.
+        *   **remote_user** String. Provides a default user to utilize when
+            running tasks. Used when no other user has been identified for the task.
+            If no explicit user has been identified then the current user will
+            be used for remote task execution.
+        *   **private_key_file** String. Path to the private part of an ssh
+            keypair. This will be used with whatever user has been determined in
+            effect for a particular task. If a task doesn't supply a specific
+            private_key_file, then this will be the fallback one used.
+        *   **default_run_from** Reference to a :py:class:`Role<actuator.namespace.Role>`. This value indicates where
+            a task is to be executed from, regardless of the value of task_role.
+            This allows tasks to be run with respect to a particular Role (task_role),
+            but executed from a different Role's host. This allows tasks to run on
+            a host but have access to another Role's Vars.
     """
     opts = cls.__dict__.get(_remote_task_options)
     if opts is None:
@@ -191,40 +192,41 @@ class RemoteTask(Task):
         """
         Initialize a new RemoteTask
 
-        @param name: String. Logical name for the task.
-        @keyword task_role: A reference to a Role in the namespace model. This
-            can be a model reference, context expression, or callable that takes
-            an L{actuator.modeling.CallContext} and returns a model instance
-            reference. The role determines the view of the namespace that is to be
-            used; the Vars visible from the perspective of this Role are what will
-            govern the operation of the task. If no task_role has been identified,
-            one may still be assigned due to the actions of the task container
-            classes (such as MultiRemoteTask). If a task_role can't be determined, then
-            the model's default_task_role is used. If that can't be determined
-            then an exception is raised.
+        :param name: String. Logical name for the task.
 
-            In the absence of a run_from Role, the task_role also determines where
-            the task is to run (it is run on the host associated with the Role).
-        @keyword run_from: A reference to a Role in the namespace model. This can
-            a model reference, context expression, or a callable that takes an
-            L{actuator.modeling.CallContext} and returns model instance reference
-            to a Role. The host associated with this role is where the task will
-            be run, however the Vars used be those associated with the Role
-            identified as the task_role.
-        @keyword remote_user: String, defaults to None. Identifies the user name
-            to use when logging into a remote machine to perform this task. If not
-            specified, the current user's user name is used.
-        @keyword remote_pass: String, defaults to None. Password to use for the
-            remote user. NOTE: I have yet to see this work! Ansible gets a BROKEN
-            PIPE error trying to use sshpass to send the password on to ssh. This
-            may be an Ubuntu-related problem, but I haven't figured out how to
-            make it work.
-        @keyword private_key_file: String, default None. Path to private key file
-            for the remote user, as generated by ssh-keygen. This is the key file
-            that will be used for whatever remote user has been determined.
-        @keyword delegate: internal use
+        :Keyword args:
+            *   **task_role** A reference to a Role in the namespace model. This
+                can be a model reference, context expression, or callable that takes
+                an :py:class:`CallContext<actuator.modeling.CallContext>` and returns a model instance
+                reference. The role determines the view of the namespace that is to be
+                used; the Vars visible from the perspective of this Role are what will
+                govern the operation of the task. If no task_role has been identified,
+                one may still be assigned due to the actions of the task container
+                classes (such as MultiRemoteTask). If a task_role can't be determined, then
+                the model's default_task_role is used. If that can't be determined
+                then an exception is raised.
+                In the absence of a run_from Role, the task_role also determines where
+                the task is to run (it is run on the host associated with the Role).
+            *   **run_from** A reference to a Role in the namespace model. This can
+                a model reference, context expression, or a callable that takes an
+                :py:class:`CallContext<actuator.modeling.CallContext>` and returns model instance reference
+                to a Role. The host associated with this role is where the task will
+                be run, however the Vars used be those associated with the Role
+                identified as the task_role.
+            *   **remote_user** String, defaults to None. Identifies the user name
+                to use when logging into a remote machine to perform this task. If not
+                specified, the current user's user name is used.
+            *   **remote_pass** String, defaults to None. Password to use for the
+                remote user. NOTE: I have yet to see this work! Ansible gets a BROKEN
+                PIPE error trying to use sshpass to send the password on to ssh. This
+                may be an Ubuntu-related problem, but I haven't figured out how to
+                make it work.
+            *   **private_key_file** String, default None. Path to private key file
+                for the remote user, as generated by ssh-keygen. This is the key file
+                that will be used for whatever remote user has been determined.
+            *   delegate: internal use
 
-        See L{actuator.task.Task.__init__} for info on the remaining arguments
+        See :py:meth:`Task.__init__()<actuator.task.Task.__init__>` for info on the remaining arguments
         """
         super(RemoteTask, self).__init__(name, repeat_til_success=repeat_til_success,
                                          repeat_count=repeat_count,
@@ -242,6 +244,11 @@ class RemoteTask(Task):
         self.delegate = delegate
 
     def info(self):
+        """
+        Returns a formatted string that gives some info on the task
+
+        :return: string
+        """
         try:
             task_role = self.get_task_role()
             if task_role is not None:
@@ -294,19 +301,20 @@ class RemoteTask(Task):
                                       "a specific host".format(s.name))
     def task_variables(self, for_env=False):
         """
-        Return a dict with all the Vars that apply to this task according to
+        Return a dict with all the :py:class:`Vars<actuator.namespace.Var>` that apply to this task according to
         the task_role for the task.
 
-        This method returns a dict of Vars that represent the view of the Var
+        This method returns a dict of :py:class:`Vars<actuator.namespace.Var>` that represent the view of the Var
         space from the perspective of the task's Role (task_role). This will
         be the Vars expanded from the perspective of that role.
 
-        @keyword for_env: boolean, default False. Governs if the full set of
-            Vars are returned from the method. The default, False, means that
-            the intention is to not use the Vars as part of environment for
-            a task, and so sensitive Vars can be returned (those for which
-            in_env was False). If for_env is True, then the method won't
-            include Vars for which in_env is False.
+        :Keyword args:
+            *   **for_env** boolean, default False. Governs if the full set of
+                Vars are returned from the method. The default, False, means that
+                the intention is to not use the Vars as part of environment for
+                a task, and so sensitive Vars can be returned (those for which
+                in_env was False). If for_env is True, then the method won't
+                include Vars for which in_env is False.
         """
         the_vars = {}
         task_role = self.get_task_role()
@@ -318,15 +326,15 @@ class RemoteTask(Task):
         return the_vars
 
     def set_task_role(self, task_role):
-        """
-        Used internally; sets the Role to use as the task_role for the task.
-        """
+        # """
+        # Used internally; sets the Role to use as the task_role for the task.
+        # """
         self._task_role = task_role
 
     def set_run_from(self, run_from):
-        """
-        Used internally; sets the Role to use as the run_from Role for the task.
-        """
+        # """
+        # Used internally; sets the Role to use as the run_from Role for the task.
+        # """
         self._run_from = run_from
 
     def _set_delegate(self, delegate):
@@ -338,6 +346,11 @@ class RemoteTask(Task):
     def get_remote_user(self, for_task=None):
         """
         Return the effective remote user to use for this task.
+
+        :Keyword args:
+            *  **for_task** query for the supplied task rather than for self
+
+        :returns string: name of the remote user
         """
         remote_user = (self.remote_user
                        if self.remote_user is not None
@@ -351,6 +364,11 @@ class RemoteTask(Task):
     def get_remote_pass(self, for_task=None):
         """
         Return the effective remote password to use for this user.
+
+        :Keyword args:
+            *  **for_task** query for the supplied task rather than for self
+
+        :returns: string remote user's password if supplied
         """
         remote_pass = (self.remote_pass
                        if self.remote_pass is not None
@@ -363,7 +381,13 @@ class RemoteTask(Task):
                                (s.name, s.__class__.__name__))
     def get_private_key_file(self, for_task=None):
         """
-        Return the effective private key file to use for this task.
+        Return the effective private key file to use for this task. This is the path to the file, not the
+        file's contents.
+
+        :Keyword args:
+            *  **for_task** query for the supplied task rather than for self
+
+        :returns: string path to private key file
         """
         private_key_file = (self.private_key_file
                             if self.private_key_file is not None
@@ -377,6 +401,8 @@ class RemoteTask(Task):
     def get_task_host(self):
         """
         Return the host associated with the task_role for this task.
+
+        :returns: string FQDN or IP address string of task host
         """
         host = self.get_raw_task_host()
         if isinstance(host, IPAddressable):
@@ -396,6 +422,8 @@ class RemoteTask(Task):
     def get_task_role(self):
         """
         Return the Role associated with this task.
+
+        :returns: :py:class:`Role<actuator.namespace.Role>` for this task
         """
         self.fix_arguments()
         if self.task_role is not None:
@@ -416,6 +444,8 @@ class RemoteTask(Task):
     def get_run_from(self):
         """
         Return the Role associated with the run_from Role for this task
+
+        :returns: run_from :py:class:`Role<actuator.namespace.Role>` for this task
         """
         self.fix_arguments()
         if self.run_from is not None:
@@ -469,6 +499,8 @@ class RemoteTask(Task):
     def get_run_host(self):
         """
         Return the host IP associated with the run_from Role for this task.
+
+        :returns string: string FQDN or IP address of run host
         """
         host = self.get_raw_run_host()
         if isinstance(host, IPAddressable):
@@ -477,11 +509,11 @@ class RemoteTask(Task):
         return host
 
     def get_raw_run_host(self):
-        """
-        This returns whatever kind of object is set up as the return of get_run_from(); this means that
-        you might get just a string with an IP in it, or your might get an IPAddressable of some kind
-        :return: string or IPAddressable
-        """
+        # """
+        # This returns whatever kind of object is set up as the return of get_run_from(); this means that
+        # you might get just a string with an IP in it, or your might get an IPAddressable of some kind
+        # :return: string or IPAddressable
+        # """
         comp = self.get_run_from()
         host = None
         if comp is not None:
@@ -558,19 +590,19 @@ class RemoteTask(Task):
 
 
 class StructuralTask(object):
-    """
-    Flag mixin class to indicate a task that that is only for structuring
-    other tasks.
-    """
+    # """
+    # Flag mixin class to indicate a task that that is only for structuring
+    # other tasks.
+    # """
     pass
 
 
 class RendezvousTask(RemoteTask, StructuralTask):
-    """
-    Internally used task for some of the container tasks; allows a common
-    exit point to be identified for all tasks in the container.
-    """
-
+    # """
+    # Internally used task for some of the container tasks; allows a common
+    # exit point to be identified for all tasks in the container.
+    # """
+    """"""
     def _perform(self, engine):
         return
 
@@ -624,60 +656,62 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         long as you call super().__init__() in your init and pass along all the
         keyword arguments that were passed into your derived class.
 
-        @keyword namespace_model_instance: Default None, otherwise an instance
-            of a class derived from L{NamespaceModel}. You don't need to pass
-            the namespace to the model if you're using Actuator's
-            orchestrator to drive the model; the orchestrator will take
-            care of it for you. You normally never need to provide this argument.
-        @keyword nexus: Internal
-        @keyword remote_user: String; default is None. This value provides the
-            default remote_user for tasks that don't otherwise have their own
-            remote_user set. Task remote_users take precedence over this value,
-            but this value has precedence over the value supplied in
-            with_remote_options(). If the user can't be determined any other
-            way, the current user name is used for remote access
-        @keyword remote_pass: String; default is None. This arg provides the
-            password to use with the remote user as determined by above.
-            Task's remote_pass takes precedence over this value, but this value
-            takes precedence over the remote_pass supplied in
-            with_remote_options(). NOTE: this has yet to be observed to actually
-            work; Ansible always reports a BROKEN PIPE when trying to use
-            sshpass to make use of this argument. Use key pairs instead.
-        @keyword private_key_file: String; path to the private part of an ssh
-            keypair. The full path to the key file is needed.
-        @keyword delegate: internal. Next object to check for a task_role or a
-            run_from role.
-        @keyword default_task_role: Default None. This identifies the Role to
-            use for a task if the task doesn't specify a task_role of its own.
-            The Role identifies the Vars and their values to use for the task,
-            and if there is no 'run_from' role the host where the task is to run.
-            This can be reference to a Role, a context expression for a Role,
-            or a callable that takes a L{CallContext} argument and returns
-            a reference to a Role. If a task_role can't be determined for a task
-            an exception is raised at orchestration time.
-        @keyword default_run_from: Default None. This identifies the Role to use
-            for running a task; this is independent of the task_role. The
-            task_role identifies the the set of Vars and their values from the
-            namespace, and in the absence of a run_from Role, where to run the
-            task as well. If a default_run_from is supplied, then the task will
-            be run from that named Role's host, but with the Vars for the
-            task_role. This can be a reference to a Role, a context expression,
-            or a callable that takes a L{CallContext} and returns a reference
-            to a Role.
-        @keyword event_handler: if supplied, a derived class of task.TaskEventHandler
-        @keyword cloud_creds: dict, default None. If supplied, this is a dict of cloud
-            credentials. The keys are names of clouds such as were supplied to the
-            'cloud' argument on InfraModel resources. The value is a nested dict
-            whose keys are the previously described credentials arguments (remote_user,
-            remote_pass, private_key_file) for that specific cloud. Keys may be missing
-            in the inner dict and they will be treated as if they were missing from the
-            call to the model class. If a needed key is missing for a cloud, then
-            the corresponding keyword argument is checked for the model instance.
-            For example, if the 'remote_user' key is missing for the 'citycloud' cloud
-            entry, then the remote_user keyword arg is checked. If that is empty, then
-            delegates are checked as appropriate. If there is no cloud associated with
-            the task's resource, then only the keyword args for the model are checked.
+        :param name: logical name for the model
 
+        :Keyword args:
+            *   **namespace_model_instance** Default None, otherwise an instance
+                of a class derived from :py:class:`NamespaceModel<actuator.namespace.NamespaceModel>`.
+                You don't need to pass
+                the namespace to the model if you're using Actuator's
+                orchestrator to drive the model; the orchestrator will take
+                care of it for you. You normally never need to provide this argument.
+            *   **remote_user** String; default is None. This value provides the
+                default remote_user for tasks that don't otherwise have their own
+                remote_user set. Task remote_users take precedence over this value,
+                but this value has precedence over the value supplied in
+                :py:func:`with_remote_options`. If the user can't be determined any other
+                way, the current user name is used for remote access
+            *   **remote_pass** String; default is None. This arg provides the
+                password to use with the remote user as determined by above.
+                Task's remote_pass takes precedence over this value, but this value
+                takes precedence over the remote_pass supplied in
+                :py:func:`with_remote_options`. NOTE: this is not reliable; BROKEN PIPE is often reported when trying to use
+                sshpass to make use of this argument. Use key pairs instead.
+            *   **private_key_file** String; path to the private part of an ssh
+                keypair. The full path to the key file is needed.
+            *   **default_task_role** Default None. This identifies the Role to
+                use for a task if the task doesn't specify a task_role of its own.
+                The Role identifies the Vars and their values to use for the task,
+                and if there is no 'run_from' role the host where the task is to run.
+                This can be reference to a Role, a context expression for a Role,
+                or a callable that takes a :py:class:`CallContext<actuator.modeling.CallContext>` argument and returns
+                a reference to a Role. If a task_role can't be determined for a task
+                an exception is raised at orchestration time.
+            *   **default_run_from** Default None. This identifies the Role to use
+                for running a task; this is independent of the task_role. The
+                task_role identifies the the set of Vars and their values from the
+                namespace, and in the absence of a run_from Role, where to run the
+                task as well. If a default_run_from is supplied, then the task will
+                be run from that named Role's host, but with the Vars for the
+                task_role. This can be a reference to a Role, a context expression,
+                or a callable that takes a :py:class:`CallContext<actuator.modeling.CallContext>` and returns a reference
+                to a Role.
+            *   **event_handler** if supplied, a derived class of task.TaskEventHandler
+            *   **cloud_creds** dict, default None. If supplied, this is a dict of cloud
+                credentials. The keys are names of clouds such as were supplied to the
+                'cloud' argument on InfraModel resources. The value is a nested dict
+                whose keys are the previously described credentials arguments (remote_user,
+                remote_pass, private_key_file) for that specific cloud. Keys may be missing
+                in the inner dict and they will be treated as if they were missing from the
+                call to the model class. If a needed key is missing for a cloud, then
+                the corresponding keyword argument is checked for the model instance.
+                For example, if the 'remote_user' key is missing for the 'citycloud' cloud
+                entry, then the remote_user keyword arg is checked. If that is empty, then
+                delegates are checked as appropriate. If there is no cloud associated with
+                the task's resource, then only the keyword args for the model are checked.
+            *   delegate: internal. Next object to check for a task_role or a
+                run_from role.
+            *   nexus: Internal
         """
         if event_handler and not isinstance(event_handler, TaskEventHandler):
             raise RemoteTaskException("event_handler is not a kind of TaskEventHandler")
@@ -720,6 +754,20 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
                 self.default_run_from = v
 
     def set_cloud_creds(self, cloud_creds):
+        """
+        :param cloud_creds: dict, default None. If supplied, this is a dict of cloud
+            credentials. The keys are names of clouds such as were supplied to the
+            'cloud' argument on InfraModel resources. The value is a nested dict
+            whose keys are the previously described credentials arguments (remote_user,
+            remote_pass, private_key_file) for that specific cloud. Keys may be missing
+            in the inner dict and they will be treated as if they were missing from the
+            call to the model class. If a needed key is missing for a cloud, then
+            the corresponding keyword argument is checked for the model instance.
+            For example, if the 'remote_user' key is missing for the 'citycloud' cloud
+            entry, then the remote_user keyword arg is checked. If that is empty, then
+            delegates are checked as appropriate. If there is no cloud associated with
+            the task's resource, then only the keyword args for the model are checked.
+        """
         self.cloud_creds = cloud_creds
 
     def get_event_handler(self):
@@ -795,9 +843,10 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         provides a means to acquire the graph for visualization or other
         information purposes.
 
-        @keyword with_fix: boolean; default False. Indicates whether or not
-            the nodes in the graph should have fix_arguments called on them
-            prior to asking for their dependencies.
+        :Keyword args:
+            *   **with_fix** boolean; default False. Indicates whether or not
+                the nodes in the graph should have fix_arguments called on them
+                prior to asking for their dependencies.
         """
         nodes = self.get_tasks()
         if with_fix:
@@ -819,6 +868,9 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         the remote_user from the delegate if there is no remote_user and there
         is a delegate. If a remote_user can't be determined, the current user
         is used for the remote user.
+
+        :Keyword args:
+            *  **for_task** query for the supplied task, otherwise look for the default
         """
         if for_task is None:
             return self._base_remote_user_lookup(for_task)
@@ -862,6 +914,9 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         to see Ansible process this option properly even with sshpass installed;
         Ansible fails with a BROKEN PIPE error on the sshpass command. For the
         time being use the private_key_file option for login credentials instead.
+
+        :Keyword args:
+            *  **for_task** query for the supplied task, otherwise look for the default
         """
         if for_task is None:
             return self._base_remote_pass_lookup(for_task)
@@ -903,6 +958,9 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
 
         Return the private_key_file on this object, or if there isn't one and
         there is a delegate, return the delegate's private_key_file.
+
+        :Keyword args:
+            *  **for_task** query for the supplied task, otherwise look for the default
         """
         if for_task is None:
             return self._base_private_key_file_lookup(for_task)
@@ -942,7 +1000,7 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         """
         Compute the IP address of the host for the task.
 
-        This method takes the value returned by L{get_task_role}. and returns
+        This method takes the value returned by :py:meth:`get_task_role`. and returns
         a string that is the IP address for the value returned, if any. This
         does not take into account and run_from value.
         """
@@ -958,7 +1016,7 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
     @narrate(lambda s: "...requiring remote task model %s to provide the default task role" % s.__class__.__name__)
     def get_task_role(self):
         """
-        Compute the L{Role} to use for as the default task_role for this model.
+        Compute the :py:class:`Role<actuator.namespace.Role>` to use for as the default task_role for this model.
 
         This method computes the task_role, either from this model or from
         the model's delegate, and returns the actual Role object to use.
@@ -979,7 +1037,7 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
                        s.__class__.__name__)
     def get_run_from(self):
         """
-        Compute the L{Role} to use as the default run_from Role for this model.
+        Compute the :py:class:`Role<actuator.namespace.Role>` to use as the default run_from Role for this model.
 
         This method computes the run_from Role to use for any tasks that don't
         have their own. If it can't determine a run_from and it has a delegate,
@@ -1013,7 +1071,7 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
     #     Compute the IP address of the host where the task is to run from.
     #
     #     This method computes the IP address of the IP address of the host for
-    #     the Role returned by L{get_run_from}, if there is one. If none, it
+    #     the Role returned by :py:meth:`get_run_from`get_run_from}, if there is one. If none, it
     #     returns None.
     #     """
     #     comp = self.get_run_from()
@@ -1044,7 +1102,7 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         Internal; sets the namespace to use for this remote task model so the
         model can determine what tasks to run where.
 
-        @param namespace: An instance of a L{NamespaceModel} subclass.
+        :param namespace: An instance of a :py:class:`NamespaceModel<actuator.namespaceNamespaceModel>` subclass.
         """
         if not isinstance(namespace, NamespaceModel):
             raise RemoteTaskException("given an object that is not a kind of NamespaceModel: %s" %
@@ -1067,6 +1125,8 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
         """
         Returns a list of _Dependency objects that captures all the task
         dependency pairs in the remote task model.
+
+        :returns: list of _Dependency objects in the model instance
         """
         inst_nodes = [getattr(self, name).value() for name in self._node_dict.values()]
         return list(set(itertools.chain(list(itertools.chain(*[n.unpack()
@@ -1076,12 +1136,12 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
 
     @classmethod
     def get_class_dependencies(cls):
-        """
-        This method returns a list of _Dependency objects as defined on the
-        remote task model object, *not* an instance of the remote task model. This means
-        that there may be few dependencies than in an instance as there won't
-        be a namespace yet to influence the number of tasks to perform.
-        """
+        # """
+        # This method returns a list of _Dependency objects as defined on the
+        # remote task model object, *not* an instance of the remote task model. This means
+        # that there may be few dependencies than in an instance as there won't
+        # be a namespace yet to influence the number of tasks to perform.
+        # """
         deps = []
         for base in reversed(cls.__mro__[:-1]):
             if hasattr(base, _dependencies):
@@ -1092,7 +1152,7 @@ class RemoteTaskModel(six.with_metaclass(RemoteTaskModelMeta, ModelBase, Graphab
                        s.__class__.__name__)
     def get_tasks(self):
         """
-        Returns a list of the L{RemoteTask} objects in the model.
+        Returns a list of the :py:class:`RemoteTask` objects in the model.
         """
         return [getattr(self, k).value() for k in self._node_dict.values()]
 
@@ -1101,8 +1161,8 @@ class RemoteTaskClass(RemoteTask, _Unpackable, StructuralTask, GraphableModelMix
     """
     This class wraps up a RemoteTaskModel and makes the entire model appear as
     a single task. This allows the construction of "models of models". The
-    canonical use case is when your system has a number of Role on which a
-    number of Tasks much all be performed with specific dependencies.
+    canonical use case is when your system has a number of :py:class:`Roles<actuator.namespace.Role>` on which a
+    number of Tasks must all be performed with specific dependencies.
     RemoteTaskClass allows you to create a model of these tasks for a single
     host, and then allows you to reuse that model, either in multiple contexts
     or as a common library of tasks to be performed on multiple Roles.
@@ -1113,15 +1173,17 @@ class RemoteTaskClass(RemoteTask, _Unpackable, StructuralTask, GraphableModelMix
         """
         Create a new RemoteTaskClass that wraps another remote task model
 
-        @param name: String; logical name for the task
-        @param rtask_class: A RemoteTaskModel derived model class. NOTE: this is not an
+        :param name: String; logical name for the task
+        :param rtask_class: A RemoteTaskModel derived model class. NOTE: this is not an
             instance of a model class, but the model class itself. This wrapper
             will take care of making an instance when one is needed.
-        @keyword init_args: Iterable. The positional arguments to pass to the
-            model class when an instance is to be made.
-        @keyword **kwargs: See L{RemoteTask} for the remaining keyword arguments
-            available to tasks. These will be available to the instance of the
-            wrapped remote task model as this wrapper serves as the model's delegate.
+
+        :Keyword args:
+            *   **init_args** Iterable. The positional arguments to pass to the
+                model class when an instance is to be made.
+            *   **kwargs** See :py:class:`RemoteTask` for the remaining keyword arguments
+                available to tasks. These will be available to the instance of the
+                wrapped remote task model as this wrapper serves as the model's delegate.
         """
         if not issubclass(rtask_class, RemoteTaskModel):
             raise RemoteTaskException("The rtask_class parameter isn't a subclass of RemoteTaskModel")
@@ -1178,8 +1240,9 @@ class RemoteTaskClass(RemoteTask, _Unpackable, StructuralTask, GraphableModelMix
         Return a new instance of the NetworkX DiGraph that represents the
         tasks and dependencies for the wrapped model.
 
-        @keyword with_fix: boolean, default False. Indicates whether or not to
-            invoke fix_arguments() on the nodes before constructing the graph.
+        :Keyword args:
+            *   **with_fix** boolean, default False. Indicates whether or not to
+                invoke fix_arguments() on the nodes before constructing the graph.
         """
         if with_fix:
             if self.graph:
@@ -1276,7 +1339,7 @@ class MultiRemoteTask(RemoteTask, _Unpackable, StructuralTask):
 
     The list can be an explicit list of Role references, a selection
     expression (that is, a NamespaceModel.q expression), or a callable that
-    takes a single L{CallContext} argument and returns a list of references
+    takes a single :py:class:`CallContext<actuator.modeling.CallContext>` argument and returns a list of references
     to Roles.
     """
 
@@ -1284,15 +1347,17 @@ class MultiRemoteTask(RemoteTask, _Unpackable, StructuralTask):
         """
         Creates a new MultiRemoteTask object.
 
-        @param name: String; the logical name for the MultiRemoteTask
-        @param template: Any kind of task object instance, including
-            L{RemoteClassTask}, or even another MultiRemoteTask
-        @param task_role_list: Must either be an explicit iterable of references
-            to Roles, a callable that takes a L{CallContext} as an argument
+        :param name: String; the logical name for the MultiRemoteTask
+        :param template: Any kind of task object instance, including
+            :py:class:`RemoteTaskClass`, or even another MultiRemoteTask
+        :param task_role_list: Must either be an explicit iterable of references
+            to Roles, a callable that takes a :py:class:`CallContext<actuator.modeling.CallContext>` as an argument
             and returns an iterable of references to Roles, or a RefSelectBuilder
             expression (NamespaceModel.q expression) of the Roles to apply the
             task to
-        @keyword **kwargs: keyword arguments as defined on L{RemoteTask}
+
+        :Keyword args:
+            *   **kwargs** keyword arguments as defined on :py:class:`RemoteTask`
         """
         super(MultiRemoteTask, self).__init__(name, **kwargs)
         self.template = None

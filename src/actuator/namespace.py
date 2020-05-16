@@ -1,4 +1,4 @@
-# 
+#
 # Copyright (c) 2014 Tom Carroll
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -176,25 +176,26 @@ class _ComputableValue(_ModelRefSetAcquireable, _Persistable):
 
 class Var(_ModelRefSetAcquireable, _Persistable):
     """
-    A container for a name-value pair in which the value is a L{_ComputableValue},
-    and hence whose value can be a plain string, a string with replacement
-    patterns, a callable that returns a string, or an AbstractModelReference. 
+    A container for a name-value pair in which the value  can be a plain string, a string with replacement
+    patterns, a callable that returns a string, or an :py:class:`AbstractModelReference`.
     """
     def __init__(self, name, value, in_env=True):
         """
         Define a new Var name-value pair.
         
-        @param name: string; the 'name' in the pair. Cannot contain replacement
+        :param name: string; the 'name' in the pair. Cannot contain replacement
             patterns; if it does, they won't be processed
-        @param value: Can be:
+        :param value: Can be:
+
             1. A plain string
             2. A string with a replacement pattern ( !{name} )
             3. A callable that returns one of the above strings. The callable
-                must take a single argument, a L{CallContext} instance that
-                describes the context from which the callable is being invoked
-            4. A AbstractModelReference that returns a string (that won't be
-                processed further)
-        @param in_env: Optional; default True. Indicates whether the Var should
+               must take a single argument, a :py:class:`CallContext` instance that
+               describes the context from which the callable is being invoked
+            4. An :py:class:`AbstractModelReference` that returns a string (that won't be
+               processed further)
+
+        :param in_env: Optional bool; default True. Indicates whether the Var should
             be included in any tasks for namespace L{Role} or not. By default,
             all Vars visible to a Role become part of any tasks for that Role.
             If you don't want the Var to be part of the environment (perhaps
@@ -236,51 +237,53 @@ class Var(_ModelRefSetAcquireable, _Persistable):
         Computes the value of the Var, invoking any callables and/or performing
         any expansions due to replacement patterns in the value string.
         
-        @param context: A kind of L{VariableContainer} from which to anchor
+        :param context: A kind of :py:class:`VariableContainer` from which to anchor
             searches for other Vars when replacement patterns are found;
             replacements are always from the perspective of the context and the
             variable values it "sees".
-        @param allow_unexpanded: Optional, default False. Determines what gets
-            returned if an replacement pattern is discovered in a value and no
-            replacement can be found. The default, False, means to return None,
-            which indicates that a value can't be determined. If allow_unexpanded
-            is True, then return as much as can be expanded and leave any
-            unexpandable replacements patterns in the result. Usually a pair of
-            calls modifying this value are used: first with the default to
-            detect situations where the value can be computed, and then with
-            allow_unexpanded==True to reveal how much expansion could be
-            performed.
+
+        :Keyword args:
+            *   **allow_unexpanded** Optional, default False. Determines what gets
+                returned if an replacement pattern is discovered in a value and no
+                replacement can be found. The default, False, means to return None,
+                which indicates that a value can't be determined. If allow_unexpanded
+                is True, then return as much as can be expanded and leave any
+                unexpandable replacement patterns in the result. Usually a pair of
+                calls modifying this value are used: first with the default to
+                detect situations where the value can be computed, and then with
+                allow_unexpanded==True to reveal how much expansion could be
+                performed.
         """
         return self.value.expand(context, allow_unexpanded)
     
     def value_is_external(self):
         """
         Predicate that returns True if the value for the Var comes from an
-        external source.
+        external source; that is, from another component via model refererence of some kind.
         """
         return self.value.value_is_external()
     
     def get_raw_value(self):
-        """
-        Return the un-interpreted value for the Var; this may be a string,
-        reference, or callable.
-        """
+        # Return the un-interpreted value for the Var; this may be a string,
+        # reference, or callable.
+        #
+        # :return: :py:class:`_ComputableValue`
+
         return self.value
     
     
 class VarFuture(_ValueAccessMixin):
-    """
-    A wrapper that allows a Var to be treated like a reference into a model. Supports
-    a value() method that allows deferring the computation of the variable until
-    the value is needed. These are created by the future() method of
-    L{VariableContainer}
-    """
+    # A wrapper that allows a Var to be treated like a reference into a model. Supports
+    # a value() method that allows deferring the computation of the variable until
+    # the value is needed. These are created by the future() method of
+    # L{VariableContainer}
+    """"""
     def __init__(self, var, context):
         """
         Create a new VarFuture
         
-        @param var: A Var object
-        @param context: A kind of VariableContainer from which the Var's value
+        :param var: A Var object
+        :param context: A kind of VariableContainer from which the Var's value
             can be computed.
         """
         self.var = var
@@ -291,14 +294,15 @@ class VarFuture(_ValueAccessMixin):
     def value(self, allow_unexpanded=False):
         """
         Compute the value of the Var from the perspective of the context.
-        
-        @keyword allow_unexpanded: Optional, default False. Indicates what to
-            return if the Var can't be fully expanded (all replacement patterns
-            can not be resolved). The default, False, means that if all patterns
-            can't be replaced then return None as the result, which is only
-            possible for unset values or for patterns that can't be replaced.
-            If allow_unexpanded is True, return the result with as much as could
-            be replaced.
+
+        :Keyword args:
+            *   **allow_unexpanded** Optional, default False. Indicates what to
+                return if the Var can't be fully expanded (all replacement patterns
+                can not be resolved). The default, False, means that if all patterns
+                can't be replaced then return None as the result, which is only
+                possible for unset values or for patterns that can't be replaced.
+                If allow_unexpanded is True, return the result with as much as could
+                be replaced.
         """
         return self.var.get_value(self.context, allow_unexpanded=allow_unexpanded)
     
@@ -341,20 +345,21 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     def __init__(self, parent=None, variables=None, overrides=None):
         """
         Create a new VariableContainer
-        
-        @keyword parent: Optional; a kind of VariableContainer. This will be treated
-            as the new container's parent, and any searches for variables in
-            this container that can't be satisfied will continue with the parent
-            if there is one. The default is no parent.
-        @keyword variables: Optional; a sequence of Var objects that are used to
-            initially populate the container with variables.
-        @keyword overrides: Optional; a sequence of Var objects. Overrides
-            provide a non-destructive way to supplying an alternate value for
-            a variable. Normally, supplying a new Var with the same name as
-            an existing Var overwrites the old Var, but overrides are managed
-            independently and simply mask any variable Vars with the same name.
-            Overrides can be cleared out later, allowing the original variable
-            to be visible once again.
+
+        :Keyword args:
+            *   **parent** Optional; a kind of :py:class:`VariableContainer`. This will be treated
+                as the new container's parent, and any searches for variables in
+                this container that can't be satisfied will continue with the parent
+                if there is one. The default is no parent. User's don't need to bother with this.
+            *   **variables** Optional; a sequence of :py:class:`Var` objects that are used to
+                initially populate the container with variables.
+            *   **overrides** Optional; a sequence of :py:class:`Var` objects. Overrides
+                provide a non-destructive way to supplying an alternate value for
+                a variable. Normally, supplying a new Var with the same name as
+                an existing Var overwrites the old Var, but overrides are managed
+                independently and simply mask any variable Vars with the same name.
+                Overrides can be cleared out later, allowing the original variable
+                to be visible once again.
         """
         super(VariableContainer, self).__init__()
         self.v = VarValueAccessor(self)
@@ -382,6 +387,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         return d
     
     def recover_attr_value(self, k, v, catalog):
+        """"""
         if k == "v":
             retval = VarValueAccessor(self)
         else:
@@ -426,13 +432,15 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     
     def add_variable(self, *args):
         """
-        Adds one or more Vars to the container. Returns self so other calls
+        Adds one or more :py:class:`Vars<Var>` to the container. Returns self so other calls
         can be chained from this one.
         
-        @param args: One or more Var objects. This method can take an
+        :param args: One or more :py:class:`Var` objects. This method can take an
             arbitrary number of Var objects in the invocation and put them
-            into its variable storage. If something not Var is passed in an
+            into its variable storage. If something not :py:class:`Var` is passed in an
             exception is raised.
+
+        :raises NamespaceException: if an arg is not a :py:class:`Var`
         """
         for v in args:
             if not isinstance(v, Var):
@@ -442,15 +450,17 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
             
     def add_override(self, *args):
         """
-        Adds one or more Vars to the overrides collection in the container.
+        Adds one or more :py:class:`Vars<Var>` to the overrides collection in the container.
         Overrides are searched first for a particular Var, so their value
         takes precedence. Returns self so other calls can be chained from this
         one.
         
-        @param *args: One or more Var objects. This method can take an arbitrary
-        number of Var objects when invoked and put them into the overrides
-        collection. If something not a Var is passed ii an exception is
-        raised.
+        :param args: One or more :py:class:`Var` objects. This method can take an arbitrary
+            number of Var objects when invoked and put them into the overrides
+            collection. If something not a Var is passed ii an exception is
+            raised.
+
+        :raises NamespaceException: if an arg is not a :py:class:`Var`
         """
         for v in args:
             if not isinstance(v, Var):
@@ -462,7 +472,7 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
                           "in container {}".format(n, str(s)))
     def find_variable(self, name):
         """
-        Locates the named Var and the VariableContainer where it is defined.
+        Locates the named :py:class:`Var` and the VariableContainer where it is defined.
         
         This method is concerned with finding a named Var and the container
         that manages it, as opposed to actually determining the Var's value.
@@ -474,7 +484,9 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
         VariableContainer that manages the Var (or None, None if no Var with
         the supplied name can be found).
         
-        @param name: String; name of the Var to locate.
+        :param name: String; name of the :py:class:`Var` to locate.
+
+        :returns: two tuple; the :py:class:`Var` and the :py:class:`VariableContainer` that holds the Var
         """
         value = self.overrides.get(name)
         provider = self
@@ -488,20 +500,23 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
                                 "value of Var {}".format(str(s), n))
     def var_value(self, name, allow_unexpanded=False):
         """
-        Locate the named Var and return it's value relative to the current
-        VariableContainer.
+        Locate the named :py:class:`Var` and return it's value relative to the current
+        :py:class:`VariableContainer`.
         
-        Using the search rules from L{find_variable}, locate the Var with the
+        Using the search rules from :py:meth:`find_variable`, locate the Var with the
         supplied name, and then return the computed value for the Var from
-        the perspective of the current VariableContainer
+        the perspective of the current :py:class:`VariableContainer` (self), ignoring the returned 'owner'
+        of the Var.
         
-        @param name: string; the name of the Var to locate
-        @param allow_unexpanded: Optional; default False. Determines what
-            happens if a Var's value can't have all replacement patterns
-            expanded. The default, False, causes None to be returned if all
-            patterns can't be expanded. If True, then as much expansion as
-            possible is performed and the result in returned, possibly still
-            with replacement patterns in the returned value.
+        :param name: string; the name of the :py:class:`Var` to locate
+
+        :Keyword args:
+            *   **allow_unexpanded** Optional; default False. Determines what
+                happens if a Var's value can't have all replacement patterns
+                expanded. The default, False, causes None to be returned if all
+                patterns can't be expanded. If True, then as much expansion as
+                possible is performed and the result in returned, possibly still
+                with replacement patterns in the returned value.
         """
         v, _ = self.find_variable(name)
         if v is not None:
@@ -519,15 +534,14 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
 
     @narrate(lambda s, n: "...generating a VarFuture for {} on {}".format(n, str(s)))
     def future(self, name):
-        """
-        Get a a L{VarFuture} object for the named Var.
-        
-        Searches for a Var named 'name' as per the search rules for L{find_variable},
-        and if found return a L{VarFuture} object for the Var and the current
-        VariableContainer, else None.
-        
-        @param name: String; name of the Var to find.
-        """
+        # Get a a L{VarFuture} object for the named Var.
+        #
+        # Searches for a Var named 'name' as per the search rules for L{find_variable},
+        # and if found return a L{VarFuture} object for the Var and the current
+        # VariableContainer, else None.
+        #
+        # @param name: String; name of the Var to find.
+        """"""
         v, p = self.find_variable(name)
         return VarFuture(v, self) if (v and p) else None
     
@@ -555,9 +569,9 @@ class VariableContainer(_ModelRefSetAcquireable, _Persistable):
     @narrate("...which required the container to return a dict of Vars it can see")
     def get_visible_vars(self):
         """
-        Return all the Vars visible to this container
+        Return all the :py:class:`Vars<Var>` visible to this container
         
-        Computes the set of Vars visible to this container, taking into account
+        Computes the set of :py:class:`Vars<Var>` visible to this container, taking into account
         parent containers and overrides, and the returns a dict containing
         the Vars that would be used from the perspective of this container.
         """
@@ -576,7 +590,7 @@ def with_variables(cls, *args, **_):
     Used at the class level of a Namespace class model to set global Vars
     on the model. May be called repeatedly to set additional Vars.
     
-    @param *args: One or more Var objects.
+    @param args: One or more Var objects.
     """
     vars_list = cls.__dict__.get(_common_vars)
     if vars_list is None:
@@ -593,7 +607,7 @@ def with_roles(cls, *_, **kwargs):
     """
     Used at the class level of a Namespace class model to add Roles to the
     model. Role, RoleGroup, MultiRole, and MultiRoleGroup may be added to
-    the model with this call. Can be called multiple times to add addtional
+    the model with this call. Can be called multiple times to add additional
     Roles.
     """
     for k, v in kwargs.items():
@@ -622,15 +636,16 @@ class ModelInstanceFinderMixin(object):
 class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
     """
     Defines a role for some component of a system, optionally establishing 
-    Vars and its place in the namespace hierarchy.
+    :py:class:`Vars<Var>` and its place in the namespace hierarchy.
     
-    A Role is logical construct names a particular functional component of a
+    A Role is logical construct that names a particular functional component of a
     system, for instance the "db role" or the "web app" role. Roles are tied
     to specific parts of the infra model that names where they should run and
     indicates what tasks should be carried out on their behalf and where.
     
-    Roles are kinds of L{VariableContainer}s, and hence can hold L{Var}s
-    as both variables and overrides. They are also L{ModelComponent}s,
+    Roles are kinds of :py:class:`VariableContainers<VariableContainer>`, and hence can hold
+    :py:class:`Vars<Var>`
+    as both variables and overrides. They are also :py:class:`ModelComponents<actuator.modeling.ModelComponent>`,
     and hence respect the interface defined by that class.
     """
     def __init__(self, name, host_ref=None, variables=None, model=None):
@@ -638,16 +653,18 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
         Create a new Role, optionally defining an infra reference to a host
         and a start-up set of Vars.
         
-        @param name: String; logical name of the Role
-        @keyword host_ref: Optional; provides a way to identify an IPAddressable
-            for this Role; this will indicate where Config tasks and software
-            will execute for this role. This may be a string with a host name or
-            IP address, a model reference to an IPAddressable, a context
-            expression for an IPAddressable, or a callable that returns one
-            of the above.
-        @keyword variables: Optional; a sequence of Var objects that will be 
-            defined on this Role
-        @keyword model: Used internally only
+        :param name: String; logical name of the Role
+
+        :Keyword args:
+            *   **host_ref** Optional; provides a way to identify an IPAddressable
+                for this Role; this will indicate where Config tasks and software
+                will execute for this role. This may be a string with a host name or
+                IP address, a model reference to an IPAddressable, a context
+                expression for an IPAddressable, or a callable that returns one
+                of the above.
+            *   **variables** Optional; a sequence of Var objects that will be
+                defined on this Role
+            *   model: Used internally only
         """
         super(Role, self).__init__(name, model=model)
         self.host_ref = None
@@ -657,14 +674,13 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
 
     @narrate(lambda s, **kw: "...which required a clone of role {} to be created".format(s.name))
     def clone(self, clone_into_class=None):
-        """
-        Create a copy of the initial state of this Role
-        
-        Creates a copy of the Role as if the original arguments to __init__()
-        were used (in fact, they are).
-        
-        @keyword clone_into_class: internal
-        """
+        # Create a copy of the initial state of this Role
+        #
+        # Creates a copy of the Role as if the original arguments to __init__()
+        # were used (in fact, they are).
+        #
+        # :keyword clone_into_class: internal
+        """"""
         clone = super(Role, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self.get_model_instance())
         return clone
@@ -732,13 +748,19 @@ class Role(ModelInstanceFinderMixin, ModelComponent, VariableContainer):
 @capture_mapping(_namespace_mapper_domain, ComponentGroup)
 class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
     """
-    Defines a group of Roles that are used together; a kind of L{ComponentGroup}.
+    Defines a group of Roles that are used together; a kind of
+    :py:class:`ComponentGroup<actuator.modeling.ComponentGroup>`.
     
     This class allows a set of Roles to be grouped together so that the group
     can be used easily in single model. The use cases for this tend to be
-    situations where a set of Roles all are associated to a single IPAddressable
-    in an infra model, as otherwise it gets a bit clumsy to name different
-    IPAddressables to associate with each Role in the group. 
+    situations where a set of Roles all are associated to a single
+    :py:class:`IPAddressable<actuator.utils.IPAddressable>`
+    in an infra model, or an analog to an infra model :py:class:`ResourceGroup<actuator.infra.ResourceGroup>`.
+
+    See the doc for :py:class:`ComponentGroup<actuator.modeling.ComponentGroup>` on how to create instances.
+
+    .. note:: you can also use the `variables=` and `overrides=` keyword arguments as documented in
+        :py:class:`VariableContainer`.
     """
     def _set_model_instance(self, mi):
         super(RoleGroup, self)._set_model_instance(mi)
@@ -748,14 +770,13 @@ class RoleGroup(ModelInstanceFinderMixin, ComponentGroup, VariableContainer):
 
     @narrate(lambda s, **kw: "...and so the role group {} was asked to clone itself".format(s.name))
     def clone(self, clone_into_class=None):
-        """
-        Create a copy of the initial state of this RoleGroup
-        
-        Creates a copy of the RoleGroup as if the original arguments to __init__()
-        were used (in fact, they are).
-        
-        @keyword clone_into_class: internal
-        """
+        # Create a copy of the initial state of this RoleGroup
+        #
+        # Creates a copy of the RoleGroup as if the original arguments to __init__()
+        # were used (in fact, they are).
+        #
+        # :keyword clone_into_class: internal
+        """"""
         clone = super(RoleGroup, self).clone(clone_into_class=clone_into_class)
         clone._set_model_instance(self.get_model_instance())
         for c in (v for k, v in clone.__dict__.items() if k in self._kwargs):
@@ -789,11 +810,12 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
     new keys cause new instances of the template Role to be created, which in
     turn can drive the creation of new infra model resources.
     
-    MultiRoles are a kind of L{MultiComponent}, and hence follow the instatiation
+    MultiRoles are a kind of :py:class:`MultiComponent<actuator.modeling.MultiComponent>`, and hence follow the instatiation
     rules for those objects with the exception that the template object is
     a Role or other Role container (such as another MultiRole).
     
-    See the base classes L{MultiComponent} annd L{VariableContainer} for details
+    See the base classes :py:class:`MultiComponent<actuator.modeling.MultiComponent>` and
+    :py:class:`VariableContainer` for details
     on instantiation and usage. 
     """
     def _set_model_instance(self, mi):
@@ -803,12 +825,11 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
             
     @narrate(lambda s, **kw: "...and so the multi role {} was asked to clone itself".format(s.name))
     def clone(self, clone_into_class=None):
-        """
-        Create a copy of the initial state of the MultiRole. This is generally
-        only used by Actuator itself to ensure Role independence.
-        
-        @keyword clone_into_class: used internally.
-        """
+        # Create a copy of the initial state of the MultiRole. This is generally
+        # only used by Actuator itself to ensure Role independence.
+        #
+        # :keyword clone_into_class: used internally.
+        """"""
         clone = super(MultiRole, self).clone(clone_into_class=clone_into_class)
         for k, v in self._instances.items():
             child = v.clone()
@@ -829,7 +850,7 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
         for the key. If this is a new key, create a new instance for the key
         and return that.
         
-        @param key: Immutable key to identify the instance to return. This will
+        :param key: Immutable key to identify the instance to return. This will
             be coerced to a string internally.
         """
         inst = super(MultiRole, self).get_instance(key)
@@ -847,14 +868,15 @@ class MultiRole(ModelInstanceFinderMixin, MultiComponent, VariableContainer):
 @capture_mapping(_namespace_mapper_domain, MultiComponentGroup)
 class MultiRoleGroup(MultiRole, VariableContainer):
     """
-    Allow the creation of multiple RoleGroup based on a key.
+    Allow the creation of multiple :py:class:`RoleGroups<RoleGroup>` based on a key.
     
-    This is a convenience class that simply wraps a L{RoleGroup} in a
-    L{MultiRole} so that a group of roles can be created with each new key
+    This is a convenience class that simply wraps a :py:class:`RoleGroup` in a
+    :py:class:`MultiRole` so that a group of roles can be created with each new key
     used to index into the group. Like MultiRole, this class behaves like a
     dict, where keys are immutable and coerced to strings.
     
-    See the base classes L{MultiRole} and L{VariableContainer} for more info
+    See the base classes :py:class:`MultiRole` and
+    :py:class:`VariableContainer` for more info
     on instantiation and usage. 
     """
     def __new__(self, name, **kwargs):
@@ -883,12 +905,11 @@ class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableC
     Base class for Namespace model classes.
     
     To create a new namespace model, derive a class from this class and add
-    roles, Vars, etc.
+    :py:class:`Roles<Role>`, :py:class:`Vars<Var>`, etc.
     
-    See the base classes L{VariableContainer} and L{ModelBase} for info on
+    See the base classes :py:class:`VariableContainer` and :py:class:ModelBase<actuator.modeling.ModelBase>`
+    for info on
     other methods.
-    
-    @ivar ivar: infra. DEPRECATED-- use self.nexus.inf instead
     """
     ref_class = ModelInstanceReference
 
@@ -900,6 +921,8 @@ class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableC
         Makes a new instance of namespace model for a system. This method may
         be overridden as long as you call super().__init__() in the derived
         class's __init__() method.
+
+        :param name: logical name for the namespace.
         """
         super(NamespaceModel, self).__init__(name, **kwargs)
         components = set()
@@ -970,13 +993,11 @@ class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableC
         return self.infra
     
     def set_infra_model(self, infra_model):
-        """
-        Internal; set the infra model instance to be used by this namespace instance.
-        
-        @param infra_model: An instance of some kind of L{InfraModel} derived
-            class. Raises an exception is the infra has already been supplied,
-            or if the model isn't a kind of InfraModel.
-        """
+        # Internal; set the infra model instance to be used by this namespace instance.
+        #
+        # :param infra_model: An instance of some kind of :py:class:`InfraModel<actuator.infra.InfraModel>` derived
+        #     class. Raises an exception is the infra has already been supplied,
+        #     or if the model isn't a kind of InfraModel.
         if self.infra is None:
             if isinstance(infra_model, InfraModel):
                 self.infra = infra_model
@@ -1005,10 +1026,14 @@ class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableC
         
         This method sets the infra instance to use with this model
         
-        @param infra_instance: An instance of an InfraModel derived class.
-        @keyword exclude_refs: An iterable of references to exclude from the
-            resulting set of provisionable resources. These can be either
-            model or instance references.
+        :param infra_instance: An instance of an InfraModel derived class.
+
+        :Keyword args:
+            *   **exclude_refs** An iterable of references to exclude from the
+                resulting set of provisionable resources. These can be either
+                model or instance references.
+
+        :returns: a set of infra resources
         """
         self.set_infra_model(infra_instance)
         if exclude_refs is None:
@@ -1024,18 +1049,21 @@ class NamespaceModel(six.with_metaclass(NamespaceModelMeta, ModelBase, VariableC
     @narrate("...and then some roles were added to the namespace model")
     def add_roles(self, **kwargs):
         """
-        Add a group of plain Roles to the model instance.
+        Add a group of plain :py:class:`Roles<Role>` to the model instance.
         
         This method provides a way to add Roles to an already instantiated 
         namespace model object. The Roles are supplied as keyword arguments, and
         each keyword is turned into an attribute on the namespace instance object.
         Added roles only have an impact if they are added before the computation
         of provisioning.
-        
-        @keyword **kwargs: A series of keyword args, the values of which must
-            be instances of L{Role}. These are added to the set of Roles for the
-            model instance, and each keyword is also turned into an attribute
-            (with the corresponding Role as value) on the model instance.
+
+        :Keyword args:
+            *   **kwargs** A series of keyword args, the values of which must
+                be instances of :py:class:`Role`. These are added to the set of Roles for the
+                model instance, and each keyword is also turned into an attribute
+                (with the corresponding Role as value) on the model instance.
+
+        :raises NamespaceException: if some keyword value isn't a Role
         """
         for k, v in kwargs.items():
             if not isinstance(v, Role):
@@ -1102,21 +1130,25 @@ def multicomp_string_builder(*ctxt_exprs, sep_str=" "):
     Method decorator to build up a series of string values into a single string for use as the value of a Var
 
     Sometimes you need a string built from values from a list of components, such as a list of IP addresses
-    or multiple lines in a config file. This class can take a function that returns a formatted string for a component
+    or multiple lines in a config file. This decorator can take a method that returns a formatted string for a component
     and a sequence of context expressions that may each yield a sequence of components and applies that
     function to each component, collecting the returned strings and returning a single string joined by the
     supplied separator character.
 
-    NOTE: this is meant to be applied to a method of a model, most likely a namespace model. The user will then provide
-    a context expression to the decorated method as the value of a Var. This will ensure that
+    .. note:: This is meant to be applied to a method of a model, most likely a namespace model. The user will then
+        provide
+        a context expression to the decorated method as the value of a Var.
 
     The caller is responsible for ensuring that each component is returned from the context expressions
     are of the same type, or else the str_func they provide does that checking.
 
     :param ctxt_exprs: a sequence of context expressions, each of which returns either a sequence of Actuator
         components (or an iterator) in response to the value() method, or a single value
-    :param sep_str: string to use to join together the various string results from the application of
-        str_func to all components
+
+    :Keyword args:
+        *   **sep_str** string to use to join together the various string results from the application of
+            str_func to all components
+
     :return: string
     """
     def string_builder_inner(f):

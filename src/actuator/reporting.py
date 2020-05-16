@@ -31,15 +31,23 @@ from actuator.provisioners.aws.resources import *
 class VarDescriptor(object):
     """
     unpacks and organises the data to be extracted from a Var
+
+    This is a simple utility object that helps construction of reports on namespaces
     """
     _unexpanded = "-INCOMPLETE-"
 
     def __init__(self, v, owner):
         """
-        create a new instance using Var v from the perspective of the owner 'owner'
-        :param v: a Var instance
-        :param owner: a Variable container such as a NamespaceModel instance, a Role, or a
-            MultiRole or MultiRoleGroup. This container should nominally 'own' the Var, but
+        create a new instance using :py:class:`Var<actuator.namespace.Var>` v from the
+        perspective of the owner 'owner'
+
+        :param v: a :py:class:`Var<actuator.namespace.Var>` instance
+        :param owner: a :py:class:`VariableContainer<actuator.namespace.VariableContainer>` such as a
+            :py:class:`NamespaceModel<actuator.namespace.NamespaceModel>` instance, a
+            :py:class:`Role<actuator.namespace.Role>`, or a
+            :py:class:`MultiRole<actuator.namespace.MultiRole>` or
+            :py:class:`MultiRoleGroup<actuator.namespace.MultiRoleGroup>`. This
+            container should nominally 'own' the Var, but
             in any event will be the place where the evaluation of the Var's value will be
             anchored.
         """
@@ -65,6 +73,10 @@ class VarDescriptor(object):
         self.in_env = self.v.in_env
 
     def to_dict(self):
+        """
+        take all identified instance data and return it in a dict
+        :return: dict
+        """
         return {"name": self.vname,
                 "in_env": "T" if self.in_env else "F",
                 "value": self.value,
@@ -76,7 +88,9 @@ class VarDescriptor(object):
 def get_vars_for_roles(roles):
     """
     computes the VarDescriptors for each role in the supplied sequence of roles
+
     :param roles: a iterable of role objects (or refs to them)
+
     :return: a dict where the role is the key and the values is a list of VarDescriptor objects
         for each Var the role can see
     """
@@ -96,7 +110,9 @@ def all_namespace_vars(nsm):
     """
     returns a dict whose keys are either the input namespace or the roles in the namespace, and whose
     values are lists of variables visible from the perspective of each key
+
     :param nsm: instance of a namespace model
+
     :return: dict of {(nsm|role): List[VarDescriptor]}
     """
     assert isinstance(nsm, NamespaceModel)
@@ -112,16 +128,18 @@ def all_namespace_vars(nsm):
 def namespace_report(nsm):
     """
     returns a list of strings that describe all variables for each variable container in a namespace
+
     :param nsm: a NamespaceModel instance
+
     :return: pre-formatted list of strings that describe the variable containers (namespace & roles)
         and the value of their variables. The returned report contains:
-        variable name
-        T/F flag if the variable will be passed as an environment variable for jobs run on the
-            role's host
-        value of the variable, if it can be determined
-        T/F flag if the value could be completely determined
-        T/F flag as to whether the variable's value came from an external source
-        path for the case where the variable is from a context expression
+
+        - variable name
+        - T/F flag if the variable will be passed as an environment variable for jobs run on the role's host
+        - value of the variable, if it can be determined
+        - T/F flag if the value could be completely determined
+        - T/F flag as to whether the variable's value came from an external source
+        - path for the case where the variable is from a context expression
     """
     assert isinstance(nsm, NamespaceModel)
     report = list()
@@ -196,6 +214,18 @@ def attr_val(obj, attrname):
 
 
 def security_check(inf_inst):
+    """
+    Inspects an infrastructure model and generates a report describing all security groups, rules, and the resources
+    they apply to
+
+    :param inf_inst: an instance of a derived class of :py:class:`InfraModel<actuator.infra.InfraModel>`
+
+    .. note:: Due to the differences in security models between cloud providers, the structure of the returned
+        information differs depending on the cloud involved.
+
+    :return: a list of dicts whose contents describe the security groups, rules, and the resources they are
+        applied to.
+    """
     report = []
     os_sec_groups = {}
     az_resource_groups = {}

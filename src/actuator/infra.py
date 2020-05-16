@@ -49,18 +49,18 @@ _recognized_options = {_long_names}
 @ClassModifier
 def with_infra_options(cls, *_, **kwargs):
     """
-    Available options:
-    @keyword long_names: boolean, defaults to False. This option provides info
-        to resources as to what "display name" to use when asked by the
-        provisioner. By default, a "short" name is used, specifically the name
-        given to the resource. However, there are cases where more than one
-        instance of a resource with the same name may get generated, making it
-        hard to determine which is which in various reports from cloud systems.
-        Use long_names=True will use a name that starts with the name of the
-        infra model, continues with the 'path' to the resource, and terminates
-        with the short name for the resource. If infra model instances are
-        uniquely named, this will result in unique display names for every
-        resource provisioned.
+    :Keyword args:
+        *   **long_names** boolean, defaults to False. This option provides info
+            to resources as to what "display name" to use when asked by the
+            provisioner. By default, a "short" name is used, specifically the name
+            given to the resource. However, there are cases where more than one
+            instance of a resource with the same name may get generated, making it
+            hard to determine which is which in various reports from cloud systems.
+            Use long_names=True will use a name that starts with the name of the
+            infra model, continues with the 'path' to the resource, and terminates
+            with the short name for the resource. If infra model instances are
+            uniquely named, this will result in unique display names for every
+            resource provisioned.
     """
     opts_dict = cls.__dict__.get(_infra_options)
     if opts_dict is None:
@@ -120,21 +120,24 @@ class _LNMixin(object):
 
 class ResourceGroup(_LNMixin, ComponentGroup):
     """
-    A specialization of the L{ComponentGroup} class
+    A structuring resource component that allows you to group together other infra resources. See
+    :py:class:`actuator.modeling.ComponentGroup` for interface details.
     """
     pass
 
 
 class MultiResource(_LNMixin, MultiComponent):
     """
-    A specialization of the L{MultiComponent} class
+    A structuring component that allows you to define a template resource component from which as
+    many copies as required will be created. See :py:class:`actuator.modeling.MultiComponent` for interface details.
     """
     pass
 
 
 class MultiResourceGroup(_LNMixin, MultiComponentGroup):
     """
-    A specialization of the L{MultiComponentGroup} class
+    A convenience structuring component that wraps a :py:class:`ResourceGroup` with a :py:class:`MultiResource`.
+    See :py:class:`actuator.modeling.MultiComponentGroup` for interface details.
     """
     def __new__(cls, name, **kwargs):
         namesep = kwargs.pop("namesep", "_")
@@ -143,10 +146,9 @@ class MultiResourceGroup(_LNMixin, MultiComponentGroup):
 
 
 class Provisionable(_LNMixin, ModelComponent, _Performable):
-    """
-    This class serves as a marker class for any L{ModelComponent} derived
-    class as something that can actually be provisioned.
-    """
+    # This class serves as a marker class for any :py:class:`actuator.modeling.ModelComponent` derived
+    # class as something that can actually be provisioned.
+    """"""
 
     def __init__(self, *args, **kwargs):
         cloud = None
@@ -214,7 +216,13 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
         You may override this method as long as you call super().__init__()
         in the derived class's __init__() method.
         
-        @param name: a logical name for the infra instance
+        :param name: a logical name for the infra instance
+
+        :Keyword args:
+            *   **event_handler** optional; instance of :py:class:`TaskEventHandler<actuator.task.TaskEventHandler>` derived class
+                that will have events sent to it as model resources are provisioned.
+
+        :raises InfraException: if the event_handler is of the wrong type
         """
         if event_handler is not None and not isinstance(event_handler, TaskEventHandler):
             raise InfraException("event_handler is not a kind of TaskEventHandler")
@@ -243,9 +251,22 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
             comp.fix_arguments()
 
     def get_event_handler(self):
+        """
+        returns the currently stored event_handler, if any
+
+        :return: an object that is an instance of :py:class:`TaskEventHandler<actuator.task.TaskEventHandler>` or None
+        """
         return self.event_handler
 
     def set_event_handler(self, handler):
+        """
+        provide a model instance with a TaskEventHandler to which to send provisioning events.
+        :param handler: an instance of a derived class of :py:class:`TaskEventHandler<actuator.task.TaskEventHandler>`
+
+        :raises InfraException: if the argument handler is of the wrong type
+        """
+        if not isinstance(handler, TaskEventHandler):
+            raise InfraException("the supplied handler is not a kind of TaskEventHandler")
         self.event_handler = handler
 
     @narrate(lambda s: "...so we asked infra model %s for it attrs dict".format(s.name))
@@ -267,9 +288,8 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
                         yield q
         
     def validate_args(self):
-        """
-        Currently unused
-        """
+        # unused
+        """"""
         for resource in self.__class__.__dict__[InfraModelMeta._COMPONENTS].values():
             resource._validate_args(self)
         
@@ -309,10 +329,12 @@ class InfraModel(six.with_metaclass(InfraModelMeta, ModelBase)):
         to satisfy the refs. An optional collection of model refs can be supplied and any
         ref in both collections will be skipped when computing the Provisionables.
         
-        @param modelrefs: an iterable of ModelInstanceReference instances for the model this
-            SystemSpec instance is for
-        @param exclude_refs: an iterable of ModelInstanceReference instances whioh should not
-            be considered when computing Provisionables (this will be skipped)
+        :param modelrefs: an iterable of :py:class:`actuator.modeling.ModelInstanceReference` objects for this
+            infra model
+
+        :Keyword args:
+            *   **exclude_refs** an iterable of :py:class:`actuator.modeling.ModelInstanceReference` instances which
+                should **not** be considered when computing provisioning
         """
         if self.provisioning_computed:
             return
@@ -348,17 +370,17 @@ class StaticServer(IPAddressable, Provisionable):
     """
     Represents an already existing server to be used in an infrastructure.
     
-    A StaticServer provides a way to knit non-dynamic (virtual or cloud) resources
+    A StaticServer provides a way to knit non-dynamic (virtual or cloud) or already provisioned resources
     into an infra model. This resource won't be provisioned, as it already has,
-    but it can be used wherever a reference to a server & L{IPAddressable} are
+    but it can be used wherever a reference to a server & :py:class:`actuator.utils.IPAddressable` are
     required in other models.
     """
     def __init__(self, name, hostname_or_ip, **kwargs):
         """
         Create a new StaticServer instance.
         
-        @param name: A logical name for the server
-        @param hostname_or_ip: a resolveable name for the server, either an
+        :param name: A logical name for the server
+        :param hostname_or_ip: a resolveable name for the server, either an
             IP address or a host name (FQDN where required). Actuator assumes
             that the name will be resolveable if a hostname is provided.
         """
@@ -390,11 +412,19 @@ class StaticServer(IPAddressable, Provisionable):
     def get_ip(self, context=None):
         """
         Returns the hostname or IP that was provided in the constructor.
-        
-        @keyword context: Ignored; present so this method can be passed as a
-            callable value for ann argument.
+
+        :Keyword args:
+            *   **context**: Ignored; present so this method can be passed as a
+                callable value for an argument to other parts of Actuator.
         """
         return self.hostname_or_ip
 
     def get_cidr4(self, *_):
+        """
+        returns a CIDR4 string for the IP address of this server
+
+        :param _: ignored
+
+        :return: string
+        """
         return "{}/32".format(self.hostname_or_ip)
