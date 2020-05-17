@@ -45,9 +45,31 @@ class AzureRunConext(AbstractRunContext):
 
 
 class AzureProvisionerProxy(BaseProvisionerProxy):
+    """
+    Azure provisioner proxy
+
+    Create instances of this proxy to provision resources on Azure
+
+    If you want to use different tenants then you should make differently named instances
+    of this proxy with the appropriate values and give them names to reflect the differences,
+    and then be sure to use those names in the 'cloud=' argument for your Azure resources in
+    your infra model.
+    """
     mapper_domain_name = _azure_domain
 
     def __init__(self, name, subscription_id=None, client_id=None, secret=None, tenant=None):
+        """
+        Create a new provisioner proxy
+
+        :param name: logical proxy name; used to match a particular proxy to the 'cloud=' argument
+            for a resource
+
+        :Keyword args:
+            *   **subscription_id** optional string; Azure subscription ID
+            *   **client_id** optional string; Azure client id
+            *   **secret** optional string; Azure secret
+            *   **tenant** optional string; Azure tenant
+        """
         super(AzureProvisionerProxy, self).__init__(name)
         self.azure_creds = acf.get_azure_credentials(subscription_id=subscription_id,
                                                      client_id=client_id,
