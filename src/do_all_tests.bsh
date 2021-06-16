@@ -13,6 +13,9 @@ echo lxle1 user's .ssh directory so that passwordless logins can be conducted fo
 echo this user. Failure to do this right will result in some of the Paramiko
 echo integration tests failing.
 echo
+echo NOTE: 'usermod -e 99999 lxle1' may be needed first to reactivate the account
+echo   make sure to turn it off again with 'usermod -e 1' when finished
+echo
 echo
 read -p "Do you want to proceed with these tests? " -n 1 -r
 echo
